@@ -1,0 +1,229 @@
+<!DOCType html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <style>th{text-align:left}</style>
+</head>
+<body>
+
+<div class="video-box">
+    <div id="local">
+        <p>Local SDP</p>
+        <textarea disabled="true"></textarea>
+        <div>
+            <button id="callBtn">Call</button><button id="hangupBtn">Hangup</button>
+        </div>
+
+        <p>Local Video</p>
+        <video id="local-video" width="400" height="300" autoplay style="display: none"></video>
+    </div>
+
+    <p>###########################################<p>
+
+    <div id="remote">
+        <p>Remote SDP</p>
+
+        <textarea></textarea>
+        <div>
+            <button id="answerBtn">Answer</button>
+            <button id="acceptBtn">Accept</button>
+        </div>
+
+        <p>Remote Video</p>
+        <video id="remote-video" width="400" height="300" autoplay style="display: none"></video>
+    </p>
+</div>
+
+<script>
+const $ = document.querySelector.bind(document);
+
+const localSdpTextarea = document.querySelector('div#local textarea');
+const localVideo = document.querySelector('video#local-video');
+
+const callButton = document.querySelector('button#callBtn');
+const hangupBtn = document.querySelector('button#hangupBtn');
+const answerButton = document.querySelector('button#answerBtn');
+const acceptButton = document.querySelector('button#acceptBtn');
+
+const remoteSdpTextarea = document.querySelector('div#remote textarea');
+const remoteVideo = document.querySelector('video#remote-video');
+
+isNull = function(obj) {
+    if( typeof(obj)!="undefined" && obj!=null ) {
+        return false;
+    }
+
+    return true;
+}
+
+const config = {
+    iceServers: JSON.parse('[{"urls":["stun:192.168.88.138:3478"],"username":"","credential":""}]')
+};
+
+class RTCClient {
+    constructor (config) {
+        this.mediaStream = null;
+        this.pc = null;
+        this.config = config;
+    }
+
+    init () {
+        this.pc = new window.RTCPeerConnection(config);
+        this.pc.onicecandidate = event => {
+            if (!event.candidate) {
+                return;
+            }
+
+            let json = JSON.stringify(event.candidate);
+            console.log('RTCClient::onicecandidate( localCandidate: ',  json, ' )');
+        };
+
+        // 收到对方的视频流
+        this.pc.onaddstream = event => {
+            console.log('RTCClient::onaddstream( remoteStream: ', event.stream, ' )');
+            remoteVideo.style.display = 'block';
+            remoteVideo.srcObject = event.stream;
+        };
+
+        // 对方关闭
+        this.pc.oniceconnectionstatechange = event => {
+            console.log('RTCClient::oniceconnectionstatechange( iceConnectionState: ', this.pc.iceConnectionState, ' )');
+            if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
+                remoteVideo.srcObject = null;
+                remoteVideo.style.display = 'none';
+            }
+        };
+    }
+
+    async hangup () {
+        this.close();
+
+        localSdpTextarea.value = '';
+        remoteSdpTextarea.value = '';
+        localSdpTextarea.disabled = true;
+        remoteSdpTextarea.disabled = false;
+        callButton.disabled = false;
+        answerButton.disabled = false;
+        acceptButton.disabled = false;
+    }
+
+    async call () {
+        await this.openCamera();
+
+        let offer = await this.pc.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+        });
+        await this.pc.setLocalDescription(offer);
+        let localDescriptionJson = JSON.stringify(this.pc.localDescription);
+        console.log('RTCClient::call( localDescriptionJson :', localDescriptionJson, ' )');
+
+        localSdpTextarea.value = this.pc.localDescription.sdp;
+        answerButton.disabled = true;
+        acceptButton.disabled = false;
+        localSdpTextarea.disabled = true;
+        remoteSdpTextarea.disabled = false;
+        remoteSdpTextarea.value = '';
+    }
+
+    async accpet(answer) {
+        console.log(answer);
+        await this.pc.setRemoteDescription(answer);
+
+        acceptButton.disabled = true;
+        remoteSdpTextarea.disabled = true;
+    }
+
+    async answer (offer) {
+        const ignoreRemote = await this.pc.setRemoteDescription(offer);
+
+        const answer = await this.pc.createAnswer();
+        const ignoreLocal = await this.pc.setLocalDescription(answer);
+
+        let localDescriptionJson = JSON.stringify(this.pc.localDescription);
+        console.log('RTCClient::answer( localDescriptionJson :', localDescriptionJson, ' )');
+
+        localSdpTextarea.value = this.pc.localDescription.sdp;
+        callButton.disabled = true;
+        acceptButton.disabled = true;
+        answerButton.disabled = true;
+        localSdpTextarea.disabled = true;
+        remoteSdpTextarea.disabled = true;
+    }
+
+    async openCamera () {
+        localVideo.style.display = 'block';
+        await this.showLocalVideo();
+    }
+
+    close () {
+        this.pc.close();
+        this.stopLocalVideo();
+        localVideo.style.display = 'none';
+        remoteVideo.style.display = 'none';
+    }
+
+    showLocalVideo () {
+        return window.navigator.mediaDevices.getUserMedia({video: true, audio : true})
+            .then(mediaStream => {
+            this.pc.addStream(mediaStream);
+            this.mediaStream = mediaStream;
+            localVideo.srcObject = mediaStream;
+        }); 
+    }
+
+    stopLocalVideo () {
+        if (this.mediaStream) {
+            this.mediaStream.getVideoTracks().forEach(
+                track => track.stop()
+            );
+        }
+    }
+
+}
+</script>
+<script>
+!function () {
+    if (!window.RTCPeerConnection) {
+        util.showTip('WebRTC is not supported');
+        return;
+    }
+
+    const config = {
+        iceServers: JSON.parse('[{"urls":["stun:192.168.88.17:3478"],"username":"","credential":""}]')
+    };
+
+    let client = new RTCClient(config);
+    client.init();
+
+    callButton.onclick = function call() {
+        client.call();
+    }
+
+    hangupBtn.onclick = function hangup() {
+        client.hangup();
+    }
+
+    answerButton.onclick = function answer() {
+        let remoteSdp = remoteSdpTextarea.value;
+        let offer = {
+            type: 'offer',
+            sdp: remoteSdp
+        }
+
+        client.answer(offer);
+    }
+
+    acceptButton.onclick = function accept() {
+        let remoteSdp = remoteSdpTextarea.value;
+        let answer = {
+            type: 'answer',
+            sdp: remoteSdp
+        }
+        client.accpet(answer);
+    }
+
+}();
+</script>
+</body>
+</html>
