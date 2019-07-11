@@ -1,0 +1,39 @@
+# !/bin/sh
+#
+# Copyright (C) 2015 The QpidNetwork
+# MatchServer Configure
+#
+# Created on: 2015/10/10
+# Author: Max.Chiu
+# Email: Kingsleyyau@gmail.com
+#
+
+DEBUG="CFLAGS=-g"
+
+cd third_party/libev
+chmod +x configure &&
+./configure $(DEBUG) && 
+cd -
+
+cd third_party/sqlite &&
+autoreconf -ivf &&
+chmod +x configure &&
+./configure $(DEBUG) &&
+cd -
+
+cd third_party/curl &&
+autoreconf -ivf &&
+chmod +x configure &&
+./configure $(DEBUG) --disable-shared --enable-static --without-ssl --without-librtmp $(DEBUG) &&
+cd -
+
+cd third_party/libsrtp &&
+chmod +x configure &&
+./configure $(DEBUG) --disable-shared --enable-static &&
+cd -
+
+cd third_party/libnice &&
+chmod +x autogen.sh &&
+./autogen.sh $(DEBUG) &&
+./configure $(DEBUG) --disable-shared --enable-static &&
+cd -

@@ -1,0 +1,290 @@
+libnice 0.1.16 (2019-05-09)
+===========================
+Add API to make it easier to implement ICE trickle
+Add async closing of agent, to cleanly close TURN allocations
+Add Google non-standard NOMINATION STUN attribute
+Fix tests on Windows
+Fix some racy tests
+
+libnice 0.1.15 (2018-12-27)
+===========================
+Add support for Regular Nomination
+Removal of the global lock over all agents
+Add method to compare candidate targets
+Added optional Meson build system, future releases will remove autotools
+Renamed all members of PseudoTcpState enum (compile-time API change)
+Now drops all packets from addresses that have not been validated by an ICE check
+Multiple improvements to ICE interoperability
+Improved RFC compliance
+Improved OC2007 compatibility mode alternate-server support
+
+libnice 0.1.14 (2017-04-03)
+===========================
+Improved RFC compliance
+Split verbose logs into a separate option
+Numerous bug fixes
+Use GnuTLS for hash functions
+Implement NewReno in PseudoTCP
+Requires GLib 2.44 GnuTLS 2.12
+
+libnice 0.1.13 (2015-04-28)
+===========================
+Fix build on non-Windows platforms that don't have getifaddrs()
+Fix build regression on Windows
+
+libnice 0.1.12 (2015-04-22)
+===========================
+Fix regression in SDP parser
+Make examples work on Windows
+Bug fixes on nicesrc
+
+libnice 0.1.11 (2015-04-20)
+===========================
+API: nice_agent_set_local_credentials() for WebRTC
+Nicesink: support GstBufferList
+Better warnings on programming errors
+Build fixes for Solaris and Windows
+Bug and documentation fixes
+
+libnice 0.1.10 (2015-01-28)
+===========================
+Fix bug on component change on the sink
+
+libnice 0.1.9 (2015-01-28)
+==========================
+Make it possible to statically build the GStreamer plugins
+Bug fixes, in particular fix compatibility with coTurn servers
+Documentation fixes
+
+libnice 0.1.8 (2014-10-09)
+==========================
+Added FIN-ACK behavior in the PseudoTCP
+ICE-TCP, both standard mode and Microsoft compatible
+Microsoft compatible TURN-TCP
+API: nice_address_equal_no_port() to compare NiceAddresses ignoring the port
+API: nice_agent_get_component_state() to get the current component state
+API: agent:keepalive-conncheck to make the agent use conncheck as keepalives
+  and fail the connection if there is no answer
+API: agent:ice-tcp, agent:udp-tcp to control ICE-UDP vs ICE-TCP behaviours
+API: agent:bytestream-tcp to know if the send/receives in reliable mode create full packets or not
+API: New signals agent::new-selected-pair-full, agent::new-candidate-full,
+  agent::new-remote-candidate-full which include the NiceCandidates directly
+API: Deprecated agent::new-selected-pair and agent::new-candidate and 
+  agent::new-remote-candidate signals
+Now all signals are emitted at the function return time
+
+libnice 0.1.7 (2014-05-05)
+==========================
+Fix undesired API change that broke Farstream unit testsx
+
+libnice 0.1.6 (2014-04-28)
+==========================
+API: nice_agent_restart_stream() to do a ICE restart on a single strema
+API: nice_component_state_to_string() to get a printable name for a component
+  state
+API: nice_agent_forget_relays() to forget the relays set for a
+  specific component, along with nice_agent_restart_stream(), it allows
+  changing the current relay without dropping the connection.
+It is now possible to add relays after the initial candidate gathering.
+Many bug fixes
+
+libnice 0.1.5 (2014-03-06)
+==========================
+
+API: nice_agent_recv() and nice_agent_recv_nonblocking() as an alternative to
+  the nice_agent_attach_recv()
+API: nice_agent_recv_messages() and nice_agent_recv_messages_nonblocking() to
+  receive multiple messages at the same time
+API: nice_agent_get_io_stream() to get a GIOStream in reliable mode
+API: nice_agent_get_selected_socket() to extract the selected GSocket
+Import Google's newer PseudoTCP code including window scaling
+Improve PseudoTCP performance
+Improve performance
+Build fixes
+
+libnice 0.1.4 (2013-02-22)
+==========================
+
+Fix issue with dribble mode
+Fix issue with TURN permissions
+Fix missing win32 directory from release archive
+Fix support for OC2007
+Added new nice_address_ip_vesion API
+Added new nice_agent_get_selected_pair API
+Added new SDP parsing and generation API
+Added simple examples (simple, threaded and sdp usages examples)
+
+libnice 0.1.3 (2012-09-13)
+==========================
+
+Dribble mode: You can set remote candidates while gathering the local ones
+Add support for GStreamer 1.0, will compile plugins for both 1.0 and 0.10 by default
+Cache GSocketAddress in UdpBsdSocket, creating it is very slow
+
+libnice 0.1.2 (2012-04-03)
+==========================
+
+Fix a bug where a controlled agent may never go to READY if it received early conncheck
+Restart connchecks on a failed candidate pair when receiving a triggered check
+Fix a bug where gathering-done signal could be sent before UPnP mapping finishes
+Fix a race condition where setting remote-candidates on a gathered stream failed if another stream was gathering
+Many fixes to complete and stabilize TURN support 
+Fix a bug in proxy support where TURN packets were misread
+Refactor libnice to use GSocket which works around a glib limitation of g_io_channel on windows
+Fix a bug with receiving error messages during conncheck
+Fix a possible infinite loop bug
+Fix memory leaks and multi-threaded race conditions
+Better compatibility for BSD and Mingw
+Added support files for Visual Studio compilation
+Various fixes to UPnP support
+Fixes to the build system
+
+libnice 0.1.1 (2011-09-07)
+==========================
+
+Fixed BSD and Solaris compatibility
+Fixed PPC64 symbol test
+Removed a few possible leak/bugs
+Fixed compatibility with google's recent protocol change
+
+libnice 0.1.0 (2011-01-20)
+==========================
+
+Added nice_candidate_copy to the public API
+Make stun_timer timeouts configurable (Break API and ABI)
+Add compatibility support for MSOC 2007 and MSOC 2007 R2
+Add MS-TURN support for MSOC
+Added and completed TURN RFC 5766 support
+Add a nice_agent_set_port_range API to force a component to use a specific port
+Fix various bugs and memory leaks
+Improve documentation
+
+libnice 0.0.13 (2010-07-20)
+==========================
+
+Add support for IPv6
+Fix crc32 function conflict with libz.so
+Various bug fixing and code cleaning
+Validate the remote candidate address before adding it
+
+libnice 0.0.12 (2010-05-19)
+==========================
+
+Update compatibility to RFC5245
+Fix a memory corruption bug
+Fix a possible buffer overflow with socks5 proxies
+
+libnice 0.0.11 (2010-03-18)
+===========================
+
+Handle EAGAIN for UDP sockets
+Fix coverity warnings
+Fix a bug with TURN and Channel Bindings
+Add a reliable transport mode using libjingle's PseudoTcp implementation
+Various fixes
+
+libnice 0.0.10 (2009-11-04)
+===========================
+
+Fix some memory leaks with the gstreamer elements
+Fix username/foundation for google TURN candidates
+Fix the sending of hundreds of connectivity checks at once the stream is connected
+Fix BSD support
+Fix reprocessing of already processed early incoming checks when in dribble-mode
+Fix a rare crash with failing relay candidates allocations
+Add a stun_agent_set_software API
+Add a nice_agent_set_software API
+
+libnice 0.0.9 (2009-07-31)
+===========================
+
+Fix some more issues with peer-reflexive candidates in google mode (for early incoming checks)
+Fix SHA1 algorithm when strict aliasing is used
+Fix google mode connectivity with discovered remote peer reflexive candidates
+Fix google/msn mode by not limiting the conncheck list
+Fix the interfaces discovery by using getifaddrs
+Fix compilation on Mac OS X
+Add ToS support to the sockets
+
+
+libnice 0.0.8 (2009-06-19)
+===========================
+
+Remove deprecated g_strcasecmp call
+Use addr instead of base_addr on assigning remote peer-reflexive candidates (fixes crash)
+Use a global mutex and g_source_is_destroyed to avoid race conditions (fixes crashes)
+Unlock the mutex before calling the recv callback
+
+libnice 0.0.7 (2009-06-11)
+===========================
+
+Added UPnP Support
+Fix a race condition when destroying the nice agent
+Stun headers are now installed
+Unset timer's source if they return FALSE
+Fix interoperability with gtalk2voip.com
+Avoid a race condition where a candidate has the wrong user/pass
+Add support for delayed setting of the remote candidates in google mode
+Better connectivity support and race condition fixes
+Keepalive connchecks do not change the state if they fail but data was still received
+Fix foundation generation for remote peer reflexive candidates
+Drop packets when using TCP and the bandwidth is too slow for the data output
+
+
+libnice 0.0.6 (2009-03-31)
+===========================
+
+Fix connectivity checks for detecting when we loose the connection
+Fix a race condition with gtalk that made the call silent after 30 seconds
+Robustness checks with regards to relay information
+Fix a race condition crash with retransmission ticks
+Added a new STUN API : stun_agent_forget_transaction
+Fix a possible crash if tcp-turn is shutdown early in the process
+Fix a crash when a stream is removed
+Fix MSN support by disable keepalive connchecks
+
+
+libnice 0.0.5 (2009-03-04)
+===========================
+
+Name change from nice to libnice
+Added support for HTTP proxies
+Added a nice_interfaces API to query the local interfaces/ips
+Fixed libnice when used in dribble mode
+Fix a data corruption issue with the SHA1 algorithm
+Endianness gets checked at runtime so libnice should compile and work everywhere
+Add compatiblity for WLM2009 ICE
+Export libstun API and add documentation for libstun
+Add connectivity checks during the connection to detect when the peer gets disconnected
+Bug fixes and code cleaning
+
+
+nice 0.0.4 (2008-12-17)
+========================
+
+Fix compilation for 64bits systems
+Revert the use of netbuffer in the gstreamer elements
+Added support for pseudossl-tcp TURN relay for Google
+Added support for SOCKS5 proxy servers for TCP relaying
+Bug fixes and code cleaning
+
+nice 0.0.3 (2008-11-25)
+========================
+
+Stable google talk support
+Added TCP TURN relay support for google.
+Removed openssl dependency.
+
+nice 0.0.2 (2008-11-12)
+========================
+
+Better support for google talk compatibility mode as well as UDP TURN relay compatibility for Google. 
+Removed -Werror compile flag for releases
+
+nice 0.0.1 (2008-11-05)
+========================
+
+Initial release of libnice.
+It has compatibility support for the latest ICE draft 19, as well as google talk and MSN compatibility.
+It also has support for TURN relays using TURN draft 9 if you're in ICE draft 19 compatibility, or specific Google/MSN relay support if you're in Google/MSN compatibility mode.
+The library is multiplatform and should compile fine on Linux, Mac and Windows systems.

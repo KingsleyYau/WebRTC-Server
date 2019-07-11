@@ -43,9 +43,13 @@ class ImService {
         };
 
         // 创建异步框架
+        // WSS
+        let koa_wss = new Koa();
+        this.exApp = wss(koa_wss, {}, options);
+
+        // WS
         let koa = new Koa();
-        // this.exApp = websockify(koa);
-        this.exApp = wss(koa, {}, options);
+        this.exApp2 = websockify(koa);
 
         // 增加公共处理
         this.exApp.ws.use( async (ctx, next) => {
@@ -70,9 +74,35 @@ class ImService {
                 Common.log('im', 'debug', '[' + ctx.socketId  + ']-Im Client ServerOnlineCountKey, ' + res + ', err:' + err);
             });
         });
-
         // 增加路由
         this.exApp.ws.use(mainRouter.routes());
+
+        /***************************************************************/
+        // 增加公共处理
+        this.exApp2.ws.use( async (ctx, next) => {
+            // return `next` to pass the context (ctx) on to the next ws middleware
+
+            // 新的连接, 生成SocketId
+            ctx.socketId = 'SOCKETID-' + Math.random().toString(36).substr(2).toLocaleUpperCase();
+            // 记录连接时间
+            let curTime = new Date();
+            ctx.connectTtime = curTime.getTime();
+
+            Common.log('im', 'debug', '[' + ctx.socketId + ']-Im Client Connected');
+
+            // 等待其他中间件处理的异步返回
+            await next();
+            // 所有中间件处理完成
+
+            // 增加在线数量
+            let appInfo = Common.appInfo();
+            redisClient.client.incr(appInfo.serverUniquePattern,
+                async (err, res) => {
+                    Common.log('im', 'debug', '[' + ctx.socketId  + ']-Im Client ServerOnlineCountKey, ' + res + ', err:' + err);
+                });
+        });
+        // 增加路由
+        this.exApp2.ws.use(mainRouter.routes());
     }
 
     createInternalServer() {
@@ -104,6 +134,7 @@ class ImService {
         }
         AppConfig.exApp.port = exPort;
         this.exApp.listen(exPort);
+        this.exApp2.listen(AppConfig.exApp2.port);
 
         let inPort = AppConfig.inApp.port;
         if( !Common.isNull(opts.number) ) {

@@ -24,7 +24,11 @@ const AppConfig = {
     inApp:{
         host: 'ws://127.0.0.1',     // 服务ip地址
         port: 19877                 // 起始端口
-    }
+    },
+    exApp2:{
+        host: 'ws://127.0.0.1',     // 服务ip地址
+        port: 19878                 // 端口
+    },
 }
 
 module.exports = AppConfig;

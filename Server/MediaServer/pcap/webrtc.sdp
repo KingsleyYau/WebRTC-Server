@@ -1,0 +1,27 @@
+v=0
+o=- 7940101145103205149 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 102
+c=IN IP4 192.168.88.133
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:TWgz
+a=ice-pwd:VIAkUDbpX1xx46u8fvvI6w
+a=candidate:1 1 UDP 2013266431 192.168.88.133 54787 typ host
+a=candidate:2 1 UDP 335544831 192.168.88.133 55652 typ relay raddr 192.168.88.133 rport 9
+a=ice-options:trickle
+a=fingerprint:sha-256 8A:9B:88:96:34:6C:5F:6D:E5:ED:A3:B5:58:60:15:C6:83:1A:00:79:E6:61:8A:8D:70:69:C5:6B:4E:71:82:35
+a=setup:active
+a=mid:0
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:102 H264/90000
+a=rtcp-fb:102 goog-remb
+a=rtcp-fb:102 transport-cc
+a=rtcp-fb:102 ccm fir
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f

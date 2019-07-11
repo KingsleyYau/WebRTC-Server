@@ -4,6 +4,7 @@
 </head>
 
 <script src="jquery.min.js"></script>
+<script src="sdp_serializer.js"></script>
 <!--<script src="socket.io.js"></script>-->
 <script>
 
@@ -86,7 +87,7 @@ function send(obj) {
     obj.id = reqId;
     data = JSON.stringify(obj);
 
-    console.log('Client.send(), ' + data);
+    // console.log('Client.send(), ' + data);
 
     if( client.readyState == client.OPEN ) {
         if( obj.route != "heartbeat" ) {
@@ -195,28 +196,25 @@ function reconnect() {
 }
 
 function heartBeat() {
-    console.log('Client.heartBeat()');
-    setTimeout(() => {
-        if( client.readyState == client.OPEN ) {
-            sendHeartBeat();
-            heartBeat();
-        }
-    }, 10000);
+    // console.log('Client.heartBeat()');
+    // setTimeout(() => {
+    //     if( client.readyState == client.OPEN ) {
+    //         sendHeartBeat();
+    //         heartBeat();
+    //     }
+    // }, 30000);
 }
-
-const config = {
-    iceServers: JSON.parse('[{"urls":["stun:192.168.88.138:3478"],"username":"","credential":""}]')
-};
 
 class RTCClient {
     constructor (config) {
         this.mediaStream = null;
         this.pc = null;
         this.config = config;
+        this.onicecandidate = null;
     }
 
     init () {
-        this.pc = new window.RTCPeerConnection(config);
+        this.pc = new window.RTCPeerConnection(this.config);
 
         this.pc.onicecandidate = event => {
             if (!event.candidate) {
@@ -224,7 +222,12 @@ class RTCClient {
             }
 
             let json = JSON.stringify(event.candidate);
-            console.log('RTCClient::onicecandidate( localCandidate: ',  json, ' )');
+            console.log('RTCClient::onicecandidate( candidate: ',  json, ' )');
+
+            // 通过ICE服务获取到NAT的类型和外网的IP端口
+            let sdp = this.pc.localDescription.sdp;
+            // console.log('RTCClient::onicecandidate( new sdp: ',  sdp, ' )');
+            this.onicecandidate(sdp);
         };
 
         // 收到对方的视频流
@@ -263,16 +266,17 @@ class RTCClient {
         await this.showLocalVideo();
 
         let offer = await this.pc.createOffer({
-            offerToReceiveAudio: true,
+            offerToReceiveAudio: false,
             offerToReceiveVideo: true
         });
+        offer.sdp = this.forceH264(offer.sdp);
         await this.pc.setLocalDescription(offer);
 
-        let localDescriptionJson = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::call( localDescriptionJson :', localDescriptionJson, ' )');
+        let localDescription = JSON.stringify(this.pc.localDescription);
+        console.log('RTCClient::call( localDescription :', localDescription, ' )');
 
         $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
-        $("[id=localSdpTextarea]").attr("disabled", true);
+        // $("[id=localSdpTextarea]").attr("disabled", true);
         $("[id=answerButton]").attr("disabled", true);
         $("[id=acceptButton]").attr("disabled", false);
         $("[id=remoteSdpTextarea]").html("");
@@ -299,7 +303,7 @@ class RTCClient {
         console.log('RTCClient::answer( localDescriptionJson :', localDescriptionJson, ' )');
 
         $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
-        $("[id=localSdpTextarea]").attr("disabled", true);
+        // $("[id=localSdpTextarea]").attr("disabled", true);
         $("[id=callButton]").attr("disabled", true);
         $("[id=answerButton]").attr("disabled", true);
         $("[id=acceptButton]").attr("disabled", true);
@@ -313,7 +317,7 @@ class RTCClient {
 
     async showLocalVideo () {
         $("[id=localVideo]").attr("style", 'display: block');
-        return window.navigator.mediaDevices.getUserMedia({video: true, audio : true})
+        return window.navigator.mediaDevices.getUserMedia({video: true, audio : false})
             .then(mediaStream => {
                 this.pc.addStream(mediaStream);
                 this.mediaStream = mediaStream;
@@ -327,27 +331,68 @@ class RTCClient {
             this.mediaStream.getTracks().forEach(
                 track => track.stop()
             );
-            $("[id=localVideo]").attr('srcObject', 'null');
+            $("[id=localVideo]").attr('srcObject', null);
         }
     }
 
+    // Also remove mode 0 if it's offered
+    // Note, we don't bother removing the fmtp lines, which makes a good test
+    // for some SDP parsing issues.
+    forceH264(sdp) {
+        var newSdp = sdp;
+        newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
+        newSdp = newSdp.replace(/a=rtcp-fb:(?!102)\d{1,3} .*\r\n/g, '');
+        newSdp = newSdp.replace(/a=fmtp:(?!102)\d{1,3} .*\r\n/g, '');
+        newSdp = newSdp.replace(/a=rtpmap:(?!102)\d{1,3} .*\r\n/g, '');
+
+        newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
+        newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
+        newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
+
+        return newSdp;
+    }
+
+    forceNat(sdp) {
+        var newSdp = sdp;
+        // newSdp = newSdp.replace(/.*192.168.88.138.*\r\n/g, '');
+        return newSdp;
+    }
 }
 
 function onload() {
+    if (!window.navigator.mediaDevices) {
+        alert('WebRTC.navigator.mediaDevices is not supported');
+        return;
+    }
+
     if (!window.RTCPeerConnection) {
-        util.showTip('WebRTC is not supported');
+        alert('WebRTC.RTCPeerConnection is not supported');
         return;
     }
 
     const config = {
-        iceServers: JSON.parse('[{"urls":["stun:192.168.88.17:3478"],"username":"","credential":""}]')
+        iceServers: JSON.parse('[{"urls":["stun:192.168.88.133:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"],"username":"","credential":""}]')
+        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"","credential":""}]'), iceTransportPolicy: "relay"
     };
 
+    let type;
     let client = new RTCClient(config);
+    client.onicecandidate = () => {
+        if( type == 'call' ) {
+            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
+            sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+        } else if (type == 'answer') {
+            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
+            sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
+        }
+    };
 
     $("[id=callBtn]").click(function() {
         client.call().then( () => {
-            sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+            type = 'call';
+            // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
         });
     });
 
@@ -363,7 +408,8 @@ function onload() {
         }
 
         client.answer(offer).then( () => {
-            sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
+            type = 'answer';
+            // sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
         });
     });
 

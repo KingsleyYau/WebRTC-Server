@@ -18,6 +18,8 @@ const Path = require('path');
 const Common = require('./lib/common');
 const Session = require('./lib/session');
 const AppConfig = require('./config/app-config');
+// 路由
+const Router = require('koa-router');
 // 项目接口
 const loginRouter = require('./router/http/proxy-router');
 
@@ -55,6 +57,7 @@ class HttpService {
 
         // 增加路由
         this.app.use(loginRouter.routes());
+
     }
 
     start(opts) {

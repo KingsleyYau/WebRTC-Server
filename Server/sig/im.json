@@ -17,7 +17,7 @@
     "args": "",
     "env": {
       "NODE_ENV": "production",
-      "REMOTE_ADDR": "192.168.88.17"
+      "REMOTE_ADDR": "127.0.0.1"
     },
     "env_dev": {
       "NODE_ENV": "development",

@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+upnp_enabled=@UPNP_ENABLED@
+
+Name: libnice
+Description: ICE library
+Version: @VERSION@
+Requires: @NICE_PACKAGES_PUBLIC@ @GUPNP_PACKAGES_PUBLIC@
+Requires.private: @NICE_PACKAGES_PRIVATE@ @GUPNP_PACKAGES_PRIVATE@
+Libs: -L${libdir} -lnice
+Cflags: -I${includedir}/nice -I${includedir}

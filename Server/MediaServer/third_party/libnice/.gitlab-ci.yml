@@ -1,0 +1,127 @@
+stages:
+ - build
+ - test
+
+build autotools:
+ stage: build
+ image: registry.freedesktop.org/libnice/libnice/centos7/autotools-build
+ except:
+  - schedules
+ script:
+  - ifconfig
+  - export BUILD_ID="libnice-$CI_JOB_NAME_$CI_COMMIT_SHA-$CI_JOB_ID"
+  - export PREFIX="$(pwd)/prefix-$BUILD_ID"
+  - export MAKEFLAGS="-j4"
+  - mkdir "$PREFIX"
+  - ./autogen.sh --prefix="$PREFIX" --enable-compile-warnings=error --enable-gtk-doc --enable-introspection
+  - make
+  - make install
+ artifacts:
+   untracked: true
+
+test autotools:
+  stage: test
+  image: registry.freedesktop.org/libnice/libnice/centos7/autotools-build
+  except:
+    - schedules
+  dependencies:
+    - build autotools
+  script:
+    - ifconfig
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - config.log
+      - nice/test-suite.log
+      - random/test-suite.log
+      - tests/test-suite.log
+      - stun/tests/test-suite.log
+      - docs/reference/libnice/test-suite.log
+
+distcheck autotools:
+  stage: test
+  image: registry.freedesktop.org/libnice/libnice/centos7/autotools-build
+  except:
+    - schedules
+  dependencies:
+    - build autotools
+  script:
+    - ifconfig
+    - make distcheck
+  artifacts:
+    paths:
+      - libnice-*.tar.gz
+
+build meson:
+  stage: build
+  image: registry.freedesktop.org/libnice/libnice/centos7/meson-build
+  variables:
+    PREFIX: "${CI_PROJECT_DIR}/libnice-prefix"
+  except:
+    - schedules
+  before_script:
+    - mkdir -p "${CI_PROJECT_DIR}"
+  script:
+    ## && true to make gitlab-ci happy
+    - source scl_source enable rh-python36 && true
+    - meson --werror --warnlevel 2 -Dgtk_doc=enabled --prefix=$PREFIX build/
+    - ninja-build -C build/
+  artifacts:
+    paths:
+      - build/
+
+test meson:
+  stage: test
+  image: registry.freedesktop.org/libnice/libnice/centos7/meson-build
+  allow_failure: true
+  dependencies:
+    - build meson
+  except:
+    - schedules
+  script:
+    - ifconfig
+    - source scl_source enable rh-python36 && true
+    - meson test -C build/ --print-errorlogs
+  artifacts:
+    when: on_failure
+    paths:
+      - build/meson-logs/
+
+doc-and-install meson:
+  stage: test
+  image: registry.freedesktop.org/libnice/libnice/centos7/meson-build
+  dependencies:
+    - build meson
+  except:
+    - schedules
+  variables:
+    PREFIX: "${CI_PROJECT_DIR}/libnice-prefix"
+  script:
+    - source scl_source enable rh-python36 && true
+    - ninja-build -C build/ libnice-doc
+    - ninja-build -C build/ install
+    - ls -lR ${PREFIX}
+  artifacts:
+    paths:
+      - build/docs/reference/libnice/html/
+
+submit-to-coverity:
+ stage: test
+ image: registry.freedesktop.org/libnice/libnice/centos7/autotools-build
+ variables:
+   COVERITY_PROJECT: libnice
+ only:
+  - schedules
+  
+ dependencies: []
+ script:
+  - curl -v https://scan.coverity.com/download/linux64  -o coverity_tool.tgz  --form token="${COVERITY_TOKEN}" --form project="${COVERITY_PROJECT}" && tar xf coverity_tool.tgz && rm coverity_tool.tgz
+  - mv cov-analysis-linux64-* cov-analysis-linux64
+  - ./autogen.sh --prefix="$PREFIX" --disable-gtk-doc --disable-introspection
+  - make clean
+  - export PATH="$PATH:${CI_PROJECT_DIR}/cov-analysis-linux64/bin"
+  - echo $PATH
+  - cov-build --dir cov-int make -j4
+  - tar czvf libnice.tgz cov-int
+  - curl --form token=$COVERITY_TOKEN --form email=olivier.crete@ocrete.ca --form file=@libnice.tgz --form version="${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}" --form description="CI weekly run" https://scan.coverity.com/builds?project=libnice
