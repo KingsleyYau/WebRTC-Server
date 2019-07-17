@@ -24,6 +24,8 @@ namespace mediaserver {
 ::GMainLoop* gLoop = NULL;
 ::GThread* gLoopThread = NULL;
 
+static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
+
 void* loop_thread(void *data) {
 	::GMainLoop* pLoop = (GMainLoop *)data;
     g_main_loop_run(pLoop);
@@ -83,8 +85,16 @@ IceClient::~IceClient() {
     }
 }
 
-bool IceClient::Init() {
+bool IceClient::Start() {
 	bool bFlag = false;
+
+	LogAync(
+			LOG_MSG,
+			"IceClient::Start( "
+			"this : %p "
+			")",
+			this
+			);
 
 	mpAgent = nice_agent_new(g_main_loop_get_context(gLoop), NICE_COMPATIBILITY_RFC5245);
 
@@ -98,8 +108,8 @@ bool IceClient::Init() {
      * stun-initial-timeout:初始值
      *
      */
-	// 被动呼叫, controlling-mode为1
-    g_object_set(mpAgent, "controlling-mode", 1, NULL);
+	// 被动呼叫, controlling-mode为0
+    g_object_set(mpAgent, "controlling-mode", 0, NULL);
     // 允许使用turn
     g_object_set(mpAgent, "ice-tcp", FALSE, NULL);
     // 强制使用turn转发
@@ -109,7 +119,11 @@ bool IceClient::Init() {
     g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
-//    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
+    // 保持心跳
+    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
+
+    g_object_set(mpAgent, "stun-server", "192.168.88.133", NULL);
+    g_object_set(mpAgent, "stun-server-port", 3478, NULL);
 
     // 绑定本地IP
     NiceAddress addrLocal;
@@ -124,19 +138,20 @@ bool IceClient::Init() {
     guint componentId = 1;
 	guint streamId = nice_agent_add_stream(mpAgent, componentId);
 	if ( streamId != 0 ) {
-		bFlag = true;
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+//		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
+
+		bFlag = true;
 	}
 
 	LogAync(
 			LOG_MSG,
-			"IceClient::Init( "
+			"IceClient::Start( "
 			"this : %p, "
 			"[%s], "
 			"streamId : %u, "
@@ -151,6 +166,17 @@ bool IceClient::Init() {
 	return bFlag;
 }
 
+void IceClient::Stop() {
+	LogAync(
+			LOG_MSG,
+			"IceClient::Stop( "
+			"this : %p, "
+			"[OK] "
+			")",
+			this
+			);
+}
+
 void IceClient::SetCallback(IceClientCallback *callback) {
 	mpIceClientCallback = callback;
 }
@@ -163,6 +189,14 @@ int IceClient::SendData(const void *data, unsigned int len) {
 	int sendSize = 0;
 	sendSize = nice_agent_send(mpAgent, mStreamId, mComponentId, len, (const gchar *)data);
 	return sendSize;
+}
+
+const string& IceClient::GetLocalAddress() {
+	return mLocalAddress;
+}
+
+const string& IceClient::GetRemoteAddress() {
+	return mRemoteAddress;
 }
 
 bool IceClient::ParseRemoteSdp(unsigned int streamId) {
@@ -249,22 +283,22 @@ void IceClient::OnClose(::NiceAgent *agent) {
 }
 
 void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int len, char *buf) {
-	LogAync(
-			LOG_MSG,
-			"IceClient::OnNiceRecv( "
-			"this : %p, "
-			"streamId : %u, "
-			"componentId : %u, "
-			"len : %u "
-			")",
-			this,
-			streamId,
-			componentId,
-			len
-			);
+//	LogAync(
+//			LOG_MSG,
+//			"IceClient::OnNiceRecv( "
+//			"this : %p, "
+//			"streamId : %u, "
+//			"componentId : %u, "
+//			"len : %u "
+//			")",
+//			this,
+//			streamId,
+//			componentId,
+//			len
+//			);
 
 	if( mpIceClientCallback ) {
-		mpIceClientCallback->OnIceRecvData(this, (const char *)buf, len);
+		mpIceClientCallback->OnIceRecvData(this, (const char *)buf, len, streamId, componentId);
 	}
 }
 
@@ -309,24 +343,26 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 	gchar remoteIp[INET6_ADDRSTRLEN] = {0};
 	nice_address_to_string(&remote->addr, remoteIp);
 
+	char tmp[128];
+	sprintf(tmp, "(%s)%s:%u", CandidateTypeName[local->type], localIp, nice_address_get_port(&local->addr));
+	mLocalAddress = tmp;
+	sprintf(tmp, "(%s)%s:%u", CandidateTypeName[remote->type], remoteIp, nice_address_get_port(&remote->addr));
+	mRemoteAddress = tmp;
+
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnNewSelectedPairFull( "
 			"this : %p, "
 			"streamId : %u, "
 			"componentId : %u, "
-			"local : (%u) %s:%u, "
-			"remote : (%u) %s:%u "
+			"local : %s, "
+			"remote : %s "
 			")",
 			this,
 			streamId,
 			componentId,
-			local->type,
-			localIp,
-			nice_address_get_port(&local->addr),
-			remote->type,
-			remoteIp,
-			nice_address_get_port(&remote->addr)
+			mLocalAddress.c_str(),
+			mRemoteAddress.c_str()
 			);
 
 	if( mpIceClientCallback ) {

@@ -166,10 +166,7 @@ bool MediaServer::Start() {
 
 	// 初始化全局属性
 	HttpClient::Init();
-	if( !RtpClient::GobalInit() ) {
-		return false;
-	}
-	if( !IceClient::GobalInit() ) {
+	if( !WebRTC::GobalInit() ) {
 		return false;
 	}
 
@@ -692,8 +689,8 @@ void MediaServer::OnRequestCallSdp(HttpParser* parser) {
 				}
 
 				WebRTC *rtc = new WebRTC();
-				rtc->Init();
 				rtc->SetRemoteSdp(sdp);
+				rtc->Start();
 			}
 		}
 	}

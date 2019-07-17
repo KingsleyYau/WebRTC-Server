@@ -12,130 +12,43 @@
 #include <common/LogManager.h>
 #include <common/Math.h>
 #include <common/CommonFunc.h>
+#include <common/Arithmetic.h>
 
 // libsrtp
 #include <srtp.h>
 #include <srtp_priv.h>
 
 /*
- * RTP_HEADER_LEN indicates the size of an RTP header
+ * SRTP key size
  */
-#define RTP_HEADER_LEN 12
 #define MAX_KEY_LEN 96
-/*
- * RTP_MAX_BUF_LEN defines the largest RTP packet in the rtp.c implementation
- */
-//#define RTP_MAX_BUF_LEN 16384
-#define MTU 1514
-#define RTP_HEADER_SIZE 54
-#define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
-typedef struct {
-    srtp_hdr_t header;
-    char body[RTP_MAX_BUF_LEN];
-} RtpClientMsg;
 
-/* DTLS stuff */
-#define DTLS_CIPHERS "ALL:NULL:eNULL:aNULL"
+//#define MTU 1500
+///*
+// * RTP_HEADER_LEN indicates the size of an RTP header
+// */
+//#define RTP_HEADER_LEN 12
+//#define RTP_HEADER_SIZE 54
+//#define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
+//typedef struct {
+//    srtp_hdr_t header;
+//    char body[RTP_MAX_BUF_LEN];
+//} RtpMsg;
 
 namespace mediaserver {
-SSL_CTX *gpSSLCtx;
-X509 *gpSSLCert;
-EVP_PKEY *gpSSLKey;
-unsigned char gFingerprint[EVP_MAX_MD_SIZE * 3];
-
-void cb_dtls(const SSL *ssl, int where, int ret) {
-}
-
-int RtpClient::Generate_SSL_Keys(X509** certificate, EVP_PKEY** privateKey) {
-	return 0;
-}
-
-bool RtpClient::Load_SSL_Keys(const char* server_pem, const char* server_key, X509** certificate, EVP_PKEY** privateKey) {
-	bool bFlag = false;
-
-    X509* cert = X509_new();
-    BIO* bio_cert = BIO_new_file(server_pem, "rb");
-    if( bio_cert ) {
-        PEM_read_bio_X509(bio_cert, &cert, NULL, NULL);
-        BIO_free(bio_cert);
-        *certificate = cert;
-    }
-
-    EVP_PKEY* key = EVP_PKEY_new();
-    BIO* bio_key = BIO_new_file(server_key, "rb");
-    if( bio_key ) {
-        PEM_read_bio_PrivateKey(bio_key, &key, NULL, NULL);
-        BIO_free(bio_key);
-        *privateKey = key;
-    }
-
-    if( *certificate && *privateKey ) {
-    	bFlag = true;
-    }
-
-    return bFlag;
-}
-
 bool RtpClient::GobalInit() {
 	bool bFlag = false;
-
-	ERR_load_BIO_strings();
-	SSL_load_error_strings();
-	OpenSSL_add_all_algorithms();
 
     /* initialize srtp library */
 	srtp_err_status_t status = srtp_init();
 	bFlag = (status == srtp_err_status_ok);
-	if( bFlag ) {
-		gpSSLCtx = SSL_CTX_new(DTLS_method());
-		bFlag = (gpSSLCtx != NULL);
-	}
-	if( bFlag ) {
-		// Load from disk
-		bFlag = Load_SSL_Keys("./ssl/server.crt", "./ssl/server.key", &gpSSLCert, &gpSSLKey);
-		// Generate new key
-//		bFlag = (GenerateSSLKeys(&gpSSLCert, &gpSSLKey) == 0);
-	}
-	if( bFlag ) {
-		bFlag = SSL_CTX_use_certificate(gpSSLCtx, gpSSLCert);
-	}
-	if( bFlag ) {
-		bFlag = SSL_CTX_use_PrivateKey(gpSSLCtx, gpSSLKey);
-	}
-	if( bFlag ) {
-		bFlag = SSL_CTX_check_private_key(gpSSLCtx);
-	}
-	if( bFlag ) {
-		SSL_CTX_set_read_ahead(gpSSLCtx, 1);
-		SSL_CTX_set_cipher_list(gpSSLCtx, DTLS_CIPHERS);
-	}
-	if( bFlag ) {
-		memset(gFingerprint, 0, sizeof(gFingerprint));
-	    unsigned int size;
-	    unsigned char fingerprint[EVP_MAX_MD_SIZE];
-	    bFlag = X509_digest(gpSSLCert, EVP_sha256(), (unsigned char *)fingerprint, &size);
-	    char *c = (char *)&gFingerprint;
-	    for(int i = 0; i < size; i++) {
-	    	sprintf(c, "%.2X:", fingerprint[i]);
-	    	c += 3;
-	    }
-	    if( bFlag ) {
-	    	*(c - 1) = 0;
-	    }
-	}
 
 	LogAync(
 			LOG_ERR_USER,
 			"RtpClient::GobalInit( "
-			"[%s], "
-			"SSL-Version : %s, "
-			"SSL-Error : %s, "
-			"gFingerPrint : %s "
+			"[%s] "
 			")",
-			bFlag?"Success":"Fail",
-			OpenSSL_version(OPENSSL_VERSION),
-			ERR_reason_error_string(ERR_get_error()),
-			gFingerprint
+			bFlag?"OK":"Fail"
 			);
 
 	return bFlag;
@@ -144,6 +57,15 @@ bool RtpClient::GobalInit() {
 RtpClient::RtpClient():
 		mClientMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
+	// Status
+	mRunning = false;
+
+	// Socket
+	mpSocketSender = NULL;
+
+	// libsrtp
+	mpRecvPolicy = new srtp_policy_t();
+
 	Reset();
 }
 
@@ -161,18 +83,15 @@ RtpClient::~RtpClient() {
     }
     mPpsSize = 0;
 
-    if (mpSSL) {
-        SSL_free(mpSSL);
-        mpSSL = NULL;
+    if ( mpRecvPolicy ) {
+    	delete mpRecvPolicy;
+    	mpRecvPolicy = NULL;
     }
 }
 
 void RtpClient::Reset() {
-	// Status
-	mRunning = false;
-
-	// Socket
-	mpSocketSender = NULL;
+	// libsrtp
+	mpSrtpCtx = NULL;
 
 	// Video
 	mVideoTimestamp = 0;
@@ -188,54 +107,39 @@ void RtpClient::Reset() {
 	mAudioRtpTimestamp = 0;
 	mAudioRtpSeq = 0;
 
-	// libsrtp
-	/* ssrc value hardcoded for now */
-	mSSRC = 0xDEADBEEF;
-
 	mpSps = NULL;
 	mSpsSize = 0;
 	mpPps = NULL;
 	mPpsSize = 0;
 
-	// libopenssl
-	mpSSL = NULL;
+	mRecving = false;
 }
 
 void RtpClient::SetSocketSender(SocketSender *sender) {
 	mpSocketSender = sender;
 }
 
-bool RtpClient::Init() {
+bool RtpClient::Start() {
 	bool bFlag = true;
+
+	LogAync(
+			LOG_MSG,
+			"RtpClient::Start( "
+			"this : %p, "
+			")",
+			this
+			);
 
 	srtp_err_status_t status = srtp_err_status_ok;
 
 	mClientMutex.lock();
 	if( mRunning ) {
-		Destroy();
+		Stop();
 	}
 
 	mRunning = true;
 
     if( bFlag ) {
-    	// Initialize SSL and BIO
-    	mpSSL = SSL_new(gpSSLCtx);
-    	SSL_set_ex_data(mpSSL, 0, this);
-    	SSL_set_info_callback(mpSSL, cb_dtls);
-
-    	mpReadBIO = BIO_new(BIO_s_mem());
-    	BIO_set_mem_eof_return(mpReadBIO, -1);
-    	mpWriteBIO = BIO_new(BIO_s_mem());
-    	BIO_set_mem_eof_return(mpWriteBIO, -1);
-
-    	SSL_set_bio(mpSSL, mpReadBIO, mpWriteBIO);
-    	SSL_set_connect_state(mpSSL);
-//    	SSL_set_accept_state(mpSSL);
-    	EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-    	SSL_set_options(mpSSL, SSL_OP_SINGLE_ECDH_USE);
-    	SSL_set_tmp_ecdh(mpSSL, ecdh);
-    	EC_KEY_free(ecdh);
-
     	// Initialize libsrtp
     	srtp_policy_t policy;
     	memset(&policy, 0x0, sizeof(srtp_policy_t));
@@ -255,8 +159,7 @@ bool RtpClient::Init() {
         srtp_crypto_policy_set_null_cipher_hmac_null(&policy.rtcp);
 
         policy.key = (uint8_t *)key;
-        policy.ssrc.type = ssrc_specific;
-        policy.ssrc.value = mSSRC;
+        policy.ssrc.type = ssrc_any_outbound;
         policy.window_size = 0;
         policy.allow_repeat_tx = 0;
         policy.ekt = NULL;
@@ -269,7 +172,7 @@ bool RtpClient::Init() {
 	if( bFlag ) {
 		LogAync(
 				LOG_MSG,
-				"RtpClient::Init( "
+				"RtpClient::Start( "
 				"this : %p, "
 				"[OK] "
 				")",
@@ -278,7 +181,7 @@ bool RtpClient::Init() {
 	} else {
 		LogAync(
 				LOG_ERR_SYS,
-				"RtpClient::Init( "
+				"RtpClient::Start( "
 				"this : %p, "
 				"[Fail], "
 				"status : %d "
@@ -286,7 +189,7 @@ bool RtpClient::Init() {
 				this,
 				status
 				);
-		Destroy();
+		Stop();
 	}
 
 	mClientMutex.unlock();
@@ -294,15 +197,7 @@ bool RtpClient::Init() {
 	return bFlag;
 }
 
-void RtpClient::Destroy() {
-	LogAync(
-			LOG_WARNING,
-			"RtpClient::Destroy( "
-			"this : %p "
-			")",
-			this
-			);
-
+void RtpClient::Stop() {
 	mClientMutex.lock();
 	if( mRunning ) {
 		mRunning = false;
@@ -327,27 +222,85 @@ void RtpClient::Destroy() {
 		Reset();
 	}
 	mClientMutex.unlock();
-}
-
-bool RtpClient::Handshake() {
-	bool bFlag = true;
 
 	LogAync(
-			LOG_MSG,
-			"RtpClient::Handshake( "
-			"this : %p "
+			LOG_WARNING,
+			"RtpClient::Stop( "
+			"this : %p, "
+			"[OK] "
 			")",
 			this
 			);
+}
 
-	int ret = SSL_do_handshake(mpSSL);
-//	int ret = SSL_connect(mpSSL);
-	bFlag = CheckHandshake();
+bool RtpClient::StartRecv(char *remoteKey, int size) {
+	bool bFlag = true;
+
+	Arithmetic art;
+	LogAync(
+			LOG_MSG,
+			"RtpClient::StartRecv( "
+			"this : %p, "
+			"size : %d, "
+			"remoteKey : %s "
+			")",
+			this,
+			size,
+			art.AsciiToHexWithSep(remoteKey, size).c_str()
+			);
+
+	mClientMutex.lock();
+	if( mRecving ) {
+	}
+
+	mRecving = true;
+
+	// Initialize libsrtp
+	memset(mpRecvPolicy, 0x0, sizeof(srtp_policy_t));
+
+	srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtp);
+	srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtcp);
+
+    mpRecvPolicy->key = (uint8_t *)remoteKey;
+    mpRecvPolicy->ssrc.type = ssrc_any_inbound;
+    mpRecvPolicy->ssrc.value = 0;
+    mpRecvPolicy->window_size = 0;
+    mpRecvPolicy->allow_repeat_tx = 0;
+    mpRecvPolicy->ekt = NULL;
+    mpRecvPolicy->next = NULL;
+
+    srtp_err_status_t status = srtp_err_status_ok;
+	status = srtp_create(&mpRecvSrtpCtx, mpRecvPolicy);
+	bFlag = (status == srtp_err_status_ok);
+
+	if( bFlag ) {
+		LogAync(
+				LOG_MSG,
+				"RtpClient::StartRecv( "
+				"this : %p, "
+				"[OK] "
+				")",
+				this
+				);
+	} else {
+		LogAync(
+				LOG_ERR_SYS,
+				"RtpClient::StartRecv( "
+				"this : %p, "
+				"[Fail], "
+				"status : %d "
+				")",
+				this,
+				status
+				);
+	}
+
+	mClientMutex.unlock();
 
 	return bFlag;
 }
 
-void RtpClient::SetKeyFrameInfo(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp) {
+void RtpClient::SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp) {
 	mNaluHeaderSize = naluHeaderSize;
 
     bool bSpsChange = true;
@@ -399,7 +352,7 @@ void RtpClient::SetKeyFrameInfo(const char *sps, int spsSize, const char *pps, i
     if( bSpsChange || bPpsChange ) {
     	LogAync(
     			LOG_STAT,
-    			"RtpClient::SetKeyFrameInfo( "
+    			"RtpClient::SetVideoKeyFrameInfoH264( "
     			"this : %p, "
     			"timestamp : %u, "
 				"mSpsSize : %d, "
@@ -415,7 +368,7 @@ void RtpClient::SetKeyFrameInfo(const char *sps, int spsSize, const char *pps, i
     }
 }
 
-bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned int timestamp) {
+bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigned int timestamp) {
 	bool bFlag = true;
 
 	srtp_err_status_t status = srtp_err_status_ok;
@@ -438,9 +391,9 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
         mSendVideoFrameTimestamp += sendTimestamp * 90;
         mInputVideoTimestamp = timestamp;
 
-        SendVideoKeyFrame();
+        SendVideoKeyFrameH264();
 
-		RtpClientMsg msg;
+		RtpPacket pkt;
 		int lastSize = 0;
 		int bodySize = 0;
 		int pktSize = 0;
@@ -456,11 +409,11 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 
 	        	const char *body = nalu->GetNaluBody();
 	        	lastSize = nalu->GetNaluBodySize();
-	        	if( lastSize <= sizeof(msg.body) ) {
+	        	if( lastSize <= sizeof(pkt.body) ) {
 	        		// Send single NALU with one RTP packet
 		        	LogAync(
 		        			LOG_STAT,
-		        			"RtpClient::SendVideoFrame( "
+		        			"RtpClient::SendVideoFrameH264( "
 		        			"this : %p, "
 							"[Send single NALU with single RTP packet], "
 		        			"timestamp : %u, "
@@ -474,32 +427,32 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 							nalu->GetNaluBodySize()
 		        			);
 
-	    			msg.header.ssrc = htonl(mSSRC);
-	    			msg.header.seq = htons(mVideoRtpSeq++);
-	    			msg.header.ts = htonl(mSendVideoFrameTimestamp);
-	    			msg.header.m = 1;
-	    			msg.header.pt = 96;
-	    			msg.header.version = 2;
-	    			msg.header.p = 0;
-	    			msg.header.x = 0;
-	    			msg.header.cc = 0;
+	    			pkt.header.ssrc = htonl(0x12345678);
+	    			pkt.header.seq = htons(mVideoRtpSeq++);
+	    			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
+	    			pkt.header.m = 1;
+	    			pkt.header.pt = 96;
+	    			pkt.header.version = 2;
+	    			pkt.header.p = 0;
+	    			pkt.header.x = 0;
+	    			pkt.header.cc = 0;
 
 	    			bodySize = lastSize;
 	    			// NALU payload
-	    			memcpy(msg.body, body, bodySize);
+	    			memcpy(pkt.body, body, bodySize);
 
 	    			pktSize = RTP_HEADER_LEN + bodySize;
-	    			status = srtp_protect(mpSrtpCtx, &msg.header, &pktSize);
+	    			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
 	    		    if (status == srtp_err_status_ok) {
 	    		    	if( mpSocketSender ) {
-	    		    		int sendSize = mpSocketSender->SendData((void *)&msg, pktSize);
+	    		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
 							if (sendSize != pktSize) {
 								bFlag = false;
 							}
 	    		    	} else {
 	    		    		bFlag = false;
 	    		    	}
-//						int sendSize = sendto(mFd, (void *)&msg, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
+//						int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 //						if (sendSize != pktSize) {
 //							bFlag = false;
 //						}
@@ -511,7 +464,7 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 	        		// Send single NALU with multiple RTP packets
 		        	LogAync(
 		        			LOG_STAT,
-		        			"RtpClient::SendVideoFrame( "
+		        			"RtpClient::SendVideoFrameH264( "
 		        			"this : %p, "
 							"[Send single NALU with multiple RTP packets], "
 		        			"timestamp : %u, "
@@ -545,17 +498,17 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 
 			        	while( true ) {
 			        		// 2 bytes for FU indicator and FU header
-			        		bodySize = MIN(lastSize, sizeof(msg.body) - 2);
+			        		bodySize = MIN(lastSize, sizeof(pkt.body) - 2);
 
-			    			msg.header.ssrc = htonl(mSSRC);
-			    			msg.header.seq = htons(mVideoRtpSeq++);
-			    			msg.header.ts = htonl(mSendVideoFrameTimestamp);
-			    			msg.header.m = (lastSize <= bodySize)?1:0;
-			    			msg.header.pt = 96;
-			    			msg.header.version = 2;
-			    			msg.header.p = 0;
-			    			msg.header.x = 0;
-			    			msg.header.cc = 0;
+			    			pkt.header.ssrc = htonl(0x12345678);
+			    			pkt.header.seq = htons(mVideoRtpSeq++);
+			    			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
+			    			pkt.header.m = (lastSize <= bodySize)?1:0;
+			    			pkt.header.pt = 96;
+			    			pkt.header.version = 2;
+			    			pkt.header.p = 0;
+			    			pkt.header.x = 0;
+			    			pkt.header.cc = 0;
 
 		    		    	// Hard code here, cause 0x7C means important, 0x5C means not
 		    		    	/**
@@ -565,43 +518,43 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 		    		    	 * [7].[6.5].[4.3.2.1.0]
 		    		    	 * 28 : FU-A
 		    		    	 */
-		    		    	msg.body[0] = 0x60 | 28;
+		    		    	pkt.body[0] = 0x60 | 28;
 		    		    	/**
 		    		    	 * FU header
 		    		    	 * [S].[E].[R].[  TYPE   ]
 		    		    	 * [7].[6].[5].[4.3.2.1.0]
 		    		    	 */
-							msg.body[1] = nalu->GetNaluType();
-		    		    	if( packetIndex == 0 && !msg.header.m ) {
+							pkt.body[1] = nalu->GetNaluType();
+		    		    	if( packetIndex == 0 && !pkt.header.m ) {
 		    		    		// Start packet
-		    		    		msg.body[1] |= 0x80;
-		    		    	} else if( msg.header.m ) {
+		    		    		pkt.body[1] |= 0x80;
+		    		    	} else if( pkt.header.m ) {
 		    		    		// Last packet
-		    		    		msg.body[1] |= 0x40;
+		    		    		pkt.body[1] |= 0x40;
 		    		    	} else {
 		    		    		// Middle packet
 		    		    	}
 
 		    		    	// FU payload
-							memcpy(msg.body + 2, body + sentSize, bodySize);
+							memcpy(pkt.body + 2, body + sentSize, bodySize);
 
 			    			// Whole size
 			    			pktSize = RTP_HEADER_LEN + 2 + bodySize;
-			    			status = srtp_protect(mpSrtpCtx, &msg.header, &pktSize);
+			    			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
 			    		    if (status == srtp_err_status_ok) {
 			    		    	int sendSize = 0;
 			    		    	if( mpSocketSender ) {
-			    		    		sendSize = mpSocketSender->SendData((void *)&msg, pktSize);
+			    		    		sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
 			    		    	}
-//								int sendSize = sendto(mFd, (void *)&msg, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
+//								int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 
 								unsigned char t = nalu->GetNaluType();
-								unsigned char d = msg.body[0];
-								unsigned char h = msg.body[1];
+								unsigned char d = pkt.body[0];
+								unsigned char h = pkt.body[1];
 
 					        	LogAync(
 					        			LOG_STAT,
-										"RtpClient::SendVideoFrame( "
+										"RtpClient::SendVideoFrameH264( "
 										"this : %p, "
 										"[Send FUs packet], "
 										"timestamp : %u, "
@@ -617,7 +570,7 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 										d,
 										h,
 										pktSize,
-										msg.header.m?", [Mark] ":""
+										pkt.header.m?", [Mark] ":""
 										);
 
 								if (sendSize == pktSize) {
@@ -651,7 +604,7 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 
 //	LogAync(
 //			LOG_WARNING,
-//			"RtpClient::SendVideoFrame( "
+//			"RtpClient::SendVideoFrameH264( "
 //			"this : %p, "
 //			"[%s], "
 //			"timestamp : %d, "
@@ -668,21 +621,21 @@ bool RtpClient::SendVideoFrame(const char* frame, unsigned int size, unsigned in
 	return bFlag;
 }
 
-bool RtpClient::SendVideoKeyFrame() {
+bool RtpClient::SendVideoKeyFrameH264() {
 	bool bFlag = true;
 
 	srtp_err_status_t status = srtp_err_status_ok;
-	RtpClientMsg msg;
+	RtpPacket pkt;
 	int lastSize = 0;
 	int bodySize = 0;
 	int pktSize = 0;
 
 	mClientMutex.lock();
 	if( mRunning ) {
-		if( mVideoFrameCount++ % 10 == 0 ) {
+		if( mpSps && mPpsSize && mVideoFrameCount++ % 10 == 0 ) {
 	    	LogAync(
 	    			LOG_STAT,
-	    			"RtpClient::SendVideoKeyFrame( "
+	    			"RtpClient::SendVideoKeyFrameH264( "
 	    			"this : %p, "
 					"[Send SPS/PPS RTP packet], "
 	    			"timestamp : %u "
@@ -691,16 +644,15 @@ bool RtpClient::SendVideoKeyFrame() {
 					mSendVideoFrameTimestamp
 	    			);
 
-			msg.header.ssrc = htonl(mSSRC);
-			msg.header.seq = htons(mVideoRtpSeq++);
-			msg.header.ts = htonl(mSendVideoFrameTimestamp);
-			msg.header.m = 0;
-			msg.header.pt = 96;
-			msg.header.version = 2;
-			msg.header.p = 0;
-			msg.header.x = 0;
-			msg.header.cc = 0;
-
+			pkt.header.ssrc = htonl(0x12345678);
+			pkt.header.seq = htons(mVideoRtpSeq++);
+			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
+			pkt.header.m = 0;
+			pkt.header.pt = 96;
+			pkt.header.version = 2;
+			pkt.header.p = 0;
+			pkt.header.x = 0;
+			pkt.header.cc = 0;
 
 	    	// Hard code here, cause 0x7C means important, 0x5C means not
 	    	/**
@@ -710,35 +662,35 @@ bool RtpClient::SendVideoKeyFrame() {
 	    	 * 24(0x18) : STAP-A
 	    	 */
 			bodySize = 0;
-			msg.body[bodySize++] = 0x18;
+			pkt.body[bodySize++] = 0x18;
 			// sps size 2 bytes
 			short spsLength = htons(mSpsSize);
-			memcpy(msg.body + bodySize, (const void *)&spsLength, mSpsSize);
+			memcpy(pkt.body + bodySize, (const void *)&spsLength, mSpsSize);
 			bodySize += sizeof(spsLength);
 			// sps data
-			memcpy(msg.body + bodySize, mpSps, mSpsSize);
+			memcpy(pkt.body + bodySize, mpSps, mSpsSize);
 			bodySize += mSpsSize;
 
 			// pps size 2 bytes
 			short ppsLength = htons(mPpsSize);
-			memcpy(msg.body + bodySize, (const void *)&ppsLength, sizeof(ppsLength));
+			memcpy(pkt.body + bodySize, (const void *)&ppsLength, sizeof(ppsLength));
 			bodySize += sizeof(ppsLength);
 			// pps data
-			memcpy(msg.body + bodySize, mpPps, mPpsSize);
+			memcpy(pkt.body + bodySize, mpPps, mPpsSize);
 			bodySize += mPpsSize;
 
 			pktSize = RTP_HEADER_LEN + bodySize;
-			status = srtp_protect(mpSrtpCtx, &msg.header, &pktSize);
+			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
 		    if (status == srtp_err_status_ok) {
 		    	if( mpSocketSender ) {
-		    		int sendSize = mpSocketSender->SendData((void *)&msg, pktSize);
+		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
 					if (sendSize != pktSize) {
 						bFlag = false;
 					}
 		    	} else {
 		    		bFlag = false;
 		    	}
-//				int sendSize = sendto(mFd, (void *)&msg, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
+//				int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 //				if (sendSize != pktSize) {
 //					bFlag = false;
 //				}
@@ -769,148 +721,118 @@ bool RtpClient::SendAudioFrame(const char* frame, unsigned int size, unsigned in
 	return bFlag;
 }
 
-bool RtpClient::RecvFrame(const char* frame, unsigned int size) {
+
+bool RtpClient::SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
-	LogAync(
-			LOG_WARNING,
-			"RtpClient::RecvFrame( "
-			"this : %p, "
-			"size : %d "
-			")",
-			this,
-			size
-			);
+	srtp_err_status_t status = srtp_err_status_ok;
 
-	int written = BIO_write(mpReadBIO, frame, size);
-	LogAync(
-			LOG_WARNING,
-			"RtpClient::RecvFrame( "
-			"this : %p, "
-			"written : %d "
-			")",
-			this,
-			written
-			);
-    char data[1500];
-    memset(&data, 0, 1500);
-	int read = SSL_read(mpSSL, &data, 1500);
-	LogAync(
-			LOG_WARNING,
-			"RtpClient::RecvFrame( "
-			"this : %p, "
-			"read : %d "
-			")",
-			this,
-			read
-			);
-	if ( read < 0 ) {
-	    unsigned long ret = SSL_get_error(mpSSL, read);
-	    if ( ret == SSL_ERROR_SSL ) {
-	        char error_string[200];
-	        ERR_error_string_n(ERR_get_error(), error_string, 200);
-	    	LogAync(
-	    			LOG_WARNING,
-	    			"RtpClient::RecvFrame( "
-	    			"this : %p, "
-					"[Handshake Error], "
-					"error : %d, "
-	    			"error_string : %s "
-	    			")",
-	    			this,
-					ERR_get_error(),
-					error_string
-	    			);
+	mClientMutex.lock();
+	if( mRunning ) {
+		status = srtp_protect(mpSrtpCtx, pkt, (int *)&pktSize);
+	    if (status == srtp_err_status_ok) {
+	    	if( mpSocketSender ) {
+	    		int sendSize = mpSocketSender->SendData((void *)pkt, pktSize);
+				if (sendSize != pktSize) {
+					bFlag = false;
+				}
+	    	} else {
+	    		bFlag = false;
+	    	}
+	    } else {
+	    	bFlag = false;
 	    }
 	}
+	mClientMutex.unlock();
 
-	bFlag = CheckHandshake();
+//	LogAync(
+//			LOG_WARNING,
+//			"RtpClient::SendRtpPacket( "
+//			"this : %p, "
+//			"status : %d, "
+//			"pktSize : %d, "
+//			"seq : %u, "
+//			"timestamp : %u "
+//			")",
+//			this,
+//			status,
+//			pktSize,
+//			ntohs(pkt->header.seq),
+//			ntohl(pkt->header.ts)
+//			);
 
-	if ( SSL_is_init_finished(mpSSL) ) {
-		X509 *cert = SSL_get_peer_certificate(mpSSL);
+	return bFlag;
+}
 
-		unsigned char remoteFingerprint[EVP_MAX_MD_SIZE * 3];
-		memset(remoteFingerprint, 0, sizeof(remoteFingerprint));
-	    unsigned int fingerprintSize;
-	    unsigned char fingerprint[EVP_MAX_MD_SIZE];
-	    bFlag = X509_digest(cert, EVP_sha256(), (unsigned char *)fingerprint, &fingerprintSize);
-        X509_free(cert);
+bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *pkt, unsigned int& pktSize) {
+	bool bFlag = false;
 
-	    char *c = (char *)&remoteFingerprint;
-	    for(int i = 0; i < fingerprintSize; i++) {
-	    	sprintf(c, "%.2X:", fingerprint[i]);
-	    	c += 3;
-	    }
-	    if( bFlag ) {
-	    	*(c - 1) = 0;
-	    }
+	Arithmetic art;
+	srtp_err_status_t status = srtp_err_status_ok;
+	if( mRecving && IsRtp(frame, size) ) {
+		memcpy((void *)pkt, (void *)frame, size);
+		pktSize = size;
 
+//		LogAync(
+//				LOG_WARNING,
+//				"RtpClient::RecvRtpPacket( "
+//				"this : %p, "
+//				"size : %u, "
+//				"seq : %u, "
+//				"timestamp : %u, "
+//				"protected : %s "
+//				")",
+//				this,
+//				size,
+//				ntohs(pkt.header.seq),
+//				ntohl(pkt.header.ts),
+//				art.AsciiToHexWithSep(pkt.body, size).c_str()
+//				);
+
+		srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
+		bFlag = (status == srtp_err_status_ok);
+
+//		if( !bFlag ) {
+			LogAync(
+					LOG_WARNING,
+					"RtpClient::RecvRtpPacket( "
+					"this : %p, "
+//					"[Fail]"
+					"status : %d, "
+					"seq : %u, "
+					"timestamp : %u, "
+					"pktSize : %d "
+//					"body : %s "
+					")",
+					this,
+					status,
+					ntohs(pkt->header.seq),
+					ntohl(pkt->header.ts),
+					pktSize
+//					art.AsciiToHexWithSep(pkt->body, pktSize - RTP_HEADER_LEN).c_str()
+					);
+//		}
+
+	} else {
 		LogAync(
 				LOG_WARNING,
-				"RtpClient::RecvFrame( "
+				"RtpClient::RecvRtpPacket( "
 				"this : %p, "
-				"[SSL_is_init_finished], "
-				"remoteFingerprint : %s "
+				"[Ignore frame before Handshake] "
 				")",
-				this,
-				remoteFingerprint
+				this
 				);
-
-        /* Complete with SRTP setup */
-        unsigned char material[SRTP_MASTER_LENGTH*2];
-        unsigned char *local_key, *local_salt, *remote_key, *remote_salt;
-        /* Export keying material for SRTP */
-        if (!SSL_export_keying_material(ssl, material, SRTP_MASTER_LENGTH*2, "EXTRACTOR-dtls_srtp", 19, NULL, 0, 0))
-        {
-
-        }
 	}
 
 	return bFlag;
 }
 
-bool RtpClient::CheckHandshake() {
-	bool bFlag = true;
-
-	int pending = BIO_ctrl_pending(mpWriteBIO);
-	LogAync(
-			LOG_MSG,
-			"RtpClient::CheckHandshake( "
-			"this : %p, "
-			"pending : %d "
-			")",
-			this,
-			pending
-			);
-
-	char dataBuffer[1500] = {0};
-	int dataSize = 0;
-	while (pending > 0) {
-		dataSize = MIN(pending, 1500);
-		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
-		LogAync(
-				LOG_MSG,
-				"RtpClient::CheckHandshake( "
-				"this : %p, "
-				"[Send DTLS data, %d bytes] "
-				")",
-				this,
-				pktSize
-				);
-
-    	if( mpSocketSender ) {
-    		int sendSize = mpSocketSender->SendData((void *)dataBuffer, pktSize);
-			if (sendSize != pktSize) {
-				bFlag = false;
-			}
-    	} else {
-    		bFlag = false;
-    	}
-
-		/* Check if there's anything left to send (e.g., fragmented packets) */
-		pending = BIO_ctrl_pending(mpWriteBIO);
+bool RtpClient::IsRtp(const char *frame, unsigned len) {
+	bool bFlag = false;
+	if( len > 0 ) {
+		srtp_hdr_t *header = (srtp_hdr_t *)frame;
+		bFlag = ((header->pt < 64) || (header->pt >= 96));
 	}
-
 	return bFlag;
 }
 

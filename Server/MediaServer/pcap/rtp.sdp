@@ -5,6 +5,6 @@ s=No Name
 c=IN IP4 192.168.88.138
 t=0 0
 a=tool:libavformat 57.41.100
-m=video 9999 RTP/AVP 96
-a=rtpmap:96 H264/90000
-a=fmtp:96 packetization-mode=1
+m=video 9999 RTP/AVP 102
+a=rtpmap:102 H264/90000
+a=fmtp:102 packetization-mode=1

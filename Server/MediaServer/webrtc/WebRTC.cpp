@@ -16,6 +16,7 @@ namespace mediaserver {
 WebRTC::WebRTC() {
 	// TODO Auto-generated constructor stub
 	mIceClient.SetCallback(this);
+	mDTLSClient.SetSocketSender(this);
 	mRtpClient.SetSocketSender(this);
 }
 
@@ -23,19 +24,18 @@ WebRTC::~WebRTC() {
 	// TODO Auto-generated destructor stub
 }
 
-bool WebRTC::Init() {
+bool WebRTC::GobalInit() {
 	bool bFlag = true;
 
-	bFlag &= mIceClient.Init();
-	bFlag &= mRtpClient.Init();
+	bFlag &= IceClient::GobalInit();
+	bFlag &= DTLSClient::GobalInit();
+	bFlag &= RtpClient::GobalInit();
 
 	LogAync(
-			LOG_MSG,
-			"WebRTC::Init( "
-			"this : %p, "
+			LOG_ERR_USER,
+			"WebRTC::GobalInit( "
 			"[%s] "
 			")",
-			this,
 			bFlag?"OK":"Fail"
 			);
 
@@ -52,8 +52,49 @@ void WebRTC::SetRemoteSdp(const string& sdp) {
 			this,
 			sdp.c_str()
 			);
-
 	mIceClient.SetRemoteSdp(sdp);
+}
+
+bool WebRTC::Start() {
+	bool bFlag = true;
+
+	bFlag &= mIceClient.Start();
+	bFlag &= mDTLSClient.Start();
+	bFlag &= mRtpClient.Start();
+
+	mRtpRawClient.Init("192.168.88.138", 9999, 9999);
+	mRtpRawClient.Start();
+
+	if( !bFlag ) {
+		Stop();
+	}
+
+	LogAync(
+			LOG_MSG,
+			"WebRTC::Start( "
+			"this : %p, "
+			"[%s] "
+			")",
+			this,
+			bFlag?"OK":"Fail"
+			);
+
+	return bFlag;
+}
+
+void WebRTC::Stop() {
+	mRtpClient.Stop();
+	mDTLSClient.Stop();
+	mIceClient.Stop();
+
+	LogAync(
+			LOG_MSG,
+			"WebRTC::Stop( "
+			"this : %p, "
+			"[OK] "
+			")",
+			this
+			);
 }
 
 int WebRTC::SendData(const void *data, unsigned int len) {
@@ -66,29 +107,69 @@ void WebRTC::OnIceHandshakeFinish(IceClient *ice) {
 			LOG_MSG,
 			"WebRTC::OnIceHandshakeFinish( "
 			"this : %p, "
-			"ice : %p "
-			")",
-			this,
-			ice
-			);
-	mRtpClient.Handshake();
-}
-
-void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size) {
-	LogAync(
-			LOG_MSG,
-			"WebRTC::OnIceRecvData( "
-			"this : %p, "
 			"ice : %p, "
-			"size : %d, "
-			"data[0] : 0x%02X "
+			"local : %s, "
+			"remote : %s "
 			")",
 			this,
 			ice,
-			size,
-			data[0]
+			ice->GetLocalAddress().c_str(),
+			ice->GetRemoteAddress().c_str()
 			);
-	mRtpClient.RecvFrame(data, size);
+	mDTLSClient.Handshake();
+}
+
+void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
+//	LogAync(
+//			LOG_MSG,
+//			"WebRTC::OnIceRecvData( "
+//			"this : %p, "
+//			"ice : %p, "
+//			"streamId : %u, "
+//			"componentId : %u, "
+//			"size : %d, "
+//			"data[0] : 0x%X "
+//			")",
+//			this,
+//			ice,
+//			streamId,
+//			componentId,
+//			size,
+//			(unsigned char)data[0]
+//			);
+
+	bool bFlag = false;
+	if( DTLSClient::IsDTLS(data, size) ) {
+		bFlag = mDTLSClient.RecvFrame(data, size);
+		if( bFlag ) {
+			// Check Handshake status
+			if( mDTLSClient.IsHandshakeFinish() ) {
+				LogAync(
+						LOG_MSG,
+						"WebRTC::OnIceRecvData( "
+						"this : %p, "
+						"[DTLS Handshake OK] "
+						")",
+						this
+						);
+				char key[SRTP_MASTER_LENGTH];
+				int len = 0;
+				mDTLSClient.GetServerKey(key, len);
+				mRtpClient.StartRecv(key, len);
+			}
+		}
+	} else if( RtpClient::IsRtp(data, size) ) {
+		RtpPacket pkt;
+		unsigned int pktSize = size;
+		bFlag = mRtpClient.RecvRtpPacket(data, size, &pkt, pktSize);
+		if( bFlag ) {
+			mRtpRawClient.SendRtpPacket(&pkt, pktSize);
+		}
+
+	} else {
+
+	}
+
 }
 
 } /* namespace mediaserver */

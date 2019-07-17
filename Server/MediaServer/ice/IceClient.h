@@ -20,7 +20,7 @@ class IceClientCallback {
 public:
 	virtual ~IceClientCallback(){};
 	virtual void OnIceHandshakeFinish(IceClient *ice) = 0;
-	virtual void OnIceRecvData(IceClient *ice, const char *data, unsigned int size) = 0;
+	virtual void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) = 0;
 };
 
 class IceClient {
@@ -38,10 +38,17 @@ public:
 	static bool GobalInit();
 
 public:
-	bool Init();
 	void SetCallback(IceClientCallback *callback);
 	void SetRemoteSdp(const string& sdp);
+
+public:
+	bool Start();
+	void Stop();
 	int SendData(const void *data, unsigned int len);
+
+public:
+	const string& GetLocalAddress();
+	const string& GetRemoteAddress();
 
 private:
 	void OnClose(::NiceAgent *agent);
@@ -60,6 +67,9 @@ private:
 
 	unsigned int mStreamId;
 	unsigned int mComponentId;
+
+	string mLocalAddress;
+	string mRemoteAddress;
 };
 
 } /* namespace mediaserver */

@@ -20,22 +20,39 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-// libopenssl
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/rsa.h>
-#include <openssl/asn1.h>
-#include <openssl/bio.h>
-
 #include <string>
 using namespace std;
 
 typedef struct srtp_ctx_t_ srtp_ctx_t;
-//typedef struct ssl_st SSL;
+typedef struct srtp_policy_t;
 
 namespace mediaserver {
+
+/*
+ * RTP_HEADER_LEN indicates the size of an RTP header
+ */
+#define MTU 1500
+#define RTP_HEADER_LEN 12
+#define RTP_HEADER_SIZE 54
+#define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
+
+typedef struct {
+    unsigned char version : 2; /* protocol version       */
+    unsigned char p : 1;       /* padding flag           */
+    unsigned char x : 1;       /* header extension flag  */
+    unsigned char cc : 4;      /* CSRC count             */
+    unsigned char m : 1;       /* marker bit             */
+    unsigned char pt : 7;      /* payload type           */
+    uint16_t seq;              /* sequence number        */
+    uint32_t ts;               /* timestamp              */
+    uint32_t ssrc;             /* synchronization source */
+} RtpHeader;
+
+typedef struct {
+	RtpHeader header;
+    char body[RTP_MAX_BUF_LEN];
+} RtpPacket;
+
 class RtpClient {
 public:
 	RtpClient();
@@ -43,27 +60,31 @@ public:
 
 public:
 	static bool GobalInit();
+	static bool IsRtp(const char *frame, unsigned len);
 
 public:
-	bool Init();
 	void SetSocketSender(SocketSender *sender);
-	void Destroy();
 
-	bool Handshake();
-	void SetKeyFrameInfo(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp);
-	bool SendVideoFrame(const char* frame, unsigned int size, unsigned int timestamp);
+public:
+	bool Start();
+	void Stop();
+
+public:
+	bool StartRecv(char *remoteKey, int size);
+	void StopRecv();
+
+public:
+	void SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp);
+	bool SendVideoFrameH264(const char* frame, unsigned int size, unsigned int timestamp);
+
 	bool SendAudioFrame(const char* frame, unsigned int size, unsigned int timestamp);
 
-	bool RecvFrame(const char* frame, unsigned int size);
-
-private:
-	static int Generate_SSL_Keys(X509** certificate, EVP_PKEY** privateKey);
-	static bool Load_SSL_Keys(const char* server_pem, const char* server_key, X509** certificate, EVP_PKEY** privateKey);
+	bool SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize);
+	bool RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *pkt, unsigned int& pktSize);
 
 private:
 	void Reset();
-	bool SendVideoKeyFrame();
-	bool CheckHandshake();
+	bool SendVideoKeyFrameH264();
 
 private:
 	// Status
@@ -93,7 +114,8 @@ private:
 
 	// libsrtp
 	srtp_ctx_t *mpSrtpCtx;
-	uint32_t mSSRC;
+	srtp_ctx_t *mpRecvSrtpCtx;
+	srtp_policy_t *mpRecvPolicy;
 
     // H264格式转换器
     VideoMuxer mVideoMuxer;
@@ -109,12 +131,8 @@ private:
     char *mpPps;
     int mPpsSize;
 
-    // SSL
-    SSL *mpSSL;
-    // Read BIO (incoming DTLS data)
-    BIO *mpReadBIO;
-    // Write BIO (outgoing DTLS data)
-    BIO *mpWriteBIO;
+    // 是否正在接收数据
+    bool mRecving;
 };
 
 } /* namespace mediaserver */

@@ -574,7 +574,7 @@ void RtmpStreamPool::OnChangeVideoSpsPps(
 			rtmpClient,
 			timestamp
 			);
-	mRtpRawClient.SetKeyFrameInfo(sps, sps_size, pps, pps_size, naluHeaderSize, timestamp);
+	mRtpRawClient.SetVideoKeyFrameInfoH264(sps, sps_size, pps, pps_size, naluHeaderSize, timestamp);
 }
 
 void RtmpStreamPool::OnRecvVideoFrame(
@@ -593,7 +593,7 @@ void RtmpStreamPool::OnRecvVideoFrame(
 //			timestamp
 //			);
 
-	mRtpRawClient.SendVideoFrame(data, size, timestamp + 900);
+	mRtpRawClient.SendVideoFrameH264(data, size, timestamp + 900);
 }
 
 void RtmpStreamPool::OnChangeAudioFormat(
