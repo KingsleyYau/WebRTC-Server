@@ -22,20 +22,96 @@
  * SRTP key size
  */
 #define MAX_KEY_LEN 96
-
-//#define MTU 1500
-///*
-// * RTP_HEADER_LEN indicates the size of an RTP header
-// */
-//#define RTP_HEADER_LEN 12
-//#define RTP_HEADER_SIZE 54
-//#define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
-//typedef struct {
-//    srtp_hdr_t header;
-//    char body[RTP_MAX_BUF_LEN];
-//} RtpMsg;
+static char kEmptyKey[MAX_KEY_LEN] = {0};
 
 namespace mediaserver {
+
+#define RTCP_HEADER_LENGTH 4
+#define RTCP_COMMON_FEEDBACK_LENGTH 8
+
+// From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
+//
+// RTP header format.
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P| RC/FMT  |      PT       |             length            |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+//typedef struct {
+//    unsigned char version : 2; /* protocol version     */
+//    unsigned char p : 1;       /* padding flag         */
+//    unsigned char rc : 5;      /* fmt  				 */
+//    unsigned char pt : 8;      /* pt					 */
+//    uint16_t length;           /* length				 */
+//} RtcpHeader;
+typedef struct {
+    unsigned char rc : 5;      /* fmt 					 				 */
+    unsigned char p : 1;       /* padding flag           				 */
+    unsigned char version : 2; /* protocol version       				 */
+    unsigned char pt : 8;      /* payload					 			 */
+    uint16_t length;           /* count of media ssrc, each one is 32bit */
+} RtcpHeader; /* BIG END */
+
+// RFC 4585: Feedback format.
+//
+// Common packet format:
+//
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P|   FMT   |       PT      |          length               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of packet sender                        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of media source                         |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  :            Feedback Control Information (FCI)                 :
+//  :                                                               :
+// FMT Must be 1, PT must be PSFB
+// RTPFB  |  205  | Transport layer FB message
+// PSFB   |  206  | Payload-specific FB message
+typedef struct {
+	RtcpHeader header;
+    uint32_t ssrc;
+    uint32_t media_ssrc;
+} RtcpPacketPLI; /* BIG END */
+
+// RFC 4585: Feedback format.
+// Common packet format:
+//
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P|   FMT   |       PT      |          length               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of packet sender                        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |             SSRC of media source (unused) = 0                 |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  :            Feedback Control Information (FCI)                 :
+//  :                                                               :
+// Full intra request (FIR) (RFC 5104).
+// The Feedback Control Information (FCI) for the Full Intra Request
+// consists of one or more FCI entries.
+// FCI:
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                              SSRC                             |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  | Seq nr.       |    Reserved = 0                               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+// FMT Must be 4, PT must be PSFB
+// RTPFB  |  205  | Transport layer FB message
+// PSFB   |  206  | Payload-specific FB message
+typedef struct {
+    uint32_t media_ssrc;
+    unsigned char seq;
+    unsigned char reserved[3];
+} RtcpPacketFIRItem; /* BIG END */
+
 bool RtpClient::GobalInit() {
 	bool bFlag = false;
 
@@ -64,6 +140,11 @@ RtpClient::RtpClient():
 	mpSocketSender = NULL;
 
 	// libsrtp
+	mpSendSrtpCtx = NULL;
+	mpRecvSrtpCtx = NULL;
+
+	// libsrtp
+	mpSendPolicy = new srtp_policy_t();
 	mpRecvPolicy = new srtp_policy_t();
 
 	Reset();
@@ -87,12 +168,14 @@ RtpClient::~RtpClient() {
     	delete mpRecvPolicy;
     	mpRecvPolicy = NULL;
     }
+
+    if ( mpSendPolicy ) {
+    	delete mpSendPolicy;
+    	mpSendPolicy = NULL;
+    }
 }
 
 void RtpClient::Reset() {
-	// libsrtp
-	mpSrtpCtx = NULL;
-
 	// Video
 	mVideoTimestamp = 0;
 	mVideoRtpTimestamp = 0;
@@ -112,20 +195,21 @@ void RtpClient::Reset() {
 	mpPps = NULL;
 	mPpsSize = 0;
 
-	mRecving = false;
+	mFirSeq = 0;
+	mVideoFrameCount = 0;
 }
 
 void RtpClient::SetSocketSender(SocketSender *sender) {
 	mpSocketSender = sender;
 }
 
-bool RtpClient::Start() {
+bool RtpClient::Start(char *localKey, int localSize, char *remoteKey, int remoteSize) {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_MSG,
 			"RtpClient::Start( "
-			"this : %p, "
+			"this : %p "
 			")",
 			this
 			);
@@ -139,35 +223,8 @@ bool RtpClient::Start() {
 
 	mRunning = true;
 
-    if( bFlag ) {
-    	// Initialize libsrtp
-    	srtp_policy_t policy;
-    	memset(&policy, 0x0, sizeof(srtp_policy_t));
-
-        /*
-         * we're not providing security services, so set the policy to the
-         * null policy
-         *
-         * Note that this policy does not conform to the SRTP
-         * specification, since RTCP authentication is required.  However,
-         * the effect of this policy is to turn off SRTP, so that this
-         * application is now a vanilla-flavored RTP application.
-         */
-    	char key[MAX_KEY_LEN] = {0};
-
-        srtp_crypto_policy_set_null_cipher_hmac_null(&policy.rtp);
-        srtp_crypto_policy_set_null_cipher_hmac_null(&policy.rtcp);
-
-        policy.key = (uint8_t *)key;
-        policy.ssrc.type = ssrc_any_outbound;
-        policy.window_size = 0;
-        policy.allow_repeat_tx = 0;
-        policy.ekt = NULL;
-        policy.next = NULL;
-
-    	status = srtp_create(&mpSrtpCtx, &policy);
-    	bFlag = (status == srtp_err_status_ok);
-    }
+	bFlag = StartSend(localKey, localSize);
+	bFlag &= StartRecv(remoteKey, remoteSize);
 
 	if( bFlag ) {
 		LogAync(
@@ -202,10 +259,8 @@ void RtpClient::Stop() {
 	if( mRunning ) {
 		mRunning = false;
 
-		if( mpSrtpCtx ) {
-			srtp_dealloc(mpSrtpCtx);
-			mpSrtpCtx = NULL;
-		}
+		StopRecv();
+		StopSend();
 
 	    if (mpSps) {
 	        delete[] mpSps;
@@ -220,12 +275,93 @@ void RtpClient::Stop() {
 	    mPpsSize = 0;
 
 		Reset();
+
+		LogAync(
+				LOG_WARNING,
+				"RtpClient::Stop( "
+				"this : %p, "
+				"[OK] "
+				")",
+				this
+				);
 	}
 	mClientMutex.unlock();
+}
+
+bool RtpClient::StartSend(char *localKey, int size) {
+	bool bFlag = true;
+
+	Arithmetic art;
+	LogAync(
+			LOG_MSG,
+			"RtpClient::StartSend( "
+			"this : %p, "
+			"size : %d, "
+			"localKey : %s "
+			")",
+			this,
+			size,
+			art.AsciiToHexWithSep(localKey, size).c_str()
+			);
+
+	// Initialize libsrtp
+	memset(mpSendPolicy, 0x0, sizeof(srtp_policy_t));
+
+	if( localKey && size > 0 ) {
+		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpSendPolicy->rtp);
+		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpSendPolicy->rtcp);
+		mpSendPolicy->key = (uint8_t *)localKey;
+	} else {
+		srtp_crypto_policy_set_null_cipher_hmac_null(&mpSendPolicy->rtp);
+		srtp_crypto_policy_set_null_cipher_hmac_null(&mpSendPolicy->rtcp);
+		mpSendPolicy->key = (uint8_t *)kEmptyKey;
+	}
+
+	mpSendPolicy->ssrc.type = ssrc_any_outbound;
+	mpSendPolicy->ssrc.value = 0;
+	mpSendPolicy->window_size = 0;
+	mpSendPolicy->allow_repeat_tx = 0;
+	mpSendPolicy->ekt = NULL;
+	mpSendPolicy->next = NULL;
+
+    srtp_err_status_t status = srtp_err_status_ok;
+	status = srtp_create(&mpSendSrtpCtx, mpSendPolicy);
+	bFlag = (status == srtp_err_status_ok);
+
+	if( bFlag ) {
+		LogAync(
+				LOG_MSG,
+				"RtpClient::StartSend( "
+				"this : %p, "
+				"[OK] "
+				")",
+				this
+				);
+	} else {
+		LogAync(
+				LOG_ERR_SYS,
+				"RtpClient::StartSend( "
+				"this : %p, "
+				"[Fail], "
+				"status : %d "
+				")",
+				this,
+				status
+				);
+	}
+
+	return bFlag;
+}
+
+void RtpClient::StopSend() {
+	if( mpSendSrtpCtx ) {
+		srtp_dealloc(mpSendSrtpCtx);
+		mpSendSrtpCtx = NULL;
+	}
 
 	LogAync(
-			LOG_WARNING,
-			"RtpClient::Stop( "
+			LOG_MSG,
+			"RtpClient::StopSend( "
 			"this : %p, "
 			"[OK] "
 			")",
@@ -249,19 +385,20 @@ bool RtpClient::StartRecv(char *remoteKey, int size) {
 			art.AsciiToHexWithSep(remoteKey, size).c_str()
 			);
 
-	mClientMutex.lock();
-	if( mRecving ) {
-	}
-
-	mRecving = true;
-
 	// Initialize libsrtp
 	memset(mpRecvPolicy, 0x0, sizeof(srtp_policy_t));
 
-	srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtp);
-	srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtcp);
+	if( remoteKey && size > 0 ) {
+		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtp);
+		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtcp);
+		mpRecvPolicy->key = (uint8_t *)remoteKey;
 
-    mpRecvPolicy->key = (uint8_t *)remoteKey;
+	} else {
+		srtp_crypto_policy_set_null_cipher_hmac_null(&mpRecvPolicy->rtp);
+		srtp_crypto_policy_set_null_cipher_hmac_null(&mpRecvPolicy->rtcp);
+		mpRecvPolicy->key = (uint8_t *)kEmptyKey;
+	}
+
     mpRecvPolicy->ssrc.type = ssrc_any_inbound;
     mpRecvPolicy->ssrc.value = 0;
     mpRecvPolicy->window_size = 0;
@@ -295,9 +432,23 @@ bool RtpClient::StartRecv(char *remoteKey, int size) {
 				);
 	}
 
-	mClientMutex.unlock();
-
 	return bFlag;
+}
+
+void RtpClient::StopRecv() {
+	if( mpRecvSrtpCtx ) {
+		srtp_dealloc(mpRecvSrtpCtx);
+		mpRecvSrtpCtx = NULL;
+	}
+
+	LogAync(
+			LOG_MSG,
+			"RtpClient::StopRecv( "
+			"this : %p, "
+			"[OK] "
+			")",
+			this
+			);
 }
 
 void RtpClient::SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp) {
@@ -442,7 +593,7 @@ bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigne
 	    			memcpy(pkt.body, body, bodySize);
 
 	    			pktSize = RTP_HEADER_LEN + bodySize;
-	    			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
+	    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 	    		    if (status == srtp_err_status_ok) {
 	    		    	if( mpSocketSender ) {
 	    		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
@@ -540,7 +691,7 @@ bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigne
 
 			    			// Whole size
 			    			pktSize = RTP_HEADER_LEN + 2 + bodySize;
-			    			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
+			    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 			    		    if (status == srtp_err_status_ok) {
 			    		    	int sendSize = 0;
 			    		    	if( mpSocketSender ) {
@@ -680,7 +831,7 @@ bool RtpClient::SendVideoKeyFrameH264() {
 			bodySize += mPpsSize;
 
 			pktSize = RTP_HEADER_LEN + bodySize;
-			status = srtp_protect(mpSrtpCtx, &pkt.header, &pktSize);
+			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 		    if (status == srtp_err_status_ok) {
 		    	if( mpSocketSender ) {
 		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
@@ -729,7 +880,7 @@ bool RtpClient::SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize) {
 
 	mClientMutex.lock();
 	if( mRunning ) {
-		status = srtp_protect(mpSrtpCtx, pkt, (int *)&pktSize);
+		status = srtp_protect(mpSendSrtpCtx, pkt, (int *)&pktSize);
 	    if (status == srtp_err_status_ok) {
 	    	if( mpSocketSender ) {
 	    		int sendSize = mpSocketSender->SendData((void *)pkt, pktSize);
@@ -769,7 +920,7 @@ bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *p
 
 	Arithmetic art;
 	srtp_err_status_t status = srtp_err_status_ok;
-	if( mRecving && IsRtp(frame, size) ) {
+	if( IsRtp(frame, size) ) {
 		memcpy((void *)pkt, (void *)frame, size);
 		pktSize = size;
 
@@ -780,38 +931,43 @@ bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *p
 //				"size : %u, "
 //				"seq : %u, "
 //				"timestamp : %u, "
-//				"protected : %s "
+//				"body : %s "
 //				")",
 //				this,
 //				size,
 //				ntohs(pkt.header.seq),
 //				ntohl(pkt.header.ts),
-//				art.AsciiToHexWithSep(pkt.body, size).c_str()
+//				art.AsciiToHexWithSep(pkt->body, pktSize - RTP_HEADER_LEN).c_str()
 //				);
 
 		srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
 		bFlag = (status == srtp_err_status_ok);
 
-//		if( !bFlag ) {
-			LogAync(
-					LOG_WARNING,
-					"RtpClient::RecvRtpPacket( "
-					"this : %p, "
-//					"[Fail]"
-					"status : %d, "
-					"seq : %u, "
-					"timestamp : %u, "
-					"pktSize : %d "
-//					"body : %s "
-					")",
-					this,
-					status,
-					ntohs(pkt->header.seq),
-					ntohl(pkt->header.ts),
-					pktSize
-//					art.AsciiToHexWithSep(pkt->body, pktSize - RTP_HEADER_LEN).c_str()
-					);
-//		}
+		if( bFlag ) {
+			if( pkt->header.m ) {
+				// 每10个视频帧强制刷新一次视频信息
+				if( ++mVideoFrameCount % 15 == 0 ) {
+					SendRtcpFIR(pkt->header.ssrc);
+				}
+			}
+		}
+//		LogAync(
+//				LOG_WARNING,
+//				"RtpClient::RecvRtpPacket( "
+//				"this : %p, "
+//				"status : %d, "
+//				"seq : %u, "
+//				"timestamp : %u, "
+//				"pktSize : %d "
+//				"%s"
+//				")",
+//				this,
+//				status,
+//				ntohs(pkt->header.seq),
+//				ntohl(pkt->header.ts),
+//				pktSize,
+//				pkt.header.m?", [Mark] ":""
+//				);
 
 	} else {
 		LogAync(
@@ -824,6 +980,104 @@ bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *p
 				);
 	}
 
+	return bFlag;
+}
+
+bool RtpClient::SendRtcpPLI(unsigned int remoteSSRC) {
+	bool bFlag = false;
+
+	Arithmetic art;
+	mClientMutex.lock();
+	if( mRunning ) {
+		RtcpPacketPLI pkt = {0};
+		pkt.header.version = 2;
+		pkt.header.p = 0;
+		pkt.header.rc = 1;
+		pkt.header.pt = 206;
+		pkt.header.length = 2;
+		pkt.header.length = htons(pkt.header.length);
+		pkt.ssrc = htonl(0x12345678);
+		pkt.media_ssrc = remoteSSRC;
+
+		int pktSize = sizeof(RtcpPacketPLI);
+
+//		LogAync(
+//				LOG_WARNING,
+//				"RtpClient::SendRtcpPLI( "
+//				"this : %p, "
+//				"pkt : %s "
+//				")",
+//				this,
+//				art.AsciiToHexWithSep((char *)&pkt, pktSize).c_str()
+//				);
+
+    	if( mpSocketSender ) {
+    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
+			if (sendSize != pktSize) {
+				bFlag = false;
+			}
+    	} else {
+    		bFlag = false;
+    	}
+	}
+	mClientMutex.unlock();
+	return bFlag;
+}
+
+bool RtpClient::SendRtcpFIR(unsigned int remoteSSRC) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_ok;
+	Arithmetic art;
+	mClientMutex.lock();
+	if( mRunning ) {
+		char tmp[MTU];
+
+		RtcpPacketPLI pkt = {0};
+		pkt.header.version = 2;
+		pkt.header.p = 0;
+		pkt.header.rc = 4;
+		pkt.header.pt = 206;
+		pkt.header.length = 2 + 2;
+		pkt.header.length = htons(pkt.header.length);
+		pkt.ssrc = htonl(0x12345678);
+		pkt.media_ssrc = remoteSSRC;
+
+		RtcpPacketFIRItem item = {0};
+		item.media_ssrc = remoteSSRC;
+		item.seq = ++mFirSeq;
+
+		int pktSize = 0;
+		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
+		pktSize += sizeof(RtcpPacketPLI);
+		memcpy(tmp + pktSize, (void *)&item, sizeof(RtcpPacketFIRItem));
+		pktSize += sizeof(RtcpPacketFIRItem);
+
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
+	    if (status == srtp_err_status_ok) {
+			if( mpSocketSender ) {
+				int sendSize = mpSocketSender->SendData((void *)tmp, pktSize);
+				if (sendSize != pktSize) {
+					bFlag = false;
+				}
+			} else {
+				bFlag = false;
+			}
+	    }
+
+//		LogAync(
+//				LOG_WARNING,
+//				"RtpClient::SendRtcpFIR( "
+//				"this : %p, "
+//				"status : %u, "
+//				"pktSize : %d "
+//				")",
+//				this,
+//				status,
+//				pktSize
+//				);
+	}
+	mClientMutex.unlock();
 	return bFlag;
 }
 

@@ -60,14 +60,9 @@ bool WebRTC::Start() {
 
 	bFlag &= mIceClient.Start();
 	bFlag &= mDTLSClient.Start();
-	bFlag &= mRtpClient.Start();
 
 	mRtpRawClient.Init("192.168.88.138", 9999, 9999);
-	mRtpRawClient.Start();
-
-	if( !bFlag ) {
-		Stop();
-	}
+	mRtpRawClient.Start(NULL, 0, NULL, 0);
 
 	LogAync(
 			LOG_MSG,
@@ -79,13 +74,17 @@ bool WebRTC::Start() {
 			bFlag?"OK":"Fail"
 			);
 
+	if( !bFlag ) {
+		Stop();
+	}
+
 	return bFlag;
 }
 
 void WebRTC::Stop() {
-	mRtpClient.Stop();
-	mDTLSClient.Stop();
 	mIceClient.Stop();
+	mDTLSClient.Stop();
+	mRtpClient.Stop();
 
 	LogAync(
 			LOG_MSG,
@@ -143,7 +142,8 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		bFlag = mDTLSClient.RecvFrame(data, size);
 		if( bFlag ) {
 			// Check Handshake status
-			if( mDTLSClient.IsHandshakeFinish() ) {
+			DTLSClientStatus status = mDTLSClient.GetClientStatus();
+			if( status == DTLSClientStatus_HandshakeDone ) {
 				LogAync(
 						LOG_MSG,
 						"WebRTC::OnIceRecvData( "
@@ -152,10 +152,24 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						")",
 						this
 						);
-				char key[SRTP_MASTER_LENGTH];
-				int len = 0;
-				mDTLSClient.GetServerKey(key, len);
-				mRtpClient.StartRecv(key, len);
+				char localKey[SRTP_MASTER_LENGTH];
+				int localSize = 0;
+				mDTLSClient.GetClientKey(localKey, localSize);
+				char remoteKey[SRTP_MASTER_LENGTH];
+				int remoteSize = 0;
+				mDTLSClient.GetServerKey(remoteKey, remoteSize);
+
+				mRtpClient.Start(localKey, localSize, remoteKey, remoteSize);
+			} else if ( status == DTLSClientStatus_Alert ) {
+				LogAync(
+						LOG_MSG,
+						"WebRTC::OnIceRecvData( "
+						"this : %p, "
+						"[DTLS Alert] "
+						")",
+						this
+						);
+				mRtpClient.Stop();
 			}
 		}
 	} else if( RtpClient::IsRtp(data, size) ) {

@@ -37,16 +37,28 @@ namespace mediaserver {
 #define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
 
 typedef struct {
-    unsigned char version : 2; /* protocol version       */
-    unsigned char p : 1;       /* padding flag           */
-    unsigned char x : 1;       /* header extension flag  */
     unsigned char cc : 4;      /* CSRC count             */
-    unsigned char m : 1;       /* marker bit             */
+    unsigned char x : 1;       /* header extension flag  */
+    unsigned char p : 1;       /* padding flag           */
+    unsigned char version : 2; /* protocol version       */
     unsigned char pt : 7;      /* payload type           */
+    unsigned char m : 1;       /* marker bit             */
     uint16_t seq;              /* sequence number        */
     uint32_t ts;               /* timestamp              */
     uint32_t ssrc;             /* synchronization source */
-} RtpHeader;
+} RtpHeader; /* BIG END */
+
+//typedef struct {
+//    unsigned char version : 2; /* protocol version       */
+//    unsigned char p : 1;       /* padding flag           */
+//    unsigned char x : 1;       /* header extension flag  */
+//    unsigned char cc : 4;      /* CSRC count             */
+//    unsigned char m : 1;       /* marker bit             */
+//    unsigned char pt : 7;      /* payload type           */
+//    uint16_t seq;              /* sequence number        */
+//    uint32_t ts;               /* timestamp              */
+//    uint32_t ssrc;             /* synchronization source */
+//} RtpHeader;
 
 typedef struct {
 	RtpHeader header;
@@ -66,10 +78,12 @@ public:
 	void SetSocketSender(SocketSender *sender);
 
 public:
-	bool Start();
+	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
 	void Stop();
 
 public:
+	bool StartSend(char *localKey, int size);
+	void StopSend();
 	bool StartRecv(char *remoteKey, int size);
 	void StopRecv();
 
@@ -81,6 +95,19 @@ public:
 
 	bool SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize);
 	bool RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *pkt, unsigned int& pktSize);
+
+public:
+	/**
+	 * Send Picture Loss Indication(PLI)
+	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
+	 *
+	 */
+	bool SendRtcpPLI(unsigned int remoteSSRC);
+	/**
+	 * Send Full Intra Request (FIR)
+	 * 强制刷新视频信息(如H264的SPS和PPS)
+	 */
+	bool SendRtcpFIR(unsigned int remoteSSRC);
 
 private:
 	void Reset();
@@ -113,7 +140,8 @@ private:
 	uint16_t mAudioRtpSeq;
 
 	// libsrtp
-	srtp_ctx_t *mpSrtpCtx;
+	srtp_ctx_t *mpSendSrtpCtx;
+	srtp_policy_t *mpSendPolicy;
 	srtp_ctx_t *mpRecvSrtpCtx;
 	srtp_policy_t *mpRecvPolicy;
 
@@ -131,8 +159,10 @@ private:
     char *mpPps;
     int mPpsSize;
 
-    // 是否正在接收数据
-    bool mRecving;
+    // 请求强制刷新关键帧的序号
+    unsigned int mFirSeq;
+    // 收到的完整视频帧数量
+    unsigned int mVideoRecvFrameCount;
 };
 
 } /* namespace mediaserver */

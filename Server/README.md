@@ -13,3 +13,4 @@ Catalog
 [nice](https://github.com/libnice/libnice)</br>
 [srtp](https://github.com/cisco/libsrtp)</br>
 [websocket](https://github.com/zaphoyd/websocketpp)</br>
+[opus](http://opus-codec.org)</br>

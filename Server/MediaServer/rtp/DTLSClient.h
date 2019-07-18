@@ -31,6 +31,12 @@ using namespace std;
 #define SRTP_MASTER_LENGTH (SRTP_MASTER_KEY_LENGTH + SRTP_MASTER_SALT_LENGTH)
 
 namespace mediaserver {
+typedef enum DTLSClientStatus {
+	DTLSClientStatus_None,
+	DTLSClientStatus_HandshakeStart,
+	DTLSClientStatus_HandshakeDone,
+	DTLSClientStatus_Alert
+} DTLSClientStatus;
 
 class DTLSClient {
 public:
@@ -50,7 +56,7 @@ public:
 
 	bool RecvFrame(const char* frame, unsigned int size);
 
-	bool IsHandshakeFinish();
+	DTLSClientStatus GetClientStatus();
 	bool GetClientKey(char *key, int& len);
 	bool GetServerKey(char *key, int& len);
 
@@ -60,13 +66,14 @@ private:
 	static void SSL_Info_Callback(const SSL* s, int where, int ret);
 
 private:
-	bool CheckHandshake();
+	bool FlushSSL();
+	void CheckHandshake();
 
 private:
 	// Status
 	KMutex mClientMutex;
 	bool mRunning;
-	bool mHandshakeFinish;
+	DTLSClientStatus mDTLSClientStatus;
 
 	// Socket
 	SocketSender *mpSocketSender;

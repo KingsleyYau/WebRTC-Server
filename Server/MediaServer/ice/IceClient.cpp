@@ -79,10 +79,7 @@ IceClient::IceClient() {
 
 IceClient::~IceClient() {
 	// TODO Auto-generated destructor stub
-    if (mpAgent) {
-        g_object_unref(mpAgent);
-        mpAgent = NULL;
-    }
+	Stop();
 }
 
 bool IceClient::Start() {
@@ -167,6 +164,12 @@ bool IceClient::Start() {
 }
 
 void IceClient::Stop() {
+    if (mpAgent) {
+    	nice_agent_close_async(mpAgent, NULL, NULL);
+        g_object_unref(mpAgent);
+        mpAgent = NULL;
+    }
+
 	LogAync(
 			LOG_MSG,
 			"IceClient::Stop( "

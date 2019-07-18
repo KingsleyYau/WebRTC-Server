@@ -258,44 +258,51 @@ bool DTLSClient::SSL_Load_Keys(const char* server_pem, const char* server_key, X
 }
 
 void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
+	DTLSClient *client = (DTLSClient *)SSL_get_ex_data(s, 0);
+
 	string str = "undefined";
 	int w = where & ~SSL_ST_MASK;
 	if (w & SSL_ST_CONNECT) {
 		str = "SSL_connect";
 	} else if (w & SSL_ST_ACCEPT) {
 		str = "SSL_accept";
+	} else if (w & SSL_CB_ALERT) {
+		str = "SSL_alert";
+		client->mDTLSClientStatus = DTLSClientStatus_Alert;
+	} else if (where & SSL_CB_HANDSHAKE_START) {
+		str = "SSL_start";
+		client->mDTLSClientStatus = DTLSClientStatus_HandshakeStart;
+	} else if (where & SSL_CB_HANDSHAKE_DONE) {
+		str = "SSL_done";
+		client->mDTLSClientStatus = DTLSClientStatus_HandshakeDone;
 	}
+
 	if (where & SSL_CB_LOOP) {
 		str += ":";
 		str += SSL_state_string_long(s);
 	} else if (where & SSL_CB_ALERT) {
-		str = "SSL3 alert ";
+		str += ":";
 		str += (where & SSL_CB_READ) ? "read" : "write";
 		str += ":";
 		str += SSL_alert_type_string_long(ret);
 		str += ":";
 		str += SSL_alert_desc_string_long(ret);
 	} else if (where & SSL_CB_EXIT) {
-		if (ret == 0) {
-			str += ":failed in ";
-			str += SSL_state_string_long(s);
-		} else if (ret < 0) {
-			str += ":error in ";
-			str += SSL_state_string_long(s);
-		}
+		str += ":exit";
 	}
 
-	DTLSClient *client = (DTLSClient *)SSL_get_ex_data(s, 0);
 	LogAync(
 			LOG_MSG,
 			"DTLSClient::SSL_Info_Callback( "
 			"this : %p, "
 			"[%s], "
-			"where : 0x%x "
+			"where : 0x%x, "
+			"ret : %d "
 			")",
 			client,
 			str.c_str(),
-			where
+			where,
+			ret
 			);
 }
 
@@ -374,7 +381,7 @@ DTLSClient::DTLSClient() {
 	// TODO Auto-generated constructor stub
 	mRunning = false;
 	mpSocketSender = NULL;
-	mHandshakeFinish = false;
+	mDTLSClientStatus = DTLSClientStatus_None;
 
 	// libopenssl
 	mpSSL = NULL;
@@ -466,6 +473,12 @@ void DTLSClient::Stop() {
 	if( mRunning ) {
 		mRunning = false;
 
+	    if ( mpSSL ) {
+	    	SSL_set_bio(mpSSL, NULL, NULL);
+	        SSL_free(mpSSL);
+	        mpSSL = NULL;
+	    }
+
 	    if( mpReadBIO ) {
 	    	BIO_free(mpReadBIO);
 	    	mpReadBIO = NULL;
@@ -476,35 +489,30 @@ void DTLSClient::Stop() {
 	    	mpWriteBIO = NULL;
 	    }
 
-	    if ( mpSSL ) {
-	        SSL_free(mpSSL);
-	        mpSSL = NULL;
-	    }
-
 		memset(mClientSalt, 0, sizeof(mClientSalt));
 		memset(mServerKey, 0, sizeof(mServerKey));
 
-	    mHandshakeFinish = false;
+		mDTLSClientStatus = DTLSClientStatus_None;
+
+		LogAync(
+				LOG_WARNING,
+				"DTLSClient::Stop( "
+				"this : %p, "
+				"[OK] "
+				")",
+				this
+				);
 	}
 	mClientMutex.unlock();
-
-	LogAync(
-			LOG_WARNING,
-			"DTLSClient::Stop( "
-			"this : %p, "
-			"[OK] "
-			")",
-			this
-			);
 }
 
-bool DTLSClient::IsHandshakeFinish() {
-	return mHandshakeFinish;
+DTLSClientStatus DTLSClient::GetClientStatus() {
+	return mDTLSClientStatus;
 }
 
 bool DTLSClient::GetClientKey(char *key, int& len) {
 	bool bFlag = false;
-	if( mHandshakeFinish ) {
+	if( mDTLSClientStatus == DTLSClientStatus_HandshakeDone ) {
         memcpy(key, mClientSalt, sizeof(mClientSalt));
         len = sizeof(mClientSalt);
         bFlag = true;
@@ -514,7 +522,7 @@ bool DTLSClient::GetClientKey(char *key, int& len) {
 
 bool DTLSClient::GetServerKey(char *key, int& len) {
 	bool bFlag = false;
-	if( mHandshakeFinish ) {
+	if( mDTLSClientStatus == DTLSClientStatus_HandshakeDone ) {
         memcpy(key, mServerKey, sizeof(mServerKey));
         len = sizeof(mServerKey);
         bFlag = true;
@@ -535,7 +543,7 @@ bool DTLSClient::Handshake() {
 
 	int ret = SSL_do_handshake(mpSSL);
 //	int ret = SSL_connect(mpSSL);
-	bFlag = CheckHandshake();
+	bFlag = FlushSSL();
 
 	return bFlag;
 }
@@ -543,22 +551,20 @@ bool DTLSClient::Handshake() {
 bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 	bool bFlag = false;
 
-	if( !mHandshakeFinish && IsDTLS(frame, size) ) {
+	if( IsDTLS(frame, size) ) {
 		int written = BIO_write(mpReadBIO, frame, size);
-	    char data[1500];
-	    memset(&data, 0, 1500);
-		int read = SSL_read(mpSSL, &data, 1500);
 		LogAync(
 				LOG_WARNING,
 				"DTLSClient::RecvFrame( "
 				"this : %p, "
-				"written : %d, "
-				"read : %d "
+				"written : %d "
 				")",
 				this,
-				written,
-				read
+				written
 				);
+	    char data[1500];
+	    memset(&data, 0, 1500);
+		int read = SSL_read(mpSSL, &data, 1500);
 		if ( read < 0 ) {
 		    unsigned long ret = SSL_get_error(mpSSL, read);
 		    if ( ret == SSL_ERROR_SSL ) {
@@ -579,89 +585,8 @@ bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 		    }
 		}
 
-		bFlag = CheckHandshake();
+		bFlag = FlushSSL();
 
-		if ( SSL_is_init_finished(mpSSL) ) {
-			X509 *cert = SSL_get_peer_certificate(mpSSL);
-
-			unsigned char remoteFingerprint[EVP_MAX_MD_SIZE * 3];
-			memset(remoteFingerprint, 0, sizeof(remoteFingerprint));
-		    unsigned int fingerprintSize;
-		    unsigned char fingerprint[EVP_MAX_MD_SIZE];
-		    bFlag = X509_digest(cert, EVP_sha256(), (unsigned char *)fingerprint, &fingerprintSize);
-	        X509_free(cert);
-
-		    char *c = (char *)&remoteFingerprint;
-		    for(int i = 0; i < fingerprintSize; i++) {
-		    	sprintf(c, "%.2X:", fingerprint[i]);
-		    	c += 3;
-		    }
-		    if( bFlag ) {
-		    	*(c - 1) = 0;
-		    }
-
-		    const char *cipherName = SSL_get_cipher(mpSSL);
-		    SRTP_PROTECTION_PROFILE *srtpProfile = SSL_get_selected_srtp_profile(mpSSL);
-            unsigned char material[SRTP_MASTER_LENGTH * 2];
-            unsigned char *clientKey, *clientSalt, *serverKey, *serverSalt;
-            int ret = 0;
-
-			if( bFlag ) {
-	            // Export keying material for SRTP
-				static const char *label = "EXTRACTOR-dtls_srtp";
-	            ret = SSL_export_keying_material(mpSSL, material, SRTP_MASTER_LENGTH * 2, label, strlen(label), NULL, 0, 0);
-	            bFlag = (ret == 1);
-			}
-
-            if( bFlag ) {
-            	// Key derivation (http://tools.ietf.org/html/rfc5764#section-4.2)
-            	// Just for client
-            	clientKey = material;
-            	serverKey = clientKey + SRTP_MASTER_KEY_LENGTH;
-                clientSalt = serverKey + SRTP_MASTER_KEY_LENGTH;
-                serverSalt = clientSalt + SRTP_MASTER_SALT_LENGTH;
-
-                memcpy(&mClientSalt[0], clientKey, SRTP_MASTER_KEY_LENGTH);
-                memcpy(&mClientSalt[SRTP_MASTER_KEY_LENGTH], clientSalt, SRTP_MASTER_SALT_LENGTH);
-
-                memcpy(&mServerKey[0], serverKey, SRTP_MASTER_KEY_LENGTH);
-                memcpy(&mServerKey[SRTP_MASTER_KEY_LENGTH], serverSalt, SRTP_MASTER_SALT_LENGTH);
-
-            	mHandshakeFinish = true;
-
-    			LogAync(
-    					LOG_WARNING,
-    					"DTLSClient::RecvFrame( "
-    					"this : %p, "
-    					"[DTLS Handshake OK], "
-    					"remoteFingerprint : %s, "
-    					"cipherName : %s, "
-						"srtpProfile : %s "
-    					")",
-    					this,
-    					remoteFingerprint,
-    					cipherName,
-						srtpProfile->name
-    					);
-            } else {
-    			LogAync(
-    					LOG_WARNING,
-    					"DTLSClient::RecvFrame( "
-    					"this : %p, "
-    					"[DTLS Handshake Fail], "
-    					"remoteFingerprint : %s, "
-    					"cipherName : %s, "
-						"srtpProfile : %s "
-						"ret : %d "
-    					")",
-    					this,
-    					remoteFingerprint,
-    					cipherName,
-						srtpProfile->name,
-						ret
-    					);
-            }
-		}
 	} else {
 		bFlag = false;
 	}
@@ -669,13 +594,13 @@ bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 	return bFlag;
 }
 
-bool DTLSClient::CheckHandshake() {
+bool DTLSClient::FlushSSL() {
 	bool bFlag = true;
 
 	int pending = BIO_ctrl_pending(mpWriteBIO);
 	LogAync(
 			LOG_MSG,
-			"DTLSClient::CheckHandshake( "
+			"DTLSClient::FlushSSL( "
 			"this : %p, "
 			"pending : %d "
 			")",
@@ -690,7 +615,7 @@ bool DTLSClient::CheckHandshake() {
 		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
 		LogAync(
 				LOG_MSG,
-				"DTLSClient::CheckHandshake( "
+				"DTLSClient::FlushSSL( "
 				"this : %p, "
 				"sent : %d "
 				")",
@@ -711,7 +636,93 @@ bool DTLSClient::CheckHandshake() {
 		pending = BIO_ctrl_pending(mpWriteBIO);
 	}
 
+	if( bFlag ) {
+		CheckHandshake();
+	}
+
 	return bFlag;
+}
+
+void DTLSClient::CheckHandshake() {
+	if ( (mDTLSClientStatus == DTLSClientStatus_HandshakeDone) && SSL_is_init_finished(mpSSL) ) {
+		X509 *cert = SSL_get_peer_certificate(mpSSL);
+
+		unsigned char remoteFingerprint[EVP_MAX_MD_SIZE * 3];
+		memset(remoteFingerprint, 0, sizeof(remoteFingerprint));
+	    unsigned int fingerprintSize;
+	    unsigned char fingerprint[EVP_MAX_MD_SIZE];
+	    bool bFlag = X509_digest(cert, EVP_sha256(), (unsigned char *)fingerprint, &fingerprintSize);
+        X509_free(cert);
+
+	    char *c = (char *)&remoteFingerprint;
+	    for(int i = 0; i < fingerprintSize; i++) {
+	    	sprintf(c, "%.2X:", fingerprint[i]);
+	    	c += 3;
+	    }
+	    if( bFlag ) {
+	    	*(c - 1) = 0;
+	    }
+
+	    const char *cipherName = SSL_get_cipher(mpSSL);
+	    SRTP_PROTECTION_PROFILE *srtpProfile = SSL_get_selected_srtp_profile(mpSSL);
+        unsigned char material[SRTP_MASTER_LENGTH * 2];
+        unsigned char *clientKey, *clientSalt, *serverKey, *serverSalt;
+        int ret = 0;
+
+		if( bFlag ) {
+            // Export keying material for SRTP
+			static const char *label = "EXTRACTOR-dtls_srtp";
+            ret = SSL_export_keying_material(mpSSL, material, SRTP_MASTER_LENGTH * 2, label, strlen(label), NULL, 0, 0);
+            bFlag = (ret == 1);
+		}
+
+        if( bFlag ) {
+        	// Key derivation (http://tools.ietf.org/html/rfc5764#section-4.2)
+        	// Just for client
+        	clientKey = material;
+        	serverKey = clientKey + SRTP_MASTER_KEY_LENGTH;
+            clientSalt = serverKey + SRTP_MASTER_KEY_LENGTH;
+            serverSalt = clientSalt + SRTP_MASTER_SALT_LENGTH;
+
+            memcpy(&mClientSalt[0], clientKey, SRTP_MASTER_KEY_LENGTH);
+            memcpy(&mClientSalt[SRTP_MASTER_KEY_LENGTH], clientSalt, SRTP_MASTER_SALT_LENGTH);
+
+            memcpy(&mServerKey[0], serverKey, SRTP_MASTER_KEY_LENGTH);
+            memcpy(&mServerKey[SRTP_MASTER_KEY_LENGTH], serverSalt, SRTP_MASTER_SALT_LENGTH);
+
+			LogAync(
+					LOG_WARNING,
+					"DTLSClient::CheckHandshake( "
+					"this : %p, "
+					"[DTLS Handshake OK], "
+					"remoteFingerprint : %s, "
+					"cipherName : %s, "
+					"srtpProfile : %s "
+					")",
+					this,
+					remoteFingerprint,
+					cipherName,
+					srtpProfile->name
+					);
+        } else {
+			LogAync(
+					LOG_WARNING,
+					"DTLSClient::CheckHandshake( "
+					"this : %p, "
+					"[DTLS Handshake Fail], "
+					"remoteFingerprint : %s, "
+					"cipherName : %s, "
+					"srtpProfile : %s "
+					"ret : %d "
+					")",
+					this,
+					remoteFingerprint,
+					cipherName,
+					srtpProfile->name,
+					ret
+					);
+        }
+	}
 }
 
 bool DTLSClient::IsDTLS(const char *frame, unsigned len) {
