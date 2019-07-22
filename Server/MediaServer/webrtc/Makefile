@@ -17,7 +17,7 @@ endif
 
 CXXFLAGS 	+=	-DLINUX -DFILE_JNI_LOG
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
-CXXFLAGS 	+=	-I. -I.. -I../third_party
+CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsdp/include
 				
 OBJS 		+=	WebRTC.o
 		

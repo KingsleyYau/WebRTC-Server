@@ -26,45 +26,16 @@ using namespace std;
 typedef struct srtp_ctx_t_ srtp_ctx_t;
 typedef struct srtp_policy_t;
 
-namespace mediaserver {
-
 /*
  * RTP_HEADER_LEN indicates the size of an RTP header
  */
 #define MTU 1500
+#define UDP_HEADER_LEN 42
 #define RTP_HEADER_LEN 12
-#define RTP_HEADER_SIZE 54
-#define RTP_MAX_BUF_LEN (MTU - RTP_HEADER_SIZE)
+#define RTP_MAX_PAYLOAD_LEN (MTU - UDP_HEADER_LEN - RTP_HEADER_LEN)
+#define RTP_MAX_LEN (MTU - UDP_HEADER_LEN)
 
-typedef struct {
-    unsigned char cc : 4;      /* CSRC count             */
-    unsigned char x : 1;       /* header extension flag  */
-    unsigned char p : 1;       /* padding flag           */
-    unsigned char version : 2; /* protocol version       */
-    unsigned char pt : 7;      /* payload type           */
-    unsigned char m : 1;       /* marker bit             */
-    uint16_t seq;              /* sequence number        */
-    uint32_t ts;               /* timestamp              */
-    uint32_t ssrc;             /* synchronization source */
-} RtpHeader; /* BIG END */
-
-//typedef struct {
-//    unsigned char version : 2; /* protocol version       */
-//    unsigned char p : 1;       /* padding flag           */
-//    unsigned char x : 1;       /* header extension flag  */
-//    unsigned char cc : 4;      /* CSRC count             */
-//    unsigned char m : 1;       /* marker bit             */
-//    unsigned char pt : 7;      /* payload type           */
-//    uint16_t seq;              /* sequence number        */
-//    uint32_t ts;               /* timestamp              */
-//    uint32_t ssrc;             /* synchronization source */
-//} RtpHeader;
-
-typedef struct {
-	RtpHeader header;
-    char body[RTP_MAX_BUF_LEN];
-} RtpPacket;
-
+namespace mediaserver {
 class RtpClient {
 public:
 	RtpClient();
@@ -73,9 +44,13 @@ public:
 public:
 	static bool GobalInit();
 	static bool IsRtp(const char *frame, unsigned len);
+	static bool IsRtcp(const char *frame, unsigned len);
+	static unsigned int GetRtpSSRC(void *pkt, unsigned int& pktSize);
+	static unsigned int GetRtcpSSRC(void *pkt, unsigned int& pktSize);
 
 public:
-	void SetSocketSender(SocketSender *sender);
+	void SetRtpSender(SocketSender *sender);
+	void SetRtcpSender(SocketSender *sender);
 
 public:
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
@@ -88,13 +63,34 @@ public:
 	void StopRecv();
 
 public:
+	/**
+	 * 设置H264视频信息
+	 */
 	void SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp);
+	/**
+	 * 发送一个完整的H264帧
+	 */
 	bool SendVideoFrameH264(const char* frame, unsigned int size, unsigned int timestamp);
 
 	bool SendAudioFrame(const char* frame, unsigned int size, unsigned int timestamp);
 
-	bool SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize);
-	bool RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *pkt, unsigned int& pktSize);
+	/**
+	 * 发送原始RTP包(网络字节序)
+	 */
+	bool SendRtpPacket(void *pkt, unsigned int& pktSize);
+	/**
+	 * 接收原始RTP包(网络字节序)
+	 */
+	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
+
+	/**
+	 * 发送原始RTCP包(网络字节序)
+	 */
+	bool SendRtcpPacket(void *pkt, unsigned int& pktSize);
+	/**
+	 * 接收原始RTCP包(网络字节序)
+	 */
+	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
 
 public:
 	/**
@@ -119,7 +115,8 @@ private:
 	bool mRunning;
 
 	// Socket
-	SocketSender *mpSocketSender;
+	SocketSender *mpRtpSender;
+	SocketSender *mpRtcpSender;
 
 	// Video
 	// Original video timestamp

@@ -24,7 +24,6 @@
 #include <respond/BaseRespond.h>
 #include <respond/BaseResultRespond.h>
 // ThirdParty
-#include <libsdp.h>
 #include <json/json.h>
 
 /***************************** 线程处理 **************************************/
@@ -675,19 +674,12 @@ void MediaServer::OnRequestCallSdp(HttpParser* parser) {
 
 	Json::Value root;
 	Json::Reader reader;
-	int err = -1;
 
 	bFlag = reader.parse(body, root, false);
 	if ( bFlag ) {
 		if( root.isObject() ) {
 			if( root["sdp"].isString() ) {
 				string sdp = root["sdp"].asString();
-				struct sdp_session *session = NULL;
-				err = sdp_description_read(sdp.c_str(), &session);
-				if( err == 0 ) {
-
-				}
-
 				WebRTC *rtc = new WebRTC();
 				rtc->SetRemoteSdp(sdp);
 				rtc->Start();
@@ -697,7 +689,7 @@ void MediaServer::OnRequestCallSdp(HttpParser* parser) {
 
 	// 马上返回数据
 	BaseResultRespond respond;
-	respond.SetParam((err == 0), "");
+	respond.SetParam(true, "");
 	HttpSendRespond(parser, &respond);
 }
 

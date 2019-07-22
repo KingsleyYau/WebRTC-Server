@@ -6,8 +6,8 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef SOCKET_UDPCLIENT_H_
-#define SOCKET_UDPCLIENT_H_
+#ifndef SOCKET_UDPSENDER_H_
+#define SOCKET_UDPSENDER_H_
 
 #include "ISocketSender.h"
 
@@ -21,10 +21,10 @@ using namespace std;
 
 namespace mediaserver {
 
-class UdpClient: public SocketSender {
+class UdpSender: public SocketSender {
 public:
-	UdpClient();
-	virtual ~UdpClient();
+	UdpSender();
+	virtual ~UdpSender();
 
 public:
 	bool Init(const string& sendIp, int sendPort, int recvPort);
@@ -42,4 +42,4 @@ private:
 
 } /* namespace mediaserver */
 
-#endif /* SOCKET_UDPCLIENT_H_ */
+#endif /* SOCKET_UDPSENDER_H_ */

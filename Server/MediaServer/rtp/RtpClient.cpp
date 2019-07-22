@@ -29,6 +29,23 @@ namespace mediaserver {
 #define RTCP_HEADER_LENGTH 4
 #define RTCP_COMMON_FEEDBACK_LENGTH 8
 
+typedef struct {
+    unsigned char cc : 4;      /* CSRC count             */
+    unsigned char x : 1;       /* header extension flag  */
+    unsigned char p : 1;       /* padding flag           */
+    unsigned char version : 2; /* protocol version       */
+    unsigned char pt : 7;      /* payload type           */
+    unsigned char m : 1;       /* marker bit             */
+    uint16_t seq;              /* sequence number        */
+    uint32_t ts;               /* timestamp              */
+    uint32_t ssrc;             /* synchronization source */
+} RtpHeader; /* BIG END */
+
+typedef struct {
+	RtpHeader header;
+    char body[RTP_MAX_PAYLOAD_LEN];
+} RtpPacket;
+
 // From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
 //
 // RTP header format.
@@ -37,14 +54,6 @@ namespace mediaserver {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //  |V=2|P| RC/FMT  |      PT       |             length            |
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-//typedef struct {
-//    unsigned char version : 2; /* protocol version     */
-//    unsigned char p : 1;       /* padding flag         */
-//    unsigned char rc : 5;      /* fmt  				 */
-//    unsigned char pt : 8;      /* pt					 */
-//    uint16_t length;           /* length				 */
-//} RtcpHeader;
 typedef struct {
     unsigned char rc : 5;      /* fmt 					 				 */
     unsigned char p : 1;       /* padding flag           				 */
@@ -52,6 +61,11 @@ typedef struct {
     unsigned char pt : 8;      /* payload					 			 */
     uint16_t length;           /* count of media ssrc, each one is 32bit */
 } RtcpHeader; /* BIG END */
+
+typedef struct {
+	RtcpHeader header;
+	uint32_t ssrc;
+} RtcpPacketCommon; /* BIG END */
 
 // RFC 4585: Feedback format.
 //
@@ -137,7 +151,8 @@ RtpClient::RtpClient():
 	mRunning = false;
 
 	// Socket
-	mpSocketSender = NULL;
+	mpRtpSender = NULL;
+	mpRtcpSender = NULL;
 
 	// libsrtp
 	mpSendSrtpCtx = NULL;
@@ -199,19 +214,28 @@ void RtpClient::Reset() {
 	mVideoFrameCount = 0;
 }
 
-void RtpClient::SetSocketSender(SocketSender *sender) {
-	mpSocketSender = sender;
+void RtpClient::SetRtpSender(SocketSender *sender) {
+	mpRtpSender = sender;
+}
+
+void RtpClient::SetRtcpSender(SocketSender *sender) {
+	mpRtcpSender = sender;
 }
 
 bool RtpClient::Start(char *localKey, int localSize, char *remoteKey, int remoteSize) {
-	bool bFlag = true;
+	bool bFlag = false;
 
+	Arithmetic art;
 	LogAync(
 			LOG_MSG,
 			"RtpClient::Start( "
-			"this : %p "
+			"this : %p, "
+			"localKey : %s, "
+			"remoteKey : %s "
 			")",
-			this
+			this,
+			art.AsciiToHexWithSep(localKey, localSize).c_str(),
+			art.AsciiToHexWithSep(remoteKey, remoteSize).c_str()
 			);
 
 	srtp_err_status_t status = srtp_err_status_ok;
@@ -277,7 +301,7 @@ void RtpClient::Stop() {
 		Reset();
 
 		LogAync(
-				LOG_WARNING,
+				LOG_MSG,
 				"RtpClient::Stop( "
 				"this : %p, "
 				"[OK] "
@@ -293,7 +317,7 @@ bool RtpClient::StartSend(char *localKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"RtpClient::StartSend( "
 			"this : %p, "
 			"size : %d, "
@@ -330,7 +354,7 @@ bool RtpClient::StartSend(char *localKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_STAT,
 				"RtpClient::StartSend( "
 				"this : %p, "
 				"[OK] "
@@ -360,7 +384,7 @@ void RtpClient::StopSend() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"RtpClient::StopSend( "
 			"this : %p, "
 			"[OK] "
@@ -374,7 +398,7 @@ bool RtpClient::StartRecv(char *remoteKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"RtpClient::StartRecv( "
 			"this : %p, "
 			"size : %d, "
@@ -412,7 +436,7 @@ bool RtpClient::StartRecv(char *remoteKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_STAT,
 				"RtpClient::StartRecv( "
 				"this : %p, "
 				"[OK] "
@@ -442,7 +466,7 @@ void RtpClient::StopRecv() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"RtpClient::StopRecv( "
 			"this : %p, "
 			"[OK] "
@@ -595,18 +619,14 @@ bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigne
 	    			pktSize = RTP_HEADER_LEN + bodySize;
 	    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 	    		    if (status == srtp_err_status_ok) {
-	    		    	if( mpSocketSender ) {
-	    		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
+	    		    	if( mpRtpSender ) {
+	    		    		int sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
 							if (sendSize != pktSize) {
 								bFlag = false;
 							}
 	    		    	} else {
 	    		    		bFlag = false;
 	    		    	}
-//						int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
-//						if (sendSize != pktSize) {
-//							bFlag = false;
-//						}
 	    		    } else {
 	    		    	bFlag = false;
 	    		    }
@@ -694,10 +714,9 @@ bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigne
 			    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 			    		    if (status == srtp_err_status_ok) {
 			    		    	int sendSize = 0;
-			    		    	if( mpSocketSender ) {
-			    		    		sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
+			    		    	if( mpRtpSender ) {
+			    		    		sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
 			    		    	}
-//								int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 
 								unsigned char t = nalu->GetNaluType();
 								unsigned char d = pkt.body[0];
@@ -752,22 +771,6 @@ bool RtpClient::SendVideoFrameH264(const char* frame, unsigned int size, unsigne
 		bFlag = false;
 	}
 	mClientMutex.unlock();
-
-//	LogAync(
-//			LOG_WARNING,
-//			"RtpClient::SendVideoFrameH264( "
-//			"this : %p, "
-//			"[%s], "
-//			"timestamp : %d, "
-//			"size : %d, "
-//			"status : %d "
-//			")",
-//			this,
-//			bFlag?"Success":"Fail",
-//			timestamp,
-//			size,
-//			status
-//			);
 
 	return bFlag;
 }
@@ -833,18 +836,14 @@ bool RtpClient::SendVideoKeyFrameH264() {
 			pktSize = RTP_HEADER_LEN + bodySize;
 			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
 		    if (status == srtp_err_status_ok) {
-		    	if( mpSocketSender ) {
-		    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
+		    	if( mpRtpSender ) {
+		    		int sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
 					if (sendSize != pktSize) {
 						bFlag = false;
 					}
 		    	} else {
 		    		bFlag = false;
 		    	}
-//				int sendSize = sendto(mFd, (void *)&pkt, pktSize, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
-//				if (sendSize != pktSize) {
-//					bFlag = false;
-//				}
 		    } else {
 		    	bFlag = false;
 		    }
@@ -873,17 +872,15 @@ bool RtpClient::SendAudioFrame(const char* frame, unsigned int size, unsigned in
 }
 
 
-bool RtpClient::SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize) {
+bool RtpClient::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
-
-	srtp_err_status_t status = srtp_err_status_ok;
 
 	mClientMutex.lock();
 	if( mRunning ) {
-		status = srtp_protect(mpSendSrtpCtx, pkt, (int *)&pktSize);
+		srtp_err_status_t status = srtp_protect(mpSendSrtpCtx, pkt, (int *)&pktSize);
 	    if (status == srtp_err_status_ok) {
-	    	if( mpSocketSender ) {
-	    		int sendSize = mpSocketSender->SendData((void *)pkt, pktSize);
+	    	if( mpRtpSender ) {
+	    		int sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
 				if (sendSize != pktSize) {
 					bFlag = false;
 				}
@@ -897,7 +894,7 @@ bool RtpClient::SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize) {
 	mClientMutex.unlock();
 
 //	LogAync(
-//			LOG_WARNING,
+//			LOG_MSG,
 //			"RtpClient::SendRtpPacket( "
 //			"this : %p, "
 //			"status : %d, "
@@ -915,44 +912,27 @@ bool RtpClient::SendRtpPacket(RtpPacket *pkt, unsigned int& pktSize) {
 	return bFlag;
 }
 
-bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *pkt, unsigned int& pktSize) {
+bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
-	Arithmetic art;
 	srtp_err_status_t status = srtp_err_status_ok;
 	if( IsRtp(frame, size) ) {
 		memcpy((void *)pkt, (void *)frame, size);
 		pktSize = size;
 
-//		LogAync(
-//				LOG_WARNING,
-//				"RtpClient::RecvRtpPacket( "
-//				"this : %p, "
-//				"size : %u, "
-//				"seq : %u, "
-//				"timestamp : %u, "
-//				"body : %s "
-//				")",
-//				this,
-//				size,
-//				ntohs(pkt.header.seq),
-//				ntohl(pkt.header.ts),
-//				art.AsciiToHexWithSep(pkt->body, pktSize - RTP_HEADER_LEN).c_str()
-//				);
-
 		srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
 		bFlag = (status == srtp_err_status_ok);
 
 		if( bFlag ) {
-			if( pkt->header.m ) {
+			if( ((RtpPacket *)pkt)->header.m ) {
 				// 每10个视频帧强制刷新一次视频信息
 				if( ++mVideoFrameCount % 15 == 0 ) {
-					SendRtcpFIR(pkt->header.ssrc);
+					SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
 				}
 			}
 		}
 //		LogAync(
-//				LOG_WARNING,
+//				LOG_MSG,
 //				"RtpClient::RecvRtpPacket( "
 //				"this : %p, "
 //				"status : %d, "
@@ -968,11 +948,59 @@ bool RtpClient::RecvRtpPacket(const char* frame, unsigned int size, RtpPacket *p
 //				pktSize,
 //				pkt.header.m?", [Mark] ":""
 //				);
-
 	} else {
 		LogAync(
 				LOG_WARNING,
 				"RtpClient::RecvRtpPacket( "
+				"this : %p, "
+				"[Ignore frame before Handshake] "
+				")",
+				this
+				);
+	}
+
+	return bFlag;
+}
+
+bool RtpClient::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
+	bool bFlag = false;
+
+	mClientMutex.lock();
+	if( mRunning ) {
+		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, pkt, (int *)&pktSize);
+	    if (status == srtp_err_status_ok) {
+	    	if( mpRtcpSender ) {
+	    		int sendSize = mpRtcpSender->SendData((void *)pkt, pktSize);
+				if (sendSize != pktSize) {
+					bFlag = false;
+				}
+	    	} else {
+	    		bFlag = false;
+	    	}
+	    } else {
+	    	bFlag = false;
+	    }
+	}
+	mClientMutex.unlock();
+
+	return bFlag;
+}
+
+bool RtpClient::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_ok;
+	if( IsRtcp(frame, size) ) {
+		memcpy((void *)pkt, (void *)frame, size);
+		pktSize = size;
+
+		srtp_err_status_t status = srtp_unprotect_rtcp(mpRecvSrtpCtx, pkt, (int *)&pktSize);
+		bFlag = (status == srtp_err_status_ok);
+
+	} else {
+		LogAync(
+				LOG_WARNING,
+				"RtpClient::RecvRtcpPacket( "
 				"this : %p, "
 				"[Ignore frame before Handshake] "
 				")",
@@ -1001,24 +1029,17 @@ bool RtpClient::SendRtcpPLI(unsigned int remoteSSRC) {
 
 		int pktSize = sizeof(RtcpPacketPLI);
 
-//		LogAync(
-//				LOG_WARNING,
-//				"RtpClient::SendRtcpPLI( "
-//				"this : %p, "
-//				"pkt : %s "
-//				")",
-//				this,
-//				art.AsciiToHexWithSep((char *)&pkt, pktSize).c_str()
-//				);
-
-    	if( mpSocketSender ) {
-    		int sendSize = mpSocketSender->SendData((void *)&pkt, pktSize);
-			if (sendSize != pktSize) {
-				bFlag = false;
-			}
-    	} else {
-    		bFlag = false;
-    	}
+		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)&pkt, &pktSize);
+	    if (status == srtp_err_status_ok) {
+	    	if( mpRtcpSender ) {
+	    		int sendSize = mpRtcpSender->SendData((void *)&pkt, pktSize);
+				if (sendSize != pktSize) {
+					bFlag = false;
+				}
+	    	} else {
+	    		bFlag = false;
+	    	}
+	    }
 	}
 	mClientMutex.unlock();
 	return bFlag;
@@ -1027,8 +1048,6 @@ bool RtpClient::SendRtcpPLI(unsigned int remoteSSRC) {
 bool RtpClient::SendRtcpFIR(unsigned int remoteSSRC) {
 	bool bFlag = false;
 
-	srtp_err_status_t status = srtp_err_status_ok;
-	Arithmetic art;
 	mClientMutex.lock();
 	if( mRunning ) {
 		char tmp[MTU];
@@ -1053,10 +1072,10 @@ bool RtpClient::SendRtcpFIR(unsigned int remoteSSRC) {
 		memcpy(tmp + pktSize, (void *)&item, sizeof(RtcpPacketFIRItem));
 		pktSize += sizeof(RtcpPacketFIRItem);
 
-		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
+		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
 	    if (status == srtp_err_status_ok) {
-			if( mpSocketSender ) {
-				int sendSize = mpSocketSender->SendData((void *)tmp, pktSize);
+			if( mpRtcpSender ) {
+				int sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
 				if (sendSize != pktSize) {
 					bFlag = false;
 				}
@@ -1064,28 +1083,39 @@ bool RtpClient::SendRtcpFIR(unsigned int remoteSSRC) {
 				bFlag = false;
 			}
 	    }
-
-//		LogAync(
-//				LOG_WARNING,
-//				"RtpClient::SendRtcpFIR( "
-//				"this : %p, "
-//				"status : %u, "
-//				"pktSize : %d "
-//				")",
-//				this,
-//				status,
-//				pktSize
-//				);
 	}
 	mClientMutex.unlock();
 	return bFlag;
 }
 
+unsigned int RtpClient::GetRtpSSRC(void *pkt, unsigned int& pktSize) {
+	int ssrc = 0;
+	RtpHeader *header = (RtpHeader *)pkt;
+	ssrc = ntohl(header->ssrc);
+	return ssrc;
+}
+
+unsigned int RtpClient::GetRtcpSSRC(void *pkt, unsigned int& pktSize) {
+	int ssrc = 0;
+	RtcpPacketCommon *header = (RtcpPacketCommon *)pkt;
+	ssrc = ntohl(header->ssrc);
+	return ssrc;
+}
+
 bool RtpClient::IsRtp(const char *frame, unsigned len) {
 	bool bFlag = false;
 	if( len > 0 ) {
-		srtp_hdr_t *header = (srtp_hdr_t *)frame;
-		bFlag = ((header->pt < 64) || (header->pt >= 96));
+		RtpHeader *header = (RtpHeader *)frame;
+		bFlag = ((header->pt < 64) || ((header->pt >= 96) && (header->pt < 200)));
+	}
+	return bFlag;
+}
+
+bool RtpClient::IsRtcp(const char *frame, unsigned len) {
+	bool bFlag = false;
+	if( len > 0 ) {
+		RtcpHeader *header = (RtcpHeader *)frame;
+		bFlag = ((header->pt >= 200) && (header->pt <= 210));
 	}
 	return bFlag;
 }

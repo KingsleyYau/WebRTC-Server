@@ -292,7 +292,7 @@ void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"DTLSClient::SSL_Info_Callback( "
 			"this : %p, "
 			"[%s], "
@@ -554,7 +554,7 @@ bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 	if( IsDTLS(frame, size) ) {
 		int written = BIO_write(mpReadBIO, frame, size);
 		LogAync(
-				LOG_WARNING,
+				LOG_STAT,
 				"DTLSClient::RecvFrame( "
 				"this : %p, "
 				"written : %d "
@@ -599,7 +599,7 @@ bool DTLSClient::FlushSSL() {
 
 	int pending = BIO_ctrl_pending(mpWriteBIO);
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"DTLSClient::FlushSSL( "
 			"this : %p, "
 			"pending : %d "
@@ -614,7 +614,7 @@ bool DTLSClient::FlushSSL() {
 		dataSize = MIN(pending, 1500);
 		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
 		LogAync(
-				LOG_MSG,
+				LOG_STAT,
 				"DTLSClient::FlushSSL( "
 				"this : %p, "
 				"sent : %d "

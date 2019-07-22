@@ -139,7 +139,7 @@ bool IceClient::Start() {
 		mComponentId = componentId;
 
 //		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
-		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
+		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "audio");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
 

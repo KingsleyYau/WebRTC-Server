@@ -1,21 +1,19 @@
 /*
- * UdpClient.cpp
+ * UdpSender.cpp
  *
  *  Created on: 2019/07/02
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#include "UdpClient.h"
-
-// Common
 #include <common/LogManager.h>
 #include <common/Math.h>
 #include <common/CommonFunc.h>
+#include "UdpSender.h"
 
 namespace mediaserver {
 
-UdpClient::UdpClient() {
+UdpSender::UdpSender() {
 	// TODO Auto-generated constructor stub
 	mSendIp = "";
 	mSendPort = -1;
@@ -23,11 +21,11 @@ UdpClient::UdpClient() {
 	mFd = -1;
 }
 
-UdpClient::~UdpClient() {
+UdpSender::~UdpSender() {
 	// TODO Auto-generated destructor stub
 }
 
-bool UdpClient::Init(const string& sendIp, int sendPort, int recvPort) {
+bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
 	bool bFlag = true;
 
 	mSendIp = sendIp;
@@ -58,7 +56,7 @@ bool UdpClient::Init(const string& sendIp, int sendPort, int recvPort) {
 	if( bFlag ) {
 		LogAync(
 				LOG_STAT,
-				"UdpClient::Init( "
+				"UdpSender::Init( "
 				"this : %p, "
 				"[OK], "
 				"mFd : %d, "
@@ -75,7 +73,7 @@ bool UdpClient::Init(const string& sendIp, int sendPort, int recvPort) {
 	} else {
 		LogAync(
 				LOG_ERR_SYS,
-				"UdpClient::Init( "
+				"UdpSender::Init( "
 				"this : %p, "
 				"[Fail], "
 				"sendIp : %s, "
@@ -93,18 +91,18 @@ bool UdpClient::Init(const string& sendIp, int sendPort, int recvPort) {
 	return bFlag;
 }
 
-void UdpClient::Close() {
+void UdpSender::Close() {
 	if( mFd != -1 ) {
 		close(mFd);
 		mFd = -1;
 	}
 }
 
-int UdpClient::SendData(const void *data, unsigned int len) {
+int UdpSender::SendData(const void *data, unsigned int len) {
 	int sendSize = sendto(mFd, data, len, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 //	LogAync(
 //			LOG_STAT,
-//			"UdpClient::SendData( "
+//			"UdpSender::SendData( "
 //			"this : %p, "
 //			"len : %d, "
 //			"sendSize : %d "

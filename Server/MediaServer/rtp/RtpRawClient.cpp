@@ -15,17 +15,19 @@ namespace mediaserver {
 
 RtpRawClient::RtpRawClient() {
 	// TODO Auto-generated constructor stub
-	SetSocketSender(&mUdpClient);
+	SetRtpSender(&mRtpSender);
+	SetRtcpSender(&mRtcpSender);
 }
 
 RtpRawClient::~RtpRawClient() {
 	// TODO Auto-generated destructor stub
 }
 
-bool RtpRawClient::Init(const string& sendIp, int sendPort, int recvPort) {
+bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, int rtpRecvPort) {
 	bool bFlag = true;
 
-	bFlag &= mUdpClient.Init(sendIp, sendPort, recvPort);
+	bFlag &= mRtpSender.Init(sendIp, rtpSendPort, rtpRecvPort);
+	bFlag &= mRtcpSender.Init(sendIp, rtpSendPort + 1, rtpRecvPort);
 
 	if( bFlag ) {
 		LogAync(
@@ -34,13 +36,13 @@ bool RtpRawClient::Init(const string& sendIp, int sendPort, int recvPort) {
 				"this : %p, "
 				"[OK], "
 				"sendIp : %s, "
-				"sendPort : %d, "
-				"recvPort : %d "
+				"rtpSendPort : %d, "
+				"rtpRecvPort : %d "
 				")",
 				this,
 				sendIp.c_str(),
-				sendPort,
-				recvPort
+				rtpSendPort,
+				rtpRecvPort
 				);
 	} else {
 		LogAync(
@@ -49,21 +51,17 @@ bool RtpRawClient::Init(const string& sendIp, int sendPort, int recvPort) {
 				"this : %p, "
 				"[Fail], "
 				"sendIp : %s, "
-				"sendPort : %d, "
-				"recvPort : %d "
+				"rtpSendPort : %d, "
+				"rtpRecvPort : %d "
 				")",
 				this,
 				sendIp.c_str(),
-				sendPort,
-				recvPort
+				rtpSendPort,
+				rtpRecvPort
 				);
 	}
 
 	return bFlag;
-}
-
-void RtpRawClient::SetSocketSender(SocketSender *sender) {
-	RtpClient::SetSocketSender(sender);
 }
 
 } /* namespace mediaserver */

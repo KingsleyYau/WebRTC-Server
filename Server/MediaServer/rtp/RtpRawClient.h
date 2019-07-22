@@ -11,9 +11,10 @@
 
 #include "RtpClient.h"
 
-#include <socket/UdpClient.h>
-
 #include <string.h>
+
+#include <socket/UdpSender.h>
+
 using namespace std;
 
 namespace mediaserver {
@@ -24,13 +25,14 @@ public:
 	virtual ~RtpRawClient();
 
 public:
-	bool Init(const string& sendIp, int sendPort, int recvPort);
+	bool Init(const string& sendIp, int rtpSendPort, int rtpRecvPort);
 
 private:
 	void SetSocketSender(SocketSender *sender);
 
 private:
-	UdpClient mUdpClient;
+	UdpSender mRtpSender;
+	UdpSender mRtcpSender;
 };
 
 } /* namespace mediaserver */

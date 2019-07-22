@@ -41,7 +41,12 @@ private:
 	IceClient mIceClient;
 	DTLSClient mDTLSClient;
 	RtpClient mRtpClient;
-	RtpRawClient mRtpRawClient;
+
+	RtpRawClient mRtpDstAudioClient;
+	RtpRawClient mRtpDstVideoClient;
+
+	unsigned int mVideoSSRC;
+	unsigned int mAudioSSRC;
 };
 
 } /* namespace mediaserver */
