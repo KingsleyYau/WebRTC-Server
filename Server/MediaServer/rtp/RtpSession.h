@@ -1,13 +1,13 @@
 /*
- * RtpClient.h
+ * RtpSession.h
  *
  *  Created on: 2019/06/20
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RTP_RTPCLIENT_H_
-#define RTP_RTPCLIENT_H_
+#ifndef RTP_RTPSESSION_H_
+#define RTP_RTPSESSION_H_
 
 #include <common/KMutex.h>
 
@@ -36,10 +36,10 @@ typedef struct srtp_policy_t;
 #define RTP_MAX_LEN (MTU - UDP_HEADER_LEN)
 
 namespace mediaserver {
-class RtpClient {
+class RtpSession {
 public:
-	RtpClient();
-	virtual ~RtpClient();
+	RtpSession();
+	virtual ~RtpSession();
 
 public:
 	static bool GobalInit();
@@ -164,4 +164,4 @@ private:
 
 } /* namespace mediaserver */
 
-#endif /* RTP_RTPCLIENT_H_ */
+#endif /* RTP_RTPSESSION_H_ */

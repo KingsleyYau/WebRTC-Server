@@ -1,13 +1,13 @@
 /*
- * DTLSClient.h
+ * DtlsSession.h
  *
  *  Created on: 2019/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RTP_DTLSCLIENT_H_
-#define RTP_DTLSCLIENT_H_
+#ifndef RTP_DTLSSESSION_H_
+#define RTP_DTLSSESSION_H_
 
 #include <common/KMutex.h>
 
@@ -31,17 +31,17 @@ using namespace std;
 #define SRTP_MASTER_LENGTH (SRTP_MASTER_KEY_LENGTH + SRTP_MASTER_SALT_LENGTH)
 
 namespace mediaserver {
-typedef enum DTLSClientStatus {
-	DTLSClientStatus_None,
-	DTLSClientStatus_HandshakeStart,
-	DTLSClientStatus_HandshakeDone,
-	DTLSClientStatus_Alert
-} DTLSClientStatus;
+typedef enum DtlsSessionStatus {
+	DtlsSessionStatus_None,
+	DtlsSessionStatus_HandshakeStart,
+	DtlsSessionStatus_HandshakeDone,
+	DtlsSessionStatus_Alert
+} DtlsSessionStatus;
 
-class DTLSClient {
+class DtlsSession {
 public:
-	DTLSClient();
-	virtual ~DTLSClient();
+	DtlsSession();
+	virtual ~DtlsSession();
 
 public:
 	static bool GobalInit();
@@ -56,7 +56,7 @@ public:
 
 	bool RecvFrame(const char* frame, unsigned int size);
 
-	DTLSClientStatus GetClientStatus();
+	DtlsSessionStatus GetDtlsSessionStatus();
 	bool GetClientKey(char *key, int& len);
 	bool GetServerKey(char *key, int& len);
 
@@ -73,7 +73,7 @@ private:
 	// Status
 	KMutex mClientMutex;
 	bool mRunning;
-	DTLSClientStatus mDTLSClientStatus;
+	DtlsSessionStatus mDtlsSessionStatus;
 
 	// Socket
 	SocketSender *mpSocketSender;
@@ -92,4 +92,4 @@ private:
 
 } /* namespace mediaserver */
 
-#endif /* RTP_DTLSCLIENT_H_ */
+#endif /* RTP_DTLSSESSION_H_ */

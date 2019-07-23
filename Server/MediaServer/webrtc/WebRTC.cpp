@@ -19,9 +19,9 @@ namespace mediaserver {
 WebRTC::WebRTC() {
 	// TODO Auto-generated constructor stub
 	mIceClient.SetCallback(this);
-	mDTLSClient.SetSocketSender(this);
-	mRtpClient.SetRtpSender(this);
-	mRtpClient.SetRtcpSender(this);
+	mDtlsSession.SetSocketSender(this);
+	mRtpSession.SetRtpSender(this);
+	mRtpSession.SetRtcpSender(this);
 
 	mVideoSSRC = 0;
 	mAudioSSRC = 0;
@@ -35,8 +35,8 @@ bool WebRTC::GobalInit() {
 	bool bFlag = true;
 
 	bFlag &= IceClient::GobalInit();
-	bFlag &= DTLSClient::GobalInit();
-	bFlag &= RtpClient::GobalInit();
+	bFlag &= DtlsSession::GobalInit();
+	bFlag &= RtpSession::GobalInit();
 
 	LogAync(
 			LOG_ERR_USER,
@@ -51,7 +51,7 @@ bool WebRTC::GobalInit() {
 
 void WebRTC::SetRemoteSdp(const string& sdp) {
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"WebRTC::SetRemoteSdp( "
 			"this : %p, "
 			"sdp : \n%s"
@@ -99,17 +99,6 @@ void WebRTC::SetRemoteSdp(const string& sdp) {
 							string::size_type pos = value.find(" ", 0);
 							if( pos != string::npos ) {
 								string ssrc = value.substr(0, pos);
-
-								LogAync(
-										LOG_MSG,
-										"WebRTC::SetRemoteSdp( "
-										"this : %p, "
-										"ssrc : %s "
-										")",
-										this,
-										ssrc.c_str()
-										);
-
 								if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
 									if ( mAudioSSRC == 0 ) {
 										mAudioSSRC = atoll(ssrc.c_str());
@@ -149,7 +138,7 @@ bool WebRTC::Start() {
 	bool bFlag = true;
 
 	bFlag &= mIceClient.Start();
-	bFlag &= mDTLSClient.Start();
+	bFlag &= mDtlsSession.Start();
 
 	mRtpDstAudioClient.Init("192.168.88.138", 9999, 9999);
 	mRtpDstAudioClient.Start(NULL, 0, NULL, 0);
@@ -157,7 +146,7 @@ bool WebRTC::Start() {
 	mRtpDstVideoClient.Start(NULL, 0, NULL, 0);
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"WebRTC::Start( "
 			"this : %p, "
 			"[%s] "
@@ -175,11 +164,11 @@ bool WebRTC::Start() {
 
 void WebRTC::Stop() {
 	mIceClient.Stop();
-	mDTLSClient.Stop();
-	mRtpClient.Stop();
+	mDtlsSession.Stop();
+	mRtpSession.Stop();
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"WebRTC::Stop( "
 			"this : %p, "
 			"[OK] "
@@ -207,7 +196,7 @@ void WebRTC::OnIceHandshakeFinish(IceClient *ice) {
 			ice->GetLocalAddress().c_str(),
 			ice->GetRemoteAddress().c_str()
 			);
-	mDTLSClient.Handshake();
+	mDtlsSession.Handshake();
 }
 
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
@@ -234,12 +223,12 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 	char pkt[RTP_MAX_LEN] = {0};
 	unsigned int pktSize = size;
 
-	if( DTLSClient::IsDTLS(data, size) ) {
-		bFlag = mDTLSClient.RecvFrame(data, size);
+	if( DtlsSession::IsDTLS(data, size) ) {
+		bFlag = mDtlsSession.RecvFrame(data, size);
 		if( bFlag ) {
 			// Check Handshake status
-			DTLSClientStatus status = mDTLSClient.GetClientStatus();
-			if( status == DTLSClientStatus_HandshakeDone ) {
+			DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
+			if( status == DtlsSessionStatus_HandshakeDone ) {
 				LogAync(
 						LOG_WARNING,
 						"WebRTC::OnIceRecvData( "
@@ -250,13 +239,13 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						);
 				char localKey[SRTP_MASTER_LENGTH];
 				int localSize = 0;
-				mDTLSClient.GetClientKey(localKey, localSize);
+				mDtlsSession.GetClientKey(localKey, localSize);
 				char remoteKey[SRTP_MASTER_LENGTH];
 				int remoteSize = 0;
-				mDTLSClient.GetServerKey(remoteKey, remoteSize);
+				mDtlsSession.GetServerKey(remoteKey, remoteSize);
 
-				mRtpClient.Start(localKey, localSize, remoteKey, remoteSize);
-			} else if ( status == DTLSClientStatus_Alert ) {
+				mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
+			} else if ( status == DtlsSessionStatus_Alert ) {
 				LogAync(
 						LOG_WARNING,
 						"WebRTC::OnIceRecvData( "
@@ -265,13 +254,15 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						")",
 						this
 						);
-				mRtpClient.Stop();
+				mRtpSession.Stop();
+				mRtpDstAudioClient.Stop();
+				mRtpDstVideoClient.Stop();
 			}
 		}
-	} else if( RtpClient::IsRtp(data, size) ) {
-		bFlag = mRtpClient.RecvRtpPacket(data, size, pkt, pktSize);
+	} else if( RtpSession::IsRtp(data, size) ) {
+		bFlag = mRtpSession.RecvRtpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
-			int ssrc = RtpClient::GetRtpSSRC(pkt, pktSize);
+			int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
 			LogAync(
 					LOG_STAT,
 					"WebRTC::OnIceRecvData( "
@@ -289,10 +280,10 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				mRtpDstVideoClient.SendRtpPacket(pkt, pktSize);
 			}
 		}
-	} else if( RtpClient::IsRtcp(data, size) ){
-		bFlag = mRtpClient.RecvRtcpPacket(data, size, pkt, pktSize);
+	} else if( RtpSession::IsRtcp(data, size) ){
+		bFlag = mRtpSession.RecvRtcpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
-			int ssrc = RtpClient::GetRtcpSSRC(pkt, pktSize);
+			int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
 			LogAync(
 					LOG_STAT,
 					"WebRTC::OnIceRecvData( "

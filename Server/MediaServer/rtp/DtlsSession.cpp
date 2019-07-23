@@ -1,14 +1,11 @@
 /*
- * DTLSClient.cpp
+ * DtlsSession.cpp
  *
  *  Created on: 2019/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#include "DTLSClient.h"
-
-// Common
 #include <common/CommonFunc.h>
 #include <common/LogManager.h>
 #include <common/Math.h>
@@ -19,6 +16,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include "DtlsSession.h"
 
 #define DTLS_AUTOCERT_DURATION 60 * 60 * 24 * 365
 #define MTU 1500
@@ -29,12 +27,12 @@ X509 *gpSSLCert;
 EVP_PKEY *gpSSLKey;
 unsigned char gFingerprint[EVP_MAX_MD_SIZE * 3];
 
-int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
+int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_MSG,
-			"DTLSClient::SSL_Generate_Keys("
+			"DtlsSession::SSL_Generate_Keys("
 			")"
 			);
 
@@ -48,7 +46,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
     if ( !bne ) {
     	LogAync(
     			LOG_MSG,
-    			"DTLSClient::SSL_Generate_Keys( "
+    			"DtlsSession::SSL_Generate_Keys( "
 				"[BN_new() Fail] "
     			")"
     			);
@@ -60,7 +58,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
         	/* RSA_F4 == 65537 */
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[BN_set_word() Fail] "
         			")"
         			);
@@ -74,7 +72,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
         if ( !bFlag || !rsa_key) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[RSA_new() Fail] "
         			")"
         			);
@@ -87,7 +85,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!RSA_generate_key_ex(rsa_key, num_bits, bne, NULL)) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[RSA_generate_key_ex() Fail] "
         			")"
         			);
@@ -101,7 +99,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!*privateKey) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[EVP_PKEY_new() Fail] "
         			")"
         			);
@@ -113,7 +111,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!EVP_PKEY_assign_RSA(*privateKey, rsa_key)) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[EVP_PKEY_assign_RSA() Fail] "
         			")"
         			);
@@ -130,7 +128,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!*certificate) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_new() Fail] "
         			")"
         			);
@@ -156,7 +154,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!X509_set_pubkey(*certificate, *privateKey)) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_set_pubkey() Fail] "
         			")"
         			);
@@ -170,7 +168,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!cert_name) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_get_subject_name() Fail] "
         			")"
         			);
@@ -186,7 +184,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!X509_set_issuer_name(*certificate, cert_name)) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_set_issuer_name() Fail] "
         			")"
         			);
@@ -199,7 +197,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		if (!X509_sign(*certificate, *privateKey, EVP_sha1())) {
         	LogAync(
         			LOG_MSG,
-        			"DTLSClient::SSL_Generate_Keys( "
+        			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_sign() Fail] "
         			")"
         			);
@@ -222,7 +220,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 
 	LogAync(
 			LOG_MSG,
-			"DTLSClient::SSL_Generate_Keys( "
+			"DtlsSession::SSL_Generate_Keys( "
 			"[%s] "
 			")",
 			bFlag?"OK":"Fail"
@@ -231,7 +229,7 @@ int DTLSClient::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 	return bFlag;
 }
 
-bool DTLSClient::SSL_Load_Keys(const char* server_pem, const char* server_key, X509** certificate, EVP_PKEY** privateKey) {
+bool DtlsSession::SSL_Load_Keys(const char* server_pem, const char* server_key, X509** certificate, EVP_PKEY** privateKey) {
 	bool bFlag = false;
 
     X509* cert = X509_new();
@@ -257,8 +255,8 @@ bool DTLSClient::SSL_Load_Keys(const char* server_pem, const char* server_key, X
     return bFlag;
 }
 
-void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
-	DTLSClient *client = (DTLSClient *)SSL_get_ex_data(s, 0);
+void DtlsSession::SSL_Info_Callback(const SSL* s, int where, int ret) {
+	DtlsSession *client = (DtlsSession *)SSL_get_ex_data(s, 0);
 
 	string str = "undefined";
 	int w = where & ~SSL_ST_MASK;
@@ -268,13 +266,13 @@ void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
 		str = "SSL_accept";
 	} else if (w & SSL_CB_ALERT) {
 		str = "SSL_alert";
-		client->mDTLSClientStatus = DTLSClientStatus_Alert;
+		client->mDtlsSessionStatus = DtlsSessionStatus_Alert;
 	} else if (where & SSL_CB_HANDSHAKE_START) {
 		str = "SSL_start";
-		client->mDTLSClientStatus = DTLSClientStatus_HandshakeStart;
+		client->mDtlsSessionStatus = DtlsSessionStatus_HandshakeStart;
 	} else if (where & SSL_CB_HANDSHAKE_DONE) {
 		str = "SSL_done";
-		client->mDTLSClientStatus = DTLSClientStatus_HandshakeDone;
+		client->mDtlsSessionStatus = DtlsSessionStatus_HandshakeDone;
 	}
 
 	if (where & SSL_CB_LOOP) {
@@ -293,7 +291,7 @@ void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
 
 	LogAync(
 			LOG_STAT,
-			"DTLSClient::SSL_Info_Callback( "
+			"DtlsSession::SSL_Info_Callback( "
 			"this : %p, "
 			"[%s], "
 			"where : 0x%x, "
@@ -306,7 +304,7 @@ void DTLSClient::SSL_Info_Callback(const SSL* s, int where, int ret) {
 			);
 }
 
-bool DTLSClient::GobalInit() {
+bool DtlsSession::GobalInit() {
 	bool bFlag = false;
 
 	ERR_load_BIO_strings();
@@ -317,7 +315,7 @@ bool DTLSClient::GobalInit() {
 	bFlag = (gpSSLCtx != NULL);
 	if( bFlag ) {
 		// Set debug mode
-//		SSL_CTX_set_info_callback(gpSSLCtx, DTLSClient::SSL_Info_Callback);
+//		SSL_CTX_set_info_callback(gpSSLCtx, DtlsSession::SSL_Info_Callback);
 		// Load from disk
 		bFlag = SSL_Load_Keys("./ssl/webrtc.crt", "./ssl/webrtc.key", &gpSSLCert, &gpSSLKey);
 		// Generate new key
@@ -362,7 +360,7 @@ bool DTLSClient::GobalInit() {
 
 	LogAync(
 			LOG_ERR_USER,
-			"DTLSClient::GobalInit( "
+			"DtlsSession::GobalInit( "
 			"[%s], "
 			"SSL-Version : %s, "
 			"SSL-Error : %s, "
@@ -377,11 +375,11 @@ bool DTLSClient::GobalInit() {
 	return bFlag;
 }
 
-DTLSClient::DTLSClient() {
+DtlsSession::DtlsSession() {
 	// TODO Auto-generated constructor stub
 	mRunning = false;
 	mpSocketSender = NULL;
-	mDTLSClientStatus = DTLSClientStatus_None;
+	mDtlsSessionStatus = DtlsSessionStatus_None;
 
 	// libopenssl
 	mpSSL = NULL;
@@ -392,20 +390,20 @@ DTLSClient::DTLSClient() {
 	memset(mServerKey, 0, sizeof(mServerKey));
 }
 
-DTLSClient::~DTLSClient() {
+DtlsSession::~DtlsSession() {
 	// TODO Auto-generated destructor stub
 }
 
-void DTLSClient::SetSocketSender(SocketSender *sender) {
+void DtlsSession::SetSocketSender(SocketSender *sender) {
 	mpSocketSender = sender;
 }
 
-bool DTLSClient::Start() {
+bool DtlsSession::Start() {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_MSG,
-			"DTLSClient::Start( "
+			"DtlsSession::Start( "
 			"this : %p, "
 			")",
 			this
@@ -422,7 +420,7 @@ bool DTLSClient::Start() {
     	// Startialize SSL and BIO
     	mpSSL = SSL_new(gpSSLCtx);
     	SSL_set_ex_data(mpSSL, 0, this);
-    	SSL_set_info_callback(mpSSL, DTLSClient::SSL_Info_Callback);
+    	SSL_set_info_callback(mpSSL, DtlsSession::SSL_Info_Callback);
     	SSL_set_mtu(mpSSL, MTU);
 
     	mpReadBIO = BIO_new(BIO_s_mem());
@@ -445,7 +443,7 @@ bool DTLSClient::Start() {
 	if( bFlag ) {
 		LogAync(
 				LOG_MSG,
-				"DTLSClient::Start( "
+				"DtlsSession::Start( "
 				"this : %p, "
 				"[OK] "
 				")",
@@ -454,7 +452,7 @@ bool DTLSClient::Start() {
 	} else {
 		LogAync(
 				LOG_ERR_SYS,
-				"DTLSClient::Start( "
+				"DtlsSession::Start( "
 				"this : %p, "
 				"[Fail] "
 				")",
@@ -468,7 +466,7 @@ bool DTLSClient::Start() {
 	return bFlag;
 }
 
-void DTLSClient::Stop() {
+void DtlsSession::Stop() {
 	mClientMutex.lock();
 	if( mRunning ) {
 		mRunning = false;
@@ -492,11 +490,11 @@ void DTLSClient::Stop() {
 		memset(mClientSalt, 0, sizeof(mClientSalt));
 		memset(mServerKey, 0, sizeof(mServerKey));
 
-		mDTLSClientStatus = DTLSClientStatus_None;
+		mDtlsSessionStatus = DtlsSessionStatus_None;
 
 		LogAync(
 				LOG_WARNING,
-				"DTLSClient::Stop( "
+				"DtlsSession::Stop( "
 				"this : %p, "
 				"[OK] "
 				")",
@@ -506,13 +504,13 @@ void DTLSClient::Stop() {
 	mClientMutex.unlock();
 }
 
-DTLSClientStatus DTLSClient::GetClientStatus() {
-	return mDTLSClientStatus;
+DtlsSessionStatus DtlsSession::GetDtlsSessionStatus() {
+	return mDtlsSessionStatus;
 }
 
-bool DTLSClient::GetClientKey(char *key, int& len) {
+bool DtlsSession::GetClientKey(char *key, int& len) {
 	bool bFlag = false;
-	if( mDTLSClientStatus == DTLSClientStatus_HandshakeDone ) {
+	if( mDtlsSessionStatus == DtlsSessionStatus_HandshakeDone ) {
         memcpy(key, mClientSalt, sizeof(mClientSalt));
         len = sizeof(mClientSalt);
         bFlag = true;
@@ -520,9 +518,9 @@ bool DTLSClient::GetClientKey(char *key, int& len) {
 	return bFlag;
 }
 
-bool DTLSClient::GetServerKey(char *key, int& len) {
+bool DtlsSession::GetServerKey(char *key, int& len) {
 	bool bFlag = false;
-	if( mDTLSClientStatus == DTLSClientStatus_HandshakeDone ) {
+	if( mDtlsSessionStatus == DtlsSessionStatus_HandshakeDone ) {
         memcpy(key, mServerKey, sizeof(mServerKey));
         len = sizeof(mServerKey);
         bFlag = true;
@@ -530,12 +528,12 @@ bool DTLSClient::GetServerKey(char *key, int& len) {
 	return bFlag;
 }
 
-bool DTLSClient::Handshake() {
+bool DtlsSession::Handshake() {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_MSG,
-			"DTLSClient::Handshake( "
+			"DtlsSession::Handshake( "
 			"this : %p "
 			")",
 			this
@@ -548,14 +546,14 @@ bool DTLSClient::Handshake() {
 	return bFlag;
 }
 
-bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
+bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 	bool bFlag = false;
 
 	if( IsDTLS(frame, size) ) {
 		int written = BIO_write(mpReadBIO, frame, size);
 		LogAync(
 				LOG_STAT,
-				"DTLSClient::RecvFrame( "
+				"DtlsSession::RecvFrame( "
 				"this : %p, "
 				"written : %d "
 				")",
@@ -572,7 +570,7 @@ bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 		        ERR_error_string_n(ERR_get_error(), error_string, 200);
 		    	LogAync(
 		    			LOG_WARNING,
-		    			"DTLSClient::RecvFrame( "
+		    			"DtlsSession::RecvFrame( "
 		    			"this : %p, "
 						"[DTLS Handshake Error], "
 						"error : %d, "
@@ -594,13 +592,13 @@ bool DTLSClient::RecvFrame(const char* frame, unsigned int size) {
 	return bFlag;
 }
 
-bool DTLSClient::FlushSSL() {
+bool DtlsSession::FlushSSL() {
 	bool bFlag = true;
 
 	int pending = BIO_ctrl_pending(mpWriteBIO);
 	LogAync(
 			LOG_STAT,
-			"DTLSClient::FlushSSL( "
+			"DtlsSession::FlushSSL( "
 			"this : %p, "
 			"pending : %d "
 			")",
@@ -615,7 +613,7 @@ bool DTLSClient::FlushSSL() {
 		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
 		LogAync(
 				LOG_STAT,
-				"DTLSClient::FlushSSL( "
+				"DtlsSession::FlushSSL( "
 				"this : %p, "
 				"sent : %d "
 				")",
@@ -643,8 +641,8 @@ bool DTLSClient::FlushSSL() {
 	return bFlag;
 }
 
-void DTLSClient::CheckHandshake() {
-	if ( (mDTLSClientStatus == DTLSClientStatus_HandshakeDone) && SSL_is_init_finished(mpSSL) ) {
+void DtlsSession::CheckHandshake() {
+	if ( (mDtlsSessionStatus == DtlsSessionStatus_HandshakeDone) && SSL_is_init_finished(mpSSL) ) {
 		X509 *cert = SSL_get_peer_certificate(mpSSL);
 
 		unsigned char remoteFingerprint[EVP_MAX_MD_SIZE * 3];
@@ -692,7 +690,7 @@ void DTLSClient::CheckHandshake() {
 
 			LogAync(
 					LOG_WARNING,
-					"DTLSClient::CheckHandshake( "
+					"DtlsSession::CheckHandshake( "
 					"this : %p, "
 					"[DTLS Handshake OK], "
 					"remoteFingerprint : %s, "
@@ -707,7 +705,7 @@ void DTLSClient::CheckHandshake() {
         } else {
 			LogAync(
 					LOG_WARNING,
-					"DTLSClient::CheckHandshake( "
+					"DtlsSession::CheckHandshake( "
 					"this : %p, "
 					"[DTLS Handshake Fail], "
 					"remoteFingerprint : %s, "
@@ -725,7 +723,7 @@ void DTLSClient::CheckHandshake() {
 	}
 }
 
-bool DTLSClient::IsDTLS(const char *frame, unsigned len) {
+bool DtlsSession::IsDTLS(const char *frame, unsigned len) {
 	bool bFlag = false;
 	if( len > 0 ) {
 		// [20,64]

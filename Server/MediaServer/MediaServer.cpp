@@ -14,8 +14,6 @@
 #include <httpclient/HttpClient.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
 // Rtp
-#include <rtp/RtpClient.h>
-// ICE
 #include <ice/IceClient.h>
 // WebRTC
 #include <webrtc/WebRTC.h>
@@ -25,6 +23,7 @@
 #include <respond/BaseResultRespond.h>
 // ThirdParty
 #include <json/json.h>
+#include <rtp/RtpSession.h>
 
 /***************************** 线程处理 **************************************/
 /**

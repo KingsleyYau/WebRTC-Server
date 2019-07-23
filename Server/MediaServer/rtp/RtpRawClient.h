@@ -9,17 +9,16 @@
 #ifndef RTP_RTPRAWCLIENT_H_
 #define RTP_RTPRAWCLIENT_H_
 
-#include "RtpClient.h"
-
 #include <string.h>
 
 #include <socket/UdpSender.h>
+#include "RtpSession.h"
 
 using namespace std;
 
 namespace mediaserver {
 
-class RtpRawClient: public RtpClient {
+class RtpRawClient: public RtpSession {
 public:
 	RtpRawClient();
 	virtual ~RtpRawClient();

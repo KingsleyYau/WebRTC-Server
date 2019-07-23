@@ -10,10 +10,10 @@
 #define WEBRTC_WEBRTC_H_
 
 #include <ice/IceClient.h>
-#include <rtp/DTLSClient.h>
-#include <rtp/RtpClient.h>
-#include <rtp/RtpRawClient.h>
+#include <rtp/DtlsSession.h>
+#include <rtp/RtpSession.h>
 #include <socket/ISocketSender.h>
+#include <rtp/RtpRawClient.h>
 
 namespace mediaserver {
 
@@ -39,8 +39,8 @@ private:
 
 private:
 	IceClient mIceClient;
-	DTLSClient mDTLSClient;
-	RtpClient mRtpClient;
+	DtlsSession mDtlsSession;
+	RtpSession mRtpSession;
 
 	RtpRawClient mRtpDstAudioClient;
 	RtpRawClient mRtpDstVideoClient;
