@@ -18,7 +18,8 @@ endif
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS +=	-I. -I.. -I../third_party
 
-OBJS 		=	BaseRespond.o BaseResultRespond.o
+OBJS 		=	BaseRespond.o BaseResultRespond.o \
+				SdpCallRespond.o
 		
 TARGET =	librespond.a
 

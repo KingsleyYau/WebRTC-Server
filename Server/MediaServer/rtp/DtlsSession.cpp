@@ -375,6 +375,10 @@ bool DtlsSession::GobalInit() {
 	return bFlag;
 }
 
+const unsigned char *DtlsSession::GetFingerprint() {
+	return gFingerprint;
+}
+
 DtlsSession::DtlsSession() {
 	// TODO Auto-generated constructor stub
 	mRunning = false;
@@ -471,20 +475,32 @@ void DtlsSession::Stop() {
 	if( mRunning ) {
 		mRunning = false;
 
+		LogAync(
+				LOG_WARNING,
+				"DtlsSession::Stop( "
+				"this : %p "
+				")",
+				this
+				);
+
 	    if ( mpSSL ) {
-	    	SSL_set_bio(mpSSL, NULL, NULL);
+	    	/**
+	    	 * SSL_free will free all BIO already set
+	    	 */
 	        SSL_free(mpSSL);
 	        mpSSL = NULL;
-	    }
+	        mpReadBIO = NULL;
+	        mpWriteBIO = NULL;
+	    } else {
+		    if( mpReadBIO ) {
+		    	BIO_free(mpReadBIO);
+		    	mpReadBIO = NULL;
+		    }
 
-	    if( mpReadBIO ) {
-	    	BIO_free(mpReadBIO);
-	    	mpReadBIO = NULL;
-	    }
-
-	    if( mpWriteBIO ) {
-	    	BIO_free(mpWriteBIO);
-	    	mpWriteBIO = NULL;
+		    if( mpWriteBIO ) {
+		    	BIO_free(mpWriteBIO);
+		    	mpWriteBIO = NULL;
+		    }
 	    }
 
 		memset(mClientSalt, 0, sizeof(mClientSalt));

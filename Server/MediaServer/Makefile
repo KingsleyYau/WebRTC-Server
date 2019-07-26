@@ -17,7 +17,7 @@ endif
 
 CXXFLAGS += -std=c++11
 CXXFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS += -I. -Iinclude -Ithird_party -Ithird_party/libsdp/include -Ithird_party/json
+CXXFLAGS += -I. -Iinclude -Ithird_party -Ithird_party/libsdp/include -Ithird_party/json -Ithird_party/websocketpp
 
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS = \
@@ -50,7 +50,8 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/libnice/random/.libs -lnice-random \
 	-Wl,-Bstatic -Lthird_party/libnice/socket/.libs -lsocket \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
-	-Wl,-Bdynamic -ldl -lz -lpthread -lidn -lrt -lssl -lcrypto -lresolv -lselinux -lpcre
+	-Wl,-Bdynamic -ldl -lz -lpthread -lidn -lrt -lssl -lcrypto -lresolv -lselinux -lpcre \
+	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random
 
 OBJS = main.o MediaServer.o
 		

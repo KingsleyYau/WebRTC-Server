@@ -10,6 +10,8 @@
 #define RESPOND_BASERESPOND_H_
 
 #include "IRespond.h"
+
+namespace mediaserver {
 class BaseRespond : public IRespond {
 public:
 	BaseRespond();
@@ -17,5 +19,5 @@ public:
 
 	int GetData(char* buffer, int len, bool &more);
 };
-
+}
 #endif /* RESPOND_BASERESPOND_H_ */

@@ -16,6 +16,13 @@
 #include <rtp/RtpRawClient.h>
 
 namespace mediaserver {
+class WebRTC;
+class WebRTCCallback {
+public:
+	virtual ~WebRTCCallback(){};
+	virtual void OnWebRTCCreateSdp(WebRTC *rtc, const string& sdp) = 0;
+	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
+};
 
 class WebRTC : public SocketSender, IceClientCallback {
 public:
@@ -26,18 +33,32 @@ public:
 	static bool GobalInit();
 
 public:
-	void SetRemoteSdp(const string& sdp);
-	bool Start();
+	bool Start(const string& sdp);
 	void Stop();
+
+public:
+	void SetCallback(WebRTCCallback *callback);
+
+	void SetCustom(void *custom);
+	void* GetCustom();
 
 private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
 	// IceClientCallback Implement
-	void OnIceHandshakeFinish(IceClient *ice);
+	void OnIceCandidateGatheringDone(IceClient *ice, const string& type, const string& ip, unsigned int port, const string& ufrag, const string& pwd);
+	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
+	void OnIceClose(IceClient *ice);
+
+	/**
+	 * 解析SDP
+	 */
+	bool ParseRemoteSdp(const string& sdp);
 
 private:
+	WebRTCCallback *mpWebRTCCallback;
+
 	IceClient mIceClient;
 	DtlsSession mDtlsSession;
 	RtpSession mRtpSession;
@@ -47,6 +68,8 @@ private:
 
 	unsigned int mVideoSSRC;
 	unsigned int mAudioSSRC;
+
+	void *mpCustom;
 };
 
 } /* namespace mediaserver */

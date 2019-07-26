@@ -9,11 +9,12 @@
 #ifndef SERVER_ASYNCIOSERVER_H_
 #define SERVER_ASYNCIOSERVER_H_
 
+#include <common/KSafeList.h>
+
 #include "TcpServer.h"
 #include "Client.h"
 
-#include <common/KSafeList.h>
-
+namespace mediaserver {
 class Client;
 class AsyncIOServerCallback {
 public:
@@ -21,8 +22,6 @@ public:
 	virtual bool OnAccept(Client *client) = 0;
 	virtual void OnDisconnect(Client* client) = 0;
 };
-
-typedef KSafeList<Client*> ClientList;
 
 class RecvRunnable;
 class AsyncIOServer : public TcpServerCallback {
@@ -95,5 +94,5 @@ private:
 //	KThread mSendThread;
 //	SendRunnable* mpSendRunnable;
 };
-
+}
 #endif /* SERVER_ASYNCIOSERVER_H_ */

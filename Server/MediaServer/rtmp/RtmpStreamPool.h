@@ -24,7 +24,7 @@ typedef struct ev_io;
 typedef struct ev_loop;
 namespace mediaserver {
 
-class IORunnable;
+class RtmpIORunnable;
 class RtmpClient;
 class RtmpClientCallback;
 
@@ -40,9 +40,9 @@ typedef KSafeMap<RtmpClient*, RtmpStreamList*> RtmpClient2StreamMap;
 typedef KSafeMap<string, string> RtmpStream2UrlMap;
 
 class RtmpStreamPool : public RtmpClientCallback {
-	friend class IORunnable;
+	friend class RtmpIORunnable;
 	friend class RtmpClient;
-	friend void recv_handler(struct ev_loop *loop, ev_io *w, int revents);
+	friend void recv_rtmp_handler(struct ev_loop *loop, ev_io *w, int revents);
 
 public:
 	RtmpStreamPool();
@@ -127,7 +127,7 @@ private:
 
 	int miMaxConnection;
 
-	IORunnable* mpIORunnable;
+	RtmpIORunnable* mpIORunnable;
 	KThread mIOThread;
 
 	ev_loop *mpLoop;

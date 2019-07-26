@@ -19,6 +19,9 @@
 // Base Server
 #include <server/AsyncIOServer.h>
 
+// Websocket
+#include <server/WSServer.h>
+
 // Request/Respond
 #include <parser/HttpParser.h>
 #include <request/IRequest.h>
@@ -26,6 +29,10 @@
 
 // RtmpStreamPool
 #include <rtmp/RtmpStreamPool.h>
+
+// WebRTC
+#include <webrtc/WebRTC.h>
+
 using namespace mediaserver;
 
 // STL
@@ -35,13 +42,15 @@ using namespace std;
 
 #define VERSION_STRING "1.0.0"
 
-class HttpClient;
-// socket -> client
-typedef KSafeMap<int, Client*> ClientMap;
+typedef KSafeMap<WebRTC*, connection_hdl> WebRTCMap;
+typedef KSafeMap<connection_hdl, WebRTC*, std::owner_less<connection_hdl> > WebsocketMap;
+
 class StateRunnable;
 class MediaServer :
 		public AsyncIOServerCallback,
-		public HttpParserCallback
+		public HttpParserCallback,
+		public WebRTCCallback,
+		public WSServerCallback
 {
 
 public:
@@ -75,15 +84,20 @@ public:
 	void OnRequestReloadLogConfig(HttpParser* parser);
 	void OnRequestPlayStream(HttpParser* parser);
 	void OnRequestStopStream(HttpParser* parser);
-	void OnRequestCallSdp(HttpParser* parser);
-	void OnRequestUndefinedCommand(HttpParser* parser);
+	bool OnRequestCallSdp(HttpParser* parser);
+	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 end **************************************/
 
-	/***************************** 内部服务(Freeswitch), 命令回调 **************************************/
-	/***************************** 内部服务(Freeswitch), 命令回调 end **************************************/
+	/***************************** WebRTCCallback **************************************/
+	void OnWebRTCCreateSdp(WebRTC *rtc, const string& sdp);
+	void OnWebRTCClose(WebRTC *rtc);
+	/***************************** WebRTCCallback End **************************************/
 
-	/***************************** 外部服务(LiveChat), 任务回调 **************************************/
-	/***************************** 外部服务(LiveChat), 任务回调 end **************************************/
+	/***************************** WSServerCallback **************************************/
+	void OnWSOpen(WSServer *server, connection_hdl hdl);
+	void OnWSClose(WSServer *server, connection_hdl hdl);
+	void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str);
+	/***************************** WSServerCallback End **************************************/
 
 private:
 	/**
@@ -225,6 +239,14 @@ private:
 
 	// 内部Rtmp流管理
 	RtmpStreamPool mRtmpStreamPool;
+
+	/**
+	 * Websocket服务
+	 */
+	WSServer mWSServer;
+
+	WebRTCMap mWebRTCMap;
+	WebsocketMap mWebsocketMap;
 };
 
 #endif /* MEDIASERVER_H_ */

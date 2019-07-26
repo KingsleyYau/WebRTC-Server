@@ -29,6 +29,9 @@
 #include <common/KSafeList.h>
 #include <common/LogManager.h>
 
+typedef struct ev_io;
+typedef struct ev_loop;
+namespace mediaserver {
 class TcpServerCallback {
 public:
 	virtual ~TcpServerCallback(){};
@@ -37,10 +40,13 @@ public:
 	virtual void OnDisconnect(Socket* socket) = 0;
 };
 
-typedef KSafeList<ev_io *> WatcherList;
+typedef KSafeList<::ev_io *> WatcherList;
 class IORunnable;
 
 class TcpServer {
+	friend void accept_tcp_handler(struct ev_loop *loop, ::ev_io *w, int revents);
+	friend void recv_tcp_handler(struct ev_loop *loop, ev_io *w, int revents);
+
 public:
 	TcpServer();
 	virtual ~TcpServer();
@@ -57,12 +63,12 @@ public:
 	void Close(Socket* socket);
 
 	void IOHandleThread();
-	void IOHandleAccept(ev_io *w, int revents);
-	void IOHandleRecv(ev_io *w, int revents);
+	void IOHandleAccept(::ev_io *w, int revents);
+	void IOHandleRecv(::ev_io *w, int revents);
 	void IOHandleOnDisconnect(Socket* socket);
 
 private:
-	void StopEvIO(ev_io *w);
+	void StopEvIO(::ev_io *w);
 
 	TcpServerCallback* mpTcpServerCallback;
 
@@ -75,10 +81,10 @@ private:
 	IORunnable* mpIORunnable;
 	KThread mIOThread;
 
-	ev_io* mpAcceptWatcher;
+	::ev_io* mpAcceptWatcher;
 	struct ev_loop *mLoop;
 	KMutex mWatcherMutex;
 	WatcherList mWatcherList;
 };
-
+}
 #endif /* SERVER_TCPSERVER_H_ */

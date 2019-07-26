@@ -13,9 +13,9 @@
 #include <map>
 using namespace std;
 
-template<typename Key, typename Value>
+template<typename Key, typename Value, typename Compare = less<Key> >
 class KSafeMap {
-	typedef map<Key, Value> SafeMap;
+	typedef map<Key, Value, Compare> SafeMap;
 
 public:
 	typedef typename SafeMap::iterator iterator;
@@ -44,6 +44,10 @@ public:
 		if( itr != mMap.end() ) {
 			mMap.erase(itr);
 		}
+	}
+
+	void Erase(Key key) {
+		mMap.erase(key);
 	}
 
 	int Size() {

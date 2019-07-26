@@ -17,18 +17,18 @@
 namespace mediaserver {
 class RtmpStreamPool;
 /***************************** libev回调函数 **************************************/
-void recv_handler(struct ev_loop *loop, ev_io *w, int revents) {
+void recv_rtmp_handler(struct ev_loop *loop, ev_io *w, int revents) {
 	RtmpStreamPool *pContainer = (RtmpStreamPool *)ev_userdata(loop);
 	pContainer->IOHandleRecv(w, revents);
 }
 /***************************** libev回调函数 **************************************/
 
-class IORunnable : public KRunnable {
+class RtmpIORunnable : public KRunnable {
 public:
-	IORunnable(RtmpStreamPool *container) {
+	RtmpIORunnable(RtmpStreamPool *container) {
 		mContainer = container;
 	}
-	virtual ~IORunnable() {
+	virtual ~RtmpIORunnable() {
 		mContainer = NULL;
 	}
 protected:
@@ -42,7 +42,7 @@ private:
 RtmpStreamPool::RtmpStreamPool() {
 	// TODO Auto-generated constructor stub
 
-	mpIORunnable = new IORunnable(this);
+	mpIORunnable = new RtmpIORunnable(this);
 	mpLoop = NULL;
 
 	mRunning = false;
@@ -548,7 +548,7 @@ void RtmpStreamPool::OnConnect(RtmpClient *rtmpClient) {
 
 	w->data = rtmpClient;
 	rtmpClient->SetIO(w);
-	ev_io_init(w, recv_handler, fd, EV_READ);
+	ev_io_init(w, recv_rtmp_handler, fd, EV_READ);
 
 	mWatcherMutex.lock();
 	ev_io_start(mpLoop, w);

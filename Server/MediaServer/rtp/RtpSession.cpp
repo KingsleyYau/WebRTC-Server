@@ -155,8 +155,6 @@ RtpSession::RtpSession():
 	// libsrtp
 	mpSendSrtpCtx = NULL;
 	mpRecvSrtpCtx = NULL;
-
-	// libsrtp
 	mpSendPolicy = new srtp_policy_t();
 	mpRecvPolicy = new srtp_policy_t();
 
@@ -279,6 +277,14 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 void RtpSession::Stop() {
 	mClientMutex.lock();
 	if( mRunning ) {
+		LogAync(
+				LOG_MSG,
+				"RtpSession::Stop( "
+				"this : %p "
+				")",
+				this
+				);
+
 		mRunning = false;
 
 		StopRecv();

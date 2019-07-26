@@ -13,17 +13,12 @@
 // Common
 #include <httpclient/HttpClient.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
-// Rtp
-#include <ice/IceClient.h>
-// WebRTC
-#include <webrtc/WebRTC.h>
 // Request
 // Respond
 #include <respond/BaseRespond.h>
 #include <respond/BaseResultRespond.h>
 // ThirdParty
 #include <json/json.h>
-#include <rtp/RtpSession.h>
 
 /***************************** 线程处理 **************************************/
 /**
@@ -49,8 +44,10 @@ private:
 
 MediaServer::MediaServer() {
 	// TODO Auto-generated constructor stub
+	// Http服务
 	mAsyncIOServer.SetAsyncIOServerCallback(this);
-
+	// Websocket服务
+	mWSServer.SetCallback(this);
 	// 处理线程
 	mpStateRunnable = new StateRunnable(this);
 
@@ -190,8 +187,12 @@ bool MediaServer::Start() {
 	}
 
 	if( bFlag ) {
-		bFlag = mRtmpStreamPool.Start(10);
+		bFlag = mWSServer.Start(miPort + 1);
 	}
+
+//	if( bFlag ) {
+//		bFlag = mRtmpStreamPool.Start(10);
+//	}
 
 	// 开始状态监视线程
 	if( bFlag ) {
@@ -308,7 +309,8 @@ bool MediaServer::Stop() {
 
 		// 停止监听socket
 		mAsyncIOServer.Stop();
-
+		// 停止监听Websocket
+		mWSServer.Stop();
 		// 停止线程
 		mStateThread.Stop();
 	}
@@ -446,7 +448,9 @@ void MediaServer::OnHttpParserBody(HttpParser* parser) {
 	Client* client = (Client *)parser->custom;
 
 	bool bFlag = HttpParseRequestBody(parser);
-	mAsyncIOServer.Disconnect(client);
+	if ( bFlag ) {
+		mAsyncIOServer.Disconnect(client);
+	}
 }
 
 void MediaServer::OnHttpParserError(HttpParser* parser) {
@@ -495,12 +499,11 @@ bool MediaServer::HttpParseRequestBody(HttpParser* parser) {
 
 	if( parser->GetPath() == "/CALLSDP" ) {
 		// 拨号
-		OnRequestCallSdp(parser);
+		bFlag = OnRequestCallSdp(parser);
 
 	} else {
 		// 未知命令
-		OnRequestUndefinedCommand(parser);
-		bFlag = false;
+		bFlag = OnRequestUndefinedCommand(parser);
 	}
 
 	return bFlag;
@@ -568,7 +571,6 @@ bool MediaServer::HttpSendRespond(
 				break;
 			}
 		}
-//		delete respond;
 	}
 
 	if( !bFlag ) {
@@ -654,8 +656,9 @@ void MediaServer::OnRequestStopStream(HttpParser* parser) {
 	HttpSendRespond(parser, &respond);
 }
 
-void MediaServer::OnRequestCallSdp(HttpParser* parser) {
+bool MediaServer::OnRequestCallSdp(HttpParser* parser) {
 	// 拨号
+	bool bFlag = true;
 	const char* body = parser->GetBody();
 
 	LogAync(
@@ -663,36 +666,36 @@ void MediaServer::OnRequestCallSdp(HttpParser* parser) {
 			"MediaServer::OnRequestCallSdp( "
 			"event : [内部服务(HTTP)-收到命令:拨号], "
 			"parser : %p "
-//			"body : %s "
 			")",
 			parser
-//			body
 			);
-
-	bool bFlag = false;
 
 	Json::Value root;
 	Json::Reader reader;
 
-	bFlag = reader.parse(body, root, false);
-	if ( bFlag ) {
+	bool bParse = reader.parse(body, root, false);
+	if ( bParse ) {
 		if( root.isObject() ) {
 			if( root["sdp"].isString() ) {
 				string sdp = root["sdp"].asString();
+
 				WebRTC *rtc = new WebRTC();
-				rtc->SetRemoteSdp(sdp);
-				rtc->Start();
+				rtc->SetCallback(this);
+				rtc->SetCustom(parser);
+				rtc->Start(sdp);
 			}
 		}
 	}
 
 	// 马上返回数据
 	BaseResultRespond respond;
-	respond.SetParam(true, "");
+	respond.SetParam(false, "");
 	HttpSendRespond(parser, &respond);
+
+	return bFlag;
 }
 
-void MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
+bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 	LogAync(
 			LOG_WARNING,
 			"MediaServer::OnRequestUndefinedCommand( "
@@ -707,5 +710,194 @@ void MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 	BaseResultRespond respond;
 	respond.SetParam(false, "Undefined Command.");
 	HttpSendRespond(parser, &respond);
+
+	return true;
+}
+
+void MediaServer::OnWebRTCCreateSdp(WebRTC *rtc, const string& sdp) {
+	connection_hdl hdl;
+	bool bFound = false;
+	mWebsocketMap.Lock();
+	mWebRTCMap.Lock();
+	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
+	if( itr != mWebRTCMap.End() ) {
+		hdl = itr->second;
+		bFound = true;
+	}
+	mWebRTCMap.Unlock();
+	mWebsocketMap.Unlock();
+
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::OnWebRTCCreateSdp( "
+			"event : [WebRTC-返回SDP], "
+			"hdl : %p, "
+			"rtc : %p, "
+			"sdp:\n%s"
+			")",
+			hdl.lock().get(),
+			rtc,
+			sdp.c_str()
+			);
+
+	if ( bFound ) {
+		Json::Value resRoot;
+		Json::Value resData;
+		Json::FastWriter writer;
+
+		resRoot["id"] = 0;
+		resRoot["route"] = "imShare/sendSdpCall";
+		resRoot["errno"] = 0;
+		resRoot["errmsg"] = "";
+
+		resData["sdp"] = sdp;
+		resRoot["data"] = resData;
+
+		string res = writer.write(resRoot);
+		mWSServer.SendText(hdl, res);
+	}
+}
+
+void MediaServer::OnWebRTCClose(WebRTC *rtc) {
+	connection_hdl hdl;
+	bool bFound = false;
+	mWebsocketMap.Lock();
+	mWebRTCMap.Lock();
+	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
+	if( itr != mWebRTCMap.End() ) {
+		hdl = itr->second;
+		bFound = true;
+	}
+	mWebRTCMap.Unlock();
+	mWebsocketMap.Unlock();
+
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::OnWebRTCClose( "
+			"event : [WebRTC-断开], "
+			"hdl : %p, "
+			"rtc : %p "
+			")",
+			hdl.lock().get(),
+			rtc
+			);
+
+	if( bFound ) {
+		mWSServer.Disconnect(hdl);
+	}
+}
+
+void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl) {
+	LogAync(
+			LOG_MSG,
+			"MediaServer::OnWSOpen( "
+			"event : [Websocket-新连接], "
+			"hdl : %p "
+			")",
+			hdl.lock().get()
+			);
+}
+
+void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
+	WebRTC *rtc = NULL;
+
+	mWebsocketMap.Lock();
+	mWebRTCMap.Lock();
+	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
+	if( itr != mWebsocketMap.End() ) {
+		rtc = itr->second;
+		mWebRTCMap.Erase(rtc);
+	}
+	mWebsocketMap.Erase(hdl);
+	mWebRTCMap.Unlock();
+	mWebsocketMap.Unlock();
+
+	LogAync(
+			LOG_MSG,
+			"MediaServer::OnWSClose( "
+			"event : [Websocket-断开], "
+			"hdl : %p, "
+			"rtc : %p "
+			")",
+			hdl.lock().get(),
+			rtc
+			);
+
+	if( rtc ) {
+		rtc->Stop();
+		delete rtc;
+	}
+}
+
+void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string& str) {
+	LogAync(
+			LOG_MSG,
+			"MediaServer::OnWSMessage( "
+			"event : [Websocket-收到消息], "
+			"hdl : %p, "
+			"str : %s "
+			")",
+			hdl.lock().get(),
+			str.c_str()
+			);
+
+	bool bFlag = false;
+
+	Json::Value reqRoot;
+	Json::Reader reader;
+
+	bool bParse = reader.parse(str, reqRoot, false);
+	if ( bParse ) {
+		if( reqRoot.isObject() ) {
+			if( reqRoot["req_data"].isObject() ) {
+				Json::Value reqData = reqRoot["req_data"];
+				if( reqData["sdp"].isString() ) {
+					string sdp = reqData["sdp"].asString();
+
+					WebRTC *rtc = NULL;
+
+					mWebsocketMap.Lock();
+					mWebRTCMap.Lock();
+
+					WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
+					if( itr != mWebsocketMap.End() ) {
+						rtc = itr->second;
+						rtc->Stop();
+
+					} else {
+						rtc = new WebRTC();
+						rtc->SetCallback(this);
+
+						mWebsocketMap.Insert(hdl, rtc);
+						mWebRTCMap.Insert(rtc, hdl);
+					}
+
+					rtc->Start(sdp);
+
+					mWebRTCMap.Unlock();
+					mWebsocketMap.Unlock();
+
+					bFlag = true;
+				}
+			}
+		}
+
+		if ( !bFlag ) {
+			Json::Value resRoot;
+			Json::FastWriter writer;
+
+			resRoot["id"] = reqRoot["id"];
+			resRoot["route"] = reqRoot["route"];
+			resRoot["errno"] = 1;
+			resRoot["errmsg"] = "SDP Parse Error";
+			resRoot["data"] = Json::Value::null;
+
+			string res = writer.write(resRoot);
+			mWSServer.SendText(hdl, res);
+		}
+
+	} else {
+		mWSServer.Disconnect(hdl);
+	}
 }
 /***************************** 内部服务(HTTP) 回调处理 end **************************************/

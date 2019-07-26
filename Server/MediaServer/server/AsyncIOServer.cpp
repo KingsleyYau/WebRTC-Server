@@ -7,7 +7,7 @@
  */
 
 #include "AsyncIOServer.h"
-
+namespace mediaserver {
 class RecvRunnable : public KRunnable {
 public:
 	RecvRunnable(AsyncIOServer *container) {
@@ -71,7 +71,6 @@ bool AsyncIOServer::Start(
 	LogAync(
 			LOG_MSG,
 			"AsyncIOServer::Start( "
-			"[Start], "
 			"port : %u, "
 			"maxConnection : %d, "
 			"iThreadCount : %d, "
@@ -214,8 +213,9 @@ bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 
 	if( client ) {
 		client->clientMutex.lock();
+		Socket *socket = (Socket *)client->socket;
 		if( !client->disconnected ) {
-			bFlag = mTcpServer.Send(client->socket, buf, len);
+			bFlag = mTcpServer.Send(socket, buf, len);
 			if( !bFlag ) {
 				Disconnect(client);
 			}
@@ -227,6 +227,7 @@ bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 }
 
 void AsyncIOServer::Disconnect(Client* client) {
+	Socket *socket = (Socket *)client->socket;
 	LogAync(
 			LOG_MSG,
 			"AsyncIOServer::Disconnect( "
@@ -235,12 +236,12 @@ void AsyncIOServer::Disconnect(Client* client) {
 			"port : %u "
 			")",
 			client,
-			client->socket->ip.c_str(),
-			client->socket->port
+			socket->ip.c_str(),
+			socket->port
 			);
 	if( client ) {
 		client->clientMutex.lock();
-		mTcpServer.Disconnect(client->socket);
+		mTcpServer.Disconnect(socket);
 		client->clientMutex.unlock();
 	}
 }
@@ -371,7 +372,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 
 				if( client->Write(buf, len) ) {
 					LogAync(
-							LOG_MSG,
+							LOG_STAT,
 							"AsyncIOServer::OnRecvEvent( "
 							"[Write buffer OK], "
 							"client : %p, "
@@ -423,7 +424,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 			} else {
 				// 读取数据出错, 断开
 				LogAync(
-						LOG_MSG,
+						LOG_STAT,
 						"AsyncIOServer::OnRecvEvent( "
 						"[Read error], "
 						"client : %p, "
@@ -572,6 +573,7 @@ void AsyncIOServer::PushRecvHandle(Client* client) {
 bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 	bool bFlag = false;
 	if( client->recvHandleCount == 0 && client->disconnected ) {
+		Socket *socket = (Socket *)client->socket;
 		LogAync(
 				LOG_STAT,
 				"AsyncIOServer::ClientCloseIfNeed( "
@@ -580,8 +582,8 @@ bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 				"port : %u "
 				")",
 				client,
-				client->socket->ip.c_str(),
-				client->socket->port
+				socket->ip.c_str(),
+				socket->port
 				);
 
 		if( mpAsyncIOServerCallback ) {
@@ -589,7 +591,7 @@ bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 		}
 
 		// 关闭Socket
-		mTcpServer.Close(client->socket);
+		mTcpServer.Close(socket);
 
 		bFlag = true;
 	}
@@ -631,4 +633,5 @@ void AsyncIOServer::DestroyClient(Client* client) {
 		Client::Destroy(client);
 
 	}
+}
 }

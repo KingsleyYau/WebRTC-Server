@@ -11,6 +11,8 @@
 
 #include "BaseRespond.h"
 
+namespace mediaserver {
+
 class BaseResultRespond : public BaseRespond {
 public:
 	BaseResultRespond();
@@ -19,9 +21,9 @@ public:
 	int GetData(char* buffer, int len, bool &more);
 	void SetParam(bool ret, const string& errMsg);
 
-private:
+protected:
 	bool mRet;
 	string mErrMsg;
 };
-
+}
 #endif /* RESPOND_BASERESULTRESPOND_H_ */

@@ -45,6 +45,7 @@ public:
 
 public:
 	static bool GobalInit();
+	static const unsigned char *GetFingerprint();
 	static bool IsDTLS(const char *frame, unsigned len);
 
 public:

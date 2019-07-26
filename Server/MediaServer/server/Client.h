@@ -18,6 +18,9 @@
 
 #include <common/LogManager.h>
 
+using namespace std;
+
+namespace mediaserver {
 /**
  * 每次读取数据Buffer Size
  */
@@ -112,7 +115,7 @@ public:
 	/**
 	 * socket
 	 */
-	Socket *socket;
+	void *socket;
 
 	/**
 	 * 解析器
@@ -127,4 +130,6 @@ private:
 
 };
 
+typedef KSafeList<Client*> ClientList;
+}
 #endif /* SERVER_CLIENT_H_ */

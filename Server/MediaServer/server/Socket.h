@@ -17,13 +17,13 @@ using namespace std;
 
 #include <common/LogManager.h>
 
+typedef struct ev_io;
+namespace mediaserver {
 typedef enum SocketStatus {
 	SocketStatusSuccess,
 	SocketStatusFail,
 	SocketStatusTimeout
-}SocketStatus;
-
-typedef struct ev_io;
+} SocketStatus;
 
 #define INVALID_SOCKET -1
 
@@ -190,7 +190,7 @@ public:
 	 */
 	void* data;
 
-	ev_io *w;
+	::ev_io *w;
 };
-
+}
 #endif /* SOCKET_H_ */

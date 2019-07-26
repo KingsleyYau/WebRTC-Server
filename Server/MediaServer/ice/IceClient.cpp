@@ -42,6 +42,9 @@ bool IceClient::GobalInit() {
 	return bFlag;
 }
 
+//void IceClient::GobalStop() {
+//}
+
 void cb_closed(void *src, void *res, void *data) {
 	IceClient *pClient = (IceClient *)data;
 	NiceAgent *agent = NICE_AGENT((GObject *)src);
@@ -68,13 +71,19 @@ void cb_new_selected_pair_full(NiceAgent* agent, guint streamId, guint component
 	pClient->OnNewSelectedPairFull(agent, streamId, componentId, lcandidate, rcandidate);
 }
 
-IceClient::IceClient() {
+IceClient::IceClient() :
+		mClientMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
+	// Status
+	mRunning = false;
+
+	// libnice
 	mpAgent = NULL;
-	mSdp = "";
-	mpIceClientCallback = NULL;
 	mStreamId = -1;
 	mComponentId = -1;
+
+	mSdp = "";
+	mpIceClientCallback = NULL;
 }
 
 IceClient::~IceClient() {
@@ -93,6 +102,13 @@ bool IceClient::Start() {
 			this
 			);
 
+	mClientMutex.lock();
+	if( mRunning ) {
+		Stop();
+	}
+
+	mRunning = true;
+
 	mpAgent = nice_agent_new(g_main_loop_get_context(gLoop), NICE_COMPATIBILITY_RFC5245);
 
     /**
@@ -108,9 +124,9 @@ bool IceClient::Start() {
 	// 被动呼叫, controlling-mode为0
     g_object_set(mpAgent, "controlling-mode", 0, NULL);
     // 允许使用turn
-    g_object_set(mpAgent, "ice-tcp", FALSE, NULL);
+    g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
-    g_object_set(mpAgent, "force-relay", FALSE, NULL);
+    g_object_set(mpAgent, "force-relay", TRUE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
     g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);
@@ -138,7 +154,7 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-//		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "audio");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
@@ -160,24 +176,44 @@ bool IceClient::Start() {
 			componentId
 			);
 
+	mClientMutex.unlock();
+
 	return bFlag;
 }
 
 void IceClient::Stop() {
-    if (mpAgent) {
-    	nice_agent_close_async(mpAgent, NULL, NULL);
-        g_object_unref(mpAgent);
-        mpAgent = NULL;
-    }
+	mClientMutex.lock();
+	if( mRunning ) {
+		LogAync(
+				LOG_MSG,
+				"IceClient::Stop( "
+				"this : %p "
+				")",
+				this
+				);
 
-	LogAync(
-			LOG_MSG,
-			"IceClient::Stop( "
-			"this : %p, "
-			"[OK] "
-			")",
-			this
-			);
+		if (mpAgent) {
+			mCond.lock();
+			mRunning = false;
+			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+			mCond.wait();
+			mCond.unlock();
+			g_object_unref(mpAgent);
+			mpAgent = NULL;
+		} else {
+			mRunning = false;
+		}
+
+		LogAync(
+				LOG_MSG,
+				"IceClient::Stop( "
+				"this : %p, "
+				"[OK] "
+				")",
+				this
+				);
+	}
+	mClientMutex.unlock();
 }
 
 void IceClient::SetCallback(IceClientCallback *callback) {
@@ -204,8 +240,6 @@ const string& IceClient::GetRemoteAddress() {
 
 bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	bool bFlag = false;
-
-	char *localSdp = nice_agent_generate_local_sdp(mpAgent);
 
     gchar *ufrag = NULL;
     gchar *pwd = NULL;
@@ -253,23 +287,18 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
 			"ufrag : %s, "
-			"pwd : %s, "
-			"localSdp :\n%s"
+			"pwd : %s "
 			")",
 			this,
 			ufrag,
-			pwd,
-			localSdp
+			pwd
 			);
 
-    if( ufrag ) {
+    if ( ufrag ) {
     	g_free(ufrag);
     }
-    if( pwd ) {
+    if ( pwd ) {
     	g_free(pwd);
-    }
-    if( plist ) {
-    	g_slist_free_full(plist, (GDestroyNotify)&nice_candidate_free);
     }
 
     return bFlag;
@@ -283,6 +312,16 @@ void IceClient::OnClose(::NiceAgent *agent) {
 			")",
 			this
 			);
+
+	mCond.lock();
+	if( mRunning ) {
+		if( mpIceClientCallback ) {
+			mpIceClientCallback->OnIceClose(this);
+		}
+	}
+
+	mCond.signal();
+	mCond.unlock();
 }
 
 void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int len, char *buf) {
@@ -306,17 +345,51 @@ void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned i
 }
 
 void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int streamId) {
+	gchar *localSdp = nice_agent_generate_local_sdp(agent);
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnCandidateGatheringDone( "
 			"this : %p, "
-			"streamId : %u "
+			"streamId : %u, "
+			"localSdp :\n%s"
 			")",
 			this,
-			streamId
+			streamId,
+			localSdp
 			);
 
-	ParseRemoteSdp(streamId);
+    gchar *ufrag = NULL;
+    gchar *pwd = NULL;
+    gchar ip[INET6_ADDRSTRLEN] = {0};
+
+    bool bFlag = true;
+	if ( bFlag ) {
+	    bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);
+	}
+	if ( bFlag ) {
+		GSList *cands = nice_agent_get_local_candidates(agent, streamId, 1);
+		if( cands ) {
+			NiceCandidate *local = (NiceCandidate *)g_slist_nth(cands, 0)->data;
+			nice_address_to_string(&local->addr, ip);
+
+			if( mpIceClientCallback ) {
+				mpIceClientCallback->OnIceCandidateGatheringDone(this, CandidateTypeName[local->type], ip, nice_address_get_port(&local->addr), ufrag, pwd);
+			}
+		}
+	}
+
+	if ( ufrag ) {
+		g_free(ufrag);
+	}
+	if ( pwd ) {
+		g_free(pwd);
+	}
+	if ( localSdp ) {
+		g_free(localSdp);
+	}
+
+	bFlag = ParseRemoteSdp(streamId);
+
 }
 
 void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state) {
@@ -352,6 +425,7 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 	sprintf(tmp, "(%s)%s:%u", CandidateTypeName[remote->type], remoteIp, nice_address_get_port(&remote->addr));
 	mRemoteAddress = tmp;
 
+	char *localSdp = nice_agent_generate_local_sdp(mpAgent);
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnNewSelectedPairFull( "
@@ -369,7 +443,7 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 			);
 
 	if( mpIceClientCallback ) {
-		mpIceClientCallback->OnIceHandshakeFinish(this);
+		mpIceClientCallback->OnIceNewSelectedPairFull(this);
 	}
 }
 } /* namespace mediaserver */

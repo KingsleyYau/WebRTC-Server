@@ -26,40 +26,44 @@ RtpRawClient::~RtpRawClient() {
 bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, int rtpRecvPort) {
 	bool bFlag = true;
 
-	bFlag &= mRtpSender.Init(sendIp, rtpSendPort, rtpRecvPort);
-	bFlag &= mRtcpSender.Init(sendIp, rtpSendPort + 1, rtpRecvPort);
+	mClientMutex.lock();
+	if( !mRunning ) {
+		bFlag &= mRtpSender.Init(sendIp, rtpSendPort, rtpRecvPort);
+		bFlag &= mRtcpSender.Init(sendIp, rtpSendPort + 1, rtpRecvPort);
 
-	if( bFlag ) {
-		LogAync(
-				LOG_WARNING,
-				"RtpRawClient::Init( "
-				"this : %p, "
-				"[OK], "
-				"sendIp : %s, "
-				"rtpSendPort : %d, "
-				"rtpRecvPort : %d "
-				")",
-				this,
-				sendIp.c_str(),
-				rtpSendPort,
-				rtpRecvPort
-				);
-	} else {
-		LogAync(
-				LOG_ERR_SYS,
-				"RtpRawClient::Init( "
-				"this : %p, "
-				"[Fail], "
-				"sendIp : %s, "
-				"rtpSendPort : %d, "
-				"rtpRecvPort : %d "
-				")",
-				this,
-				sendIp.c_str(),
-				rtpSendPort,
-				rtpRecvPort
-				);
+		if( bFlag ) {
+			LogAync(
+					LOG_WARNING,
+					"RtpRawClient::Init( "
+					"this : %p, "
+					"[OK], "
+					"sendIp : %s, "
+					"rtpSendPort : %d, "
+					"rtpRecvPort : %d "
+					")",
+					this,
+					sendIp.c_str(),
+					rtpSendPort,
+					rtpRecvPort
+					);
+		} else {
+			LogAync(
+					LOG_ERR_SYS,
+					"RtpRawClient::Init( "
+					"this : %p, "
+					"[Fail], "
+					"sendIp : %s, "
+					"rtpSendPort : %d, "
+					"rtpRecvPort : %d "
+					")",
+					this,
+					sendIp.c_str(),
+					rtpSendPort,
+					rtpRecvPort
+					);
+		}
 	}
+	mClientMutex.unlock();
 
 	return bFlag;
 }

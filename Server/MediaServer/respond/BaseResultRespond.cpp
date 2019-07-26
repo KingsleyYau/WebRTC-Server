@@ -7,7 +7,7 @@
  */
 
 #include "BaseResultRespond.h"
-
+namespace mediaserver {
 BaseResultRespond::BaseResultRespond() {
 	// TODO Auto-generated constructor stub
 	mRet = true;
@@ -30,4 +30,5 @@ int BaseResultRespond::GetData(char* buffer, int len, bool &more) {
 void BaseResultRespond::SetParam(bool ret, const string& errMsg) {
 	mRet = ret;
 	mErrMsg = errMsg;
+}
 }

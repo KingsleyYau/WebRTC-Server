@@ -9,6 +9,9 @@
 #ifndef ICE_ICECLIENT_H_
 #define ICE_ICECLIENT_H_
 
+#include <common/KMutex.h>
+#include <common/KCond.h>
+
 #include <string>
 using namespace std;
 
@@ -19,8 +22,10 @@ class IceClient;
 class IceClientCallback {
 public:
 	virtual ~IceClientCallback(){};
-	virtual void OnIceHandshakeFinish(IceClient *ice) = 0;
+	virtual void OnIceCandidateGatheringDone(IceClient *ice, const string& type, const string& ip, unsigned int port, const string& ufrag, const string& pwd) = 0;
+	virtual void OnIceNewSelectedPairFull(IceClient *ice) = 0;
 	virtual void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) = 0;
+	virtual void OnIceClose(IceClient *ice) = 0;
 };
 
 class IceClient {
@@ -61,6 +66,10 @@ private:
 	bool ParseRemoteSdp(unsigned int streamId);
 
 private:
+	// Status
+	KMutex mClientMutex;
+	bool mRunning;
+
 	::NiceAgent *mpAgent;
 	string mSdp;
 	IceClientCallback *mpIceClientCallback;
@@ -70,6 +79,8 @@ private:
 
 	string mLocalAddress;
 	string mRemoteAddress;
+
+	KCond mCond;
 };
 
 } /* namespace mediaserver */

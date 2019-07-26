@@ -7,10 +7,9 @@
  */
 
 #include "BaseRespond.h"
-
+namespace mediaserver {
 BaseRespond::BaseRespond() {
 	// TODO Auto-generated constructor stub
-
 }
 
 BaseRespond::~BaseRespond() {
@@ -24,4 +23,5 @@ int BaseRespond::GetData(char* buffer, int len, bool &more) {
 	snprintf(buffer, len, "");
 	ret = strlen(buffer);
 	return ret;
+}
 }

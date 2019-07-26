@@ -15,6 +15,7 @@
 #include <string>
 using namespace std;
 
+namespace mediaserver {
 class IRespond {
 public:
 	virtual ~IRespond(){};
@@ -27,5 +28,5 @@ public:
 	 */
 	virtual int GetData(char* buffer, int len, bool &more) = 0;
 };
-
+}
 #endif /* REQUEST_IRESPOND_H_ */

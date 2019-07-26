@@ -109,11 +109,12 @@ private:
 	void Reset();
 	bool SendVideoKeyFrameH264();
 
-private:
+protected:
 	// Status
 	KMutex mClientMutex;
 	bool mRunning;
 
+private:
 	// Socket
 	SocketSender *mpRtpSender;
 	SocketSender *mpRtcpSender;
