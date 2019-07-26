@@ -9,13 +9,25 @@
 #ifndef WEBRTC_WEBRTC_H_
 #define WEBRTC_WEBRTC_H_
 
+#include <common/KSafeList.h>
+
 #include <ice/IceClient.h>
 #include <rtp/DtlsSession.h>
 #include <rtp/RtpSession.h>
 #include <socket/ISocketSender.h>
 #include <rtp/RtpRawClient.h>
 
+
 namespace mediaserver {
+typedef list<string> RtcpFbList;
+typedef struct SdpPayload {
+	unsigned int payload_type;
+	string encoding_name;
+	string encoding_params;
+	unsigned int clock_rate;
+	string fmtp;
+} SdpPayload;
+
 class WebRTC;
 class WebRTCCallback {
 public:
@@ -68,6 +80,9 @@ private:
 
 	unsigned int mVideoSSRC;
 	unsigned int mAudioSSRC;
+
+	SdpPayload mSdpPayload;
+	RtcpFbList mVideoRtcpFbList;
 
 	void *mpCustom;
 };

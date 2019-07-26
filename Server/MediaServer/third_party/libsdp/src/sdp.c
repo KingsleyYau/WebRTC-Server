@@ -335,6 +335,7 @@ int sdp_media_destroy(struct sdp_media *media)
 		struct sdp_payload *payload = &(media->payload_type_array[i]);
 		free(payload->encoding_name);
 		free(payload->encoding_params);
+		free(payload->fmtp);
 	}
 
 	free(media->h264_fmtp.sps);
@@ -376,6 +377,7 @@ int sdp_media_copy(const struct sdp_media *src, struct sdp_media *dst)
 		dst_payload->encoding_name = xstrdup(src_payload->encoding_name);
 		dst_payload->encoding_params = xstrdup(src_payload->encoding_params);
 		dst_payload->clock_rate = src_payload->clock_rate;
+		dst_payload->fmtp = xstrdup(src_payload->fmtp);
 	}
 
 	dst->h264_fmtp = src->h264_fmtp;
@@ -1442,15 +1444,18 @@ static int sdp_attr_read(struct sdp_session *session,
 				payload->encoding_name,
 				payload->encoding_params);
 
-		if ((payload->encoding_name) &&
-				(strcmp(payload->encoding_name, SDP_ENCODING_H264) == 0)) {
-			ULOGD("FMTP: H264 Found, %s", temp3);
+		// Mark by Max
+//		if ((payload->encoding_name) &&
+//				(strcmp(payload->encoding_name, SDP_ENCODING_H264) == 0)) {
+//			ULOGD("FMTP: H264 Found, %s", temp3);
+//
+//			fmtp = strtok_r(NULL, "", &temp3);
+//			err = sdp_h264_fmtp_read(&media->h264_fmtp, fmtp);
+//			if (err < 0)
+//				return err;
+//		}
 
-			fmtp = strtok_r(NULL, "", &temp3);
-			err = sdp_h264_fmtp_read(&media->h264_fmtp, fmtp);
-			if (err < 0)
-				return err;
-		}
+		payload->fmtp = xstrdup(temp3);
 
 	} else if (strcmp(attr_key, SDP_ATTR_TOOL) == 0) {
 		/* a=tool */

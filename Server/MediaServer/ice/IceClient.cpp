@@ -124,9 +124,9 @@ bool IceClient::Start() {
 	// 被动呼叫, controlling-mode为0
     g_object_set(mpAgent, "controlling-mode", 0, NULL);
     // 允许使用turn
-    g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
+    g_object_set(mpAgent, "ice-tcp", FALSE, NULL);
     // 强制使用turn转发
-    g_object_set(mpAgent, "force-relay", TRUE, NULL);
+    g_object_set(mpAgent, "force-relay", FALSE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
     g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);

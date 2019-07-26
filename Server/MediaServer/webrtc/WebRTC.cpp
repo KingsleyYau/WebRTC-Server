@@ -96,11 +96,70 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						sdp_media_type_str(media->type),
 						media->attr_count
 						);
+
+				for(int i = 0; i < media->payload_type_array_count; i++) {
+					sdp_payload payload = media->payload_type_array[i];
+					LogAync(
+							LOG_STAT,
+							"WebRTC::ParseRemoteSdp( "
+							"this : %p, "
+							"media_type : %s, "
+							"payload[%d] : [%d %s/%u %s] "
+							")",
+							this,
+							sdp_media_type_str(media->type),
+							i,
+							payload.payload_type,
+							payload.encoding_name,
+							payload.clock_rate,
+							payload.fmtp
+							);
+
+					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
+						LogAync(
+								LOG_MSG,
+								"WebRTC::ParseRemoteSdp( "
+								"this : %p, "
+								"[Found H264 Codec], "
+								"media_type : %s, "
+								"payload : %d %s/%u, "
+								"fmtp : %s "
+								")",
+								this,
+								sdp_media_type_str(media->type),
+								payload.payload_type,
+								payload.encoding_name,
+								payload.clock_rate,
+								payload.fmtp
+								);
+
+						mSdpPayload.payload_type = payload.payload_type;
+						mSdpPayload.encoding_name = payload.encoding_name?payload.encoding_name:"";
+						mSdpPayload.encoding_params = payload.encoding_params?payload.encoding_params:"";
+						mSdpPayload.clock_rate = payload.clock_rate;
+						mSdpPayload.fmtp = payload.fmtp?payload.fmtp:"";
+						break;
+					}
+				}
+
 				sdp_attr *attr = NULL;
 				list_walk_entry_forward(&media->attrs, attr, node) {
 					if( attr->key && attr->value ) {
 						string key(attr->key);
 						string value(attr->value);
+
+//						LogAync(
+//								LOG_STAT,
+//								"WebRTC::ParseRemoteSdp( "
+//								"this : %p, "
+//								"media_type : %s, "
+//								"attr : [%s %s] "
+//								")",
+//								this,
+//								sdp_media_type_str(media->type),
+//								key.c_str(),
+//								value.c_str()
+//								);
 
 						if ( key == "ssrc" ) {
 							string::size_type pos = value.find(" ", 0);
@@ -118,6 +177,29 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 									}
 								}
 							}
+						} else if( key == "rtcp-fb" ) {
+							string::size_type pos = value.find(" ", 0);
+							if( pos != string::npos ) {
+								string payload = value.substr(0, pos);
+
+								if( mSdpPayload.payload_type == atoi(payload.c_str()) ) {
+									string rtcpFb = key + ":" + value;
+
+									LogAync(
+											LOG_STAT,
+											"WebRTC::ParseRemoteSdp( "
+											"this : %p, "
+											"media_type : %s, "
+											"%s "
+											")",
+											this,
+											sdp_media_type_str(media->type),
+											rtcpFb.c_str()
+											);
+
+									mVideoRtcpFbList.push_back(rtcpFb);
+								}
+							}
 						}
 					}
 				}
@@ -128,10 +210,16 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				LOG_MSG,
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
+				"mSdpPayload : %d %s/%u, "
+				"fmtp : %s, "
 				"mAudioSSRC : %u, "
 				"mVideoSSRC : %u "
 				")",
 				this,
+				mSdpPayload.payload_type,
+				mSdpPayload.encoding_name.c_str(),
+				mSdpPayload.clock_rate,
+				mSdpPayload.fmtp.c_str(),
 				mAudioSSRC,
 				mVideoSSRC
 				);
@@ -237,7 +325,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			pwd.c_str()
 			);
 
-	char sdp[4096];
+	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
 			"v=0\n"
 			"o=- 8792925737725123967 2 IN IP4 127.0.0.1\n"
@@ -260,7 +348,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			"a=rtpmap:111 opus/48000/2\n"
 			"a=rtcp-fb:111 transport-cc\n"
 			"a=fmtp:111 minptime=10;useinbandfec=1\n"
-			"m=video 9 UDP/TLS/RTP/SAVPF 100\n"
+			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
 			"c=IN IP4 %s\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"a=ice-ufrag:%s\n"
@@ -272,14 +360,14 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			"a=recvonly\n"
 			"a=rtcp-mux\n"
 			"a=rtcp-rsize\n"
-			"a=rtpmap:100 VP8/90000\n",
-//			"a=rtpmap:107 H264/90000\n"
-//			"a=rtcp-fb:107 goog-remb\n"
-//			"a=rtcp-fb:107 transport-cc\n"
-//			"a=rtcp-fb:107 ccm fir\n"
-//			"a=rtcp-fb:107 nack\n"
-//			"a=rtcp-fb:107 nack pli\n"
-//			"a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\n",
+			"a=rtpmap:%u %s/%u\n",
+//			"a=rtpmap:102 H264/90000\n"
+//			"a=rtcp-fb:102 goog-remb\n"
+//			"a=rtcp-fb:102 transport-cc\n"
+//			"a=rtcp-fb:102 ccm fir\n"
+//			"a=rtcp-fb:102 nack\n"
+//			"a=rtcp-fb:102 nack pli\n"
+//			"a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\n",
 			port,
 			ip.c_str(),
 			ufrag.c_str(),
@@ -288,14 +376,39 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			type.c_str(),
 			ip.c_str(),
 			DtlsSession::GetFingerprint(),
+			mSdpPayload.payload_type,
 			ip.c_str(),
 			ufrag.c_str(),
 			pwd.c_str(),
-			DtlsSession::GetFingerprint()
+			DtlsSession::GetFingerprint(),
+			mSdpPayload.payload_type,
+			mSdpPayload.encoding_name.c_str(),
+			mSdpPayload.clock_rate
 			);
 
+	string sdpStr = sdp;
+	string rtcpFb = "";
+	while( !mVideoRtcpFbList.empty() ) {
+		rtcpFb = mVideoRtcpFbList.front();
+		mVideoRtcpFbList.pop_front();
+
+		if( rtcpFb.length() > 0 ) {
+			sdpStr += "a=";
+			sdpStr += rtcpFb;
+			sdpStr += "\n";
+		}
+	}
+
+	char fmtp[256] = {'0'};
+	snprintf(fmtp, sizeof(fmtp) - 1,
+			"a=fmtp:%u %s\n",
+			mSdpPayload.payload_type,
+			mSdpPayload.fmtp.c_str()
+			);
+	sdpStr += fmtp;
+
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCCreateSdp(this, sdp);
+		mpWebRTCCallback->OnWebRTCCreateSdp(this, sdpStr);
 	}
 
 }

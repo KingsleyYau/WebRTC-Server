@@ -179,6 +179,7 @@ struct sdp_payload {
 	char *encoding_name;
 	char *encoding_params;
 	unsigned int clock_rate;
+	char *fmtp;
 };
 
 #define SDP_MAX_PAYLOAD_TYPE_COUNT 32
