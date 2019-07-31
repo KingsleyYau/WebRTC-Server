@@ -1,6 +1,6 @@
 /*
  * MediaServer.h
- *
+ *	WebRTC媒体网关服务
  *  Created on: 2019-6-13
  *      Author: Max.Chiu
  *      Email: Kingsleyyau@gmail.com
@@ -20,7 +20,7 @@
 #include <server/AsyncIOServer.h>
 
 // Websocket
-#include <server/WSServer.h>
+#include <websocket/WSServer.h>
 
 // Request/Respond
 #include <parser/HttpParser.h>
@@ -44,6 +44,7 @@ using namespace std;
 
 typedef KSafeMap<WebRTC*, connection_hdl> WebRTCMap;
 typedef KSafeMap<connection_hdl, WebRTC*, std::owner_less<connection_hdl> > WebsocketMap;
+typedef KSafeList<WebRTC *> WebRTCList;
 
 class StateRunnable;
 class MediaServer :
@@ -57,9 +58,18 @@ public:
 	MediaServer();
 	virtual ~MediaServer();
 
+	/**
+	 * 启动WebRTC媒体网关服务
+	 * @param config 配置文件路径
+	 */
 	bool Start(const string& config);
-	bool Start();
+	/**
+	 * 停止WebRTC媒体网关服务
+	 */
 	bool Stop();
+	/**
+	 * 是否正在运行
+	 */
 	bool IsRunning();
 
 	/***************************** 线程处理函数 **************************************/
@@ -89,8 +99,9 @@ public:
 	/***************************** 内部服务(HTTP), 命令回调 end **************************************/
 
 	/***************************** WebRTCCallback **************************************/
-	void OnWebRTCLocalSdp(WebRTC *rtc, const string& sdp);
+	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp);
 	void OnWebRTCClose(WebRTC *rtc);
+	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
 	/***************************** WebRTCCallback End **************************************/
 
 	/***************************** WSServerCallback **************************************/
@@ -100,6 +111,10 @@ public:
 	/***************************** WSServerCallback End **************************************/
 
 private:
+	/**
+	 * 启动服务
+	 */
+	bool Start();
 	/**
 	 * 加载配置
 	 */
@@ -134,61 +149,49 @@ private:
 	/***************************** 内部服务接口 end **************************************/
 
 
-	/***************************** 基本参数 **************************************/
-	/**
-	 * 监听端口
-	 */
+private:
+	/***************************** 内部服务(HTTP)参数 **************************************/
+	// 监听端口
 	short miPort;
 
-	/**
-	 * 最大连接数
-	 */
+	// 最大连接数
 	int miMaxClient;
 
-	/**
-	 * 处理线程数目
-	 */
+	// 处理线程数目
 	int miMaxHandleThread;
 
-	/**
-	 * 每条线程处理任务速度(个/秒)
-	 */
+	// 每条线程处理任务速度(个/秒)
 	int miMaxQueryPerThread;
 
-	/**
-	 * 请求超时(秒)
-	 */
+	// 请求超时(秒)
 	unsigned int miTimeout;
+	/***************************** 内部服务(HTTP)参数 end **************************************/
 
-	/**
-	 * flash请求超时(秒)
-	 */
-	unsigned int miFlashTimeout;
-	/***************************** 基本参数 end **************************************/
+	/***************************** 媒体流服务(WebRTC)参数 **************************************/
+	// 媒体流转发起始端口
+	unsigned short mWebRTCPortStart;
 
+	// 最大媒体流转发数
+	unsigned int mWebRTCMaxClient;
+
+	// 执行转发RTMP的脚本
+	string mWebRTCRtp2RtmpShellFilePath;
+	/***************************** 媒体流服务(WebRTC)参数 end **************************************/
 
 	/***************************** 日志参数 **************************************/
-	/**
-	 * 日志等级
-	 */
+	// 日志等级
 	int miLogLevel;
 
-	/**
-	 * 日志路径
-	 */
+	// 日志路径
 	string mLogDir;
 
-	/**
-	 * 是否debug模式
-	 */
+	// 是否debug模式
 	int miDebugMode;
 	/***************************** 日志参数 end **************************************/
 
 
 	/***************************** 处理线程 **************************************/
-	/**
-	 * 状态监视线程
-	 */
+	// 状态监视线程
 	StateRunnable* mpStateRunnable;
 	KThread mStateThread;
 
@@ -196,57 +199,40 @@ private:
 
 
 	/***************************** 统计参数 **************************************/
-	/**
-	 * 统计请求总数
-	 */
+	// 统计请求总数
 	unsigned int mTotal;
 	KMutex mCountMutex;
 
-	/**
-	 * 监听线程输出间隔
-	 */
+	// 监听线程输出间隔
 	unsigned int miStateTime;
 
 	/***************************** 统计参数 end **************************************/
 
 
 	/***************************** 运行参数 **************************************/
-	/**
-	 * 运行锁
-	 */
+	// 是否运行
 	KMutex mServerMutex;
-	/**
-	 * 是否运行
-	 */
 	bool mRunning;
 
-	/**
-	 * 配置文件锁
-	 */
+	// 配置文件
 	KMutex mConfigMutex;
-	/**
-	 * 配置文件
-	 */
 	string mConfigFile;
 
-	/**
-	 * 内部服务(HTTP)
-	 */
+	// 内部服务(HTTP)
 	AsyncIOServer mAsyncIOServer;
-
-
-	/***************************** 运行参数 end **************************************/
 
 	// 内部Rtmp流管理
 	RtmpStreamPool mRtmpStreamPool;
 
-	/**
-	 * Websocket服务
-	 */
+	// Websocket服务
 	WSServer mWSServer;
 
+	// Websocket与WebRTC关联
 	WebRTCMap mWebRTCMap;
 	WebsocketMap mWebsocketMap;
+	// 可用的WebRTC Object
+	WebRTCList mWebRTCList;
+	/***************************** 运行参数 end **************************************/
 };
 
 #endif /* MEDIASERVER_H_ */

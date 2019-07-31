@@ -30,13 +30,19 @@ typedef struct SdpPayload {
 	string fmtp;
 } SdpPayload;
 
+typedef enum WebRTCErrorType {
+	WebRTCErrorType_Rtp2Rtmp_Start_Fail = 0,
+	WebRTCErrorType_Rtp2Rtmp_Exit,
+	WebRTCErrorType_Unknow,
+} WebRTCErrorType;
+
 class WebRTC;
 class WebRTCCallback {
 public:
 	virtual ~WebRTCCallback(){};
 	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) = 0;
 	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
-	virtual void OnWebRTCError(WebRTC *rtc) = 0;
+	virtual void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) = 0;
 };
 
 class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
@@ -129,11 +135,12 @@ private:
 	string mRtp2RtmpShellFilePath;
 	// 转发RTMP的链接
 	string mRtmpUrl;
-
+	// 转发RTMP脚本的进程ID
+	int mRtpTransformPid;
+	KMutex mRtpTransformPidMutex;
 	// 本地SDP文件
 	FILE *mpSdpFile;
 	string mSdpFilePath;
-	int mRtpTransformPid;
 };
 
 } /* namespace mediaserver */

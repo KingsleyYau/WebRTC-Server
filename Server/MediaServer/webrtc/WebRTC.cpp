@@ -21,7 +21,14 @@
 
 namespace mediaserver {
 
-WebRTC::WebRTC() {
+const string WebRTCErrorMsg[] = {
+	"WebRTC Rtp Transform Rtmp Start Error.",
+	"WebRTC Rtp Transform Rtmp Exit Error.",
+	"WebRTC Unknow Error.",
+};
+
+WebRTC::WebRTC()
+:mRtpTransformPidMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
 	mIceClient.SetCallback(this);
 	mDtlsSession.SetSocketSender(this);
@@ -567,6 +574,10 @@ bool WebRTC::StartRtpTransform() {
 }
 
 void WebRTC::StopRtpTransform() {
+	// 不需要锁, 内部有锁, 找不到就放过
+	MainLoop::GetMainLoop()->StopWatchChild(mRtpTransformPid);
+
+	mRtpTransformPidMutex.lock();
 	if ( mRtpTransformPid != 0 ) {
 		LogAync(
 				LOG_ERR_SYS,
@@ -577,12 +588,10 @@ void WebRTC::StopRtpTransform() {
 				this,
 				mRtpTransformPid
 				);
-		MainLoop::GetMainLoop()->StopWatchChild(mRtpTransformPid);
-
-
 		kill(mRtpTransformPid, SIGTERM);
 		mRtpTransformPid = 0;
 	}
+	mRtpTransformPidMutex.unlock();
 
 	RemoveLocalSdpFile();
 }
@@ -775,7 +784,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 				if ( !bStart ) {
 					if( mpWebRTCCallback ) {
-						mpWebRTCCallback->OnWebRTCError(this);
+						mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Start_Fail, WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Start_Fail]);
 					}
 				}
 
@@ -791,6 +800,10 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				mRtpSession.Stop();
 				mRtpDstAudioClient.Stop();
 				mRtpDstVideoClient.Stop();
+
+				if( mpWebRTCCallback ) {
+					mpWebRTCCallback->OnWebRTCClose(this);
+				}
 			}
 		}
 	} else if( RtpSession::IsRtp(data, size) ) {
@@ -876,8 +889,12 @@ void WebRTC::OnChildExit(int pid) {
 			this,
 			pid
 			);
+	mRtpTransformPidMutex.lock();
+	mRtpTransformPid = 0;
+	mRtpTransformPidMutex.unlock();
+
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCError(this);
+		mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Exit, WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Exit]);
 	}
 }
 } /* namespace mediaserver */

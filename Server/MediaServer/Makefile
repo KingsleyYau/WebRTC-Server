@@ -32,6 +32,7 @@ LIBS = \
 	-Wl,-Bstatic -Lrespond -lrespond \
 	-Wl,-Bstatic -Lhttpclient -lhttpclient \
 	-Wl,-Bstatic -Lsimulatorchecker -lsimulatorchecker \
+	-Wl,-Bstatic -Lwebsocket -lwebsocket \
 	-Wl,-Bstatic -Lserver -lserver \
 	-Wl,-Bstatic -Lcommon -lcommon \
 	-Wl,-Bstatic -Lthird_party/libsrtp -lsrtp2 \
@@ -60,8 +61,9 @@ MODULEDIRS = \
 	common httpclient simulatorchecker \
 	parser server \
 	request respond \
+	websocket \
 	webrtc rtp rtmp socket \
-	media \
+	media 
 			
 CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))
 

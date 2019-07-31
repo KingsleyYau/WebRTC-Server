@@ -16,8 +16,6 @@
 #include <request/IRequest.h>
 // Respond
 #include <respond/IRespond.h>
-//#include <respond/BaseRespond.h>
-//#include <respond/BaseResultRespond.h>
 
 namespace mediaserver {
 class RPCServer {

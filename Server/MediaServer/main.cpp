@@ -11,10 +11,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include <string>
 #include <map>
 using namespace std;
+
+// Main
+#include <server/MainLoop.h>
 
 #include "MediaServer.h"
 
@@ -53,6 +57,8 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGTERM, &sa, 0);
 	sigaction(SIGXCPU, &sa, 0);
 	sigaction(SIGXFSZ, &sa, 0);
+	// 回收子进程
+	sigaction(SIGCHLD, &sa, 0);
 
 	Parse(argc, argv);
 
@@ -91,16 +97,22 @@ bool Parse(int argc, char *argv[]) {
 }
 
 void SignalFunc(int sign_no) {
-	LogAync(
-			LOG_ERR_SYS, "main( Get signal : %d )", sign_no
-			);
-	LogManager::GetLogManager()->LogFlushMem2File();
-
 	switch(sign_no) {
+	case SIGCHLD:{
+		int status;
+		int pid = waitpid(-1, &status, WNOHANG);
+		LogAync(
+				LOG_MSG, "main( waitpid : %d )", pid
+				);
+		MainLoop::GetMainLoop()->Call(pid);
+	}break;
 	default:{
+		LogAync(
+				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
+				);
+		LogManager::GetLogManager()->LogFlushMem2File();
 		signal(sign_no, SIG_DFL);
 		kill(getpid(), sign_no);
-//		exit(EXIT_SUCCESS);
 	}break;
 	}
 }

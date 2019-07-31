@@ -23,143 +23,117 @@ function reset() {
     $("[id=msgRecv]").html('');
     $("[id=jsonRecv]").html('');
     $("[id=jsonSend]").html('');
+
+    $("[id=localSdpTextarea]").html('');
+    $("[id=remoteSdpTextarea]").html('');
+
+    $("[id=errMsg]").attr("style", 'display: none');
+    $("[id=errMsgLabel]").html('');
+    $("[id=rtmpUrl]").attr("style", 'display: none');
+    $("[id=rtmpUrlLabel]").html('');
 }
 
-function connect() {
-    reset();
+async function connect() {
+    return new Promise( async (resolve, reject) => {
+        reset();
 
-    let host = 'ws://' + '192.168.88.133' + ':9881/';
-    client = new WebSocket(host);
-    client.binaryType = 'arraybuffer';
+        let host = 'ws://' + '192.168.88.133' + ':9881/';
+        client = new WebSocket(host);
+        client.binaryType = 'arraybuffer';
 
-	client.onopen = function() {
-		console.log('Client.onopen(), ' + host);
+        client.onopen = function() {
+            console.log('Client.onopen(), ' + host);
 
-		// var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]); // Hello
-		// client.send(bytes.buffer);
-        $("[id=status]").html('Connected');
+            // var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]); // Hello
+            // client.send(bytes.buffer);
+            $("[id=status]").html('Connected');
 
-        // login();
-    };
+            // login();
+            resolve();
+        };
 
-	client.onclose = function(ev) {
-        console.log('Client.onclose() ');
-
-        $("[id=status]").html('Not Connected');
-
-        reconnect();
-    }
-
-	client.onmessage = function(ev) {
-        console.log('Client.onmessage(), ' + ev.data);
-        let obj = JSON.parse(ev.data);
-
-        if( obj.route != "heartbeat" ) {
-            if( typeof(obj.data) != "undefined" ) {
-                // Recv respond
-                $("[id=jsonRespond]").html(ev.data);
-            } else if( typeof(obj.req_data) != "undefined"  ) {
-                // Recv notice
-                $("[id=jsonRecv]").html(ev.data);
-            }
+        client.onclose = function(ev) {
+            console.log('Client.onclose() ');
+            $("[id=status]").html('Not Connected');
         }
 
-        if( typeof(obj.errno) == "undefined" || obj.errno == 0 ) {
-            if(obj.route == 'imLogin/login') {
-                // Login Success
-                $("[id=userId]").html(obj.data.userId);
-                $("[id=socketId]").html(obj.data.socketId);
+        client.onmessage = function(ev) {
+            console.log('Client.onmessage(), ' + ev.data);
+            let obj = JSON.parse(ev.data);
 
-                heartBeat();
-            } else if(obj.route == 'imShare/sendChatNotice') {
-                $("[id=msgRecv]").html(obj.req_data.msg);
-            } else if(obj.route == 'imShare/sendSdpCallNotice') {
-                $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
-            } else if(obj.route == 'imShare/sendSdpAnswerNotice') {
-                $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
-            } else if(obj.route == 'imShare/sendSdpCall') {
-                // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
-            } else {
+            if( obj.route != "imRTC/heartbeat" ) {
+                if( typeof(obj.data) != "undefined" ) {
+                    // Recv respond
+                    $("[id=jsonRespond]").html(ev.data);
+                } else if( typeof(obj.req_data) != "undefined"  ) {
+                    // Recv notice
+                    $("[id=jsonRecv]").html(ev.data);
+                }
             }
 
-        }
-	};
+            if( typeof(obj.errno) == "undefined" || obj.errno == 0 ) {
+                if(obj.route == 'imLogin/login') {
+                    // Login Success
+                    $("[id=userId]").html(obj.data.userId);
+                    $("[id=socketId]").html(obj.data.socketId);
+
+                    heartBeat();
+                } else if(obj.route == 'imRTC/sendSdpCallNotice') {
+                    $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                } else if(obj.route == 'imRTC/sendSdpCall') {
+                    // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                    if( typeof(obj.data.rtmpUrl) != "undefined" ) {
+                        const rtmpUrl = obj.data.rtmpUrl;
+                        if( rtmpUrl.length > 0 ) {
+                            $("[id=rtmpUrl]").attr("style", 'display: block');
+                            $("[id=rtmpUrlLabel]").html(rtmpUrl);
+                        }
+                    }
+
+                } else if(obj.route == 'imRTC/sendSdpAnswerNotice') {
+                    $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                    $("[id=acceptBtn]").click();
+                } else {
+                }
+
+                if( obj.errmsg.length > 0 ) {
+                    $("[id=errMsg]").attr("style", 'display: block');
+                    $("[id=errMsgLabel]").html(obj.errmsg);
+                }
+            }
+        };
+    });
 };
 
 function send(obj) {
     obj.id = reqId;
     data = JSON.stringify(obj);
-
     // console.log('Client.send(), ' + data);
-
     if( client.readyState == client.OPEN ) {
-        if( obj.route != "heartbeat" ) {
+        if( obj.route != "imRTC/heartbeat" ) {
             $("[id=jsonSend]").html(data);
         }
         client.send(data);
         reqId++;
         return true;
     } else {
-        // connect();
         return false;
     }
 }
 
 function sendHeartBeat() {
     obj = {
-        route:'heartbeat',
+        route:'imRTC/heartbeat',
         req_data:{
         }
     }
     send(obj);
 }
 
-function login() {
+async function sendSdpCall(userId, sdp) {
+    await connect();
     obj = {
-        route:'imLogin/login',
-        req_data:{
-            userId:$("#userId").val(),
-            token:'token123456',
-            pagename:7
-        }
-    }
-    send(obj);
-}
-
-function logout() {
-    obj = {
-        route:'imLogin/logout',
-        req_data:{
-            pagename:7
-        }
-    }
-    send(obj);
-}
-
-function broadcast(roomId, msg) {
-    obj = {
-        route:'imShare/sendLiveChat',
-        req_data:{
-            msg:msg
-        }
-    }
-    send(obj);
-}
-
-function sendMsg(userId, msg) {
-    obj = {
-        route:'imShare/sendMsg',
-        req_data:{
-            toUserId:userId,
-            msg:msg
-        }
-    }
-    send(obj);
-}
-
-function sendSdpCall(userId, sdp) {
-    obj = {
-        route:'imShare/sendSdpCall',
+        route:'imRTC/sendSdpCall',
         req_data:{
             toUserId:userId,
             sdp:sdp,
@@ -171,43 +145,13 @@ function sendSdpCall(userId, sdp) {
 
 function sendSdpUpdate(userId, sdp) {
     obj = {
-        route:'imShare/sendSdpUpdate',
+        route:'imRTC/sendSdpUpdate',
         req_data:{
             toUserId:userId,
             sdp:sdp
         }
     }
     send(obj);
-}
-
-
-function sendSdpAnswer(userId, sdp) {
-    obj = {
-        route:'imShare/sendSdpAnswer',
-        req_data:{
-            toUserId:userId,
-            sdp:sdp
-        }
-    }
-    send(obj);
-}
-
-/*
-* 业务逻辑
-* */
-function reconnect() {
-    // console.log('Client reconnect()');
-    // setTimeout(() => {
-    //     if( client.readyState == client.OPEN ) {
-    //         // 连接已经成功, 退出循环
-    //     } else if(client.readyState == client.CLOSED) {
-    //         // 开始连接
-    //         connect();
-    //     }  else {
-    //         // 继续等待重连
-    //         reconnect();
-    //     }
-    // }, 5000);
 }
 
 function heartBeat() {
@@ -218,21 +162,6 @@ function heartBeat() {
     //         heartBeat();
     //     }
     // }, 30000);
-}
-
-function postSdpCall(sdp) {
-    var xhr = new XMLHttpRequest();
-    var url = "http://192.168.88.133:9880/CALLSDP";
-    xhr.open("POST", url, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var json = JSON.parse(xhr.responseText);
-            console.log(json.email + ", " + json.password);
-        }
-    };
-    var data = JSON.stringify({"sdp": sdp});
-    xhr.send(data);
 }
 
 class RTCClient {
@@ -269,16 +198,14 @@ class RTCClient {
             } else {
                 $("[id=remoteVideo]").attr("srcObject", event.stream);
             }
-
-            $("[id=remoteVideo]").attr("style", 'display: block');
         };
 
         // 对方关闭
         this.pc.oniceconnectionstatechange = event => {
             console.log('RTCClient::oniceconnectionstatechange( iceConnectionState: ', this.pc.iceConnectionState, ' )');
             if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
-                $("[id=remoteVideo]").attr("srcObject", null);
-                $("[id=remoteVideo]").attr("style", 'display: none');
+                // $("[id=remoteVideo]").attr("srcObject", null);
+                // $("[id=remoteVideo]").attr("style", 'display: none');
             }
         };
     }
@@ -286,14 +213,9 @@ class RTCClient {
     async hangup () {
         this.close();
 
-        $("[id=localSdpTextarea]").html("");
         $("[id=localSdpTextarea]").attr("disabled", true);
         $("[id=callButton]").attr("disabled", false);
-        $("[id=answerButton]").attr("disabled", false);
         $("[id=acceptButton]").attr("disabled", false);
-        $("[id=remoteSdpTextarea]").html("");
-        $("[id=remoteSdpTextarea]").attr("disabled", false);
-
     }
 
     async call () {
@@ -313,37 +235,13 @@ class RTCClient {
 
         $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
         $("[id=localSdpTextarea]").attr("disabled", false);
-        $("[id=answerButton]").attr("disabled", true);
         $("[id=acceptButton]").attr("disabled", false);
-        $("[id=remoteSdpTextarea]").html("");
-        $("[id=remoteSdpTextarea]").attr("disabled", false);
     }
 
     async accpet(answer) {
         console.log(answer);
+        $("[id=acceptButton]").attr("disabled", true);
         await this.pc.setRemoteDescription(answer);
-
-        $("[id=acceptButton]").attr("disabled", true);
-        $("[id=remoteSdpTextarea]").attr("disabled", true);
-    }
-
-    async answer (offer) {
-        this.init();
-
-        const ignoreRemote = await this.pc.setRemoteDescription(offer);
-
-        const answer = await this.pc.createAnswer();
-        const ignoreLocal = await this.pc.setLocalDescription(answer);
-
-        let localDescriptionJson = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::answer( localDescriptionJson :', localDescriptionJson, ' )');
-
-        $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
-        // $("[id=localSdpTextarea]").attr("disabled", true);
-        $("[id=callButton]").attr("disabled", true);
-        $("[id=answerButton]").attr("disabled", true);
-        $("[id=acceptButton]").attr("disabled", true);
-        $("[id=remoteSdpTextarea]").attr("disabled", true);
     }
 
     close () {
@@ -419,47 +317,18 @@ function onload() {
     };
 
     let type;
-    let client = new RTCClient(config);
-    client.onicecandidate = () => {
+    let rtc = new RTCClient(config);
+    rtc.onicecandidate = () => {
         if( type == 'call' ) {
-            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
-            // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
             sendSdpUpdate($("#toUserId").val(), $("#localSdpTextarea").val());
-        } else if (type == 'answer') {
-            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
-            sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
         }
     };
 
     $("[id=callBtn]").click(function() {
-        client.call().then( () => {
+        rtc.call().then( () => {
             type = 'call';
             sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
-        });
-    });
-
-    $("[id=hangupBtn]").click(function() {
-        client.hangup();
-    });
-
-    $("[id=sendSdpBtn]").click(function() {
-        sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
-    });
-
-    $("[id=postSdpBtn]").click(function() {
-        postSdpCall($("#localSdpTextarea").val());
-    });
-
-    $("[id=answerBtn]").click(function() {
-        let remoteSdp = remoteSdpTextarea.value;
-        let offer = {
-            type: 'offer',
-            sdp: remoteSdp
-        }
-
-        client.answer(offer).then( () => {
-            type = 'answer';
-            // sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
         });
     });
 
@@ -469,10 +338,13 @@ function onload() {
             type: 'answer',
             sdp: remoteSdp
         }
-        client.accpet(answer);
+        rtc.accpet(answer);
     });
 
-    connect();
+    $("[id=hangupBtn]").click(function() {
+        client.close();
+        rtc.hangup();
+    });
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -484,48 +356,31 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <body>
 <div id="">
-    <div id="login">
-        status : <lable id="status">Not Connected</lable><br>
-        userId : <input id="userId" type="text" name="" value="max" /><br>
-        socketId : <lable id="socketId"> </lable><br>
-        <button onclick="login()">login</button>
-        <button onclick="logout()">logout</button>
-    </div>
-    <div>
-        toUserId : <input id="toUserId" type="text" name="" value="max" /><br>
-        msg : <input id="msg" type="text" name="" value="User Message" />
-        <button onclick=sendMsg($("#toUserId").val(),$("#msg").val())>sendMsg</button>
-    </div>
-    <div>
-        msg recv : <lable id="msgRecv" />
-    </div>
-
+    Websocket Status : <lable id="status">Not Connected</lable><br>
     <p>################################################################
     <div class="video-box">
         <div id="local">
+            <div id="errMsg" style="display: none">
+                Error Msg : <lable id="errMsgLabel"></lable>
+            </div>
+            <div id="rtmpUrl" style="display: none">
+                Rtmp Play Url : <lable id="rtmpUrlLabel"></lable>
+            </div>
+
+            UserId : <input id="userId" type="text" name="" value="max0" /><br>
             Local SDP<p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
-                <button id="callBtn">Call</button><button id="hangupBtn">Hangup</button><button id="sendSdpBtn">sendSdp</button><button id="postSdpBtn">postSdp</button>
+                <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
             </div>
             <p>Local Video</p>
             <video id="localVideo" width="400" height="300" autoplay style="display: none"></video>
         </div>
 
-        <p>################################################################
-
         <div id="remote">
-        <p>Remote SDP</p>
-
-        <textarea id="remoteSdpTextarea"></textarea>
-        <div>
-            <button id="answerBtn">Answer</button>
-            <button id="acceptBtn">Accept</button>
+            <p>Remote SDP</p>
+            <textarea id="remoteSdpTextarea"></textarea>
         </div>
-
-        <p>Remote Video</p>
-        <video id="remoteVideo" width="400" height="300" autoplay style="display: none"></video>
-        </p>
     </div>
 
     <p>################################################################
