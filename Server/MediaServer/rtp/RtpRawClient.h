@@ -25,6 +25,8 @@ public:
 
 public:
 	bool Init(const string& sendIp, int rtpSendPort, int rtpRecvPort);
+	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
+	void Stop();
 
 private:
 	void SetSocketSender(SocketSender *sender);
@@ -32,6 +34,9 @@ private:
 private:
 	UdpSender mRtpSender;
 	UdpSender mRtcpSender;
+
+	string mSendIp;
+	int mRtpSendPort;
 };
 
 } /* namespace mediaserver */

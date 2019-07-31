@@ -27,7 +27,7 @@ public:
 	virtual ~UdpSender();
 
 public:
-	bool Init(const string& sendIp, int sendPort, int recvPort);
+	bool Init(const string& sendIp, int sendPort);
 	void Close();
 	int SendData(const void *data, unsigned int len);
 
@@ -36,7 +36,6 @@ private:
 	string mSendIp;
 	struct sockaddr_in mSendSockAddr;
 	int mSendPort;
-	int mRecvPort;
 	int mFd;
 };
 

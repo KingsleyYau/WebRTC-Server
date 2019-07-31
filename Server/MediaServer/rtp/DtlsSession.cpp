@@ -705,7 +705,7 @@ void DtlsSession::CheckHandshake() {
             memcpy(&mServerKey[SRTP_MASTER_KEY_LENGTH], serverSalt, SRTP_MASTER_SALT_LENGTH);
 
 			LogAync(
-					LOG_WARNING,
+					LOG_MSG,
 					"DtlsSession::CheckHandshake( "
 					"this : %p, "
 					"[DTLS Handshake OK], "

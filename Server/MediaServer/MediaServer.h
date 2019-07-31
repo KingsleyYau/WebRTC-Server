@@ -89,7 +89,7 @@ public:
 	/***************************** 内部服务(HTTP), 命令回调 end **************************************/
 
 	/***************************** WebRTCCallback **************************************/
-	void OnWebRTCCreateSdp(WebRTC *rtc, const string& sdp);
+	void OnWebRTCLocalSdp(WebRTC *rtc, const string& sdp);
 	void OnWebRTCClose(WebRTC *rtc);
 	/***************************** WebRTCCallback End **************************************/
 

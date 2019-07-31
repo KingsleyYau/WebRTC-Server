@@ -221,7 +221,18 @@ void IceClient::SetCallback(IceClientCallback *callback) {
 }
 
 void IceClient::SetRemoteSdp(const string& sdp) {
+	mClientMutex.lock();
+
 	mSdp = sdp;
+
+	if ( mpAgent ) {
+		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
+		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
+			ParseRemoteSdp(mStreamId);
+		}
+	}
+
+	mClientMutex.unlock();
 }
 
 int IceClient::SendData(const void *data, unsigned int len) {
@@ -240,6 +251,8 @@ const string& IceClient::GetRemoteAddress() {
 
 bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	bool bFlag = false;
+
+	mClientMutex.lock();
 
     gchar *ufrag = NULL;
     gchar *pwd = NULL;
@@ -282,16 +295,20 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
         }
     }
 
+    mClientMutex.unlock();
+
 	LogAync(
-			LOG_MSG,
+			LOG_STAT,
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
 			"ufrag : %s, "
-			"pwd : %s "
+			"pwd : %s, "
+			"remoteSdp : %s "
 			")",
 			this,
 			ufrag,
-			pwd
+			pwd,
+			mSdp.c_str()
 			);
 
     if ( ufrag ) {
@@ -345,17 +362,17 @@ void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned i
 }
 
 void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int streamId) {
-	gchar *localSdp = nice_agent_generate_local_sdp(agent);
+	gchar *localCandidate = nice_agent_generate_local_sdp(agent);
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnCandidateGatheringDone( "
 			"this : %p, "
 			"streamId : %u, "
-			"localSdp :\n%s"
+			"localCandidate :\n%s"
 			")",
 			this,
 			streamId,
-			localSdp
+			localCandidate
 			);
 
     gchar *ufrag = NULL;
@@ -384,8 +401,8 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 	if ( pwd ) {
 		g_free(pwd);
 	}
-	if ( localSdp ) {
-		g_free(localSdp);
+	if ( localCandidate ) {
+		g_free(localCandidate);
 	}
 
 	bFlag = ParseRemoteSdp(streamId);

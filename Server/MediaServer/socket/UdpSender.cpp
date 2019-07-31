@@ -17,20 +17,19 @@ UdpSender::UdpSender() {
 	// TODO Auto-generated constructor stub
 	mSendIp = "";
 	mSendPort = -1;
-	mRecvPort = -1;
 	mFd = -1;
 }
 
 UdpSender::~UdpSender() {
 	// TODO Auto-generated destructor stub
+	Close();
 }
 
-bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
+bool UdpSender::Init(const string& sendIp, int sendPort) {
 	bool bFlag = true;
 
 	mSendIp = sendIp;
 	mSendPort = sendPort;
-	mRecvPort = recvPort;
 
 	// Check network address
 	in_addr_t inAddrT = inet_addr(sendIp.c_str());
@@ -44,6 +43,11 @@ bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
     	if( mFd == -1 ) {
     		bFlag = false;
     	}
+
+    	int bOptval = 1;
+    	if ( setsockopt(mFd, SOL_SOCKET, SO_REUSEADDR, &bOptval, sizeof(int)) ) {
+    		bFlag = false;
+    	}
     }
 
     if( bFlag ) {
@@ -55,20 +59,18 @@ bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_MSG,
 				"UdpSender::Init( "
 				"this : %p, "
 				"[OK], "
-				"mFd : %d, "
+				"fd : %d, "
 				"sendIp : %s, "
-				"sendPort : %d, "
-				"recvPort : %d "
+				"sendPort : %d "
 				")",
 				this,
 				mFd,
 				sendIp.c_str(),
-				sendPort,
-				recvPort
+				sendPort
 				);
 	} else {
 		LogAync(
@@ -77,13 +79,11 @@ bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
 				"this : %p, "
 				"[Fail], "
 				"sendIp : %s, "
-				"sendPort : %d, "
-				"recvPort : %d "
+				"sendPort : %d "
 				")",
 				this,
 				sendIp.c_str(),
-				sendPort,
-				recvPort
+				sendPort
 				);
 		Close();
 	}
@@ -92,6 +92,16 @@ bool UdpSender::Init(const string& sendIp, int sendPort, int recvPort) {
 }
 
 void UdpSender::Close() {
+	LogAync(
+			LOG_ERR_SYS,
+			"UdpSender::Close( "
+			"this : %p, "
+			"fd : %d "
+			")",
+			this,
+			mFd
+			);
+
 	if( mFd != -1 ) {
 		close(mFd);
 		mFd = -1;
@@ -104,10 +114,12 @@ int UdpSender::SendData(const void *data, unsigned int len) {
 //			LOG_STAT,
 //			"UdpSender::SendData( "
 //			"this : %p, "
+//			"fd : %d, "
 //			"len : %d, "
 //			"sendSize : %d "
 //			")",
 //			this,
+//			mFd,
 //			len,
 //			sendSize
 //			);

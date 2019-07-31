@@ -28,7 +28,7 @@ function reset() {
 function connect() {
     reset();
 
-    let host = 'ws://' + window.location.hostname + ':19878/';
+    let host = 'ws://' + '192.168.88.133' + ':9881/';
     client = new WebSocket(host);
     client.binaryType = 'arraybuffer';
 
@@ -77,6 +77,8 @@ function connect() {
                 $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
             } else if(obj.route == 'imShare/sendSdpAnswerNotice') {
                 $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+            } else if(obj.route == 'imShare/sendSdpCall') {
+                // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
             } else {
             }
 
@@ -98,7 +100,7 @@ function send(obj) {
         reqId++;
         return true;
     } else {
-        connect();
+        // connect();
         return false;
     }
 }
@@ -158,6 +160,18 @@ function sendMsg(userId, msg) {
 function sendSdpCall(userId, sdp) {
     obj = {
         route:'imShare/sendSdpCall',
+        req_data:{
+            toUserId:userId,
+            sdp:sdp,
+            userId:$("#userId").val()
+        }
+    }
+    send(obj);
+}
+
+function sendSdpUpdate(userId, sdp) {
+    obj = {
+        route:'imShare/sendSdpUpdate',
         req_data:{
             toUserId:userId,
             sdp:sdp
@@ -249,11 +263,13 @@ class RTCClient {
         // 收到对方的视频流
         this.pc.onaddstream = event => {
             console.log('RTCClient::onaddstream( remoteStream: ', event.stream, ' )');
+
             if (window.URL) {
                 $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
-            }else{
+            } else {
                 $("[id=remoteVideo]").attr("srcObject", event.stream);
             }
+
             $("[id=remoteVideo]").attr("style", 'display: block');
         };
 
@@ -289,14 +305,14 @@ class RTCClient {
             offerToReceiveAudio: false,
             offerToReceiveVideo: true
         });
-        // offer.sdp = this.forceH264(offer.sdp);
+        offer.sdp = this.forceH264(offer.sdp);
         await this.pc.setLocalDescription(offer);
 
         let localDescription = JSON.stringify(this.pc.localDescription);
         console.log('RTCClient::call( localDescription :', localDescription, ' )');
 
         $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
-        // $("[id=localSdpTextarea]").attr("disabled", true);
+        $("[id=localSdpTextarea]").attr("disabled", false);
         $("[id=answerButton]").attr("disabled", true);
         $("[id=acceptButton]").attr("disabled", false);
         $("[id=remoteSdpTextarea]").html("");
@@ -360,19 +376,19 @@ class RTCClient {
     // for some SDP parsing issues.
     forceH264(sdp) {
         var newSdp = sdp;
-        newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
-        newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
-        newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
-        newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
-        newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
+        // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
+        // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
 
         // newSdp = newSdp.replace(/a=rtcp-fb:(?!111)\d{1,3} .*\r\n/g, '');
         // newSdp = newSdp.replace(/a=fmtp:(?!111)\d{1,3} .*\r\n/g, '');
         // newSdp = newSdp.replace(/a=rtpmap:(?!111)\d{1,3} .*\r\n/g, '');
 
-        newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
-        newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
-        newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
 
         return newSdp;
     }
@@ -408,6 +424,7 @@ function onload() {
         if( type == 'call' ) {
             $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
             // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+            sendSdpUpdate($("#toUserId").val(), $("#localSdpTextarea").val());
         } else if (type == 'answer') {
             $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
             sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
@@ -417,7 +434,7 @@ function onload() {
     $("[id=callBtn]").click(function() {
         client.call().then( () => {
             type = 'call';
-            // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+            sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
         });
     });
 

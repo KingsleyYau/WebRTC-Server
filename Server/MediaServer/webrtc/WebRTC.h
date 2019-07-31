@@ -9,22 +9,24 @@
 #ifndef WEBRTC_WEBRTC_H_
 #define WEBRTC_WEBRTC_H_
 
+#include <server/MainLoop.h>
+
 #include <common/KSafeList.h>
 
-#include <ice/IceClient.h>
 #include <rtp/DtlsSession.h>
 #include <rtp/RtpSession.h>
 #include <socket/ISocketSender.h>
 #include <rtp/RtpRawClient.h>
 
+#include <webrtc/IceClient.h>
 
 namespace mediaserver {
 typedef list<string> RtcpFbList;
 typedef struct SdpPayload {
 	unsigned int payload_type;
 	string encoding_name;
-	string encoding_params;
 	unsigned int clock_rate;
+	string encoding_params;
 	string fmtp;
 } SdpPayload;
 
@@ -32,11 +34,12 @@ class WebRTC;
 class WebRTCCallback {
 public:
 	virtual ~WebRTCCallback(){};
-	virtual void OnWebRTCCreateSdp(WebRTC *rtc, const string& sdp) = 0;
+	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) = 0;
 	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
+	virtual void OnWebRTCError(WebRTC *rtc) = 0;
 };
 
-class WebRTC : public SocketSender, IceClientCallback {
+class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
 public:
 	WebRTC();
 	virtual ~WebRTC();
@@ -45,14 +48,20 @@ public:
 	static bool GobalInit();
 
 public:
-	bool Start(const string& sdp);
-	void Stop();
-
-public:
 	void SetCallback(WebRTCCallback *callback);
-
-	void SetCustom(void *custom);
-	void* GetCustom();
+	bool Init(
+			const string& rtp2RtmpShellFilePath,
+			const string& rtpDstAudioIp = "127.0.0.1",
+			unsigned int rtpDstAudioPort = 10000,
+			const string& rtpDstVideoIp = "127.0.0.1",
+			unsigned int rtpDstVideoPort = 10002
+			);
+	bool Start(
+			const string& sdp,
+			const string& rtmpUrl
+			);
+	void Stop();
+	void UpdateCandidate(const string& sdp);
 
 private:
 	// SocketSender Implement
@@ -62,11 +71,35 @@ private:
 	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
 	void OnIceClose(IceClient *ice);
+	// MainLoopCallback
+	void OnChildExit(int pid);
 
 	/**
-	 * 解析SDP
+	 * 解析远程SDP
+	 * @param sdp 远程SDP
 	 */
 	bool ParseRemoteSdp(const string& sdp);
+	/**
+	 * 创建本地转发的SDP
+	 * @return 本地转发的SDP
+	 */
+	string CreateLocalSdp();
+	/**
+	 * 创建本地转发的SDP文件
+	 */
+	bool CreateLocalSdpFile();
+	/**
+	 * 删除本地转发的SDP文件
+	 */
+	void RemoveLocalSdpFile();
+	/**
+	 * 开始转发RTP到RTMP
+	 */
+	bool StartRtpTransform();
+	/**
+	 * 停止转发RTP到RTMP
+	 */
+	void StopRtpTransform();
 
 private:
 	WebRTCCallback *mpWebRTCCallback;
@@ -78,13 +111,29 @@ private:
 	RtpRawClient mRtpDstAudioClient;
 	RtpRawClient mRtpDstVideoClient;
 
+	string mRtpDstAudioIp;
+	unsigned int mRtpDstAudioPort;
+	string mRtpDstVideoIp;
+	unsigned int mRtpDstVideoPort;
+
 	unsigned int mVideoSSRC;
 	unsigned int mAudioSSRC;
+	string mVideoMid;
+	string mAudioMid;
 
-	SdpPayload mSdpPayload;
+	SdpPayload mAudioSdpPayload;
+	SdpPayload mVideoSdpPayload;
 	RtcpFbList mVideoRtcpFbList;
 
-	void *mpCustom;
+	// 执行转发RTMP的脚本
+	string mRtp2RtmpShellFilePath;
+	// 转发RTMP的链接
+	string mRtmpUrl;
+
+	// 本地SDP文件
+	FILE *mpSdpFile;
+	string mSdpFilePath;
+	int mRtpTransformPid;
 };
 
 } /* namespace mediaserver */

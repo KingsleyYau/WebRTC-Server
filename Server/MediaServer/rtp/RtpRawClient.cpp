@@ -17,6 +17,9 @@ RtpRawClient::RtpRawClient() {
 	// TODO Auto-generated constructor stub
 	SetRtpSender(&mRtpSender);
 	SetRtcpSender(&mRtcpSender);
+
+	mSendIp = "";
+	mRtpSendPort = 0;
 }
 
 RtpRawClient::~RtpRawClient() {
@@ -28,12 +31,12 @@ bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, int rtpRecvPort) 
 
 	mClientMutex.lock();
 	if( !mRunning ) {
-		bFlag &= mRtpSender.Init(sendIp, rtpSendPort, rtpRecvPort);
-		bFlag &= mRtcpSender.Init(sendIp, rtpSendPort + 1, rtpRecvPort);
+		mSendIp = sendIp;
+		mRtpSendPort = rtpSendPort;
 
 		if( bFlag ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_STAT,
 					"RtpRawClient::Init( "
 					"this : %p, "
 					"[OK], "
@@ -66,6 +69,21 @@ bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, int rtpRecvPort) 
 	mClientMutex.unlock();
 
 	return bFlag;
+}
+
+bool RtpRawClient::Start(char *localKey, int localSize, char *remoteKey, int remoteSize) {
+	bool bFlag = RtpSession::Start(localKey, localSize, remoteKey, remoteSize);
+
+	bFlag &= mRtpSender.Init(mSendIp, mRtpSendPort);
+	bFlag &= mRtcpSender.Init(mSendIp, mRtpSendPort + 1);
+
+	return bFlag;
+}
+
+void RtpRawClient::Stop() {
+	RtpSession::Stop();
+	mRtpSender.Close();
+	mRtcpSender.Close();
 }
 
 } /* namespace mediaserver */
