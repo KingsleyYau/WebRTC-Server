@@ -110,7 +110,7 @@ function send(obj) {
     obj.id = reqId;
     data = JSON.stringify(obj);
 
-    console.log('Client.send(), ' + data);
+    // console.log('Client.send(), ' + data);
     if( client.readyState == client.OPEN ) {
         if( obj.route != "imRTC/heartbeat" ) {
             $("[id=jsonSend]").html(data);
@@ -311,8 +311,8 @@ function onload() {
     }
 
     const config = {
-        // iceServers: JSON.parse('[{"urls":["stun:192.168.88.133:3478"]}]')
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.133:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
         // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"],"username":"","credential":""}]')
         // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"","credential":""}]'), iceTransportPolicy: "relay"
     };
