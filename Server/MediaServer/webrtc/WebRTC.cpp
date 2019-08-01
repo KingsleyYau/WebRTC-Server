@@ -21,12 +21,6 @@
 
 namespace mediaserver {
 
-const string WebRTCErrorMsg[] = {
-	"WebRTC Rtp Transform Rtmp Start Error.",
-	"WebRTC Rtp Transform Rtmp Exit Error.",
-	"WebRTC Unknow Error.",
-};
-
 WebRTC::WebRTC()
 :mRtpTransformPidMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
@@ -123,7 +117,7 @@ bool WebRTC::Start(
 		) {
 	bool bFlag = true;
 
-	ParseRemoteSdp(sdp);
+	bFlag &= ParseRemoteSdp(sdp);
 	bFlag &= mIceClient.Start();
 	bFlag &= mDtlsSession.Start();
 
@@ -189,15 +183,15 @@ void WebRTC::Stop() {
 }
 
 void WebRTC::UpdateCandidate(const string& sdp) {
-	LogAync(
-			LOG_STAT,
-			"WebRTC::UpdateCandidate( "
-			"this : %p, "
-			"sdp : %s "
-			")",
-			this,
-			sdp.c_str()
-			);
+//	LogAync(
+//			LOG_STAT,
+//			"WebRTC::UpdateCandidate( "
+//			"this : %p, "
+//			"sdp : %s "
+//			")",
+//			this,
+//			sdp.c_str()
+//			);
 
 	mIceClient.SetRemoteSdp(sdp);
 }
@@ -782,7 +776,11 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
 				}
 
-				if ( !bStart ) {
+				if ( bStart ) {
+					if( mpWebRTCCallback ) {
+						mpWebRTCCallback->OnWebRTCStartMedia(this);
+					}
+				} else {
 					if( mpWebRTCCallback ) {
 						mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Start_Fail, WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Start_Fail]);
 					}
@@ -856,6 +854,25 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				mRtpDstVideoClient.SendRtcpPacket(pkt, pktSize);
 			}
 		}
+	} else {
+		LogAync(
+				LOG_WARNING,
+				"WebRTC::OnIceRecvData( "
+				"this : %p, "
+				"[Unknow Data Format], "
+				"ice : %p, "
+				"streamId : %u, "
+				"componentId : %u, "
+				"size : %d, "
+				"data[0] : 0x%X "
+				")",
+				this,
+				ice,
+				streamId,
+				componentId,
+				size,
+				(unsigned char)data[0]
+				);
 	}
 }
 

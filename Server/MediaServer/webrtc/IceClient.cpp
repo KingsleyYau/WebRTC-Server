@@ -76,6 +76,7 @@ IceClient::IceClient() :
 	// TODO Auto-generated constructor stub
 	// Status
 	mRunning = false;
+	mIceGatheringDone = false;
 
 	// libnice
 	mpAgent = NULL;
@@ -124,9 +125,9 @@ bool IceClient::Start() {
 	// 被动呼叫, controlling-mode为0
     g_object_set(mpAgent, "controlling-mode", 0, NULL);
     // 允许使用turn
-    g_object_set(mpAgent, "ice-tcp", FALSE, NULL);
+    g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
-    g_object_set(mpAgent, "force-relay", FALSE, NULL);
+    g_object_set(mpAgent, "force-relay", TRUE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
     g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);
@@ -204,6 +205,8 @@ void IceClient::Stop() {
 			mRunning = false;
 		}
 
+		mIceGatheringDone = false;
+
 		LogAync(
 				LOG_MSG,
 				"IceClient::Stop( "
@@ -226,8 +229,9 @@ void IceClient::SetRemoteSdp(const string& sdp) {
 	mSdp = sdp;
 
 	if ( mpAgent ) {
-		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
-		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
+//		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
+//		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
+		if ( mIceGatheringDone ) {
 			ParseRemoteSdp(mStreamId);
 		}
 	}
@@ -253,6 +257,16 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	bool bFlag = false;
 
 	mClientMutex.lock();
+
+	LogAync(
+			LOG_MSG,
+			"IceClient::ParseRemoteSdp( "
+			"this : %p, "
+			"sdp : %s "
+			")",
+			this,
+			mSdp.c_str()
+			);
 
     gchar *ufrag = NULL;
     gchar *pwd = NULL;
@@ -405,8 +419,11 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 		g_free(localCandidate);
 	}
 
-	bFlag = ParseRemoteSdp(streamId);
+	mClientMutex.lock();
+	mIceGatheringDone = true;
+	mClientMutex.unlock();
 
+	bFlag = ParseRemoteSdp(streamId);
 }
 
 void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state) {

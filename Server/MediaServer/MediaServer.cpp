@@ -778,7 +778,7 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 	}
 }
 
-void MediaServer::OnWebRTCClose(WebRTC *rtc) {
+void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 	connection_hdl hdl;
 	bool bFound = false;
 	mWebsocketMap.Lock();
@@ -793,8 +793,8 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 
 	LogAync(
 			LOG_WARNING,
-			"MediaServer::OnWebRTCClose( "
-			"event : [WebRTC-断开], "
+			"MediaServer::OnWebRTCStartMedia( "
+			"event : [WebRTC-开始媒体传输], "
 			"hdl : %p, "
 			"rtc : %p "
 			")",
@@ -803,7 +803,16 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 			);
 
 	if( bFound ) {
-		mWSServer.Disconnect(hdl);
+		Json::Value resRoot;
+		Json::FastWriter writer;
+
+		resRoot["id"] = 0;
+		resRoot["route"] = "imRTC/sendStartMediaNotice";
+		resRoot["errno"] = 0;
+		resRoot["errmsg"] = "";
+
+		string res = writer.write(resRoot);
+		mWSServer.SendText(hdl, res);
 	}
 }
 
@@ -847,6 +856,35 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 		string res = writer.write(resRoot);
 		mWSServer.SendText(hdl, res);
 
+		mWSServer.Disconnect(hdl);
+	}
+}
+
+void MediaServer::OnWebRTCClose(WebRTC *rtc) {
+	connection_hdl hdl;
+	bool bFound = false;
+	mWebsocketMap.Lock();
+	mWebRTCMap.Lock();
+	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
+	if( itr != mWebRTCMap.End() ) {
+		hdl = itr->second;
+		bFound = true;
+	}
+	mWebRTCMap.Unlock();
+	mWebsocketMap.Unlock();
+
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::OnWebRTCClose( "
+			"event : [WebRTC-断开], "
+			"hdl : %p, "
+			"rtc : %p "
+			")",
+			hdl.lock().get(),
+			rtc
+			);
+
+	if( bFound ) {
 		mWSServer.Disconnect(hdl);
 	}
 }
@@ -911,6 +949,22 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			resRoot["errno"] = 0;
 			resRoot["errmsg"] = "";
 
+			string route = "";
+			if ( resRoot["route"].isString() ) {
+				route = resRoot["route"].asString();
+			}
+
+//			LogAync(
+//					LOG_MSG,
+//					"MediaServer::OnWSMessage( "
+//					"event : [Websocket-请求], "
+//					"hdl : %p, "
+//					"route : %s "
+//					")",
+//					hdl.lock().get(),
+//					route.c_str()
+//					);
+
 			bParse = false;
 			if ( reqRoot["route"].isString() ) {
 				string route = reqRoot["route"].asString();
@@ -918,9 +972,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					if ( reqRoot["req_data"].isObject() ) {
 						Json::Value reqData = reqRoot["req_data"];
 
-						string userId = "";
-						if( reqData["userId"].isString() ) {
-							userId = reqData["userId"].asString();
+						string stream = "";
+						if( reqData["stream"].isString() ) {
+							stream = reqData["stream"].asString();
 						}
 
 						string sdp = "";
@@ -929,9 +983,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						}
 
 						string rtmpUrl = "rtmp://192.168.88.17:19351/live/";
-						rtmpUrl += userId;
+						rtmpUrl += stream;
 
-						if( userId.length() > 0 && sdp.length() > 0 ) {
+						if( stream.length() > 0 && sdp.length() > 0 ) {
 							WebRTC *rtc = NULL;
 
 							mWebsocketMap.Lock();
@@ -952,11 +1006,14 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							}
 
 							if ( rtc ) {
-								bFlag = true;
+								bFlag = rtc->Start(sdp, rtmpUrl);
+								if ( bFlag ) {
+									resData["rtmpUrl"] = rtmpUrl;
+								} else {
+									resRoot["errno"] = 1;
+									resRoot["errmsg"] = "WebRTC Start Fail Error.";
+								}
 
-								rtc->Start(sdp, rtmpUrl);
-
-								resData["rtmpUrl"] = rtmpUrl;
 							} else {
 								resRoot["errno"] = 1;
 								resRoot["errmsg"] = "No More WebRTC Connection Allow Error.";
@@ -966,7 +1023,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							mWebsocketMap.Unlock();
 						} else {
 							resRoot["errno"] = 1;
-							resRoot["errmsg"] = "No UserId or SDP Error.";
+							resRoot["errmsg"] = "No Stream or SDP Error.";
 						}
 					}
 				} else if ( route == "imRTC/sendSdpUpdate" ) {
@@ -989,6 +1046,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								rtc = itr->second;
 								rtc->UpdateCandidate(sdp);
 								bFlag = true;
+							} else {
+								resRoot["errno"] = 1;
+								resRoot["errmsg"] = "WebRTC Update Candidate Before Call Error.";
 							}
 
 							mWebRTCMap.Unlock();
@@ -1024,9 +1084,11 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 				"MediaServer::OnWSMessage( "
 				"event : [Websocket-请求出错], "
 				"hdl : %p, "
+				"str : %s, "
 				"res : %s "
 				")",
 				hdl.lock().get(),
+				str.c_str(),
 				res.c_str()
 				);
 

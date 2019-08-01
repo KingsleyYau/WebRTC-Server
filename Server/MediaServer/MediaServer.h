@@ -100,8 +100,9 @@ public:
 
 	/***************************** WebRTCCallback **************************************/
 	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp);
-	void OnWebRTCClose(WebRTC *rtc);
+	void OnWebRTCStartMedia(WebRTC *rtc);
 	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
+	void OnWebRTCClose(WebRTC *rtc);
 	/***************************** WebRTCCallback End **************************************/
 
 	/***************************** WSServerCallback **************************************/

@@ -31,18 +31,27 @@ typedef struct SdpPayload {
 } SdpPayload;
 
 typedef enum WebRTCErrorType {
-	WebRTCErrorType_Rtp2Rtmp_Start_Fail = 0,
+	WebRTCErrorType_None = 0,
+	WebRTCErrorType_Rtp2Rtmp_Start_Fail,
 	WebRTCErrorType_Rtp2Rtmp_Exit,
 	WebRTCErrorType_Unknow,
 } WebRTCErrorType;
+
+const string WebRTCErrorMsg[] = {
+	"",
+	"WebRTC Rtp Transform Rtmp Start Error.",
+	"WebRTC Rtp Transform Rtmp Exit Error.",
+	"WebRTC Unknow Error.",
+};
 
 class WebRTC;
 class WebRTCCallback {
 public:
 	virtual ~WebRTCCallback(){};
 	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) = 0;
-	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
+	virtual void OnWebRTCStartMedia(WebRTC *rtc) = 0;
 	virtual void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) = 0;
+	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
 };
 
 class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {

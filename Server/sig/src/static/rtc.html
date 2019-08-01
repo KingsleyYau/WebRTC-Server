@@ -18,7 +18,7 @@ function reset() {
     roomId = 'No Room';
 
     $("[id=status]").html('Not Connected');
-    $("[id=userId]").html('');
+    $("[id=stream]").html('');
     $("[id=socketId]").html('');
     $("[id=msgRecv]").html('');
     $("[id=jsonRecv]").html('');
@@ -37,7 +37,14 @@ async function connect() {
     return new Promise( async (resolve, reject) => {
         reset();
 
-        let host = 'ws://' + '192.168.88.133' + ':9881/';
+        let host = '';
+        if ( window.location.protocol == 'https:') {
+            host = 'wss://' + window.location.hostname + ':9081';
+        } else {
+            host = 'ws://' + window.location.hostname + ':9881';
+        }
+        // host = 'ws://' + '192.168.88.133' + ':9881';
+
         client = new WebSocket(host);
         client.binaryType = 'arraybuffer';
 
@@ -72,13 +79,7 @@ async function connect() {
             }
 
             if( typeof(obj.errno) == "undefined" || obj.errno == 0 ) {
-                if(obj.route == 'imLogin/login') {
-                    // Login Success
-                    $("[id=userId]").html(obj.data.userId);
-                    $("[id=socketId]").html(obj.data.socketId);
-
-                    heartBeat();
-                } else if(obj.route == 'imRTC/sendSdpCallNotice') {
+                if(obj.route == 'imRTC/sendSdpCallNotice') {
                     $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
                 } else if(obj.route == 'imRTC/sendSdpCall') {
                     // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
@@ -108,7 +109,8 @@ async function connect() {
 function send(obj) {
     obj.id = reqId;
     data = JSON.stringify(obj);
-    // console.log('Client.send(), ' + data);
+
+    console.log('Client.send(), ' + data);
     if( client.readyState == client.OPEN ) {
         if( obj.route != "imRTC/heartbeat" ) {
             $("[id=jsonSend]").html(data);
@@ -130,24 +132,23 @@ function sendHeartBeat() {
     send(obj);
 }
 
-async function sendSdpCall(userId, sdp) {
+async function sendSdpCall(stream, sdp) {
     await connect();
     obj = {
         route:'imRTC/sendSdpCall',
         req_data:{
-            toUserId:userId,
-            sdp:sdp,
-            userId:$("#userId").val()
+            stream:stream,
+            sdp:sdp
         }
     }
     send(obj);
 }
 
-function sendSdpUpdate(userId, sdp) {
+function sendSdpUpdate(stream, sdp) {
     obj = {
         route:'imRTC/sendSdpUpdate',
         req_data:{
-            toUserId:userId,
+            stream:stream,
             sdp:sdp
         }
     }
@@ -310,8 +311,8 @@ function onload() {
     }
 
     const config = {
-        iceServers: JSON.parse('[{"urls":["stun:192.168.88.133:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        // iceServers: JSON.parse('[{"urls":["stun:192.168.88.133:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
         // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"],"username":"","credential":""}]')
         // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"","credential":""}]'), iceTransportPolicy: "relay"
     };
@@ -321,14 +322,14 @@ function onload() {
     rtc.onicecandidate = () => {
         if( type == 'call' ) {
             $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
-            sendSdpUpdate($("#toUserId").val(), $("#localSdpTextarea").val());
+            sendSdpUpdate($("#stream").val(), $("#localSdpTextarea").val());
         }
     };
 
     $("[id=callBtn]").click(function() {
         rtc.call().then( () => {
             type = 'call';
-            sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
+            sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
         });
     });
 
@@ -361,13 +362,13 @@ document.addEventListener("DOMContentLoaded", function() {
     <div class="video-box">
         <div id="local">
             <div id="errMsg" style="display: none">
-                Error Msg : <lable id="errMsgLabel"></lable>
+                Error Msg : <font color="#FF0000"><lable id="errMsgLabel"></lable></font>
             </div>
             <div id="rtmpUrl" style="display: none">
-                Rtmp Play Url : <lable id="rtmpUrlLabel"></lable>
+                Rtmp Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="http://192.168.88.17:8880/" target="blank" name="play">Flash播放</a>
             </div>
 
-            UserId : <input id="userId" type="text" name="" value="max0" /><br>
+            Stream : <input id="stream" type="text" name="" value="max0" /><br>
             Local SDP<p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
