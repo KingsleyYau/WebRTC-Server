@@ -595,25 +595,28 @@ int WebRTC::SendData(const void *data, unsigned int len) {
 	return mIceClient.SendData(data, len);
 }
 
-void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, const string& ip, unsigned int port, const string& ufrag, const string& pwd) {
+void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+	string candidate;
+	for(int i = 0; i < candList.size(); i++) {
+		candidate += candList[i];
+	}
+
 	LogAync(
 			LOG_WARNING,
 			"WebRTC::OnIceCandidateGatheringDone( "
 			"this : %p, "
 			"ice : %p, "
-			"type : %s, "
-			"ip : %s, "
 			"port : %u, "
 			"ufrag : %s, "
-			"pwd : %s "
+			"pwd : %s, "
+			"candidate : %s "
 			")",
 			this,
 			ice,
-			type.c_str(),
-			ip.c_str(),
 			port,
 			ufrag.c_str(),
-			pwd.c_str()
+			pwd.c_str(),
+			candidate.c_str()
 			);
 
 	char sdp[4096] = {'0'};
@@ -625,11 +628,11 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			"a=group:BUNDLE %s %s\n"
 			"a=msid-semantic: WMS\n"
 			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 %s\n"
+			"c=IN IP4 127.0.0.1\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"a=ice-ufrag:%s\n"
 			"a=ice-pwd:%s\n"
-			"a=candidate:4 1 UDP 335544831 192.168.88.133 %u typ %s raddr %s rport 9\n"
+			"%s"
 			"a=ice-options:trickle\n"
 			"a=fingerprint:sha-256 %s\n"
 			"a=setup:active\n"
@@ -640,7 +643,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			"a=rtcp-fb:%u transport-cc\n"
 			"a=fmtp:%u minptime=10;useinbandfec=1\n"
 			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 %s\n"
+			"c=IN IP4 127.0.0.1\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"a=ice-ufrag:%s\n"
 			"a=ice-pwd:%s\n"
@@ -656,12 +659,9 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			mVideoMid.c_str(),
 			port,
 			mAudioSdpPayload.payload_type,
-			ip.c_str(),
 			ufrag.c_str(),
 			pwd.c_str(),
-			port,
-			type.c_str(),
-			ip.c_str(),
+			candidate.c_str(),
 			DtlsSession::GetFingerprint(),
 			mAudioMid.c_str(),
 			mAudioSdpPayload.payload_type,
@@ -671,7 +671,6 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& type, con
 			mAudioSdpPayload.payload_type,
 			mAudioSdpPayload.payload_type,
 			mVideoSdpPayload.payload_type,
-			ip.c_str(),
 			ufrag.c_str(),
 			pwd.c_str(),
 			DtlsSession::GetFingerprint(),

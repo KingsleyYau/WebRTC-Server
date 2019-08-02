@@ -13,6 +13,7 @@
 #include <common/KCond.h>
 
 #include <string>
+#include <vector>
 using namespace std;
 
 typedef struct _NiceAgent NiceAgent;
@@ -22,7 +23,7 @@ class IceClient;
 class IceClientCallback {
 public:
 	virtual ~IceClientCallback(){};
-	virtual void OnIceCandidateGatheringDone(IceClient *ice, const string& type, const string& ip, unsigned int port, const string& ufrag, const string& pwd) = 0;
+	virtual void OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) = 0;
 	virtual void OnIceNewSelectedPairFull(IceClient *ice) = 0;
 	virtual void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) = 0;
 	virtual void OnIceClose(IceClient *ice) = 0;

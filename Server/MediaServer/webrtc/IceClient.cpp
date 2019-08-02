@@ -25,6 +25,7 @@ namespace mediaserver {
 ::GThread* gLoopThread = NULL;
 
 static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
+static const char *CandidateTransportName[] = {"", "tcptype active ", "tcptype passive ", ""};
 
 void* loop_thread(void *data) {
 	::GMainLoop* pLoop = (GMainLoop *)data;
@@ -127,7 +128,7 @@ bool IceClient::Start() {
     // 允许使用turn
     g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
-    g_object_set(mpAgent, "force-relay", TRUE, NULL);
+    g_object_set(mpAgent, "force-relay", FALSE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
     g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);
@@ -392,19 +393,60 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
     gchar *ufrag = NULL;
     gchar *pwd = NULL;
     gchar ip[INET6_ADDRSTRLEN] = {0};
+    gchar baseip[INET6_ADDRSTRLEN] = {0};
 
     bool bFlag = true;
 	if ( bFlag ) {
 	    bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);
 	}
 	if ( bFlag ) {
+		vector<string> candArray;
+		unsigned int port = 0;
+		unsigned int priority = 0xFFFFFFFF;
+
+		char candStr[1024] = {'0'};
 		GSList *cands = nice_agent_get_local_candidates(agent, streamId, 1);
 		if( cands ) {
-			NiceCandidate *local = (NiceCandidate *)g_slist_nth(cands, 0)->data;
-			nice_address_to_string(&local->addr, ip);
+			int count = g_slist_length(cands);
+			for(int i = 0; i < count; i++) {
+				NiceCandidate *local = (NiceCandidate *)g_slist_nth(cands, i)->data;
+				nice_address_to_string(&local->addr, ip);
+				nice_address_to_string(&local->base_addr, baseip);
+
+				if ( priority > local->priority ) {
+					priority = local->priority;
+					port = nice_address_get_port(&local->addr);
+				}
+
+				if ( local->type == NICE_CANDIDATE_TYPE_RELAYED ) {
+					snprintf(candStr, sizeof(candStr) - 1,
+							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport 9\n",
+							local->foundation,
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
+							local->priority,
+							ip,
+							nice_address_get_port(&local->addr),
+							CandidateTypeName[local->type],
+							baseip
+							);
+				} else {
+					snprintf(candStr, sizeof(candStr) - 1,
+							"a=candidate:%s 1 %s %u %s %u typ %s %s\n",
+							local->foundation,
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
+							local->priority,
+							ip,
+							nice_address_get_port(&local->addr),
+							CandidateTypeName[local->type],
+							CandidateTransportName[local->transport]
+							);
+				}
+
+				candArray.push_back(string(candStr));
+			}
 
 			if( mpIceClientCallback ) {
-				mpIceClientCallback->OnIceCandidateGatheringDone(this, CandidateTypeName[local->type], ip, nice_address_get_port(&local->addr), ufrag, pwd);
+				mpIceClientCallback->OnIceCandidateGatheringDone(this, port, candArray, ufrag, pwd);
 			}
 		}
 	}

@@ -67,11 +67,11 @@ class ProxyService {
             });
             ctx.websocket.on('close', function (err) {
                 Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], ' + err);
-                proxy.close(err, err.toString());
+                proxy.close(1000, err.toString());
             });
             ctx.websocket.on('error', function (err) {
                 Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], ' + err);
-                proxy.close(err, err.toString());
+                proxy.close(1000, err.toString());
             });
             // 等待其他中间件处理的异步返回
             await next();

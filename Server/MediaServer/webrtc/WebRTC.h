@@ -82,7 +82,7 @@ private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
 	// IceClientCallback Implement
-	void OnIceCandidateGatheringDone(IceClient *ice, const string& type, const string& ip, unsigned int port, const string& ufrag, const string& pwd);
+	void OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
 	void OnIceClose(IceClient *ice);
