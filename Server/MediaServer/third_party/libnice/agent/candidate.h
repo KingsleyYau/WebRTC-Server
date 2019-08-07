@@ -197,6 +197,7 @@ struct _NiceCandidate
   gchar *password;        /* pointer to a nul-terminated password string */
   TurnServer *turn;
   gpointer sockptr;
+  gchar *ufrag;        	  /* pointer to a nul-terminated ufrag string, Add by Max 2019/08/05 */
 };
 
 /**

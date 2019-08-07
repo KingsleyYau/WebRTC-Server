@@ -84,6 +84,7 @@ private:
 	// IceClientCallback Implement
 	void OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 	void OnIceNewSelectedPairFull(IceClient *ice);
+	void OnIceReady(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
 	void OnIceClose(IceClient *ice);
 	// MainLoopCallback
@@ -137,6 +138,7 @@ private:
 	string mAudioMid;
 
 	SdpPayload mAudioSdpPayload;
+	RtcpFbList mAudioRtcpFbList;
 	SdpPayload mVideoSdpPayload;
 	RtcpFbList mVideoRtcpFbList;
 

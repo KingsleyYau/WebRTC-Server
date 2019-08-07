@@ -99,6 +99,17 @@ void nice_debug_enable (gboolean with_stun);
  */
 void nice_debug_disable (gboolean with_stun);
 
+/**
+ * Log function defined
+ */
+typedef void(*NICE_LOG_FUNC_IMP)(const char *logBuffer);
+/**
+ * nice_debug_set_func:
+ * Add by Max 2019/08/06
+ * @param logImp Log function implement
+ */
+void nice_debug_set_func(NICE_LOG_FUNC_IMP logImp);
+
 G_END_DECLS
 
 #endif /* __LIBNICE_DEBUG_H__ */

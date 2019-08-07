@@ -74,6 +74,11 @@ static const GDebugKey gkeys[] = {
   { NULL, 0},
 };
 
+static NICE_LOG_FUNC_IMP gLogImp;
+void nice_debug_set_func(NICE_LOG_FUNC_IMP logImp) {
+	gLogImp = logImp;
+}
+
 static void
 stun_handler (const char *format, va_list ap) G_GNUC_PRINTF (1, 0);
 
@@ -143,6 +148,7 @@ void nice_debug_enable (gboolean with_stun)
 {
   nice_debug_init ();
   debug_enabled = 1;
+  debug_verbose_enabled = TRUE;
   if (with_stun)
     stun_debug_enable ();
 }
@@ -157,20 +163,32 @@ void nice_debug_disable (gboolean with_stun)
 #ifndef NDEBUG
 void nice_debug (const char *fmt, ...)
 {
+	char logBuffer[4096] = {'\0'};
   va_list ap;
   if (debug_enabled) {
     va_start (ap, fmt);
-    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, fmt, ap);
+//    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, fmt, ap);
+    vsnprintf(logBuffer, 4096 - 1, fmt, ap);
     va_end (ap);
+
+    if ( gLogImp ) {
+  	  gLogImp(logBuffer);
+    }
   }
 }
 void nice_debug_verbose (const char *fmt, ...)
 {
+	char logBuffer[4096] = {'\0'};
   va_list ap;
   if (debug_verbose_enabled) {
     va_start (ap, fmt);
-    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, fmt, ap);
+//    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, fmt, ap);
+    vsnprintf(logBuffer, 4096 - 1, fmt, ap);
     va_end (ap);
+
+    if ( gLogImp ) {
+  	  gLogImp(logBuffer);
+    }
   }
 }
 #else

@@ -1562,16 +1562,56 @@ nice_component_verify_remote_candidate (NiceComponent *component,
   for (item = component->valid_candidates; item; item = item->next) {
     NiceCandidate *cand = item->data;
 
+    char ip1[INET6_ADDRSTRLEN] = {0};
+    nice_address_to_string(address, ip1);
+
+    char ip2[INET6_ADDRSTRLEN] = {0};
+    nice_address_to_string(&cand->addr, ip2);
+
+    // Add by Max
+    nice_debug ("[Max] : "
+  		  "nicesock->type : %d, "
+  		  "cand->transport : %d, "
+  		  "ip1 : (%u)%s:%u, "
+		  "ip2 : (%u)%s:%u",
+  		  nicesock->type,
+		  cand->transport,
+		  address->s.addr.sa_family,
+		  ip1,
+		  nice_address_get_port(address),
+		  cand->addr.s.addr.sa_family,
+		  ip2,
+		  nice_address_get_port(&cand->addr)
+		  );
+
     if ((((nicesock->type == NICE_SOCKET_TYPE_TCP_BSD ||
                     nicesock->type == NICE_SOCKET_TYPE_UDP_TURN) &&
                 (cand->transport == NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE ||
                     cand->transport == NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE ||
                     cand->transport == NICE_CANDIDATE_TRANSPORT_TCP_SO)) ||
-            cand->transport == NICE_CANDIDATE_TRANSPORT_UDP) &&
+            cand->transport == NICE_CANDIDATE_TRANSPORT_UDP ||
+			cand->transport == NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE /* Add by Max 2019/08/06 */
+			) &&
         nice_address_equal (address, &cand->addr)) {
       /* fast return if it's already the first */
-      if (item == component->valid_candidates)
+      if (item == component->valid_candidates) {
+    	    // Add by Max
+    	    nice_debug ("[Max] - Verify TRUE: "
+    	  		  "nicesock->type : %d, "
+    	  		  "cand->transport : %d, "
+    	  		  "ip1 : (%u)%s:%u, "
+    			  "ip2 : (%u)%s:%u",
+    	  		  nicesock->type,
+    			  cand->transport,
+    			  address->s.addr.sa_family,
+    			  ip1,
+    			  nice_address_get_port(address),
+    			  cand->addr.s.addr.sa_family,
+    			  ip2,
+    			  nice_address_get_port(&cand->addr)
+    			  );
         return TRUE;
+      }
 
       /* Put the current candidate at the top so that in the normal use-case,
        * this function becomes O(1).
@@ -1580,6 +1620,22 @@ nice_component_verify_remote_candidate (NiceComponent *component,
           component->valid_candidates, item);
       component->valid_candidates = g_list_concat (item,
           component->valid_candidates);
+
+	    // Add by Max
+	    nice_debug ("[Max] - Verify TRUE 2: "
+	  		  "nicesock->type : %d, "
+	  		  "cand->transport : %d, "
+	  		  "ip1 : (%u)%s:%u, "
+			  "ip2 : (%u)%s:%u",
+	  		  nicesock->type,
+			  cand->transport,
+			  address->s.addr.sa_family,
+			  ip1,
+			  nice_address_get_port(address),
+			  cand->addr.s.addr.sa_family,
+			  ip2,
+			  nice_address_get_port(&cand->addr)
+			  );
 
       return TRUE;
     }

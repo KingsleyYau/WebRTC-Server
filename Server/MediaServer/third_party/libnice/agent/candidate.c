@@ -84,6 +84,10 @@ nice_candidate_free (NiceCandidate *candidate)
   if (candidate->password)
     g_free (candidate->password);
 
+  // Add by Max 2019/08/05
+  if (candidate->ufrag)
+	  g_free (candidate->ufrag);
+
   if (candidate->turn)
     turn_server_unref (candidate->turn);
 
@@ -357,6 +361,8 @@ nice_candidate_copy (const NiceCandidate *candidate)
   copy->turn = NULL;
   copy->username = g_strdup (copy->username);
   copy->password = g_strdup (copy->password);
+  // Add by Max 2019/08/05
+  copy->ufrag = g_strdup (copy->ufrag);
 
   return copy;
 }

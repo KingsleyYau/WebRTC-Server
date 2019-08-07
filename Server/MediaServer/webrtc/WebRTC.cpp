@@ -383,23 +383,44 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 							if( pos != string::npos ) {
 								string payload = value.substr(0, pos);
 
-								if( mVideoSdpPayload.payload_type == atoi(payload.c_str()) ) {
-									string rtcpFb = key + ":" + value;
+								if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
+//									if( mAudioSdpPayload.payload_type == atoi(payload.c_str()) ) {
+//										string rtcpFb = key + ":" + value;
+//
+//										LogAync(
+//												LOG_MSG,
+//												"WebRTC::ParseRemoteSdp( "
+//												"this : %p, "
+//												"[Found Remote Audio RTCP Feedback], "
+//												"media_type : %s, "
+//												"%s "
+//												")",
+//												this,
+//												sdp_media_type_str(media->type),
+//												rtcpFb.c_str()
+//												);
+//
+//										mAudioRtcpFbList.push_back(rtcpFb);
+//									}
+								} else if ( media->type == SDP_MEDIA_TYPE_VIDEO ) {
+									if( mVideoSdpPayload.payload_type == atoi(payload.c_str()) ) {
+										string rtcpFb = key + ":" + value;
 
-									LogAync(
-											LOG_MSG,
-											"WebRTC::ParseRemoteSdp( "
-											"this : %p, "
-											"[Found Remote Media RTCP Feedback], "
-											"media_type : %s, "
-											"%s "
-											")",
-											this,
-											sdp_media_type_str(media->type),
-											rtcpFb.c_str()
-											);
+										LogAync(
+												LOG_MSG,
+												"WebRTC::ParseRemoteSdp( "
+												"this : %p, "
+												"[Found Remote Video RTCP Feedback], "
+												"media_type : %s, "
+												"%s "
+												")",
+												this,
+												sdp_media_type_str(media->type),
+												rtcpFb.c_str()
+												);
 
-									mVideoRtcpFbList.push_back(rtcpFb);
+										mVideoRtcpFbList.push_back(rtcpFb);
+									}
 								}
 							}
 						}
@@ -609,7 +630,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"port : %u, "
 			"ufrag : %s, "
 			"pwd : %s, "
-			"candidate : %s "
+			"candidate : \n%s"
 			")",
 			this,
 			ice,
@@ -618,6 +639,31 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			pwd.c_str(),
 			candidate.c_str()
 			);
+
+
+	string audioRtcpFb = "";
+	while( !mAudioRtcpFbList.empty() ) {
+		string rtcpFb = mAudioRtcpFbList.front();
+		mAudioRtcpFbList.pop_front();
+
+		if( rtcpFb.length() > 0 ) {
+			audioRtcpFb += "a=";
+			audioRtcpFb += rtcpFb;
+			audioRtcpFb += "\n";
+		}
+	}
+
+	string videoRtcpFb = "";
+	while( !mVideoRtcpFbList.empty() ) {
+		string rtcpFb = mVideoRtcpFbList.front();
+		mVideoRtcpFbList.pop_front();
+
+		if( rtcpFb.length() > 0 ) {
+			videoRtcpFb += "a=";
+			videoRtcpFb += rtcpFb;
+			videoRtcpFb += "\n";
+		}
+	}
 
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
@@ -628,11 +674,11 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"a=group:BUNDLE %s %s\n"
 			"a=msid-semantic: WMS\n"
 			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 127.0.0.1\n"
+			"c=IN IP4 192.168.88.133\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
+			"%s"
 			"a=ice-ufrag:%s\n"
 			"a=ice-pwd:%s\n"
-			"%s"
 			"a=ice-options:trickle\n"
 			"a=fingerprint:sha-256 %s\n"
 			"a=setup:active\n"
@@ -640,10 +686,11 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"a=recvonly\n"
 			"a=rtcp-mux\n"
 			"a=rtpmap:%u %s/%u%s\n"
-			"a=rtcp-fb:%u transport-cc\n"
+//			"a=rtcp-fb:%u transport-cc\n"
+			"%s"
 			"a=fmtp:%u minptime=10;useinbandfec=1\n"
 			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 127.0.0.1\n"
+			"c=IN IP4 0.0.0.0\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"a=ice-ufrag:%s\n"
 			"a=ice-pwd:%s\n"
@@ -654,21 +701,23 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"a=recvonly\n"
 			"a=rtcp-mux\n"
 			"a=rtcp-rsize\n"
-			"a=rtpmap:%u %s/%u\n",
+			"a=rtpmap:%u %s/%u\n"
+			"%s",
 			mAudioMid.c_str(),
 			mVideoMid.c_str(),
 			port,
 			mAudioSdpPayload.payload_type,
+			candidate.c_str(),
 			ufrag.c_str(),
 			pwd.c_str(),
-			candidate.c_str(),
 			DtlsSession::GetFingerprint(),
 			mAudioMid.c_str(),
 			mAudioSdpPayload.payload_type,
 			mAudioSdpPayload.encoding_name.c_str(),
 			mAudioSdpPayload.clock_rate,
 			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
-			mAudioSdpPayload.payload_type,
+//			mAudioSdpPayload.payload_type,
+			audioRtcpFb.c_str(),
 			mAudioSdpPayload.payload_type,
 			mVideoSdpPayload.payload_type,
 			ufrag.c_str(),
@@ -677,22 +726,11 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			mVideoMid.c_str(),
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.encoding_name.c_str(),
-			mVideoSdpPayload.clock_rate
+			mVideoSdpPayload.clock_rate,
+			videoRtcpFb.c_str()
 			);
 
 	string sdpStr = sdp;
-	string rtcpFb = "";
-	while( !mVideoRtcpFbList.empty() ) {
-		rtcpFb = mVideoRtcpFbList.front();
-		mVideoRtcpFbList.pop_front();
-
-		if( rtcpFb.length() > 0 ) {
-			sdpStr += "a=";
-			sdpStr += rtcpFb;
-			sdpStr += "\n";
-		}
-	}
-
 	char fmtp[256] = {'0'};
 	snprintf(fmtp, sizeof(fmtp) - 1,
 			"a=fmtp:%u %s\n",
@@ -724,24 +762,40 @@ void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 	mDtlsSession.Handshake();
 }
 
+void WebRTC::OnIceReady(IceClient *ice) {
+//	LogAync(
+//			LOG_WARNING,
+//			"WebRTC::OnIceReady( "
+//			"this : %p, "
+//			"ice : %p, "
+//			"local : %s, "
+//			"remote : %s "
+//			")",
+//			this,
+//			ice,
+//			ice->GetLocalAddress().c_str(),
+//			ice->GetRemoteAddress().c_str()
+//			);
+}
+
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
-	LogAync(
-			LOG_STAT,
-			"WebRTC::OnIceRecvData( "
-			"this : %p, "
-			"ice : %p, "
-			"streamId : %u, "
-			"componentId : %u, "
-			"size : %d, "
-			"data[0] : 0x%X "
-			")",
-			this,
-			ice,
-			streamId,
-			componentId,
-			size,
-			(unsigned char)data[0]
-			);
+//	LogAync(
+//			LOG_MSG,
+//			"WebRTC::OnIceRecvData( "
+//			"this : %p, "
+//			"ice : %p, "
+//			"streamId : %u, "
+//			"componentId : %u, "
+//			"size : %d, "
+//			"data[0] : 0x%X "
+//			")",
+//			this,
+//			ice,
+//			streamId,
+//			componentId,
+//			size,
+//			(unsigned char)data[0]
+//			);
 
 	bool bFlag = false;
 

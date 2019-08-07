@@ -16,6 +16,7 @@
 
 // libnice
 #include <agent.h>
+#include <debug.h>
 
 // glib
 #include <gio/gnetworking.h>
@@ -33,12 +34,27 @@ void* loop_thread(void *data) {
     return 0;
 }
 
+void* niceLogFunc(const char *logBuffer) {
+//	LogAync(
+//			LOG_WARNING,
+//			"IceClient::niceLogFunc( "
+//			"[libnice], "
+//			"%s "
+//			")",
+//			logBuffer
+//			);
+	return 0;
+}
+
 bool IceClient::GobalInit() {
 	bool bFlag = true;
 
 	g_networking_init();
 	gLoop = g_main_loop_new(NULL, FALSE);
 	gLoopThread = g_thread_new("loopThread", &loop_thread, gLoop);
+
+	nice_debug_enable(TRUE);
+	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
 
 	return bFlag;
 }
@@ -137,7 +153,8 @@ bool IceClient::Start() {
     // 保持心跳
     g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 
-    g_object_set(mpAgent, "stun-server", "192.168.88.133", NULL);
+    // 设置STUN服务器地址
+    g_object_set(mpAgent, "stun-server", "192.168.88.134", NULL);
     g_object_set(mpAgent, "stun-server-port", 3478, NULL);
 
     // 绑定本地IP
@@ -156,8 +173,8 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
-		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "audio");
+//		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.134", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
 
@@ -230,9 +247,9 @@ void IceClient::SetRemoteSdp(const string& sdp) {
 	mSdp = sdp;
 
 	if ( mpAgent ) {
-//		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
+		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
 //		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
-		if ( mIceGatheringDone ) {
+		if ( mIceGatheringDone && state < NICE_COMPONENT_STATE_CONNECTED ) {
 			ParseRemoteSdp(mStreamId);
 		}
 	}
@@ -263,7 +280,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 			LOG_MSG,
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
-			"sdp : %s "
+			"sdp :\n%s"
 			")",
 			this,
 			mSdp.c_str()
@@ -273,7 +290,63 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     gchar *pwd = NULL;
     GSList *plist = nice_agent_parse_remote_stream_sdp(mpAgent, streamId, mSdp.c_str(), &ufrag, &pwd);
     if ( ufrag && pwd && g_slist_length(plist) > 0 ) {
-        NiceCandidate *c = (NiceCandidate *)g_slist_nth(plist, 0)->data;
+		LogAync(
+				LOG_WARNING,
+				"IceClient::ParseRemoteSdp( "
+				"this : %p, "
+				"plist_count : %d, "
+				"ufrag : %s, "
+				"pwd : %s "
+				")",
+				this,
+				g_slist_length(plist),
+				ufrag,
+				pwd
+				);
+
+//		char candStr[1024] = {'0'};
+//	    gchar ip[INET6_ADDRSTRLEN] = {0};
+//	    gchar baseip[INET6_ADDRSTRLEN] = {0};
+//		for(int i = 0; i < g_slist_length(plist); i++) {
+//			NiceCandidate *remote = (NiceCandidate *)g_slist_nth(plist, i)->data;
+//			nice_address_to_string(&remote->addr, ip);
+//			nice_address_to_string(&remote->base_addr, baseip);
+//
+//			if ( remote->type == NICE_CANDIDATE_TYPE_RELAYED ) {
+//				snprintf(candStr, sizeof(candStr) - 1,
+//						"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport 9\n",
+//						remote->foundation,
+//						(remote->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+//						remote->priority,
+//						ip,
+//						nice_address_get_port(&remote->addr),
+//						CandidateTypeName[remote->type],
+//						baseip
+//						);
+//
+//			} else {
+//				snprintf(candStr, sizeof(candStr) - 1,
+//						"a=candidate:%s 1 %s %u %s %u typ %s %s\n",
+//						remote->foundation,
+//						(remote->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+//						remote->priority,
+//						ip,
+//						nice_address_get_port(&remote->addr),
+//						CandidateTypeName[remote->type],
+//						CandidateTransportName[remote->transport]
+//						);
+//			}
+//    		LogAync(
+//    				LOG_WARNING,
+//    				"IceClient::ParseRemoteSdp( "
+//    				"this : %p, "
+//    				"candStr : %s"
+//    				")",
+//    				this,
+//					candStr
+//    				);
+//		}
+
         bFlag = nice_agent_set_remote_credentials(mpAgent, streamId, ufrag, pwd);
         if( !bFlag ) {
     		LogAync(
@@ -291,7 +364,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
         }
 
         if( bFlag ) {
-        	bFlag = (nice_agent_set_remote_candidates(mpAgent, streamId, 1, plist) >= 1);
+        	bFlag = (nice_agent_set_remote_candidates(mpAgent, streamId, mComponentId, plist) >= 1);
         }
 
         if( !bFlag ) {
@@ -331,6 +404,10 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     }
     if ( pwd ) {
     	g_free(pwd);
+    }
+
+    if (plist) {
+    	g_slist_free(plist);
     }
 
     return bFlag;
@@ -422,18 +499,21 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 					snprintf(candStr, sizeof(candStr) - 1,
 							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport 9\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
 							local->priority,
 							ip,
 							nice_address_get_port(&local->addr),
 							CandidateTypeName[local->type],
 							baseip
 							);
+					priority = local->priority;
+					port = nice_address_get_port(&local->addr);
+
 				} else {
 					snprintf(candStr, sizeof(candStr) - 1,
 							"a=candidate:%s 1 %s %u %s %u typ %s %s\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
 							local->priority,
 							ip,
 							nice_address_get_port(&local->addr),
@@ -483,7 +563,10 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			nice_component_state_to_string((NiceComponentState)state)
 			);
 
-	if (state == NICE_COMPONENT_STATE_CONNECTED) {
+	if (state == NICE_COMPONENT_STATE_READY) {
+		if( mpIceClientCallback ) {
+			mpIceClientCallback->OnIceReady(this);
+		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
 		nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 	}
@@ -496,9 +579,9 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 	nice_address_to_string(&remote->addr, remoteIp);
 
 	char tmp[128];
-	sprintf(tmp, "(%s)%s:%u", CandidateTypeName[local->type], localIp, nice_address_get_port(&local->addr));
+	sprintf(tmp, "(%s)(%s)%s:%u", (local->transport==NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp", CandidateTypeName[local->type], localIp, nice_address_get_port(&local->addr));
 	mLocalAddress = tmp;
-	sprintf(tmp, "(%s)%s:%u", CandidateTypeName[remote->type], remoteIp, nice_address_get_port(&remote->addr));
+	sprintf(tmp, "(%s)(%s)%s:%u", (remote->transport==NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp", CandidateTypeName[remote->type], remoteIp, nice_address_get_port(&remote->addr));
 	mRemoteAddress = tmp;
 
 	char *localSdp = nice_agent_generate_local_sdp(mpAgent);

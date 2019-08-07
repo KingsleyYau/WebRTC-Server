@@ -565,7 +565,7 @@ bool DtlsSession::Handshake() {
 bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 	bool bFlag = false;
 
-	if( IsDTLS(frame, size) ) {
+	if( IsDTLS(frame, size) && (mDtlsSessionStatus != DtlsSessionStatus_HandshakeDone) ) {
 		int written = BIO_write(mpReadBIO, frame, size);
 		LogAync(
 				LOG_STAT,

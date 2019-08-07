@@ -6381,18 +6381,28 @@ nice_agent_parse_remote_stream_sdp (NiceAgent *agent, guint stream_id,
   sdp_lines = g_strsplit (sdp, "\n", 0);
   for (i = 0; sdp_lines && sdp_lines[i]; i++) {
     if (ufrag && g_str_has_prefix (sdp_lines[i], "a=ice-ufrag:")) {
-      *ufrag = g_strdup (sdp_lines[i] + 12);
+        if ( !*ufrag ) {
+      	  *ufrag = g_strdup (sdp_lines[i] + 12);
+        }
     } else if (pwd && g_str_has_prefix (sdp_lines[i], "a=ice-pwd:")) {
-      *pwd = g_strdup (sdp_lines[i] + 10);
+    	if ( !*pwd ) {
+    		*pwd = g_strdup (sdp_lines[i] + 10);
+    	}
     } else if (g_str_has_prefix (sdp_lines[i], "a=candidate:")) {
       NiceCandidate *candidate = NULL;
-
       candidate = nice_agent_parse_remote_candidate_sdp (agent, stream->id,
           sdp_lines[i]);
       if (candidate == NULL) {
         g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
         candidates = NULL;
         break;
+      }
+      // Add by Max 2019/08/05
+      if ( *ufrag && candidate->ufrag ) {
+    	  if (g_strcmp0 (*ufrag, candidate->ufrag) != 0) {
+    		  nice_candidate_free(candidate);
+    		  continue;
+    	  }
       }
       candidates = g_slist_prepend (candidates, candidate);
     }
@@ -6424,6 +6434,7 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
   const gchar *tcptype = NULL;
   const gchar *raddr = NULL;
   guint16 rport = 0;
+  const gchar *ufrag = NULL;
   static const gchar *type_names[] = {"host", "srflx", "prflx", "relay"};
   NiceCandidateTransport ctransport;
   guint i;
@@ -6468,6 +6479,9 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
           rport = (guint16) g_ascii_strtoull (tokens[i + 1], NULL, 10);
         } else if (g_strcmp0 (tokens[i], "tcptype") == 0) {
           tcptype = tokens[i + 1];
+        } else if (g_strcmp0 (tokens[i], "ufrag") == 0) {
+        	// Add by Max 2019/08/05
+        	ufrag = tokens[i + 1];
         }
         i++;
         break;
@@ -6512,6 +6526,10 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
   candidate->transport = ctransport;
   g_strlcpy(candidate->foundation, foundation, NICE_CANDIDATE_MAX_FOUNDATION);
   candidate->priority = priority;
+  // Add by Max 2019/08/05
+  if ( ufrag ) {
+	  candidate->ufrag = g_strdup(ufrag);
+  }
 
   if (!nice_address_set_from_string (&candidate->addr, addr)) {
     nice_candidate_free (candidate);
