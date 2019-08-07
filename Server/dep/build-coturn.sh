@@ -8,6 +8,9 @@ VERSION=4.5.1.1
 
 function configure_prefix {
 	export PREFIX=$(pwd)/build
+	
+	export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig
+	export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 }
 
 function build_sqlite {
@@ -15,6 +18,9 @@ function build_sqlite {
 	echo "# Start building $SQLITE"
 	
 	cd $SQLITE
+	
+	# build
+	chmod +x configure
 	./configure \
 				--prefix=$PREFIX \
 				--enable-static \
@@ -25,27 +31,8 @@ function build_sqlite {
 	make || exit 1
 	make install || exit 1
 	
-	cd ..
+	cd -
 	echo "# Build $SQLITE finish"
-}
-
-function build_libevent {
-	LIBEVENT="$libevent-2.1.11-stable"
-	echo "# Start building $LIBEVENT"
-	
-	cd $LIBEVENT
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				|| exit 1   		
-    		
-	make clean || exit 1
-	make || exit 1
-	make install || exit 1
-	
-	cd ..
-	echo "# Build $LIBEVENT finish"
 }
 
 function build_openssl {
@@ -54,18 +41,42 @@ function build_openssl {
 
 	cd $OPENSSL
 	
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
+	# build
+	chmod +x config
+	./config no-shared --prefix=$PREFIX \
 				|| exit 1
 
 	make clean || exit 1
 	make || exit 1
 	make install || exit 1
 	
-	cd ..
+	cd -
 	echo "# Build $OPENSSL finish"
+}
+
+function build_libevent {
+	LIBEVENT="libevent-2.1.11-stable"
+	echo "# Start building $LIBEVENT"
+	
+	cd $LIBEVENT
+	
+	# build
+	export CFLAGS="$(pkg-config --cflags openssl)"
+	export LDFLAGS="$(pkg-config --libs openssl) -ldl"
+	
+	chmod +x configure
+	./configure \
+				--prefix=$PREFIX \
+				--enable-static \
+				--disable-shared \
+				|| exit 1   		
+    		
+	make clean || exit 1
+	make || exit 1
+	make install || exit 1
+	
+	cd -
+	echo "# Build $LIBEVENT finish"
 }
 
 function build_coturn {
@@ -75,6 +86,14 @@ function build_coturn {
 	cd $COTURN
 
 	# build
+	export CFLAGS="$(pkg-config --cflags openssl)"
+	export LDFLAGS="$(pkg-config --libs openssl) -ldl"
+	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_core)"
+	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_extra)"
+	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_openssl)"
+	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_pthreads)"
+	
+	chmod +x configure
 	./configure \
 						--prefix="$PREFIX" \
     				|| exit 1
@@ -84,7 +103,7 @@ function build_coturn {
 	make || exit
 	make install || exit 1
 
-	cd ..
+	cd -
 	echo "# Build $COTURN finish"
 }
 
@@ -93,7 +112,7 @@ function build_coturn {
 echo "# Starting building..."
 
 configure_prefix || exit 1
-build_sqlite || exit 1
-build_libevent || exit 1
-build_openssl || exit 1
+#build_sqlite || exit 1
+#build_openssl || exit 1
+#build_libevent || exit 1
 build_coturn || exit 1
