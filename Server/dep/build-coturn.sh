@@ -112,7 +112,7 @@ function build_coturn {
 echo "# Starting building..."
 
 configure_prefix || exit 1
-#build_sqlite || exit 1
-#build_openssl || exit 1
-#build_libevent || exit 1
+build_sqlite || exit 1
+build_openssl || exit 1
+build_libevent || exit 1
 build_coturn || exit 1

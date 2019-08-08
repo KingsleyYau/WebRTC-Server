@@ -919,48 +919,53 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
-	srtp_err_status_t status = srtp_err_status_ok;
-	if( IsRtp(frame, size) ) {
-		memcpy((void *)pkt, (void *)frame, size);
-		pktSize = size;
+	mClientMutex.lock();
+	if( mRunning ) {
+		srtp_err_status_t status = srtp_err_status_ok;
+		if( IsRtp(frame, size) ) {
+			memcpy((void *)pkt, (void *)frame, size);
+			pktSize = size;
 
-		srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
-		bFlag = (status == srtp_err_status_ok);
+			if ( mpRecvSrtpCtx ) {
+				srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
+				bFlag = (status == srtp_err_status_ok);
 
-		if( bFlag ) {
-			if( ((RtpPacket *)pkt)->header.m ) {
-				// 每10个视频帧强制刷新一次视频信息
-				if( ++mVideoFrameCount % 15 == 0 ) {
-					SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+				if( bFlag ) {
+					if( ((RtpPacket *)pkt)->header.m ) {
+						// 每10个视频帧强制刷新一次视频信息
+						if( ++mVideoFrameCount % 15 == 0 ) {
+							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+						}
+					}
 				}
 			}
+	//		LogAync(
+	//				LOG_MSG,
+	//				"RtpSession::RecvRtpPacket( "
+	//				"this : %p, "
+	//				"status : %d, "
+	//				"seq : %u, "
+	//				"timestamp : %u, "
+	//				"pktSize : %d "
+	//				"%s"
+	//				")",
+	//				this,
+	//				status,
+	//				ntohs(pkt->header.seq),
+	//				ntohl(pkt->header.ts),
+	//				pktSize,
+	//				pkt.header.m?", [Mark] ":""
+	//				);
+		} else {
+			LogAync(
+					LOG_WARNING,
+					"RtpSession::RecvRtpPacket( "
+					"this : %p, "
+					"[Ignore frame before Handshake] "
+					")",
+					this
+					);
 		}
-//		LogAync(
-//				LOG_MSG,
-//				"RtpSession::RecvRtpPacket( "
-//				"this : %p, "
-//				"status : %d, "
-//				"seq : %u, "
-//				"timestamp : %u, "
-//				"pktSize : %d "
-//				"%s"
-//				")",
-//				this,
-//				status,
-//				ntohs(pkt->header.seq),
-//				ntohl(pkt->header.ts),
-//				pktSize,
-//				pkt.header.m?", [Mark] ":""
-//				);
-	} else {
-		LogAync(
-				LOG_WARNING,
-				"RtpSession::RecvRtpPacket( "
-				"this : %p, "
-				"[Ignore frame before Handshake] "
-				")",
-				this
-				);
 	}
 
 	return bFlag;
@@ -993,24 +998,30 @@ bool RtpSession::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
 bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
-	srtp_err_status_t status = srtp_err_status_ok;
-	if( IsRtcp(frame, size) ) {
-		memcpy((void *)pkt, (void *)frame, size);
-		pktSize = size;
+	mClientMutex.lock();
+	if( mRunning ) {
+		srtp_err_status_t status = srtp_err_status_ok;
+		if( IsRtcp(frame, size) ) {
+			memcpy((void *)pkt, (void *)frame, size);
+			pktSize = size;
 
-		srtp_err_status_t status = srtp_unprotect_rtcp(mpRecvSrtpCtx, pkt, (int *)&pktSize);
-		bFlag = (status == srtp_err_status_ok);
+			if ( mpRecvSrtpCtx ) {
+				srtp_err_status_t status = srtp_unprotect_rtcp(mpRecvSrtpCtx, pkt, (int *)&pktSize);
+				bFlag = (status == srtp_err_status_ok);
+			}
 
-	} else {
-		LogAync(
-				LOG_WARNING,
-				"RtpSession::RecvRtcpPacket( "
-				"this : %p, "
-				"[Ignore frame before Handshake] "
-				")",
-				this
-				);
+		} else {
+			LogAync(
+					LOG_WARNING,
+					"RtpSession::RecvRtcpPacket( "
+					"this : %p, "
+					"[Ignore frame before Handshake] "
+					")",
+					this
+					);
+		}
 	}
+	mClientMutex.unlock();
 
 	return bFlag;
 }

@@ -154,13 +154,13 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 
     // 设置STUN服务器地址
-    g_object_set(mpAgent, "stun-server", "192.168.88.134", NULL);
+    g_object_set(mpAgent, "stun-server", "52.196.96.7", NULL);
     g_object_set(mpAgent, "stun-server-port", 3478, NULL);
 
     // 绑定本地IP
     NiceAddress addrLocal;
     nice_address_init(&addrLocal);
-    nice_address_set_from_string(&addrLocal, "192.168.88.133");
+    nice_address_set_from_string(&addrLocal, "172.25.32.133");
     nice_agent_add_local_address(mpAgent, &addrLocal);
 
     g_signal_connect(mpAgent, "candidate-gathering-done", G_CALLBACK(cb_candidate_gathering_done), this);
@@ -173,7 +173,7 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-//		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "192.168.88.134", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "52.196.96.7", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);

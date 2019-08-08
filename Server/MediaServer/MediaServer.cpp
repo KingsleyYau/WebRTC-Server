@@ -735,6 +735,15 @@ bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 }
 
 void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::OnWebRTCServerSdp( "
+			"event : [WebRTC-返回SDP-Start], "
+			"rtc : %p "
+			")",
+			rtc
+			);
+
 	connection_hdl hdl;
 	bool bFound = false;
 	mWebsocketMap.Lock();
