@@ -788,7 +788,7 @@ void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 void WebRTC::OnIceConnected(IceClient *ice) {
 	LogAync(
 			LOG_WARNING,
-			"WebRTC::OnIceReady( "
+			"WebRTC::OnIceConnected( "
 			"this : %p, "
 			"ice : %p "
 			")",

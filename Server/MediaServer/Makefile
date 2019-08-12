@@ -64,7 +64,7 @@ LIBS = \
 	
 OBJS = main.o MediaServer.o
 		
-TARGET = media-server
+TARGET = mediaserver
 
 MODULEDIRS = \
 	common httpclient simulatorchecker \
@@ -89,7 +89,7 @@ $(TARGET): deps modules $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
 	@echo '################################################################'
 	@echo ''
-	@echo '# Bulid media-server completed!'
+	@echo '# Bulid mediaserver completed!'
 	@echo ''
 	@echo '################################################################'
 
@@ -134,8 +134,8 @@ cleanall: clean	$(CLEAN_DEPS)
 	@echo '################################################################'
 	
 install: 
-	copy media-server.config /etc/ -rf
-	copy media-server /usr/local/bin
+	copy etc/mediaserver.config /etc/ -rf
+	copy mediaserver /usr/local/bin
 	chmod +x /usr/local/bin/mediaserver
 	@echo '################################################################'
 	@echo ''
