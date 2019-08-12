@@ -44,7 +44,7 @@ public:
 	virtual ~DtlsSession();
 
 public:
-	static bool GobalInit();
+	static bool GobalInit(const string& certPath, const string& keyPath);
 	static const unsigned char *GetFingerprint();
 	static bool IsDTLS(const char *frame, unsigned len);
 

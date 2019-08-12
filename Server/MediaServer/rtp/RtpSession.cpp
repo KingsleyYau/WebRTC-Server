@@ -275,16 +275,16 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 }
 
 void RtpSession::Stop() {
+	LogAync(
+			LOG_MSG,
+			"RtpSession::Stop( "
+			"this : %p "
+			")",
+			this
+			);
+
 	mClientMutex.lock();
 	if( mRunning ) {
-		LogAync(
-				LOG_MSG,
-				"RtpSession::Stop( "
-				"this : %p "
-				")",
-				this
-				);
-
 		mRunning = false;
 
 		StopRecv();
@@ -304,16 +304,25 @@ void RtpSession::Stop() {
 
 		Reset();
 
-		LogAync(
-				LOG_MSG,
-				"RtpSession::Stop( "
-				"this : %p, "
-				"[OK] "
-				")",
-				this
-				);
+//		LogAync(
+//				LOG_MSG,
+//				"RtpSession::Stop( "
+//				"this : %p, "
+//				"[OK] "
+//				")",
+//				this
+//				);
 	}
 	mClientMutex.unlock();
+
+	LogAync(
+			LOG_MSG,
+			"RtpSession::Stop( "
+			"this : %p "
+			"[OK] "
+			")",
+			this
+			);
 }
 
 bool RtpSession::StartSend(char *localKey, int size) {
@@ -854,6 +863,8 @@ bool RtpSession::SendVideoKeyFrameH264() {
 		}
 
 	}
+	
+	mClientMutex.unlock();
 	return bFlag;
 }
 
@@ -879,23 +890,25 @@ bool RtpSession::SendAudioFrame(const char* frame, unsigned int size, unsigned i
 bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
+	srtp_err_status_t status = srtp_err_status_fail;
 	mClientMutex.lock();
 	if( mRunning ) {
-		srtp_err_status_t status = srtp_protect(mpSendSrtpCtx, pkt, (int *)&pktSize);
-	    if (status == srtp_err_status_ok) {
-	    	if( mpRtpSender ) {
-	    		int sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
-				if (sendSize != pktSize) {
-					bFlag = false;
-				}
-	    	} else {
-	    		bFlag = false;
-	    	}
-	    } else {
-	    	bFlag = false;
-	    }
+		status = srtp_protect(mpSendSrtpCtx, pkt, (int *)&pktSize);
 	}
 	mClientMutex.unlock();
+
+    if (status == srtp_err_status_ok) {
+    	if( mpRtpSender ) {
+    		int sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
+			if (sendSize != pktSize) {
+				bFlag = false;
+			}
+    	} else {
+    		bFlag = false;
+    	}
+    } else {
+    	bFlag = false;
+    }
 
 //	LogAync(
 //			LOG_MSG,
@@ -967,6 +980,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 					);
 		}
 	}
+	mClientMutex.unlock();
 
 	return bFlag;
 }
@@ -974,23 +988,25 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 bool RtpSession::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 
+	srtp_err_status_t status = srtp_err_status_fail;
 	mClientMutex.lock();
 	if( mRunning ) {
-		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, pkt, (int *)&pktSize);
-	    if (status == srtp_err_status_ok) {
-	    	if( mpRtcpSender ) {
-	    		int sendSize = mpRtcpSender->SendData((void *)pkt, pktSize);
-				if (sendSize != pktSize) {
-					bFlag = false;
-				}
-	    	} else {
-	    		bFlag = false;
-	    	}
-	    } else {
-	    	bFlag = false;
-	    }
+		status = srtp_protect_rtcp(mpSendSrtpCtx, pkt, (int *)&pktSize);
 	}
 	mClientMutex.unlock();
+
+    if (status == srtp_err_status_ok) {
+    	if( mpRtcpSender ) {
+    		int sendSize = mpRtcpSender->SendData((void *)pkt, pktSize);
+			if (sendSize != pktSize) {
+				bFlag = false;
+			}
+    	} else {
+    		bFlag = false;
+    	}
+    } else {
+    	bFlag = false;
+    }
 
 	return bFlag;
 }
@@ -1029,10 +1045,13 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 	bool bFlag = false;
 
+	srtp_err_status_t status = srtp_err_status_fail;
+	RtcpPacketPLI pkt = {0};
+	int pktSize = 0;
+
 	Arithmetic art;
 	mClientMutex.lock();
 	if( mRunning ) {
-		RtcpPacketPLI pkt = {0};
 		pkt.header.version = 2;
 		pkt.header.p = 0;
 		pkt.header.rc = 1;
@@ -1042,31 +1061,35 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 		pkt.ssrc = htonl(0x12345678);
 		pkt.media_ssrc = remoteSSRC;
 
-		int pktSize = sizeof(RtcpPacketPLI);
+		pktSize = sizeof(RtcpPacketPLI);
 
-		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)&pkt, &pktSize);
-	    if (status == srtp_err_status_ok) {
-	    	if( mpRtcpSender ) {
-	    		int sendSize = mpRtcpSender->SendData((void *)&pkt, pktSize);
-				if (sendSize != pktSize) {
-					bFlag = false;
-				}
-	    	} else {
-	    		bFlag = false;
-	    	}
-	    }
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)&pkt, &pktSize);
 	}
 	mClientMutex.unlock();
+
+    if (status == srtp_err_status_ok) {
+    	if( mpRtcpSender ) {
+    		int sendSize = mpRtcpSender->SendData((void *)&pkt, pktSize);
+			if (sendSize != pktSize) {
+				bFlag = false;
+			}
+    	} else {
+    		bFlag = false;
+    	}
+    }
+
 	return bFlag;
 }
 
 bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 	bool bFlag = false;
 
+	srtp_err_status_t status = srtp_err_status_fail;
+	char tmp[MTU];
+	int pktSize = 0;
+
 	mClientMutex.lock();
 	if( mRunning ) {
-		char tmp[MTU];
-
 		RtcpPacketPLI pkt = {0};
 		pkt.header.version = 2;
 		pkt.header.p = 0;
@@ -1081,25 +1104,26 @@ bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 		item.media_ssrc = remoteSSRC;
 		item.seq = ++mFirSeq;
 
-		int pktSize = 0;
 		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
 		pktSize += sizeof(RtcpPacketPLI);
 		memcpy(tmp + pktSize, (void *)&item, sizeof(RtcpPacketFIRItem));
 		pktSize += sizeof(RtcpPacketFIRItem);
 
-		srtp_err_status_t status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
-	    if (status == srtp_err_status_ok) {
-			if( mpRtcpSender ) {
-				int sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
-				if (sendSize != pktSize) {
-					bFlag = false;
-				}
-			} else {
-				bFlag = false;
-			}
-	    }
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
 	}
 	mClientMutex.unlock();
+
+    if (status == srtp_err_status_ok) {
+		if( mpRtcpSender ) {
+			int sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
+			if (sendSize != pktSize) {
+				bFlag = false;
+			}
+		} else {
+			bFlag = false;
+		}
+    }
+
 	return bFlag;
 }
 

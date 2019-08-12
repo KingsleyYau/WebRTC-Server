@@ -304,7 +304,7 @@ void DtlsSession::SSL_Info_Callback(const SSL* s, int where, int ret) {
 			);
 }
 
-bool DtlsSession::GobalInit() {
+bool DtlsSession::GobalInit(const string& certPath, const string& keyPath) {
 	bool bFlag = false;
 
 	ERR_load_BIO_strings();
@@ -317,7 +317,7 @@ bool DtlsSession::GobalInit() {
 		// Set debug mode
 //		SSL_CTX_set_info_callback(gpSSLCtx, DtlsSession::SSL_Info_Callback);
 		// Load from disk
-		bFlag = SSL_Load_Keys("./ssl/webrtc.crt", "./ssl/webrtc.key", &gpSSLCert, &gpSSLKey);
+		bFlag = SSL_Load_Keys(certPath.c_str(), keyPath.c_str(), &gpSSLCert, &gpSSLKey);
 		// Generate new key
 //		bFlag = SSL_Generate_Keys(&gpSSLCert, &gpSSLKey);
 	}
@@ -364,12 +364,16 @@ bool DtlsSession::GobalInit() {
 			"[%s], "
 			"SSL-Version : %s, "
 			"SSL-Error : %s, "
-			"gFingerPrint : %s "
+			"gFingerPrint : %s, "
+			"certPath : %s, "
+			"keyPath : %s "
 			")",
 			bFlag?"OK":"Fail",
 			OpenSSL_version(OPENSSL_VERSION),
 			ERR_reason_error_string(ERR_get_error()),
-			gFingerprint
+			gFingerprint,
+			certPath.c_str(),
+			keyPath.c_str()
 			);
 
 	return bFlag;
@@ -484,9 +488,7 @@ void DtlsSession::Stop() {
 				);
 
 	    if ( mpSSL ) {
-	    	/**
-	    	 * SSL_free will free all BIO already set
-	    	 */
+	    	// SSL_free will free all BIO already set
 	        SSL_free(mpSSL);
 	        mpSSL = NULL;
 	        mpReadBIO = NULL;

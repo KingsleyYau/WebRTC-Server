@@ -17,7 +17,15 @@ endif
 
 CXXFLAGS += -std=c++11
 CXXFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS += -I. -Iinclude -Ithird_party -Ithird_party/libsdp/include -Ithird_party/json -Ithird_party/websocketpp
+CXXFLAGS += -I. -Iinclude -Ithird_party \
+			-Ithird_party/curl/include \
+			-Ithird_party/libsdp/include \
+			-Ithird_party/json -Ithird_party/websocketpp \
+			-I$(OPENSSL_INCLUDE)
+
+export BUILD_PATH = /root/webrtc/build
+export OPENSSL_INCLUDE = $(BUILD_PATH)/include
+export OPENSSL_LIB = $(BUILD_PATH)/lib
 
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS = \
@@ -50,9 +58,10 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/libnice/random/.libs -lnice-random \
 	-Wl,-Bstatic -Lthird_party/libnice/socket/.libs -lsocket \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
-	-Wl,-Bdynamic -ldl -lz -lpthread -lidn -lrt -lssl -lcrypto -lresolv -lselinux -lpcre \
-	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random
-
+	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
+	-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
+	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre
+	
 OBJS = main.o MediaServer.o
 		
 TARGET = media-server
@@ -120,16 +129,16 @@ clean: $(CLEAN_MODULES)
 cleanall: clean	$(CLEAN_DEPS)
 	@echo '################################################################'
 	@echo ''
-	@echo '# Clean media-server all finished!'
+	@echo '# Clean mediaserver all finished!'
 	@echo ''
 	@echo '################################################################'
 	
 install: 
 	copy media-server.config /etc/ -rf
 	copy media-server /usr/local/bin
-	chmod +x /usr/local/bin/media-server
+	chmod +x /usr/local/bin/mediaserver
 	@echo '################################################################'
 	@echo ''
-	@echo '# Install media-server finished!'
+	@echo '# Install mediaserver finished!'
 	@echo ''
 	@echo '################################################################'

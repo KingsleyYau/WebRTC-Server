@@ -60,7 +60,7 @@ public:
 	virtual ~WebRTC();
 
 public:
-	static bool GobalInit();
+	static bool GobalInit(const string& certPath, const string& keyPath, const string& stunServerIp, const string& localIp);
 
 public:
 	void SetCallback(WebRTCCallback *callback);
@@ -82,9 +82,9 @@ private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
 	// IceClientCallback Implement
-	void OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
+	void OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 	void OnIceNewSelectedPairFull(IceClient *ice);
-	void OnIceReady(IceClient *ice);
+	void OnIceConnected(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
 	void OnIceClose(IceClient *ice);
 	// MainLoopCallback

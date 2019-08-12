@@ -1,0 +1,5 @@
+file ./bin/media-server
+set args -f ./etc/media-server.config
+handle SIGPIPE noprint
+source gdb.break
+run

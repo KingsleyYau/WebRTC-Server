@@ -49,11 +49,11 @@ WebRTC::~WebRTC() {
 	// TODO Auto-generated destructor stub
 }
 
-bool WebRTC::GobalInit() {
+bool WebRTC::GobalInit(const string& certPath, const string& keyPath, const string& stunServerIp, const string& localIp) {
 	bool bFlag = true;
 
-	bFlag &= IceClient::GobalInit();
-	bFlag &= DtlsSession::GobalInit();
+	bFlag &= IceClient::GobalInit(stunServerIp, localIp);
+	bFlag &= DtlsSession::GobalInit(certPath, keyPath);
 	bFlag &= RtpSession::GobalInit();
 
 	LogAync(
@@ -589,6 +589,16 @@ bool WebRTC::StartRtpTransform() {
 }
 
 void WebRTC::StopRtpTransform() {
+	LogAync(
+			LOG_MSG,
+			"WebRTC::StopRtpTransform( "
+			"this : %p, "
+			"pid : %d "
+			")",
+			this,
+			mRtpTransformPid
+			);
+
 	// 不需要锁, 内部有锁, 找不到就放过
 	MainLoop::GetMainLoop()->StopWatchChild(mRtpTransformPid);
 
@@ -609,6 +619,17 @@ void WebRTC::StopRtpTransform() {
 	mRtpTransformPidMutex.unlock();
 
 	RemoveLocalSdpFile();
+
+	LogAync(
+			LOG_MSG,
+			"WebRTC::StopRtpTransform( "
+			"this : %p, "
+			"[OK], "
+			"pid : %d "
+			")",
+			this,
+			mRtpTransformPid
+			);
 }
 
 int WebRTC::SendData(const void *data, unsigned int len) {
@@ -616,7 +637,7 @@ int WebRTC::SendData(const void *data, unsigned int len) {
 	return mIceClient.SendData(data, len);
 }
 
-void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string candidate;
 	for(int i = 0; i < candList.size(); i++) {
 		candidate += candList[i];
@@ -627,6 +648,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"WebRTC::OnIceCandidateGatheringDone( "
 			"this : %p, "
 			"ice : %p, "
+			"ip : %s, "
 			"port : %u, "
 			"ufrag : %s, "
 			"pwd : %s, "
@@ -634,6 +656,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			")",
 			this,
 			ice,
+			ip.c_str(),
 			port,
 			ufrag.c_str(),
 			pwd.c_str(),
@@ -674,7 +697,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			"a=group:BUNDLE %s %s\n"
 			"a=msid-semantic: WMS\n"
 			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 192.168.88.133\n"
+			"c=IN IP4 %s\n"
 			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"%s"
 			"a=ice-ufrag:%s\n"
@@ -707,6 +730,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, unsigned int port, vect
 			mVideoMid.c_str(),
 			port,
 			mAudioSdpPayload.payload_type,
+			ip.c_str(),
 			candidate.c_str(),
 			ufrag.c_str(),
 			pwd.c_str(),
@@ -759,43 +783,39 @@ void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 			ice->GetLocalAddress().c_str(),
 			ice->GetRemoteAddress().c_str()
 			);
+}
+
+void WebRTC::OnIceConnected(IceClient *ice) {
+	LogAync(
+			LOG_WARNING,
+			"WebRTC::OnIceReady( "
+			"this : %p, "
+			"ice : %p "
+			")",
+			this,
+			ice
+			);
 	mDtlsSession.Handshake();
 }
 
-void WebRTC::OnIceReady(IceClient *ice) {
-//	LogAync(
-//			LOG_WARNING,
-//			"WebRTC::OnIceReady( "
-//			"this : %p, "
-//			"ice : %p, "
-//			"local : %s, "
-//			"remote : %s "
-//			")",
-//			this,
-//			ice,
-//			ice->GetLocalAddress().c_str(),
-//			ice->GetRemoteAddress().c_str()
-//			);
-}
-
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
-//	LogAync(
-//			LOG_MSG,
-//			"WebRTC::OnIceRecvData( "
-//			"this : %p, "
-//			"ice : %p, "
-//			"streamId : %u, "
-//			"componentId : %u, "
-//			"size : %d, "
-//			"data[0] : 0x%X "
-//			")",
-//			this,
-//			ice,
-//			streamId,
-//			componentId,
-//			size,
-//			(unsigned char)data[0]
-//			);
+	LogAync(
+			LOG_STAT,
+			"WebRTC::OnIceRecvData( "
+			"this : %p, "
+			"ice : %p, "
+			"streamId : %u, "
+			"componentId : %u, "
+			"size : %d, "
+			"data[0] : 0x%X "
+			")",
+			this,
+			ice,
+			streamId,
+			componentId,
+			size,
+			(unsigned char)data[0]
+			);
 
 	bool bFlag = false;
 

@@ -4,12 +4,20 @@
 # Description: asm
 
 # Config version
-#VERSION=2.8.7
 VERSION=3.3.3
 
-function configure_prefix {
-	export PREFIX=$(pwd)/build
+NOCLEAN="$1"
+if [ "$NOCLEAN" == "noclean" ]; then
+	echo "# Build ffmpeg without clean"
+else
+  echo "# Build ffmpeg with clean"
+  NOCLEAN=""
+fi
 
+function configure_prefix {
+	export PREFIX=$(pwd)/../build
+	export PATH="$PREFIX/bin:$PATH"
+	
 	export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig
 	export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 
@@ -18,124 +26,152 @@ function configure_prefix {
 }
 
 function build_opus {
-	echo "# Start building opus"
+	SUB_LIB="opus-1.3.1"
+	echo "# Start building $SUB_LIB"
 	
-	cd opus-1.3.1
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				|| exit 1   		
-    		
-	make clean || exit 1
+	cd $SUB_LIB
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then 
+		./configure \
+					--prefix=$PREFIX \
+					--enable-static \
+					--disable-shared \
+					|| exit 1   		
+  fi
+  		
+  if [ "$NOCLEAN" != "noclean" ]; then
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
 	cd ..
-	echo "# Build opus finish"
-}
-
-function build_lame {
-	echo "# Start building lame"
-	
-	cd lame-3.99.5
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				|| exit 1   		
-    		
-	make clean || exit 1
-	make || exit 1
-	make install || exit 1
-	
-	cd ..
-	echo "# Build lame finish"
+	echo "# Build $SUB_LIB finish"
 }
 
 function build_x264 {
-	echo "# Start building x264"
+	SUB_LIB="x264"
+	echo "# Start building $SUB_LIB"
 	
-	cd x264
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--enable-pic \
-				--disable-cli \
-				--disable-asm \
-				|| exit 1   		
+	cd $SUB_LIB
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then
+		./configure \
+					--prefix=$PREFIX \
+					--enable-static \
+					--enable-pic \
+					--disable-cli \
+					--disable-asm \
+					|| exit 1   		
+  fi
     		
-	make clean || exit 1
+  if [ "$NOCLEAN" != "noclean" ]; then
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
 	cd ..
-	echo "# Build x264 finish"
+	echo "# Build $SUB_LIB finish"
 }
 
 function build_fdk_aac {
-	echo "# Start building fdk-aac"
+	SUB_LIB="fdk-aac-0.1.5"
+
+	echo "# Start building $SUB_LIB"
 
 	export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig/
   export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
     
-	cd fdk-aac-0.1.5
+	cd $SUB_LIB
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then
+		./configure \
+					--prefix=$PREFIX \
+					--enable-static \
+					--disable-shared \
+					--with-pic \
+					|| exit 1
+	fi
 	
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				--with-pic \
-				|| exit 1
-
-	make clean || exit 1
+  if [ "$NOCLEAN" != "noclean" ]; then
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
 	cd ..
-	echo "# Build fdk-aac finish"
+	echo "# Build $SUB_LIB finish"
 }
 
+function build_yasm {
+	SUB_LIB="yasm-1.3.0"
+	echo "# Start building $SUB_LIB"
+    
+	cd $SUB_LIB
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then
+		./configure \
+					--prefix=$PREFIX \
+					|| exit 1
+	fi
+	
+  if [ "$NOCLEAN" != "noclean" ]; then
+		make clean || exit 1
+	fi
+	
+	make || exit 1
+	make install || exit 1
+	
+	cd ..
+	echo "# Build $SUB_LIB finish"
+}
+
+
 function build_ffmpeg {
-	echo "# Start building ffmpeg"
-	FFMPEG="ffmpeg-$VERSION"
+	FFMPEG="ffmpeg-3.3.3"
+	echo "# Start building $FFMPEG"
+	
 	cd $FFMPEG
 
 	# build
-	./configure \
-						--prefix="$PREFIX" \
-						--extra-cflags="$EXTRA_CFLAGS" \
-						--extra-ldflags="$EXTRA_LDFLAGS" \
-						--disable-shared \
-						--enable-static \
-						--enable-gpl \
-						--enable-libopus \
-						--enable-libx264 \
-						--enable-nonfree \
-    				--enable-libfdk-aac \
-				    --enable-version3 \
-    				--disable-vda \
-   					--disable-iconv \
-    				--disable-outdevs \
-    				--disable-ffprobe \
-    				--disable-ffserver \
-				    --enable-encoder=libx264 \
-				    --enable-decoder=h264 \
-				    --enable-demuxer=h264 \
-    				--enable-parser=h264 \
-				    --enable-encoder=libfdk_aac \
-				    --enable-decoder=libfdk_aac \
-    				--enable-encoder=libopus \
-    				--enable-decoder=libopus \
-    				|| exit 1
-    				
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then
+		./configure \
+							--prefix="$PREFIX" \
+							--extra-cflags="$EXTRA_CFLAGS" \
+							--extra-ldflags="$EXTRA_LDFLAGS" \
+							--disable-shared \
+							--enable-static \
+							--enable-gpl \
+							--enable-libopus \
+							--enable-libx264 \
+							--enable-nonfree \
+	    				--enable-libfdk-aac \
+					    --enable-version3 \
+	    				--disable-vda \
+	   					--disable-iconv \
+	    				--disable-outdevs \
+	    				--disable-ffprobe \
+	    				--disable-ffserver \
+					    --enable-encoder=libx264 \
+					    --enable-decoder=h264 \
+					    --enable-demuxer=h264 \
+	    				--enable-parser=h264 \
+					    --enable-encoder=libfdk_aac \
+					    --enable-decoder=libfdk_aac \
+	    				--enable-encoder=libopus \
+	    				--enable-decoder=libopus \
+	    				|| exit 1
+  fi  				
 						
-	make clean || exit 1
+  if [ "$NOCLEAN" != "noclean" ]; then
+		make clean || exit 1
+	fi
+	
 	make || exit
 	make install || exit 1
 
 	cd ..
-	echo "# Build ffmpeg finish"
+	echo "# Build $FFMPEG finish"
 }
 
 # Start Build
@@ -144,9 +180,7 @@ echo "# Starting building..."
 
 configure_prefix || exit 1
 build_fdk_aac || exit 1
-#build_lame || exit 1
 build_x264 || exit 1
 build_opus || exit 1
+build_yasm || exit 1
 build_ffmpeg || exit 1
-	
-echo "# Build finish" 

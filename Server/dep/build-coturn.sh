@@ -3,11 +3,16 @@
 # Author:	Max.Chiu
 # Description: asm
 
-# Config version
-VERSION=4.5.1.1
+NOCLEAN="$1"
+if [ "$NOCLEAN" == "noclean" ]; then
+	echo "# Build coturn without clean"
+else
+  echo "# Build coturn with clean"
+  NOCLEAN=""
+fi
 
 function configure_prefix {
-	export PREFIX=$(pwd)/build
+	export PREFIX=$(pwd)/../build
 	
 	export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig
 	export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
@@ -20,14 +25,19 @@ function build_sqlite {
 	cd $SQLITE
 	
 	# build
-	chmod +x configure
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				|| exit 1   		
-    		
-	make clean || exit 1
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then 
+		chmod +x configure
+		./configure \
+					--prefix=$PREFIX \
+					--enable-static \
+					--disable-shared \
+					|| exit 1  
+	fi 		
+
+	if [ "$NOCLEAN" != "noclean" ]; then    		
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
@@ -42,11 +52,16 @@ function build_openssl {
 	cd $OPENSSL
 	
 	# build
-	chmod +x config
-	./config no-shared --prefix=$PREFIX \
-				|| exit 1
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then 
+		chmod +x config
+		./config no-shared --prefix=$PREFIX \
+					|| exit 1
+	fi
 
-	make clean || exit 1
+	if [ "$NOCLEAN" != "noclean" ]; then    		
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
@@ -61,17 +76,22 @@ function build_libevent {
 	cd $LIBEVENT
 	
 	# build
-	export CFLAGS="$(pkg-config --cflags openssl)"
-	export LDFLAGS="$(pkg-config --libs openssl) -ldl"
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then 
+		export CFLAGS="$(pkg-config --cflags openssl)"
+		export LDFLAGS="$(pkg-config --libs openssl) -ldl"
 	
-	chmod +x configure
-	./configure \
-				--prefix=$PREFIX \
-				--enable-static \
-				--disable-shared \
-				|| exit 1   		
-    		
-	make clean || exit 1
+		chmod +x configure
+		./configure \
+					--prefix=$PREFIX \
+					--enable-static \
+					--disable-shared \
+					|| exit 1   		
+  fi
+  	
+	if [ "$NOCLEAN" != "noclean" ]; then    		
+		make clean || exit 1
+	fi
+	
 	make || exit 1
 	make install || exit 1
 	
@@ -86,20 +106,24 @@ function build_coturn {
 	cd $COTURN
 
 	# build
-	export CFLAGS="$(pkg-config --cflags openssl)"
-	export LDFLAGS="$(pkg-config --libs openssl) -ldl"
-	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_core)"
-	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_extra)"
-	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_openssl)"
-	export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_pthreads)"
+	if [ "$NOCLEAN" != "noclean" -o ! -f "Makefile" ]; then 
+		export CFLAGS="$(pkg-config --cflags openssl)"
+		export LDFLAGS="$(pkg-config --libs openssl) -ldl"
+		export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_core)"
+		export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_extra)"
+		export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_openssl)"
+		export LDFLAGS="$LDFLAGS $(pkg-config --libs libevent_pthreads)"
+		
+		chmod +x configure
+		./configure \
+							--prefix="$PREFIX" \
+	    				|| exit 1
+  fi
+  		
+	if [ "$NOCLEAN" != "noclean" ]; then    		
+		make clean || exit 1
+	fi
 	
-	chmod +x configure
-	./configure \
-						--prefix="$PREFIX" \
-    				|| exit 1
-    				
-						
-	make clean || exit 1
 	make || exit
 	make install || exit 1
 

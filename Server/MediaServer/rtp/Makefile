@@ -17,7 +17,8 @@ endif
 
 CXXFLAGS 	+=	-DLINUX -DFILE_JNI_LOG
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
-CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include
+CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include \
+				-I$(OPENSSL_INCLUDE)
 				
 OBJS 		+=	DtlsSession.o RtpSession.o RtpRawClient.o
 		

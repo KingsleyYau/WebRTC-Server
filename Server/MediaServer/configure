@@ -1,39 +1,43 @@
 # !/bin/sh
 #
-# Copyright (C) 2015 The QpidNetwork
-# MatchServer Configure
+# Copyright (C) 2019 The QpidNetwork
+# MediaServer Configure
 #
-# Created on: 2015/10/10
+# Created on: 2019/7/21
 # Author: Max.Chiu
 # Email: Kingsleyyau@gmail.com
 #
 
-DEBUG="CFLAGS=-g"
+# Must be absolute path
+BUILD_PATH=$1
 
 cd third_party/libev
-chmod +x configure &&
-./configure $(DEBUG) && 
+chmod +x configure || exit 1
+./configure || exit 1
 cd -
 
-cd third_party/sqlite &&
-autoreconf -ivf &&
-chmod +x configure &&
-./configure $(DEBUG) &&
+cd third_party/sqlite || exit 1
+#autoreconf -ivf || exit 1
+chmod +x configure || exit 1
+./configure || exit 1
 cd -
 
-cd third_party/curl &&
-autoreconf -ivf &&
-chmod +x configure &&
-./configure $(DEBUG) --disable-shared --enable-static --without-ssl --without-librtmp $(DEBUG) &&
+cd third_party/curl || exit 1
+autoreconf -ivf || exit 1
+chmod +x configure || exit 1
+./configure --disable-shared --enable-static --without-ssl --without-librtmp || exit 1
 cd -
 
-cd third_party/libsrtp &&
-chmod +x configure &&
-./configure $(DEBUG) --disable-shared --enable-static &&
+cd third_party/libsrtp || exit 1
+chmod +x configure || exit 1
+./configure --disable-shared --enable-static || exit 1
 cd -
 
-cd third_party/libnice &&
-chmod +x autogen.sh &&
-./autogen.sh $(DEBUG) &&
-./configure $(DEBUG) --disable-shared --enable-static &&
+cd third_party/libnice || exit 1
+chmod +x autogen.sh || exit 1
+echo "BUILD_PATH:$BUILD_PATH"
+export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
+export CFLAGS="-g $(pkg-config --cflags openssl)"
+export LDFLAGS="$(pkg-config --libs openssl) -ldl -pthread"
+./autogen.sh --disable-shared --enable-static || exit 1
 cd -

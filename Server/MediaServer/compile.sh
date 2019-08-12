@@ -1,18 +1,24 @@
 #!/bin/sh
 
-echo "# install dependent tools ..."
-sudo yum install -y libidn-devel
+echo "# Install dependent tools ..."
+sudo yum install -y automake libtool gcc-c++.x86_64 gtk-doc.x86_64 glib2-devel.x86_64 boost-devel.x86_64 libidn-devel.x86_64 libselinux-devel.x86_64
 
-# set ./bin/* executable
-chmod -R +x ./bin/* || exit 1
+BUILD_PATH=$(pwd)/../build
 
-# compile
-if [ "$1" == "noclean" ]; then
-  echo "# build CamShareServer without clean"
+NOCLEAN="$1"
+if [ "$NOCLEAN" == "noclean" ]; then
+	echo "# Build MediaServer without clean"
 else
-  echo "# bulid CamShareServer with clean"
+  echo "# Build MediaServer with clean"
+  NOCLEAN=""
+fi
+
+if [ "$NOCLEAN" != "noclean" ]; then
+	chmod +x ./configure || exit 1
+	./configure $BUILD_PATH || exit 1
   make clean
-  chmod +x ./configure || exit 1
-  ./configure || exit 1
 fi
 make || exit 1
+
+cp media-server $BUILD_PATH/bin || exit 1
+cp media-server.config $BUILD_PATH/etc || exit 1

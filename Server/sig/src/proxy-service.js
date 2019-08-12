@@ -27,8 +27,8 @@ class ProxyService {
     createExternalServer(code, data) {
         // SSL options
         const options = {
-            key: Fs.readFileSync('./ssl/server.key'),  // ssl文件路径
-            cert: Fs.readFileSync('./ssl/server.crt')  // ssl文件路径
+            key: Fs.readFileSync('./etc/server.key'),  // ssl文件路径
+            cert: Fs.readFileSync('./etc/server.crt')  // ssl文件路径
         };
 
         // 创建异步框架
@@ -41,38 +41,53 @@ class ProxyService {
             ctx.socketId = 'SOCKETID-' + Math.random().toString(36).substr(2).toLocaleUpperCase();
             Common.log('im', 'info', '[' + ctx.socketId + ']-Client.connected');
 
-            var proxy = new WebSocketClient(AppConfig.proxy.proxyHost);
-            proxy.on('message', (message) => {
-                Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
-                ctx.websocket.send(message);
-            });
-            proxy.on('close', () => {
-                Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.close, [代理断开]');
-                ctx.websocket.close();
-            });
+            try {
+                var proxy = new WebSocketClient(AppConfig.proxy.proxyHost);
+                proxy.on('message', (message) => {
+                    Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
+                    ctx.websocket.send(message);
+                });
+                proxy.on('close', () => {
+                    Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.close, [代理断开]');
+                    ctx.websocket.close();
+                });
 
-            ctx.websocket.on('message', async (message) => {
-                Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, '+ message);
-                if ( proxy.readyState == proxy.OPEN ) {
-                    proxy.send(message);
-                } else {
-                    await new Promise(function (resolve) {
-                        proxy.on('open', () => {
-                            Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, [await Proxy.open]');
-                            proxy.send(message);
-                            resolve();
+                ctx.websocket.on('close', function (err) {
+                    Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], ' + err);
+                    try {
+                        proxy.close(1000, err.toString());
+                    } catch (e) {
+                        Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], e : ' + e.toString());
+                    }
+                });
+                ctx.websocket.on('error', function (err) {
+                    Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], ' + err);
+                    try {
+                        proxy.close(1000, err.toString());
+                    } catch (e) {
+                        Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], e : ' + e.toString());
+                    }
+                });
+
+                ctx.websocket.on('message', async (message) => {
+                    Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, ' + message);
+                    if (proxy.readyState == proxy.OPEN) {
+                        proxy.send(message);
+                    } else {
+                        await new Promise(function (resolve) {
+                            proxy.on('open', () => {
+                                Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, [等待代理连接]');
+                                proxy.send(message);
+                                resolve();
+                            });
                         });
-                    });
-                }
-            });
-            ctx.websocket.on('close', function (err) {
-                Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], ' + err);
-                proxy.close(1000, err.toString());
-            });
-            ctx.websocket.on('error', function (err) {
-                Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], ' + err);
-                proxy.close(1000, err.toString());
-            });
+                    }
+                });
+            } catch (e) {
+                Common.log('im', 'error', '[' + ctx.socketId + ']-Proxy.connect.error, [代理连接失败], e : ' + e.toString());
+                ctx.websocket.close();
+            }
+
             // 等待其他中间件处理的异步返回
             await next();
             // 所有中间件处理完成
@@ -103,6 +118,10 @@ function handle(signal) {
 process.on('SIGINT', handle);
 process.on('SIGTERM', handle);
 process.on('SIGTERM', handle);
+
+process.on('uncaughtException', function(err) {
+    Common.log('main', 'fatal', 'Proxy service exit pid : ' + process.pid + ', stack : ' + err.stack);
+});
 
 let number;
 if( process.argv.length > 2 ) {

@@ -19,7 +19,8 @@ CXXFLAGS 	+=	-DLINUX -DFILE_JNI_LOG
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
 CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsdp/include \
 				-I../third_party/libnice/nice -I../third_party/libnice/agent \
-				-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/
+				-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/ \
+				-I$(OPENSSL_INCLUDE)
 				
 OBJS 		+=	WebRTC.o IceClient.o
 		

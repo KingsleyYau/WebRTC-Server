@@ -28,7 +28,7 @@ function reset() {
 function connect() {
     reset();
 
-    let host = 'ws://' + window.location.hostname + ':19878/';
+    let host = 'wss://' + window.location.hostname + ':19876/';
     client = new WebSocket(host);
     client.binaryType = 'arraybuffer';
 
@@ -249,11 +249,13 @@ class RTCClient {
         // 收到对方的视频流
         this.pc.onaddstream = event => {
             console.log('RTCClient::onaddstream( remoteStream: ', event.stream, ' )');
-            if (window.URL) {
-                $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
-            }else{
-                $("[id=remoteVideo]").attr("srcObject", event.stream);
-            }
+
+            // if (window.URL) {
+            //     $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
+            // } else {
+            //     $("[id=remoteVideo]").attr("srcObject", event.stream);
+            // }
+            $("[id=remoteVideo]").attr("srcObject", event.stream);
             $("[id=remoteVideo]").attr("style", 'display: block');
         };
 
@@ -286,10 +288,10 @@ class RTCClient {
         await this.showLocalVideo();
 
         let offer = await this.pc.createOffer({
-            offerToReceiveAudio: false,
+            offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
-        // offer.sdp = this.forceH264(offer.sdp);
+        offer.sdp = this.forceH264(offer.sdp);
         await this.pc.setLocalDescription(offer);
 
         let localDescription = JSON.stringify(this.pc.localDescription);
@@ -360,19 +362,19 @@ class RTCClient {
     // for some SDP parsing issues.
     forceH264(sdp) {
         var newSdp = sdp;
-        newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
-        newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
-        newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
-        newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
-        newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
+        // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
+        // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
 
         // newSdp = newSdp.replace(/a=rtcp-fb:(?!111)\d{1,3} .*\r\n/g, '');
         // newSdp = newSdp.replace(/a=fmtp:(?!111)\d{1,3} .*\r\n/g, '');
         // newSdp = newSdp.replace(/a=rtpmap:(?!111)\d{1,3} .*\r\n/g, '');
 
-        newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
-        newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
-        newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
+        // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
 
         return newSdp;
     }
@@ -382,6 +384,14 @@ class RTCClient {
         // newSdp = newSdp.replace(/.*192.168.88.138.*\r\n/g, '');
         return newSdp;
     }
+}
+
+function isIE() {
+    return navigator.userAgent.indexOf("compatible") > -1 && userAgent.indexOf("MSIE") > -1;
+}
+
+function isEdge() {
+    return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
 }
 
 function onload() {
@@ -395,12 +405,31 @@ function onload() {
         return;
     }
 
-    const config = {
-        iceServers: JSON.parse('[{"urls":["stun:192.168.88.133:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.133:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
-        // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"],"username":"","credential":""}]')
-        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"","credential":""}]'), iceTransportPolicy: "relay"
+    const configChromeDemo = {
+        // iceServers: JSON.parse('[{"urls":["stun:192.168.88.134:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.134:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]')
     };
+    const configChromeLocal = {
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+    }
+
+    const configEdgeDemo = {
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
+    }
+    const configEdgeLocal = {
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:192.168.88.134:3478"]}]')
+    }
+
+    var config = {};
+    if ( isEdge() ) {
+        config = configEdgeDemo;
+    } else {
+        config = configChromeDemo;
+    }
 
     let type;
     let client = new RTCClient(config);

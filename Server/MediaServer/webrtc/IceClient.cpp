@@ -46,8 +46,13 @@ void* niceLogFunc(const char *logBuffer) {
 	return 0;
 }
 
-bool IceClient::GobalInit() {
+static string gStunServerIp = "";
+static string gLocalIp = "";
+bool IceClient::GobalInit(const string& stunServerIp, const string& localIp) {
 	bool bFlag = true;
+
+	gLocalIp = localIp;
+	gStunServerIp = stunServerIp;
 
 	g_networking_init();
 	gLoop = g_main_loop_new(NULL, FALSE);
@@ -154,14 +159,16 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 
     // 设置STUN服务器地址
-    g_object_set(mpAgent, "stun-server", "52.196.96.7", NULL);
+    g_object_set(mpAgent, "stun-server", gStunServerIp.c_str(), NULL);
     g_object_set(mpAgent, "stun-server-port", 3478, NULL);
 
-    // 绑定本地IP
-    NiceAddress addrLocal;
-    nice_address_init(&addrLocal);
-    nice_address_set_from_string(&addrLocal, "172.25.32.133");
-    nice_agent_add_local_address(mpAgent, &addrLocal);
+    if ( gLocalIp.length() > 0 ) {
+		// 绑定本地IP
+		NiceAddress addrLocal;
+		nice_address_init(&addrLocal);
+		nice_address_set_from_string(&addrLocal, gLocalIp.c_str());
+		nice_agent_add_local_address(mpAgent, &addrLocal);
+    }
 
     g_signal_connect(mpAgent, "candidate-gathering-done", G_CALLBACK(cb_candidate_gathering_done), this);
     g_signal_connect(mpAgent, "component-state-changed", G_CALLBACK(cb_component_state_changed), this);
@@ -173,7 +180,7 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, "52.196.96.7", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
@@ -214,6 +221,7 @@ void IceClient::Stop() {
 		if (mpAgent) {
 			mCond.lock();
 			mRunning = false;
+			nice_agent_remove_stream(mpAgent, mStreamId);
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 			mCond.wait();
 			mCond.unlock();
@@ -428,9 +436,17 @@ void IceClient::OnClose(::NiceAgent *agent) {
 			mpIceClientCallback->OnIceClose(this);
 		}
 	}
-
 	mCond.signal();
 	mCond.unlock();
+
+	LogAync(
+			LOG_MSG,
+			"IceClient::OnClose( "
+			"this : %p, "
+			"[Exit] "
+			")",
+			this
+			);
 }
 
 void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int len, char *buf) {
@@ -448,7 +464,7 @@ void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned i
 //			len
 //			);
 
-	if( mpIceClientCallback ) {
+	if ( mpIceClientCallback ) {
 		mpIceClientCallback->OnIceRecvData(this, (const char *)buf, len, streamId, componentId);
 	}
 }
@@ -478,7 +494,8 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 	}
 	if ( bFlag ) {
 		vector<string> candArray;
-		unsigned int port = 0;
+		string ipUse;
+		unsigned int portUse = 0;
 		unsigned int priority = 0xFFFFFFFF;
 
 		char candStr[1024] = {'0'};
@@ -488,26 +505,32 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			for(int i = 0; i < count; i++) {
 				NiceCandidate *local = (NiceCandidate *)g_slist_nth(cands, i)->data;
 				nice_address_to_string(&local->addr, ip);
+				unsigned int localPort = (nice_address_get_port(&local->addr)==0)?9:nice_address_get_port(&local->addr);
 				nice_address_to_string(&local->base_addr, baseip);
+				unsigned int basePort = (nice_address_get_port(&local->base_addr)==0)?9:nice_address_get_port(&local->base_addr);
 
 				if ( priority > local->priority ) {
 					priority = local->priority;
-					port = nice_address_get_port(&local->addr);
+					ipUse = ip;
+					portUse = nice_address_get_port(&local->addr);
 				}
 
-				if ( local->type == NICE_CANDIDATE_TYPE_RELAYED ) {
+				if ( local->type == NICE_CANDIDATE_TYPE_RELAYED || local->type == NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE ) {
 					snprintf(candStr, sizeof(candStr) - 1,
-							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport 9\n",
+							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u %s\n",
 							local->foundation,
 							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
 							local->priority,
 							ip,
-							nice_address_get_port(&local->addr),
+							localPort,
 							CandidateTypeName[local->type],
-							baseip
+							baseip,
+							basePort,
+							CandidateTransportName[local->transport]
 							);
 					priority = local->priority;
-					port = nice_address_get_port(&local->addr);
+					ipUse = ip;
+					portUse = nice_address_get_port(&local->addr);
 
 				} else {
 					snprintf(candStr, sizeof(candStr) - 1,
@@ -516,7 +539,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
 							local->priority,
 							ip,
-							nice_address_get_port(&local->addr),
+							localPort,
 							CandidateTypeName[local->type],
 							CandidateTransportName[local->transport]
 							);
@@ -526,7 +549,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			}
 
 			if( mpIceClientCallback ) {
-				mpIceClientCallback->OnIceCandidateGatheringDone(this, port, candArray, ufrag, pwd);
+				mpIceClientCallback->OnIceCandidateGatheringDone(this, ipUse, portUse, candArray, ufrag, pwd);
 			}
 		}
 	}
@@ -563,9 +586,9 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			nice_component_state_to_string((NiceComponentState)state)
 			);
 
-	if (state == NICE_COMPONENT_STATE_READY) {
+	if (state == NICE_COMPONENT_STATE_CONNECTED) {
 		if( mpIceClientCallback ) {
-			mpIceClientCallback->OnIceReady(this);
+			mpIceClientCallback->OnIceConnected(this);
 		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
 		nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
