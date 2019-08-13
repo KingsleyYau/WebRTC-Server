@@ -94,7 +94,6 @@ public:
 	void OnRequestReloadLogConfig(HttpParser* parser);
 	void OnRequestPlayStream(HttpParser* parser);
 	void OnRequestStopStream(HttpParser* parser);
-	bool OnRequestCallSdp(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 end **************************************/
 
@@ -168,6 +167,7 @@ private:
 	unsigned int miTimeout;
 	/***************************** 内部服务(HTTP)参数 end **************************************/
 
+
 	/***************************** 媒体流服务(WebRTC)参数 **************************************/
 	// 媒体流转发起始端口
 	unsigned short mWebRTCPortStart;
@@ -177,7 +177,26 @@ private:
 
 	// 执行转发RTMP的脚本
 	string mWebRTCRtp2RtmpShellFilePath;
+	// 执行转发RTMP的地址
+	string mWebRTCRtp2RtmpBaseUrl;
+
+	// DTLS证书路径
+	string mWebRTCDtlsCertPath;
+	string mWebRTCDtlsKeyPath;
+
+	// 需要绑定的本地IP
+	string mWebRTCLocalIp;
+	// STUN服务器IP
+	string mStunServerIp;
 	/***************************** 媒体流服务(WebRTC)参数 end **************************************/
+
+
+	/***************************** 信令服务(Websocket)参数 **************************************/
+	// 监听端口
+	short miWebsocketPort;
+	/***************************** 信令服务(Websocket)参数 end **************************************/
+
+
 
 	/***************************** 日志参数 **************************************/
 	// 日志等级
@@ -189,6 +208,7 @@ private:
 	// 是否debug模式
 	int miDebugMode;
 	/***************************** 日志参数 end **************************************/
+
 
 
 	/***************************** 处理线程 **************************************/

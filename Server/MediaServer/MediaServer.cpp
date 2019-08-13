@@ -13,6 +13,8 @@
 // Common
 #include <httpclient/HttpClient.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
+// ErrorCode
+#include <ErrCode.h>
 // Request
 // Respond
 #include <respond/BaseRespond.h>
@@ -68,6 +70,8 @@ MediaServer::MediaServer()
 	miStateTime = 0;
 	miDebugMode = 0;
 	miLogLevel = 0;
+
+	miWebsocketPort = 0;
 
 	// 统计参数
 	mTotal = 0;
@@ -157,11 +161,31 @@ bool MediaServer::Start() {
 			"[媒体流服务(WebRTC)], "
 			"mWebRTCPortStart : %u, "
 			"mWebRTCMaxClient : %u, "
-			"mWebRTCRtp2RtmpShellFilePath : %s "
+			"mWebRTCRtp2RtmpShellFilePath : %s, "
+			"mWebRTCRtp2RtmpBaseUrl : %s, "
+			"mWebRTCDtlsCertPath : %s, "
+			"mWebRTCDtlsKeyPath : %s, "
+			"mWebRTCLocalIp : %s, "
+			"mStunServerIp : %s "
 			")",
 			mWebRTCPortStart,
 			mWebRTCMaxClient,
-			mWebRTCRtp2RtmpShellFilePath.c_str()
+			mWebRTCRtp2RtmpShellFilePath.c_str(),
+			mWebRTCRtp2RtmpBaseUrl.c_str(),
+			mWebRTCDtlsCertPath.c_str(),
+			mWebRTCDtlsKeyPath.c_str(),
+			mWebRTCLocalIp.c_str(),
+			mStunServerIp.c_str()
+			);
+
+	// 信令服务(Websocket)
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::Start( "
+			"[信令服务(Websocket)], "
+			"miWebsocketPort : %u "
+			")",
+			miWebsocketPort
 			);
 
 	// 日志参数
@@ -180,7 +204,7 @@ bool MediaServer::Start() {
 
 	// 初始化全局属性
 	HttpClient::Init();
-	if( !WebRTC::GobalInit() ) {
+	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp) ) {
 		return false;
 	}
 
@@ -206,13 +230,15 @@ bool MediaServer::Start() {
 	}
 
 	if( bFlag ) {
-		bFlag = mWSServer.Start(miPort + 1);
+		bFlag = mWSServer.Start(miWebsocketPort);
 	}
 
-	for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
-		WebRTC *rtc = new WebRTC();
-		rtc->Init(mWebRTCRtp2RtmpShellFilePath, "127.0.0.1", port, "127.0.0.1", port + 2);
-		mWebRTCList.PushBack(rtc);
+	if( bFlag ) {
+		for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
+			WebRTC *rtc = new WebRTC();
+			rtc->Init(mWebRTCRtp2RtmpShellFilePath, "127.0.0.1", port, "127.0.0.1", port + 2);
+			mWebRTCList.PushBack(rtc);
+		}
 	}
 
 	// 开始状态监视线程
@@ -268,7 +294,7 @@ bool MediaServer::LoadConfig() {
 		conf.InitConfFile(mConfigFile.c_str(), "");
 		if ( conf.LoadConfFile() ) {
 			// 基本参数
-			miPort = atoi(conf.GetPrivate("BASE", "PORT", "9876").c_str());
+			miPort = atoi(conf.GetPrivate("BASE", "PORT", "9880").c_str());
 			miMaxClient = atoi(conf.GetPrivate("BASE", "MAXCLIENT", "100000").c_str());
 			miMaxHandleThread = atoi(conf.GetPrivate("BASE", "MAXHANDLETHREAD", "2").c_str());
 			miMaxQueryPerThread = atoi(conf.GetPrivate("BASE", "MAXQUERYPERCOPY", "10").c_str());
@@ -279,6 +305,19 @@ bool MediaServer::LoadConfig() {
 			miLogLevel = atoi(conf.GetPrivate("LOG", "LOGLEVEL", "5").c_str());
 			mLogDir = conf.GetPrivate("LOG", "LOGDIR", "log");
 			miDebugMode = atoi(conf.GetPrivate("LOG", "DEBUGMODE", "0").c_str());
+
+			// WebRTC参数
+			mWebRTCPortStart = atoi(conf.GetPrivate("WEBRTC", "WEBRTCPORTSTART", "10000").c_str());
+			mWebRTCMaxClient = atoi(conf.GetPrivate("WEBRTC", "WEBRTCMAXCLIENT", "10").c_str());
+			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "bin/rtp2rtmp.sh");
+			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
+			mWebRTCDtlsCertPath = conf.GetPrivate("WEBRTC", "DTLSCER", "etc/webrtc_dtls.crt");
+			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
+			mWebRTCLocalIp = conf.GetPrivate("WEBRTC", "ICELOCALIP", "");
+			mStunServerIp = conf.GetPrivate("WEBRTC", "STUNSERVERIP", "127.0.0.1");
+
+			// Websocket参数
+			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());
 
 			bFlag = true;
 		}
@@ -518,14 +557,8 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 bool MediaServer::HttpParseRequestBody(HttpParser* parser) {
 	bool bFlag = true;
 
-	if( parser->GetPath() == "/CALLSDP" ) {
-		// 拨号
-		bFlag = OnRequestCallSdp(parser);
-
-	} else {
-		// 未知命令
-		bFlag = OnRequestUndefinedCommand(parser);
-	}
+	// 未知命令
+	bFlag = OnRequestUndefinedCommand(parser);
 
 	return bFlag;
 }
@@ -675,44 +708,6 @@ void MediaServer::OnRequestStopStream(HttpParser* parser) {
 	BaseResultRespond respond;
 	respond.SetParam(bFlag, errMsg.c_str());
 	HttpSendRespond(parser, &respond);
-}
-
-bool MediaServer::OnRequestCallSdp(HttpParser* parser) {
-	// 拨号
-	bool bFlag = true;
-	const char* body = parser->GetBody();
-
-	LogAync(
-			LOG_WARNING,
-			"MediaServer::OnRequestCallSdp( "
-			"event : [内部服务(HTTP)-收到命令:拨号], "
-			"parser : %p "
-			")",
-			parser
-			);
-
-	Json::Value root;
-	Json::Reader reader;
-
-	bool bParse = reader.parse(body, root, false);
-	if ( bParse ) {
-		if( root.isObject() ) {
-			if( root["sdp"].isString() ) {
-				string sdp = root["sdp"].asString();
-
-//				WebRTC *rtc = new WebRTC();
-//				rtc->SetCallback(this);
-//				rtc->Start(sdp);
-			}
-		}
-	}
-
-	// 马上返回数据
-	BaseResultRespond respond;
-	respond.SetParam(false, "");
-	HttpSendRespond(parser, &respond);
-
-	return bFlag;
 }
 
 bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
@@ -955,7 +950,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 		if( reqRoot.isObject() ) {
 			resRoot["id"] = reqRoot["id"];
 			resRoot["route"] = reqRoot["route"];
-			resRoot["errno"] = 0;
+			resRoot["errno"] = RequestErrorType_None;
 			resRoot["errmsg"] = "";
 
 			string route = "";
@@ -991,7 +986,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							sdp = reqData["sdp"].asString();
 						}
 
-						string rtmpUrl = "rtmp://192.168.88.17:19351/live/";
+						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
 						rtmpUrl += stream;
 
 						if( stream.length() > 0 && sdp.length() > 0 ) {
@@ -1019,20 +1014,20 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
 								} else {
-									resRoot["errno"] = 1;
-									resRoot["errmsg"] = "WebRTC Start Fail Error.";
+									resRoot["errno"] = RequestErrorType_WebRTC_Start_Fail;
+									resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_Start_Fail];
 								}
 
 							} else {
-								resRoot["errno"] = 1;
-								resRoot["errmsg"] = "No More WebRTC Connection Allow Error.";
+								resRoot["errno"] = RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow;
+								resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow];
 							}
 
 							mWebRTCMap.Unlock();
 							mWebsocketMap.Unlock();
 						} else {
-							resRoot["errno"] = 1;
-							resRoot["errmsg"] = "No Stream or SDP Error.";
+							resRoot["errno"] = RequestErrorType_Request_Missing_Param;
+							resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Missing_Param];
 						}
 					}
 				} else if ( route == "imRTC/sendSdpUpdate" ) {
@@ -1056,30 +1051,30 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								rtc->UpdateCandidate(sdp);
 								bFlag = true;
 							} else {
-								resRoot["errno"] = 1;
-								resRoot["errmsg"] = "WebRTC Update Candidate Before Call Error.";
+								resRoot["errno"] = RequestErrorType_WebRTC_Update_Candidate_Before_Call;
+								resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_Update_Candidate_Before_Call];
 							}
 
 							mWebRTCMap.Unlock();
 							mWebsocketMap.Unlock();
 						} else {
-							resRoot["errno"] = 1;
-							resRoot["errmsg"] = "No SDP Error.";
+							resRoot["errno"] = RequestErrorType_Request_Missing_Param;
+							resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Missing_Param];
 						}
 					}
 				} else {
-					resRoot["errno"] = 1;
-					resRoot["errmsg"] = "Unknow Command Error.";
+					resRoot["errno"] = RequestErrorType_Request_Unknow_Command;
+					resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Unknow_Command];
 				}
 			} else {
-				resRoot["errno"] = 1;
-				resRoot["errmsg"] = "Unknow Command Error.";
+				resRoot["errno"] = RequestErrorType_Request_Unknow_Command;;
+				resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Unknow_Command];
 			}
 		}
 
 	} else {
-		resRoot["errno"] = 1;
-		resRoot["errmsg"] = "JSON Parse Error.";
+		resRoot["errno"] = RequestErrorType_Request_Data_Format_Parse;
+		resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Data_Format_Parse];
 	}
 
 	resRoot["data"] = resData;

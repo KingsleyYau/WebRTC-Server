@@ -42,6 +42,7 @@ async function connect() {
             host = 'ws://' + window.location.hostname + ':9881';
         }
         // host = 'ws://' + '192.168.88.133' + ':9881';
+        host = 'wss://' + '52.196.96.7' + ':9081';
 
         client = new WebSocket(host);
         client.binaryType = 'arraybuffer';
@@ -82,6 +83,8 @@ async function connect() {
                 } else if(obj.route == 'imRTC/sendSdpCall') {
                     // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
                     if( typeof(obj.data.rtmpUrl) != "undefined" ) {
+                        // demo
+                        // const rtmpUrl = 'rtmp://' + window.location.hostname + ':4000/cdn_flash/' + $("#stream").val();
                         const rtmpUrl = obj.data.rtmpUrl;
                         if( rtmpUrl.length > 0 ) {
                             $("[id=rtmpUrl]").attr("style", 'display: block');
@@ -262,7 +265,7 @@ class RTCClient {
 
     async showLocalVideo () {
         $("[id=localVideo]").attr("style", 'display: block');
-        return window.navigator.mediaDevices.getUserMedia({video: true, audio : true})
+        return window.navigator.mediaDevices.getUserMedia({video: {width: {exact: 640}, height: {exact: 480}}, audio : true})
             .then(mediaStream => {
                 this.pc.addStream(mediaStream);
                 this.mediaStream = mediaStream;
@@ -320,12 +323,13 @@ function isIE() {
 }
 
 function isEdge() {
-    return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
+    // return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
+    return ( adapter.browserDetails.browser == 'edge' );
 }
 
 function onload() {
-    if (!window.navigator.mediaDevices) {
-        alert('WebRTC.navigator.mediaDevices is not supported');
+    if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('WebRTC.mediaDevices is not supported');
         return;
     }
 
@@ -334,23 +338,25 @@ function onload() {
         return;
     }
 
+    console.log("Browser is " + adapter.browserDetails.browser);
+
     const configChromeDemo = {
         // iceServers: JSON.parse('[{"urls":["stun:192.168.88.134:3478"]}]')
         // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.134:3478"]}]')
         // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
         // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
+        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
     };
     const configChromeLocal = {
         iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
     }
 
     const configEdgeDemo = {
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
     }
     const configEdgeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:192.168.88.134:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:192.168.88.134:3478"]}]')
     }
 
     var config = {};
