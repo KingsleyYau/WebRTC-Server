@@ -23,7 +23,7 @@ CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/json -Ithird_party/websocketpp \
 			-I$(OPENSSL_INCLUDE)
 
-export BUILD_PATH = /root/webrtc/build
+export BUILD_PATH = /root/mediaserver/build
 export OPENSSL_INCLUDE = $(BUILD_PATH)/include
 export OPENSSL_LIB = $(BUILD_PATH)/lib
 

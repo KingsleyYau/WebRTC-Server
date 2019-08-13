@@ -6,7 +6,12 @@
 # Config version
 VERSION=3.3.3
 
-NOCLEAN="$1"
+BUILD_PATH="$1"
+if [ "$BUILD_PATH" == "" ]; then
+  echo "# BUILD_PATH must be set, like: /root/mediaserver/build"
+fi
+
+NOCLEAN="$2"
 if [ "$NOCLEAN" == "noclean" ]; then
 	echo "# Build ffmpeg without clean"
 else
@@ -15,7 +20,7 @@ else
 fi
 
 function configure_prefix {
-	export PREFIX=$(pwd)/../build
+	export PREFIX=$BUILD_PATH
 	export PATH="$PREFIX/bin:$PATH"
 	
 	export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig
