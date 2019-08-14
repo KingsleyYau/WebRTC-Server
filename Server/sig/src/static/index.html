@@ -402,6 +402,8 @@ function onload() {
         // Start capture and ice
         rtc.call().then( () => {
             type = 'call';
+        }).catch( (resaon) => {
+            console.log("RTC Call Fail, " + resaon);
         });
     });
 
