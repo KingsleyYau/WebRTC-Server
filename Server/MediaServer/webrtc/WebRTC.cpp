@@ -799,23 +799,23 @@ void WebRTC::OnIceConnected(IceClient *ice) {
 }
 
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
-	LogAync(
-			LOG_STAT,
-			"WebRTC::OnIceRecvData( "
-			"this : %p, "
-			"ice : %p, "
-			"streamId : %u, "
-			"componentId : %u, "
-			"size : %d, "
-			"data[0] : 0x%X "
-			")",
-			this,
-			ice,
-			streamId,
-			componentId,
-			size,
-			(unsigned char)data[0]
-			);
+//	LogAync(
+//			LOG_STAT,
+//			"WebRTC::OnIceRecvData( "
+//			"this : %p, "
+//			"ice : %p, "
+//			"streamId : %u, "
+//			"componentId : %u, "
+//			"size : %d, "
+//			"data[0] : 0x%X "
+//			")",
+//			this,
+//			ice,
+//			streamId,
+//			componentId,
+//			size,
+//			(unsigned char)data[0]
+//			);
 
 	bool bFlag = false;
 
@@ -881,20 +881,20 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		bFlag = mRtpSession.RecvRtpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
 			int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
-			LogAync(
-					LOG_STAT,
-					"WebRTC::OnIceRecvData( "
-					"this : %p, "
-					"[Relay RTP], "
-					"ssrc : %u, "
-					"mAudioSSRC : %u, "
-					"mVideoSSRC : %u "
-					")",
-					this,
-					ssrc,
-					mAudioSSRC,
-					mVideoSSRC
-					);
+//			LogAync(
+//					LOG_STAT,
+//					"WebRTC::OnIceRecvData( "
+//					"this : %p, "
+//					"[Relay RTP], "
+//					"ssrc : %u, "
+//					"mAudioSSRC : %u, "
+//					"mVideoSSRC : %u "
+//					")",
+//					this,
+//					ssrc,
+//					mAudioSSRC,
+//					mVideoSSRC
+//					);
 
 			if( ssrc == mAudioSSRC ) {
 				mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
@@ -906,20 +906,20 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		bFlag = mRtpSession.RecvRtcpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
 			int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
-			LogAync(
-					LOG_STAT,
-					"WebRTC::OnIceRecvData( "
-					"this : %p, "
-					"[Relay RTCP], "
-					"ssrc : %u, "
-					"mAudioSSRC : %u, "
-					"mVideoSSRC : %u "
-					")",
-					this,
-					ssrc,
-					mAudioSSRC,
-					mVideoSSRC
-					);
+//			LogAync(
+//					LOG_STAT,
+//					"WebRTC::OnIceRecvData( "
+//					"this : %p, "
+//					"[Relay RTCP], "
+//					"ssrc : %u, "
+//					"mAudioSSRC : %u, "
+//					"mVideoSSRC : %u "
+//					")",
+//					this,
+//					ssrc,
+//					mAudioSSRC,
+//					mVideoSSRC
+//					);
 
 			if( ssrc == mAudioSSRC ) {
 				mRtpDstAudioClient.SendRtcpPacket(pkt, pktSize);
