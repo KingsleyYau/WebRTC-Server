@@ -6,6 +6,7 @@
 <script src="jquery.min.js"></script>
 <script src="sdp_serializer.js"></script>
 <script src="adapter-latest.js"></script>
+<!--<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>-->
 <!--<script src="socket.io.js"></script>-->
 <script>
 
@@ -226,6 +227,7 @@ class RTCClient {
         this.mediaStream = null;
         this.pc = null;
         this.config = config;
+        this.onicecomplete = null;
         this.onicecandidate = null;
     }
 
@@ -257,6 +259,14 @@ class RTCClient {
             $("[id=remoteVideo]").attr("style", 'display: block');
         };
 
+        // ICE握手状态
+        this.pc.onicegatheringstatechange = event => {
+            console.log('RTCClient::onicegatheringstatechange( iceGatheringState: ', this.pc.iceGatheringState, ' )');
+            if ( this.pc.iceGatheringState == 'complete' ) {
+                this.onicecomplete();
+            }
+        };
+
         // 对方关闭
         this.pc.oniceconnectionstatechange = event => {
             console.log('RTCClient::oniceconnectionstatechange( iceConnectionState: ', this.pc.iceConnectionState, ' )');
@@ -271,7 +281,6 @@ class RTCClient {
         this.close();
 
         $("[id=localSdpTextarea]").html("");
-        $("[id=localSdpTextarea]").attr("disabled", true);
         $("[id=callButton]").attr("disabled", false);
         $("[id=answerButton]").attr("disabled", false);
         $("[id=acceptButton]").attr("disabled", false);
@@ -408,18 +417,26 @@ function onload() {
         // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.134:3478"]}]')
         // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
         // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]'),
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: 0
     };
     const configChromeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478"],"username":"MaxClient","credential":"123"}]'),
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: 0
     }
 
     const configEdgeDemo = {
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["stun:52.196.96.7"],"username":"","credential":""},{"urls":["turn:52.196.96.7?transport=udp"],"username":"MaxClient","credential":"123"}]'),
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: 0
     }
+
     const configEdgeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:192.168.88.134:3478"]}]')
+        iceServers: JSON.parse('[{"urls":["stun:192.168.88.134:3478"]},{"urls":["turn:192.168.88.134.7:3478"],"username":"MaxClient","credential":"123"}]'),
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: 0
     }
 
     var config = {};
@@ -429,27 +446,35 @@ function onload() {
         config = configChromeDemo;
     }
 
+    console.log(JSON.stringify(config));
     let type;
-    let client = new RTCClient(config);
-    client.onicecandidate = () => {
+    let rtc = new RTCClient(config);
+    rtc.onicecandidate = () => {
         if( type == 'call' ) {
-            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
-            // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
         } else if (type == 'answer') {
-            $("[id=localSdpTextarea]").html(client.forceNat(client.pc.localDescription.sdp));
+            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
             sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
         }
     };
 
+    rtc.onicecomplete = () => {
+        if( type == 'call' ) {
+            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+        } else if (type == 'answer') {
+            // $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            // sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
+        }
+    }
+
     $("[id=callBtn]").click(function() {
-        client.call().then( () => {
+        rtc.call().then( () => {
             type = 'call';
             // sendSdpCall($("#toUserId").val(), $("#localSdpTextarea").val());
         });
     });
 
     $("[id=hangupBtn]").click(function() {
-        client.hangup();
+        rtc.hangup();
     });
 
     $("[id=sendSdpBtn]").click(function() {
@@ -467,9 +492,11 @@ function onload() {
             sdp: remoteSdp
         }
 
-        client.answer(offer).then( () => {
+        rtc.answer(offer).then( function success() {
             type = 'answer';
-            // sendSdpAnswer($("#toUserId").val(), $("#localSdpTextarea").val());
+            console.log("Answer Success");
+        }, function fail(reason) {
+            console.log("Answer Fail, " + reason);
         });
     });
 
@@ -479,7 +506,11 @@ function onload() {
             type: 'answer',
             sdp: remoteSdp
         }
-        client.accpet(answer);
+        rtc.accpet(answer).then( function success() {
+            console.log("Accept Success");
+        }, function fail(reason) {
+            console.log("Accept Fail, " + reason);
+        })
     });
 
     connect();
@@ -514,7 +545,7 @@ document.addEventListener("DOMContentLoaded", function() {
     <div class="video-box">
         <div id="local">
             Local SDP<p>
-            <textarea id="localSdpTextarea" disabled="true"></textarea>
+            <textarea id="localSdpTextarea"></textarea>
             <div>
                 <button id="callBtn">Call</button><button id="hangupBtn">Hangup</button><button id="sendSdpBtn">sendSdp</button><button id="postSdpBtn">postSdp</button>
             </div>

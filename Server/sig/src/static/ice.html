@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<title>ImService test client</title>
+
+<script src="jquery.min.js"></script>
+<script src="sdp_serializer.js"></script>
+<!--<script src="adapter-latest.js"></script>-->
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<!--<script src="socket.io.js"></script>-->
+<script>
+
+class RTCClient {
+    constructor (config) {
+        this.mediaStream = null;
+        this.pc = null;
+        this.config = config;
+        this.onicecandidate = null;
+    }
+
+    init () {
+        this.pc = new RTCPeerConnection(this.config);
+
+        this.pc.onicecandidate = event => {
+            if (!event.candidate) {
+                return;
+            }
+
+            let json = JSON.stringify(event.candidate);
+            console.log('RTCClient::onicecandidate( candidate: ',  json, ' )');
+
+            // 通过ICE服务获取到NAT的类型和外网的IP端口
+            let sdp = this.pc.localDescription.sdp;
+            this.onicecandidate(sdp);
+        };
+
+        // 对方关闭
+        this.pc.onicegatheringstatechange = event => {
+            console.log('RTCClient::onicegatheringstatechange( iceGatheringState: ', this.pc.iceGatheringState, ' )');
+        };
+    }
+
+    async call () {
+        this.init();
+
+        // await this.showLocalVideo();
+
+        let offer = await this.pc.createOffer({
+            offerToReceiveAudio: true
+            // offerToReceiveVideo: true
+        });
+        await this.pc.setLocalDescription(offer);
+
+        let localDescription = JSON.stringify(this.pc.localDescription);
+        // console.log('RTCClient::call( localDescription :', localDescription, ' )');
+    }
+
+    close () {
+        this.pc.close();
+        this.stopLocalVideo();
+    }
+
+    async showLocalVideo () {
+        $("[id=localVideo]").attr("style", 'display: block');
+        return window.navigator.mediaDevices.getUserMedia({video: {width: {exact: 640}, height: {exact: 480}}, audio : true})
+            .then(mediaStream => {
+                this.pc.addStream(mediaStream);
+                this.mediaStream = mediaStream;
+                $("[id=localVideo]").attr('srcObject', mediaStream);
+            });
+    }
+
+    async stopLocalVideo () {
+        $("[id=localVideo]").attr("style", 'display: none');
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(
+                track => track.stop()
+            );
+            $("[id=localVideo]").attr('srcObject', null);
+        }
+    }
+}
+
+function onload() {
+    if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('WebRTC.mediaDevices is not supported');
+        return;
+    }
+
+    if (!window.RTCPeerConnection) {
+        alert('WebRTC.RTCPeerConnection is not supported');
+        return;
+    }
+
+    // console.log("Browser is " + adapter.browserDetails.browser);
+
+    const configEdgeDemo = {
+        iceServers: JSON.parse('[{"urls":["stun:52.196.96.7"],"username":"","credential":""},{"urls":["turn:52.196.96.7"],"username":"MaxClient","credential":"123"}]'),
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: "0"
+    }
+    console.log(JSON.stringify(configEdgeDemo));
+
+    var config = {};
+    config = configEdgeDemo;
+
+    let type;
+    let rtc = new RTCClient(config);
+    rtc.onicecandidate = () => {
+    };
+
+    $("[id=callBtn]").click(function() {
+        rtc.call().then( () => {
+        });
+    });
+
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    onload();
+});
+// window.onload = onload();
+
+</script>
+
+<body>
+<div id="">
+    UserAgent : <lable id="userAgent"></lable><br>
+    IsEdge : <lable id="isEdge"></lable><br>
+    Websocket Status : <lable id="status">Not Connected</lable><br>
+    <p>################################################################
+    <div class="video-box">
+        <div id="local">
+            <div id="errMsg" style="display: none">
+                Error Msg : <font color="#FF0000"><lable id="errMsgLabel"></lable></font>
+            </div>
+            <div id="rtmpUrl" style="display: none">
+                Rtmp Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="http://192.168.88.17:8880/" target="blank" name="play">Flash播放</a>
+            </div>
+
+            Stream : <input id="stream" type="text" name="" value="max0" /><br>
+            Local SDP<p>
+            <textarea id="localSdpTextarea" disabled="true"></textarea>
+            <div>
+                <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
+            </div>
+            <p>Local Video</p>
+            <video id="localVideo" width="400" height="300" autoplay style="display: none"></video>
+        </div>
+
+        <div id="remote">
+            <p>Remote SDP</p>
+            <textarea id="remoteSdpTextarea"></textarea>
+        </div>
+    </div>
+
+    <p>################################################################
+    <div style="color:#00F000">
+        json recv : <lable id="jsonRecv" ></lable>
+    </div>
+    <div style="color:#F00000">
+        json request : <lable id="jsonSend" ></lable>
+    </div>
+    <div style="color:#0000F0">
+        json respond : <lable id="jsonRespond"></lable>
+    </div>
+
+</div>
+</body>
+</html>
