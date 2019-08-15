@@ -1,6 +1,6 @@
 /*
  * DtlsSession.h
- *
+ * DTLS会话管理器
  *  Created on: 2019/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com

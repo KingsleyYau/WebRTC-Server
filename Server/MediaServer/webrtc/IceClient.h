@@ -1,6 +1,6 @@
 /*
  * IceClient.h
- *
+ * ICE控制器
  *  Created on: 2019/06/28
  *      Author: max
  *		Email: Kingsleyyau@gmail.com

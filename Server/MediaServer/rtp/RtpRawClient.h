@@ -1,6 +1,6 @@
 /*
  * RtpRawClient.h
- *
+ * 利用UDP作为传输的RTP客户端
  *  Created on: 2019/07/03
  *      Author: max
  *		Email: Kingsleyyau@gmail.com

@@ -138,10 +138,11 @@ bool IceClient::Start() {
      * https://nice.freedesktop.org/libnice/NiceAgent.html
      *
      * stun-max-retransmissions:
-     * 设置CREATE_PERMISSION后, 尝试发送Send Indication的次数, 默认为7次
-     * 每次发送Send Indication的时间间隔会翻倍, 初始为200ms
+     * 发送CREATE_PERMISSION后, 尝试发送Send Indication的次数, 默认为7次, 大概为25s, (2^7*200/1000)=25s
+     * 每次发送Send Indication的时间间隔会翻倍, 默认初始为200ms
      *
-     * stun-initial-timeout:初始值
+     * stun-initial-timeout:
+     * 每次发送Send Indication的初始值, 默认为200ms
      *
      */
 	// 被动呼叫, controlling-mode为0
@@ -152,7 +153,7 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "force-relay", FALSE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
-    g_object_set(mpAgent, "stun-max-retransmissions", 10, NULL);
+    g_object_set(mpAgent, "stun-max-retransmissions", 7, NULL);
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
     // 保持心跳

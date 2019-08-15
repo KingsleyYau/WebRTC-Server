@@ -1,6 +1,6 @@
 /*
  * RtpSession.h
- *
+ * SRTP会话管理器
  *  Created on: 2019/06/20
  *      Author: max
  *		Email: Kingsleyyau@gmail.com

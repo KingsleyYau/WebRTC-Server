@@ -1,5 +1,11 @@
 /*
  * WebRTC.h
+ * WebRTC控制器, 管理整个WebRTC流程
+ * 1.解析远程SDP
+ * 2.开启ICE获取转发端口
+ * 3.进行DTLS握手
+ * 4.创建本地SDP, 启动FFMEPG接收本地RTP流, 并转发RTMP到Nginx流媒体服务器
+ * 5.转发RTP/RTCP到本地流
  *
  *  Created on: 2019/07/02
  *      Author: max
