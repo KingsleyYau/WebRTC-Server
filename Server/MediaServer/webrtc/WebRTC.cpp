@@ -270,7 +270,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						media->attr_count
 						);
 
-				for(int i = 0; i < media->payload_type_array_count; i++) {
+				for(int i = 0; i < (int)media->payload_type_array_count; i++) {
 					sdp_payload payload = media->payload_type_array[i];
 					LogAync(
 							LOG_STAT,
@@ -403,7 +403,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 //										mAudioRtcpFbList.push_back(rtcpFb);
 //									}
 								} else if ( media->type == SDP_MEDIA_TYPE_VIDEO ) {
-									if( mVideoSdpPayload.payload_type == atoi(payload.c_str()) ) {
+									if( (int)mVideoSdpPayload.payload_type == atoi(payload.c_str()) ) {
 										string rtcpFb = key + ":" + value;
 
 										LogAync(
@@ -639,7 +639,7 @@ int WebRTC::SendData(const void *data, unsigned int len) {
 
 void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string candidate;
-	for(int i = 0; i < candList.size(); i++) {
+	for(int i = 0; i < (int)candList.size(); i++) {
 		candidate += candList[i];
 	}
 
@@ -880,7 +880,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 	} else if( RtpSession::IsRtp(data, size) ) {
 		bFlag = mRtpSession.RecvRtpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
-			int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
+			unsigned int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
 //			LogAync(
 //					LOG_STAT,
 //					"WebRTC::OnIceRecvData( "
@@ -905,7 +905,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 	} else if( RtpSession::IsRtcp(data, size) ){
 		bFlag = mRtpSession.RecvRtcpPacket(data, size, pkt, pktSize);
 		if( bFlag ) {
-			int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
+			unsigned int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
 //			LogAync(
 //					LOG_STAT,
 //					"WebRTC::OnIceRecvData( "

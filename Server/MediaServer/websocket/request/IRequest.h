@@ -35,8 +35,8 @@ public:
 	static IRequest *CreateRequest(const void *data, int size, bool &bParse, IRequestCallback *callback);
 	virtual void Parse(const Json::Value &reqRoot, IRequestCallback *callback) = 0;
 
-	virtual const string& GetId() = 0;
-	virtual const string& GetRoute() = 0;
+	virtual const string GetId() = 0;
+	virtual const string GetRoute() = 0;
 
 };
 

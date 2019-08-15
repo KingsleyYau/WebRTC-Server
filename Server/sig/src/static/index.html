@@ -10,9 +10,11 @@
 
 var client;
 var reqId = 0;
+var callAlready = false;
 
 function reset() {
     reqId = 0;
+    callAlready = false;
 
     $("[id=status]").html('Not Connected');
     $("[id=stream]").html('');
@@ -169,6 +171,7 @@ async function call() {
 
     setTimeout( () => {
         sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
+        callAlready = true;
     }, 1000);
 }
 
@@ -267,11 +270,21 @@ class RTCClient {
 
     async showLocalVideo () {
         $("[id=localVideo]").attr("style", 'display: block');
+        /**
+         * Edge does not support custom video size
+         * only support original video capture size, example: 320x240, 640x480
+         */
         return window.navigator.mediaDevices.getUserMedia({video: {width: {exact: 640}, height: {exact: 480}}, audio : true})
             .then(mediaStream => {
+                let video = mediaStream.getVideoTracks()[0];
+                if ( typeof(video)=="undefined" || video==null ) {
+                    console.log("No Video Can Be Captured.");
+                }
                 this.pc.addStream(mediaStream);
                 this.mediaStream = mediaStream;
                 $("[id=localVideo]").attr('srcObject', mediaStream);
+            }).catch( reason => {
+                console.log("RTCClient::showLocalVideo( Fail, " + reason + ' )');
             });
     }
 
@@ -388,13 +401,22 @@ function onload() {
     let type;
     let rtc = new RTCClient(config);
     rtc.onicecandidate = () => {
+        if( type == 'call' ) {
+            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            if ( callAlready ) {
+                // Update sdp to media server
+                sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
+            }
+
+        }
     };
 
     rtc.onicecomplete = () => {
         if( type == 'call' ) {
-            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
-            // Send sdp to media server
-            call();
+            // Get Whole sdp with ice candidate, but it maybe cost time
+            // $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            // // Send sdp to media server
+            // call();
         }
     }
 
@@ -402,6 +424,11 @@ function onload() {
         // Start capture and ice
         rtc.call().then( () => {
             type = 'call';
+            // Set local display
+            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            // Send sdp call to media server
+            call();
+
         }).catch( (resaon) => {
             console.log("RTC Call Fail, " + resaon);
         });
@@ -414,9 +441,9 @@ function onload() {
             sdp: remoteSdp
         }
         rtc.accpet(answer).then( function success() {
-            console.log("Rtc Accept Success");
+            console.log("Rtc Accept Success.");
         }, function fail() {
-            console.log("Rtc Accept Fail");
+            console.log("Rtc Accept Fail.");
         })
     });
 

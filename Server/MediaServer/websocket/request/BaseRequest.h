@@ -17,8 +17,8 @@ public:
 	BaseRequest();
 	virtual ~BaseRequest();
 
-	virtual const string& GetId();
-	virtual const string& GetRoute();
+	virtual const string GetId();
+	virtual const string GetRoute();
 
 	void Parse(const Json::Value &reqRoot, IRequestCallback *callback);
 

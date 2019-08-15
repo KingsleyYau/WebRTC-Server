@@ -16,6 +16,9 @@
 #include <common/TimeProc.hpp>
 #include <common/StringHandle.h>
 
+// ThirdParty
+#include <json/json.h>
+
 // Base Server
 #include <server/AsyncIOServer.h>
 
@@ -32,6 +35,9 @@
 
 // WebRTC
 #include <webrtc/WebRTC.h>
+
+// ErrorCode
+#include <ErrCode.h>
 
 using namespace mediaserver;
 
@@ -148,6 +154,8 @@ private:
 
 	/***************************** 内部服务接口 end **************************************/
 
+private:
+	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
 
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/

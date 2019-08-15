@@ -22,7 +22,7 @@
 #include <string>
 using namespace std;
 
-typedef struct ev_io;
+struct ev_io;
 namespace mediaserver {
 class RtmpClient;
 class RtmpClientCallback {

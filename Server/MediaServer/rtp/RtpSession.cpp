@@ -597,7 +597,7 @@ bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsign
 
 	        	const char *body = nalu->GetNaluBody();
 	        	lastSize = nalu->GetNaluBodySize();
-	        	if( lastSize <= sizeof(pkt.body) ) {
+	        	if( lastSize <= (int)sizeof(pkt.body) ) {
 	        		// Send single NALU with one RTP packet
 		        	LogAync(
 		        			LOG_STAT,
@@ -682,7 +682,7 @@ bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsign
 
 			        	while( true ) {
 			        		// 2 bytes for FU indicator and FU header
-			        		bodySize = MIN(lastSize, sizeof(pkt.body) - 2);
+			        		bodySize = MIN(lastSize, (int)(sizeof(pkt.body) - 2));
 
 			    			pkt.header.ssrc = htonl(0x12345678);
 			    			pkt.header.seq = htons(mVideoRtpSeq++);
@@ -900,7 +900,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
     if (status == srtp_err_status_ok) {
     	if( mpRtpSender ) {
     		int sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
-			if (sendSize != pktSize) {
+			if (sendSize != (int)pktSize) {
 				bFlag = false;
 			}
     	} else {
@@ -998,7 +998,7 @@ bool RtpSession::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
     if (status == srtp_err_status_ok) {
     	if( mpRtcpSender ) {
     		int sendSize = mpRtcpSender->SendData((void *)pkt, pktSize);
-			if (sendSize != pktSize) {
+			if (sendSize != (int)pktSize) {
 				bFlag = false;
 			}
     	} else {

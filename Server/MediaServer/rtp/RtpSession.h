@@ -24,7 +24,7 @@
 using namespace std;
 
 typedef struct srtp_ctx_t_ srtp_ctx_t;
-typedef struct srtp_policy_t;
+struct srtp_policy_t;
 
 /*
  * RTP_HEADER_LEN indicates the size of an RTP header

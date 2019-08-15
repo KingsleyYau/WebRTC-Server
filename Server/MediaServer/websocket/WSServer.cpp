@@ -89,7 +89,7 @@ bool WSServer::Start(int port, int maxConnection) {
 //    	mServer.set_tls_init_handler(bind(&WSServer::OnTlsInit, 1, ::_1));
 
         // Listen on port
-    	mServer.listen(port);
+    	mServer.listen(lib::asio::ip::tcp::v4(), port);
 
         // Start the server accept loop
     	mServer.start_accept();
@@ -164,22 +164,26 @@ bool WSServer::Start(int port, int maxConnection) {
 void WSServer::Stop() {
 	LogAync(
 			LOG_MSG,
-			"WSServer::Stop( "
+			"WSServer::Stop("
 			")"
 			);
 
 	mServerMutex.lock();
 
 	mRunning = false;
-	mServer.stop_listening();
+	if( mServer.is_listening() ) {
+		mServer.stop_listening();
+	}
 	mServer.stop();
+
+	mIOThread.Stop();
 
 	mServerMutex.unlock();
 
 	LogAync(
 			LOG_MSG,
 			"WSServer::Stop( "
-			"[OK], "
+			"[OK] "
 			")"
 			);
 }

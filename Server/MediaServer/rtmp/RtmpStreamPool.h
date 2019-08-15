@@ -20,8 +20,8 @@ using namespace std;
 #include <rtmp/RtmpClient.h>
 #include <rtp/RtpRawClient.h>
 
-typedef struct ev_io;
-typedef struct ev_loop;
+struct ev_io;
+struct ev_loop;
 namespace mediaserver {
 
 class RtmpIORunnable;

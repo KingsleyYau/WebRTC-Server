@@ -8,6 +8,4 @@
 #ifndef INCLUDE_COMMONHEADER_H_
 #define INCLUDE_COMMONHEADER_H_
 
-#define OUT
-
 #endif /* INCLUDE_COMMONHEADER_H_ */

@@ -17,7 +17,7 @@ using namespace std;
 
 #include <common/LogManager.h>
 
-typedef struct ev_io;
+struct ev_io;
 namespace mediaserver {
 typedef enum SocketStatus {
 	SocketStatusSuccess,

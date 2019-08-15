@@ -20,7 +20,7 @@ class KSafeMap {
 public:
 	typedef typename SafeMap::iterator iterator;
 
-	KSafeMap() {
+	KSafeMap():mKMutex(KMutex::MutexType_Recursive) {
 
 	}
 

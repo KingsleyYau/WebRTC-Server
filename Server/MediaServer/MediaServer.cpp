@@ -13,14 +13,10 @@
 // Common
 #include <httpclient/HttpClient.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
-// ErrorCode
-#include <ErrCode.h>
 // Request
 // Respond
 #include <respond/BaseRespond.h>
 #include <respond/BaseResultRespond.h>
-// ThirdParty
-#include <json/json.h>
 
 /***************************** 线程处理 **************************************/
 /**
@@ -1014,20 +1010,17 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
 								} else {
-									resRoot["errno"] = RequestErrorType_WebRTC_Start_Fail;
-									resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_Start_Fail];
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail);
 								}
 
 							} else {
-								resRoot["errno"] = RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow;
-								resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow];
+								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
 							}
 
 							mWebRTCMap.Unlock();
 							mWebsocketMap.Unlock();
 						} else {
-							resRoot["errno"] = RequestErrorType_Request_Missing_Param;
-							resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Missing_Param];
+							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 						}
 					}
 				} else if ( route == "imRTC/sendSdpUpdate" ) {
@@ -1051,30 +1044,25 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								rtc->UpdateCandidate(sdp);
 								bFlag = true;
 							} else {
-								resRoot["errno"] = RequestErrorType_WebRTC_Update_Candidate_Before_Call;
-								resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_WebRTC_Update_Candidate_Before_Call];
+								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Update_Candidate_Before_Call);
 							}
 
 							mWebRTCMap.Unlock();
 							mWebsocketMap.Unlock();
 						} else {
-							resRoot["errno"] = RequestErrorType_Request_Missing_Param;
-							resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Missing_Param];
+							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 						}
 					}
 				} else {
-					resRoot["errno"] = RequestErrorType_Request_Unknow_Command;
-					resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Unknow_Command];
+					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}
 			} else {
-				resRoot["errno"] = RequestErrorType_Request_Unknow_Command;;
-				resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Unknow_Command];
+				GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 			}
 		}
 
 	} else {
-		resRoot["errno"] = RequestErrorType_Request_Data_Format_Parse;
-		resRoot["errmsg"] = RequestErrorTypeMsg[RequestErrorType_Request_Data_Format_Parse];
+		GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Data_Format_Parse);
 	}
 
 	resRoot["data"] = resData;
@@ -1099,4 +1087,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 		mWSServer.Disconnect(hdl);
 	}
 }
-/***************************** 内部服务(HTTP) 回调处理 end **************************************/
+
+void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType) {
+	ErrObject obj = RequestErrObjects[errType];
+	resErrorNo = obj.errNo;
+	resErrorMsg = obj.errMsg;
+}

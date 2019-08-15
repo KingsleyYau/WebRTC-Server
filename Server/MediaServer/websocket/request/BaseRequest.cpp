@@ -18,7 +18,7 @@ BaseRequest::~BaseRequest() {
 	// TODO Auto-generated destructor stub
 }
 
-const string& BaseRequest::GetId() {
+const string BaseRequest::GetId() {
 	string reqId = "";
 	if( mReqRoot.isObject() ) {
 		if ( mReqRoot["id"].isString() ) {
@@ -28,7 +28,7 @@ const string& BaseRequest::GetId() {
 	return reqId;
 }
 
-const string& BaseRequest::GetRoute() {
+const string BaseRequest::GetRoute() {
 	string reqRoute = "";
 	if( mReqRoot.isObject() ) {
 		if ( mReqRoot["route"].isString() ) {

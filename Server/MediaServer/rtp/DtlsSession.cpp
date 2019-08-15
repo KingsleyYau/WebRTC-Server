@@ -349,7 +349,7 @@ bool DtlsSession::GobalInit(const string& certPath, const string& keyPath) {
 	    unsigned char fingerprint[EVP_MAX_MD_SIZE];
 	    bFlag = X509_digest(gpSSLCert, EVP_sha256(), (unsigned char *)fingerprint, &size);
 	    char *c = (char *)&gFingerprint;
-	    for(int i = 0; i < size; i++) {
+	    for(int i = 0; i < (int)size; i++) {
 	    	sprintf(c, "%.2X:", fingerprint[i]);
 	    	c += 3;
 	    }
@@ -671,7 +671,7 @@ void DtlsSession::CheckHandshake() {
         X509_free(cert);
 
 	    char *c = (char *)&remoteFingerprint;
-	    for(int i = 0; i < fingerprintSize; i++) {
+	    for(int i = 0; i < (int)fingerprintSize; i++) {
 	    	sprintf(c, "%.2X:", fingerprint[i]);
 	    	c += 3;
 	    }

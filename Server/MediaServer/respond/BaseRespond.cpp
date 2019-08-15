@@ -19,9 +19,9 @@ BaseRespond::~BaseRespond() {
 int BaseRespond::GetData(char* buffer, int len, bool &more) {
 	int ret = 0;
 	more = false;
-
-	snprintf(buffer, len, "");
-	ret = strlen(buffer);
+	if ( len > 0 ) {
+		buffer[0] = '\0';
+	}
 	return ret;
 }
 }

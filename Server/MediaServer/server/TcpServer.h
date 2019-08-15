@@ -29,8 +29,8 @@
 #include <common/KSafeList.h>
 #include <common/LogManager.h>
 
-typedef struct ev_io;
-typedef struct ev_loop;
+struct ev_io;
+struct ev_loop;
 namespace mediaserver {
 class TcpServerCallback {
 public:
