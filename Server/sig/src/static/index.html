@@ -235,12 +235,12 @@ class RTCClient {
         $("[id=acceptButton]").attr("disabled", false);
     }
 
-    async call () {
+    async call (videoSource) {
         reset();
 
         this.init();
 
-        await this.showLocalVideo();
+        await this.showLocalVideo(videoSource);
 
         let offer = await this.pc.createOffer({
             offerToReceiveAudio: true,
@@ -268,14 +268,20 @@ class RTCClient {
         this.stopLocalVideo();
     }
 
-    async showLocalVideo () {
+    async showLocalVideo (videoSource) {
         $("[id=localVideo]").attr("style", 'display: block');
         /**
          * Edge does not support custom video size
          * only support original video capture size, example: 320x240, 640x480
          */
-        return window.navigator.mediaDevices.getUserMedia({video: {width: {exact: 640}, height: {exact: 480}}, audio : true})
-            .then(mediaStream => {
+        return window.navigator.mediaDevices.getUserMedia(
+            {
+                video: {
+                    deviceId: videoSource ? {exact: videoSource} : undefined,
+                    width: {exact: 640}, height: {exact: 480}
+                    },
+                audio : true
+            }).then(mediaStream => {
                 let video = mediaStream.getVideoTracks()[0];
                 if ( typeof(video)=="undefined" || video==null ) {
                     console.log("No Video Can Be Captured.");
@@ -317,12 +323,6 @@ class RTCClient {
         // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
         // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
 
-        return newSdp;
-    }
-
-    forceNat(sdp) {
-        var newSdp = sdp;
-        // newSdp = newSdp.replace(/.*192.168.88.138.*\r\n/g, '');
         return newSdp;
     }
 }
@@ -402,7 +402,7 @@ function onload() {
     let rtc = new RTCClient(config);
     rtc.onicecandidate = () => {
         if( type == 'call' ) {
-            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             if ( callAlready ) {
                 // Update sdp to media server
                 sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
@@ -422,10 +422,11 @@ function onload() {
 
     $("[id=callBtn]").click(function() {
         // Start capture and ice
-        rtc.call().then( () => {
+        const videoSource = $("[id=videoSelector]").val();
+        rtc.call(videoSource).then( () => {
             type = 'call';
             // Set local display
-            $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             // Send sdp call to media server
             call();
 
@@ -451,11 +452,33 @@ function onload() {
         client.close();
         rtc.hangup();
     });
+
+    $("[id=videoSource]").change( function () {
+
+    });
+}
+
+function handleError(error) {
+    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
+
+function gotDevices(deviceInfos) {
+    // Handles being called several times to update labels. Preserve values.
+    for (let i = 0; i !== deviceInfos.length; ++i) {
+        const deviceInfo = deviceInfos[i];
+        // console.log('Got Device: ', deviceInfo);
+
+        if (deviceInfo.kind === 'videoinput') {
+            console.log('Got Video Capture Input : ', deviceInfo);
+            $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + deviceInfo.label + "</option>");
+        }
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function() {
     onload();
     showUserAgent();
+    navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 });
 // window.onload = onload();
 
@@ -483,6 +506,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
             </div>
             <p>Local Video</p>
+            <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
             <video id="localVideo" width="400" height="300" autoplay style="display: none"></video>
         </div>
 
