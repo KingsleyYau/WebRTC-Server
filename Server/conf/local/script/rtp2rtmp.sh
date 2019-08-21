@@ -35,7 +35,7 @@ function Clean() {
 	fi
 }
 
-$FFMPEG -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 -re -i $SDP_FILE -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -c:a libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
+$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 -re -i $SDP_FILE -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -g 12 -b:v 1000k -c:a libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
 
 while true;do
 	sleep 2

@@ -5,7 +5,7 @@
 #
 
 # Start coturn
-APP_DIR=/home/samson/Max/webrtc
+APP_DIR=/root/Max/mediaserver
 APP_EXE=$APP_DIR/bin/turnserver
 APP_CONFIG=$APP_DIR/etc/turnserver.conf
 APP_DATABASE=$APP_DIR/var/db/turndb
