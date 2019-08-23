@@ -1,5 +1,5 @@
 # Copyright (C) 2015 The CamShareMiddleware
-# tester Makefile
+# webrtc-tester Makefile
 #
 # Created on: 2015/10/10
 # Author: Max.Chiu
@@ -15,57 +15,55 @@ else
 CXXFLAGS = -O2 -g
 endif
 
-CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable
-CXXFLAGS +=	-I. -I../ -I../include -I../third_party -I../third_party/libev
+CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable 
+CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
+			-I../third_party/json \
+			-I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include \
+			-I../third_party/libsdp/include \
+			-I../third_party/libnice/nice -I../third_party/libnice/agent \
+			-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/ \
+			-I$(OPENSSL_INCLUDE)
 
-CXXFLAGS += -D__STDC_CONSTANT_MACROS
+CFLAGS += -DDISABLE_MD5=1
+
+export BUILD_PATH = /root/mediaserver/build
+export OPENSSL_INCLUDE = $(BUILD_PATH)/include
+export OPENSSL_LIB = $(BUILD_PATH)/lib
 
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS =		-L. \
 			-Wl,-Bstatic -L../common -lcommon \
-			-Wl,-Bstatic -L../third_party/libev/.libs -lev \
-			-Wl,-Bdynamic -ldl -lz -lpthread -lidn
+			-Wl,-Bstatic -L../socket -lsocket \
+			-Wl,-Bstatic -L../media -lmedia \
+			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bstatic -L../third_party/libsrtp -lsrtp2 \
+			-Wl,-Bstatic -L../third_party/libsdp -lsdp \
+			-Wl,-Bstatic -L../third_party/libnice/nice/.libs -lnice \
+			-Wl,-Bstatic -L../third_party/libnice/stun/.libs -lstun \
+			-Wl,-Bstatic -L../third_party/libnice/agent/.libs -lagent \
+			-Wl,-Bstatic -L../third_party/libnice/random/.libs -lnice-random \
+			-Wl,-Bstatic -L../third_party/libnice/socket/.libs -lsocket \
+			-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
+			-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
+			-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
+			-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre
 				
-OBJS	+=	http_client.o HttpServerTest.o		
-TARGET =	http-client
+OBJS += WebRTC.o IceClient.o
+OBJS += DtlsSession.o RtpSession.o RtpRawClient.o MainLoop.o
+OBJS +=	WebRTCTester.o webrtc-tester.o mongoose.o
+TARGET = webrtc-tester
 
-FORK_OBJS += $(COMMON)
-FORK_OBJS += fork_tester.o
-FORK_TEST =	fork-tester
+.PHONY: clean $(TARGET)
 
-TRANSCODER_OBJS += $(COMMON)
-TRANSCODER_OBJS += transcoder_tester.o
-TRANSCODER_TEST =	transcoder-tester
-
-.PHONY: clean $(TARGET) $(FORK_TEST) $(TRANSCODER_TEST)
-
-$(TARGET):	$(OBJS)
+$(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
 	@echo '################################################################'
 	@echo ''
-	@echo '# Bulid tester completed!'
-	@echo ''
-	@echo '################################################################'
-
-$(FORK_TEST):	$(FORK_OBJS)
-	$(CXX) -o $(FORK_TEST) $(FORK_OBJS) $(LIBS)
-	@echo '################################################################'
-	@echo ''
-	@echo '# Bulid fork-tester completed!'
-	@echo ''
-	@echo '################################################################'
-	
-$(TRANSCODER_TEST):	$(TRANSCODER_OBJS)
-	$(CXX) -o $(TRANSCODER_TEST) $(TRANSCODER_OBJS) $(LIBS)
-	@echo '################################################################'
-	@echo ''
-	@echo '# Bulid transcoder-tester completed!'
+	@echo '# Bulid webrtc-tester completed!'
 	@echo ''
 	@echo '################################################################'
 		
-all:	$(TARGET) $(FORK_TEST) $(TRANSCODER_TEST)
+all: $(TARGET)
 
 clean:
-	rm -f $(OBJS) $(TARGET) \
-	$(FORK_OBJS) $(FORK_TEST) \
-	$(TRANSCODER_TEST) $(TRANSCODER_OBJS)
+	rm -f $(OBJS) $(TARGET)

@@ -136,10 +136,12 @@ bool WebRTC::Start(
 			LOG_WARNING,
 			"WebRTC::Start( "
 			"this : %p, "
-			"[%s] "
+			"[%s], "
+			"rtmpUrl : %s "
 			")",
 			this,
-			bFlag?"OK":"Fail"
+			bFlag?"OK":"Fail",
+			rtmpUrl.c_str()
 			);
 
 	if( !bFlag ) {
@@ -151,7 +153,7 @@ bool WebRTC::Start(
 
 void WebRTC::Stop() {
 	LogAync(
-			LOG_WARNING,
+			LOG_MSG,
 			"WebRTC::Stop( "
 			"this : %p "
 			")",
@@ -176,9 +178,11 @@ void WebRTC::Stop() {
 			LOG_WARNING,
 			"WebRTC::Stop( "
 			"this : %p, "
-			"[OK] "
+			"[OK], "
+			"rtmpUrl : %s "
 			")",
-			this
+			this,
+			mRtmpUrl.c_str()
 			);
 }
 
@@ -194,6 +198,10 @@ void WebRTC::UpdateCandidate(const string& sdp) {
 //			);
 
 	mIceClient.SetRemoteSdp(sdp);
+}
+
+string WebRTC::GetRtmpUrl() {
+	return mRtmpUrl;
 }
 
 bool WebRTC::ParseRemoteSdp(const string& sdp) {
@@ -499,7 +507,7 @@ string WebRTC::CreateLocalSdp() {
 			);
 
 	LogAync(
-			LOG_WARNING,
+			LOG_MSG,
 			"WebRTC::CreateLocalSdp( "
 			"this : %p, "
 			"sdp :\n%s"
@@ -605,7 +613,7 @@ void WebRTC::StopRtpTransform() {
 	mRtpTransformPidMutex.lock();
 	if ( mRtpTransformPid != 0 ) {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_MSG,
 				"WebRTC::StopRtpTransform( "
 				"this : %p, "
 				"pid : %d "
@@ -644,7 +652,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 	}
 
 	LogAync(
-			LOG_WARNING,
+			LOG_MSG,
 			"WebRTC::OnIceCandidateGatheringDone( "
 			"this : %p, "
 			"ice : %p, "

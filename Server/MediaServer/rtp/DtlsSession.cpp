@@ -480,7 +480,7 @@ void DtlsSession::Stop() {
 		mRunning = false;
 
 		LogAync(
-				LOG_WARNING,
+				LOG_MSG,
 				"DtlsSession::Stop( "
 				"this : %p "
 				")",
@@ -511,7 +511,7 @@ void DtlsSession::Stop() {
 		mDtlsSessionStatus = DtlsSessionStatus_None;
 
 		LogAync(
-				LOG_WARNING,
+				LOG_MSG,
 				"DtlsSession::Stop( "
 				"this : %p, "
 				"[OK] "

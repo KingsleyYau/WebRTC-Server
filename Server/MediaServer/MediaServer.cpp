@@ -11,6 +11,7 @@
 #include <sys/syscall.h>
 #include <algorithm>
 // Common
+#include <common/CommonFunc.h>
 #include <httpclient/HttpClient.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
 // Request
@@ -67,11 +68,12 @@ MediaServer::MediaServer()
 	miDebugMode = 0;
 	miLogLevel = 0;
 
+	// 信令服务(Websocket)参数
 	miWebsocketPort = 0;
+	miWebsocketMaxClient = 0;
 
 	// 统计参数
 	mTotal = 0;
-
 	// 其他
 	mRunning = false;
 }
@@ -179,9 +181,11 @@ bool MediaServer::Start() {
 			LOG_WARNING,
 			"MediaServer::Start( "
 			"[信令服务(Websocket)], "
-			"miWebsocketPort : %u "
+			"miWebsocketPort : %u, "
+			"miWebsocketMaxClient : %u "
 			")",
-			miWebsocketPort
+			miWebsocketPort,
+			miWebsocketMaxClient
 			);
 
 	// 日志参数
@@ -230,10 +234,18 @@ bool MediaServer::Start() {
 	}
 
 	if( bFlag ) {
+		// WebRTC最大转发数
 		for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
 			WebRTC *rtc = new WebRTC();
+			rtc->SetCallback(this);
 			rtc->Init(mWebRTCRtp2RtmpShellFilePath, "127.0.0.1", port, "127.0.0.1", port + 2);
 			mWebRTCList.PushBack(rtc);
+		}
+
+		// Websocket最大连接数
+		for(unsigned int i = 0; i < miWebsocketMaxClient; i++) {
+			MediaClient *client = new MediaClient();
+			mMediaClientList.PushBack(client);
 		}
 	}
 
@@ -314,6 +326,7 @@ bool MediaServer::LoadConfig() {
 
 			// Websocket参数
 			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());
+			miWebsocketMaxClient = atoi(conf.GetPrivate("WEBSOCKET", "MAXCLIENT", "1000").c_str());
 
 			bFlag = true;
 		}
@@ -379,7 +392,7 @@ bool MediaServer::Stop() {
 			"event : [OK] "
 			")"
 			);
-	printf("# MediaServer stop. \n");
+	printf("# MediaServer stop OK. \n");
 
 	LogManager::GetLogManager()->Stop();
 
@@ -393,8 +406,6 @@ void MediaServer::StateHandle() {
 
 	unsigned int iTotal = 0;
 	double iSecondTotal = 0;
-
-	unsigned int iMakeCallTotal = 0;
 
 	while( IsRunning() ) {
 		if ( iCount < iStateTime ) {
@@ -417,9 +428,9 @@ void MediaServer::StateHandle() {
 			LogAync(
 					LOG_ERR_USER,
 					"MediaServer::StateHandle( "
-					"event : [内部服务(HTTP)], "
-					"过去%u秒共收到请求 : %u, "
-					"平均收到请求 : %.1lf/秒 "
+					"event : [状态服务], "
+					"过去%u秒共收到请求(Websocket) : %u, "
+					"平均收到Websocket请求 : %.1lf/秒 "
 					")",
 					iStateTime,
 					iTotal,
@@ -727,7 +738,7 @@ bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 
 void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 	LogAync(
-			LOG_WARNING,
+			LOG_STAT,
 			"MediaServer::OnWebRTCServerSdp( "
 			"event : [WebRTC-返回SDP-Start], "
 			"rtc : %p "
@@ -737,15 +748,15 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 
 	connection_hdl hdl;
 	bool bFound = false;
-	mWebsocketMap.Lock();
+
 	mWebRTCMap.Lock();
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
-		hdl = itr->second;
+		MediaClient *client = itr->second;
+		hdl = client->hdl;
 		bFound = true;
 	}
 	mWebRTCMap.Unlock();
-	mWebsocketMap.Unlock();
 
 	LogAync(
 			LOG_WARNING,
@@ -753,10 +764,12 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 			"event : [WebRTC-返回SDP], "
 			"hdl : %p, "
 			"rtc : %p, "
-			"sdp:\n%s"
+			"rtmpUrl : %s, "
+			"\nsdp:\n%s"
 			")",
 			hdl.lock().get(),
 			rtc,
+			rtc->GetRtmpUrl().c_str(),
 			sdp.c_str()
 			);
 
@@ -781,25 +794,27 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 	connection_hdl hdl;
 	bool bFound = false;
-	mWebsocketMap.Lock();
+
 	mWebRTCMap.Lock();
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
-		hdl = itr->second;
+		MediaClient *client = itr->second;
+		hdl = client->hdl;
 		bFound = true;
 	}
 	mWebRTCMap.Unlock();
-	mWebsocketMap.Unlock();
 
 	LogAync(
 			LOG_WARNING,
 			"MediaServer::OnWebRTCStartMedia( "
 			"event : [WebRTC-开始媒体传输], "
 			"hdl : %p, "
-			"rtc : %p "
+			"rtc : %p, "
+			"rtmpUrl : %s "
 			")",
 			hdl.lock().get(),
-			rtc
+			rtc,
+			rtc->GetRtmpUrl().c_str()
 			);
 
 	if( bFound ) {
@@ -819,15 +834,15 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) {
 	connection_hdl hdl;
 	bool bFound = false;
-	mWebsocketMap.Lock();
+
 	mWebRTCMap.Lock();
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
-		hdl = itr->second;
+		MediaClient *client = itr->second;
+		hdl = client->hdl;
 		bFound = true;
 	}
 	mWebRTCMap.Unlock();
-	mWebsocketMap.Unlock();
 
 	LogAync(
 			LOG_WARNING,
@@ -835,11 +850,13 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			"event : [WebRTC-出错], "
 			"hdl : %p, "
 			"rtc : %p, "
+			"rtmpUrl : %s, "
 			"errType : %u, "
 			"errMsg : %s "
 			")",
 			hdl.lock().get(),
 			rtc,
+			rtc->GetRtmpUrl().c_str(),
 			errType,
 			errMsg.c_str()
 			);
@@ -863,25 +880,27 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	connection_hdl hdl;
 	bool bFound = false;
-	mWebsocketMap.Lock();
+
 	mWebRTCMap.Lock();
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
-		hdl = itr->second;
+		MediaClient *client = itr->second;
+		hdl = client->hdl;
 		bFound = true;
 	}
 	mWebRTCMap.Unlock();
-	mWebsocketMap.Unlock();
 
 	LogAync(
 			LOG_WARNING,
 			"MediaServer::OnWebRTCClose( "
 			"event : [WebRTC-断开], "
 			"hdl : %p, "
-			"rtc : %p "
+			"rtc : %p, "
+			"rtmpUrl : %s "
 			")",
 			hdl.lock().get(),
-			rtc
+			rtc,
+			rtc->GetRtmpUrl().c_str()
 			);
 
 	if( bFound ) {
@@ -889,45 +908,87 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	}
 }
 
-void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl) {
+void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr) {
+	long long currentTime = getCurrentTime();
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"MediaServer::OnWSOpen( "
 			"event : [Websocket-新连接], "
-			"hdl : %p "
+			"hdl : %p, "
+			"addr : %s, "
+			"connectTime : %lld "
 			")",
-			hdl.lock().get()
+			hdl.lock().get(),
+			addr.c_str(),
+			currentTime
 			);
+
+	MediaClient *client = mMediaClientList.PopFront();
+	if ( client ) {
+		client->hdl = hdl;
+		client->connectTime = currentTime;
+
+		mWebRTCMap.Lock();
+		mWebsocketMap.Insert(hdl, client);
+		mWebRTCMap.Unlock();
+
+	} else {
+		LogAync(
+				LOG_ERR_SYS,
+				"MediaServer::OnWSOpen( "
+				"event : [超过最大连接数, 断开连接], "
+				"hdl : %p, "
+				"addr : %s, "
+				"connectTime : %lld "
+				")",
+				hdl.lock().get(),
+				addr.c_str(),
+				currentTime
+				);
+		mWSServer.Disconnect(hdl);
+	}
 }
 
-void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
+void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl, const string& addr) {
+	MediaClient *client = NULL;
 	WebRTC *rtc = NULL;
 
-	mWebsocketMap.Lock();
+	long long connectTime = getCurrentTime();
+	long long currentTime = connectTime;
+
 	mWebRTCMap.Lock();
 	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
-	if( itr != mWebsocketMap.End() ) {
-		rtc = itr->second;
+	if ( itr != mWebsocketMap.End() ) {
+		client = itr->second;
+		rtc = client->rtc;
 		mWebRTCMap.Erase(rtc);
+		connectTime = client->connectTime;
 	}
 	mWebsocketMap.Erase(hdl);
 	mWebRTCMap.Unlock();
-	mWebsocketMap.Unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"MediaServer::OnWSClose( "
 			"event : [Websocket-断开], "
 			"hdl : %p, "
-			"rtc : %p "
+			"rtc : %p, "
+			"addr : %s, "
+			"aliveTime : %lld "
 			")",
 			hdl.lock().get(),
-			rtc
+			rtc,
+			addr.c_str(),
+			currentTime - connectTime
 			);
 
-	if( rtc ) {
+	if ( rtc ) {
 		rtc->Stop();
 		mWebRTCList.PushBack(rtc);
+	}
+
+	if ( client ) {
+		mMediaClientList.PushBack(client);
 	}
 }
 
@@ -941,6 +1002,21 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	Json::Value resData = Json::Value::null;
 	Json::FastWriter writer;
 
+	mCountMutex.lock();
+	mTotal++;
+	mCountMutex.unlock();
+
+	LogAync(
+			LOG_STAT,
+			"MediaServer::OnWSMessage( "
+			"event : [Websocket-请求], "
+			"hdl : %p, "
+			"str : %s "
+			")",
+			hdl.lock().get(),
+			str.c_str()
+			);
+
 	bool bParse = reader.parse(str, reqRoot, false);
 	if ( bParse ) {
 		if( reqRoot.isObject() ) {
@@ -953,17 +1029,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			if ( resRoot["route"].isString() ) {
 				route = resRoot["route"].asString();
 			}
-
-//			LogAync(
-//					LOG_MSG,
-//					"MediaServer::OnWSMessage( "
-//					"event : [Websocket-请求], "
-//					"hdl : %p, "
-//					"route : %s "
-//					")",
-//					hdl.lock().get(),
-//					route.c_str()
-//					);
 
 			bParse = false;
 			if ( reqRoot["route"].isString() ) {
@@ -985,23 +1050,35 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
 						rtmpUrl += stream;
 
+						LogAync(
+								LOG_WARNING,
+								"MediaServer::OnWSMessage( "
+								"event : [Websocket-请求-拨号], "
+								"hdl : %p, "
+								"stream : %s "
+								")",
+								hdl.lock().get(),
+								stream.c_str()
+								);
+
 						if( stream.length() > 0 && sdp.length() > 0 ) {
 							WebRTC *rtc = NULL;
 
-							mWebsocketMap.Lock();
 							mWebRTCMap.Lock();
-
 							WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
 							if ( itr != mWebsocketMap.End() ) {
-								rtc = itr->second;
-								rtc->Stop();
+								MediaClient *client = itr->second;
+								client->startMediaTime = getCurrentTime();
 
-							} else {
-								rtc = mWebRTCList.PopFront();
-								if ( rtc ) {
-									rtc->SetCallback(this);
-									mWebsocketMap.Insert(hdl, rtc);
-									mWebRTCMap.Insert(rtc, hdl);
+								if ( client->rtc ) {
+									rtc = client->rtc;
+									rtc->Stop();
+								} else {
+									rtc = mWebRTCList.PopFront();
+									if ( rtc ) {
+										client->rtc = rtc;
+										mWebRTCMap.Insert(rtc, client);
+									}
 								}
 							}
 
@@ -1016,9 +1093,8 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							} else {
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
 							}
-
 							mWebRTCMap.Unlock();
-							mWebsocketMap.Unlock();
+
 						} else {
 							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 						}
@@ -1035,20 +1111,18 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						if( sdp.length() > 0 ) {
 							WebRTC *rtc = NULL;
 
-							mWebsocketMap.Lock();
 							mWebRTCMap.Lock();
-
 							WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
 							if ( itr != mWebsocketMap.End() ) {
-								rtc = itr->second;
+								MediaClient *client = itr->second;
+								rtc = client->rtc;
 								rtc->UpdateCandidate(sdp);
 								bFlag = true;
 							} else {
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Update_Candidate_Before_Call);
 							}
-
 							mWebRTCMap.Unlock();
-							mWebsocketMap.Unlock();
+
 						} else {
 							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 						}

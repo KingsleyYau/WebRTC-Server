@@ -318,14 +318,14 @@ void WSServer::OnOpen(connection_hdl hdl) {
 			LOG_STAT,
 			"WSServer::OnOpen( "
 			"hdl : %p, "
-			"ip : %s "
+			"addr : %s "
 			")",
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
 
 	if ( mpWSServerCallback ) {
-		mpWSServerCallback->OnWSOpen(this, hdl);
+		mpWSServerCallback->OnWSOpen(this, hdl, conn->get_remote_endpoint());
 	}
 }
 
@@ -341,7 +341,7 @@ void WSServer::OnClose(connection_hdl hdl) {
 			);
 
 	if ( mpWSServerCallback ) {
-		mpWSServerCallback->OnWSClose(this, hdl);
+		mpWSServerCallback->OnWSClose(this, hdl, conn->get_remote_endpoint());
 	}
 }
 

@@ -83,6 +83,7 @@ public:
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
+	string GetRtmpUrl();
 
 private:
 	// SocketSender Implement

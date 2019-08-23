@@ -141,6 +141,14 @@ bool IceClient::Start() {
      * 发送CREATE_PERMISSION后, 尝试发送Send Indication的次数, 默认为7次, 大概为25s, (2^7*200/1000)=25s
      * 每次发送Send Indication的时间间隔会翻倍, 默认初始为200ms
      *
+     * The maximum number of retransmissions of the STUN binding requests used in the gathering stage,
+     * to find our local candidates, and used in the connection check stage,
+     * to test the validity of each constructed pair.
+     * This property is described as 'Rc' in the RFC 5389, with a default value of 7.
+     * The timeout of each STUN request is doubled for each retransmission,
+     * so the choice of this value has a direct impact on the time needed to move from the CONNECTED state to the READY state,
+     * and on the time needed to complete the GATHERING state.
+     *
      * stun-initial-timeout:
      * 每次发送Send Indication的初始值, 默认为200ms
      *
@@ -286,7 +294,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	mClientMutex.lock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
 			"sdp :\n%s"
@@ -394,19 +402,19 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 
     mClientMutex.unlock();
 
-	LogAync(
-			LOG_STAT,
-			"IceClient::ParseRemoteSdp( "
-			"this : %p, "
-			"ufrag : %s, "
-			"pwd : %s, "
-			"remoteSdp : %s "
-			")",
-			this,
-			ufrag,
-			pwd,
-			mSdp.c_str()
-			);
+//	LogAync(
+//			LOG_STAT,
+//			"IceClient::ParseRemoteSdp( "
+//			"this : %p, "
+//			"ufrag : %s, "
+//			"pwd : %s, "
+//			"remoteSdp : %s"
+//			")",
+//			this,
+//			ufrag,
+//			pwd,
+//			mSdp.c_str()
+//			);
 
     if ( ufrag ) {
     	g_free(ufrag);
