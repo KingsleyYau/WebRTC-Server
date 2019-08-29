@@ -56,7 +56,7 @@ public:
 	WebRTCTester();
 	virtual ~WebRTCTester();
 
-	bool Start(const string& stream, const string& webSocketServer, unsigned int maxCount = 1, const string turnServer = "");
+	bool Start(const string& stream, const string& webSocketServer, unsigned int maxCount = 1, const string turnServer = "", int iReconnect = 0);
 	void Stop();
 
 private:

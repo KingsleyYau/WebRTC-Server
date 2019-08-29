@@ -27,6 +27,7 @@ char turn[128] = {"192.168.88.134"};
 char name[128] = {"tester"};
 int iCurrent = 0;
 int iTotal = 1;
+int iReconnect = 0;
 
 static WebRTCTester gTester;
 
@@ -98,10 +99,12 @@ bool Parse(int argc, char *argv[]) {
 			memcpy(turn, value.c_str(), value.length());
 		} else if( key.compare("-n") == 0 ) {
 			iTotal = atoi(value.c_str());
+		} else if( key.compare("-r") == 0 ) {
+			iReconnect = atoi(value.c_str());
 		}
 	}
 
-//	printf("# ip : %s, iPort : %d\n", ip, iPort);
+	printf("# [ws : %s], [turn : %s], [name : %s], [iTotal : %d], [iReconnect : %d]\n", ws, turn, name, iTotal, iReconnect);
 
 	return true;
 }

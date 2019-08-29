@@ -298,7 +298,7 @@ WebRTCTester::~WebRTCTester() {
 	// TODO Auto-generated destructor stub
 }
 
-bool WebRTCTester::Start(const string& stream, const string& webSocketServer, unsigned int maxCount, const string turnServer) {
+bool WebRTCTester::Start(const string& stream, const string& webSocketServer, unsigned int maxCount, const string turnServer, int iReconnect) {
 	bool bFlag = true;
 
 	LogAync(
@@ -327,31 +327,32 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	}
 
 	long long lastTime = getCurrentTime();
-	int second = rand() % 60;
+	int second = ( iReconnect > 0 )?(rand() % iReconnect):0;
 
 	while ( mRunning ) {
 		mg_mgr_poll(&mMgr, 100);
 
-		long long now = getCurrentTime();
+		if ( iReconnect > 0 ) {
+			long long now = getCurrentTime();
+			if ( now - lastTime > second * 1000 ) {
+				// Update
+				int clientIndex = rand() % maxCount;
+				lastTime = now;
+				second = rand() % iReconnect;
 
-		if ( now - lastTime > second * 1000 ) {
-			// Update
-			int clientIndex = rand() % maxCount;
-			lastTime = now;
-			second = rand() % 180;
+				LogAync(
+						LOG_WARNING,
+						"WebRTCTester::Start( "
+						"[Disconnect Client : %d, And Do It After %d seconds] "
+						")",
+						clientIndex,
+						second
+						);
 
-			LogAync(
-					LOG_WARNING,
-					"WebRTCTester::Start( "
-					"[Disconnect Client : %d, And Do It Next %d second] "
-					")",
-					clientIndex,
-					second
-					);
-
-			// Disconnect Client
-			Tester *tester = &mpTesterList[clientIndex];
-			tester->Disconnect();
+				// Disconnect Client
+				Tester *tester = &mpTesterList[clientIndex];
+				tester->Disconnect();
+			}
 		}
 	}
 
