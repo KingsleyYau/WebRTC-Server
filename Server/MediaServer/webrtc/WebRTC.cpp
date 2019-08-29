@@ -727,25 +727,22 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"WebRTC::OnIceCandidateGatheringDone( "
 			"this : %p, "
 			"ice : %p, "
 			"ip : %s, "
 			"port : %u, "
-			"ufrag : %s, "
-			"pwd : %s, "
-			"candidate : \n%s"
+			"rtmpUrl : %s, "
+			"candidate :\n%s"
 			")",
 			this,
 			ice,
 			ip.c_str(),
 			port,
-			ufrag.c_str(),
-			pwd.c_str(),
+			mRtmpUrl.c_str(),
 			candidate.c_str()
 			);
-
 
 	string audioRtcpFb = "";
 	while( !mAudioRtcpFbList.empty() ) {

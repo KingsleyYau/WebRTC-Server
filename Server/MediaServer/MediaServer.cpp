@@ -214,20 +214,20 @@ bool MediaServer::Start() {
 	}
 	mRunning = true;
 
-//	// 创建HTTP server
-//	if( bFlag ) {
-//		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
-//		if( bFlag ) {
-//			LogAync(
-//					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(HTTP)-成功] )"
-//					);
-//
-//		} else {
-//			LogAync(
-//					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-失败] )"
-//					);
-//		}
-//	}
+	// 创建HTTP server
+	if( bFlag ) {
+		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
+		if( bFlag ) {
+			LogAync(
+					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(HTTP)-成功] )"
+					);
+
+		} else {
+			LogAync(
+					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-失败] )"
+					);
+		}
+	}
 
 	if( bFlag ) {
 		bFlag = mWSServer.Start(miWebsocketPort);
@@ -758,13 +758,13 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 			"event : [WebRTC-返回SDP], "
 			"hdl : %p, "
 			"rtc : %p, "
-			"rtmpUrl : %s, "
-			"\nsdp:\n%s"
+			"rtmpUrl : %s "
+//			"\nsdp:\n%s"
 			")",
 			hdl.lock().get(),
 			rtc,
-			rtc->GetRtmpUrl().c_str(),
-			sdp.c_str()
+			rtc->GetRtmpUrl().c_str()
+//			sdp.c_str()
 			);
 
 	if ( bFound ) {
@@ -848,7 +848,10 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			string res = writer.write(resRoot);
 			mWSServer.SendText(hdl, res);
 
-			mWSServer.Disconnect(hdl);
+			if ( client->connected ) {
+				mWSServer.Disconnect(hdl);
+				client->connected = false;
+			}
 		}
 	}
 	mWebRTCMap.Unlock();
@@ -898,7 +901,10 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 		bFound = true;
 
 		if( bFound ) {
-			mWSServer.Disconnect(hdl);
+			if ( client->connected ) {
+				mWSServer.Disconnect(hdl);
+				client->connected = false;
+			}
 		}
 	}
 	mWebRTCMap.Unlock();
@@ -940,6 +946,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 	if ( client ) {
 		client->hdl = hdl;
 		client->connectTime = currentTime;
+		client->connected = true;
 
 		mWebRTCMap.Lock();
 		mWebsocketMap.Insert(hdl, client);
@@ -973,6 +980,8 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl, const string& 
 	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
 	if ( itr != mWebsocketMap.End() ) {
 		client = itr->second;
+		client->connected = false;
+
 		rtc = client->rtc;
 		mWebRTCMap.Erase(rtc);
 		connectTime = client->connectTime;

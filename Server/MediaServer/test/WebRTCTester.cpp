@@ -9,6 +9,7 @@
 #include "WebRTCTester.h"
 // ThirdParty
 #include <json/json.h>
+#include <common/CommonFunc.h>
 
 namespace mediaserver {
 
@@ -39,6 +40,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
 					tester->index
         			);
         	tester->rtc.Start("");
+
         }break;
         case MG_EV_WEBSOCKET_FRAME:{
             // Receive Data
@@ -56,6 +58,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
 					str.c_str()
         			);
         	tester->HandleRecvData(wm->data, wm->size);
+
         }break;
         case MG_EV_CLOSE:{
             // Disconnect
@@ -69,14 +72,15 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
 					tester,
 					tester->index
         			);
-        	tester->rtc.Stop();
 
+        	tester->rtc.Stop();
         	tester->Start();
+
         }break;
     }
 }
 
-Tester::Tester() {
+Tester::Tester() : mMutex(KMutex::MutexType_Recursive) {
 	mgr = NULL;
 	conn = NULL;
 	index = 0;
@@ -117,10 +121,12 @@ bool Tester::Start() {
 		struct mg_connect_opts opt = {0};
 		opt.user_data = (void *)this;
 
+		mMutex.lock();
 		conn = mg_connect_ws_opt(mgr, Handle, opt, url.c_str(), "", NULL);
 		if ( NULL != conn && conn->err == 0 ) {
 			bFlag = true;
 		}
+		mMutex.unlock();
     }
 
 	LogAync(
@@ -138,6 +144,27 @@ bool Tester::Start() {
 			);
 
     return bFlag;
+}
+
+void Tester::Disconnect() {
+	LogAync(
+			LOG_WARNING,
+			"Tester::Disconnect( "
+			"this : %p, "
+			"url : %s, "
+			"index : %d "
+			")",
+			this,
+			url.c_str(),
+			index
+			);
+
+	mMutex.lock();
+	if ( conn ) {
+		mg_shutdown(conn);
+		conn = NULL;
+	}
+	mMutex.unlock();
 }
 
 bool Tester::HandleRecvData(unsigned char *data, size_t size) {
@@ -198,8 +225,11 @@ void Tester::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 
 	string req = writer.write(reqRoot);
 
-	usleep(1 * 1000 * 1000);
-	mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
+	mMutex.lock();
+	if( conn ) {
+		mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
+	}
+	mMutex.unlock();
 }
 
 void Tester::OnWebRTCStartMedia(WebRTC *rtc) {
@@ -229,12 +259,12 @@ void Tester::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& e
 			index
 			);
 
+	mMutex.lock();
 	if ( conn ) {
 		mg_shutdown(conn);
 		conn = NULL;
 	}
-
-	Start();
+	mMutex.unlock();
 }
 
 void Tester::OnWebRTCClose(WebRTC *rtc) {
@@ -250,12 +280,12 @@ void Tester::OnWebRTCClose(WebRTC *rtc) {
 			index
 			);
 
+	mMutex.lock();
 	if ( conn ) {
 		mg_shutdown(conn);
 		conn = NULL;
 	}
-
-	Start();
+	mMutex.unlock();
 }
 
 WebRTCTester::WebRTCTester() {
@@ -296,8 +326,33 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 		tester->Start();
 	}
 
+	long long lastTime = getCurrentTime();
+	int second = rand() % 60;
+
 	while ( mRunning ) {
 		mg_mgr_poll(&mMgr, 100);
+
+		long long now = getCurrentTime();
+
+		if ( now - lastTime > second * 1000 ) {
+			// Update
+			int clientIndex = rand() % maxCount;
+			lastTime = now;
+			second = rand() % 180;
+
+			LogAync(
+					LOG_WARNING,
+					"WebRTCTester::Start( "
+					"[Disconnect Client : %d, And Do It Next %d second] "
+					")",
+					clientIndex,
+					second
+					);
+
+			// Disconnect Client
+			Tester *tester = &mpTesterList[clientIndex];
+			tester->Disconnect();
+		}
 	}
 
 	mg_mgr_free(&mMgr);

@@ -54,6 +54,7 @@ struct MediaClient {
 		rtc = NULL;
 		connectTime = 0;
 		startMediaTime = 0;
+		connected = false;
 	}
 
 	MediaClient& operator=(const MediaClient& item) {
@@ -65,6 +66,8 @@ struct MediaClient {
 	}
 
 	connection_hdl hdl;
+	bool connected;
+
 	WebRTC *rtc;
 	long long connectTime;
 	long long startMediaTime;

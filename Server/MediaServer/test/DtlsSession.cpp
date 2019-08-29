@@ -557,9 +557,10 @@ bool DtlsSession::Handshake() {
 			this
 			);
 
-	int ret = SSL_do_handshake(mpSSL);
-//	int ret = SSL_connect(mpSSL);
-	bFlag = FlushSSL();
+	if ( mpSSL ) {
+		int ret = SSL_do_handshake(mpSSL);
+		bFlag = FlushSSL();
+	}
 
 	return bFlag;
 }

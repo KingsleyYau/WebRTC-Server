@@ -28,6 +28,7 @@ public:
 
 	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index);
 	bool Start();
+	void Disconnect();
 
 public:
 	bool HandleRecvData(unsigned char *data, size_t size);
@@ -46,6 +47,8 @@ public:
 
 	WebRTC rtc;
 	int index;
+
+	KMutex mMutex;
 };
 
 class WebRTCTester {

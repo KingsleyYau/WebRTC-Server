@@ -24,6 +24,7 @@ using namespace mediaserver;
 
 char ws[128] = {"192.168.88.133:9881"};
 char turn[128] = {"192.168.88.134"};
+char name[128] = {"tester"};
 int iCurrent = 0;
 int iTotal = 1;
 
@@ -64,6 +65,8 @@ int main(int argc, char *argv[]) {
 	// 回收子进程
 	sigaction(SIGCHLD, &sa, 0);
 
+	srand(time(0));
+
 	LogManager::GetLogManager()->Start(LOG_WARNING, "./log");
 	LogManager::GetLogManager()->SetDebugMode(true);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
@@ -71,7 +74,7 @@ int main(int argc, char *argv[]) {
 	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, "");
 
     string baseUrl = "ws://" + string(ws);
-    gTester.Start("tester", baseUrl, iTotal);
+    gTester.Start(name, baseUrl, iTotal);
 
 	return EXIT_SUCCESS;
 }
@@ -85,8 +88,13 @@ bool Parse(int argc, char *argv[]) {
 		value = argv[i+1];
 
 		if( key.compare("-h") == 0 ) {
+			memset(ws, 0, sizeof(ws));
 			memcpy(ws, value.c_str(), value.length());
+		} else if( key.compare("-name") == 0 ) {
+			memset(name, 0, sizeof(name));
+			memcpy(name, value.c_str(), value.length());
 		} else if( key.compare("-s") == 0 ) {
+			memset(turn, 0, sizeof(turn));
 			memcpy(turn, value.c_str(), value.length());
 		} else if( key.compare("-n") == 0 ) {
 			iTotal = atoi(value.c_str());
