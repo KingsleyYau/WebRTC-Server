@@ -162,6 +162,12 @@ nice_udp_bsd_socket_new (NiceAddress *addr)
 
   g_mutex_init (&priv->mutex);
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d nice_udp_bsd_socket_new, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
+
   return sock;
 }
 
@@ -169,6 +175,12 @@ static void
 socket_close (NiceSocket *sock)
 {
   struct UdpBsdSocketPrivate *priv = sock->priv;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d socket_close, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
 
   g_clear_object (&priv->gaddr);
   g_mutex_clear (&priv->mutex);

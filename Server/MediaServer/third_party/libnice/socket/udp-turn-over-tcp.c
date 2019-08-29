@@ -111,6 +111,12 @@ nice_udp_turn_over_tcp_socket_new (NiceSocket *base_socket,
   sock->is_based_on = socket_is_based_on;
   sock->close = socket_close;
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d nice_udp_turn_over_tcp_socket_new, sock:%p, fileno:%p, base_socket:%p", __FILE__, __LINE__, sock, sock->fileno, priv->base_socket);
+
   return sock;
 }
 
@@ -120,8 +126,16 @@ socket_close (NiceSocket *sock)
 {
   TurnTcpPriv *priv = sock->priv;
 
-  if (priv->base_socket)
-    nice_socket_free (priv->base_socket);
+//  if (priv->base_socket)
+//    nice_socket_free (priv->base_socket);
+  /**
+   * Modify by Max 2019/08/26
+   */
+  if (priv->base_socket) {
+	  nice_debug ("%s:%d socket_close, sock:%p, base_socket:%p", __FILE__, __LINE__, sock, priv->base_socket);
+//	  priv->base_socket->close(priv->base_socket);
+	  nice_socket_free (priv->base_socket);
+  }
 
   g_slice_free(TurnTcpPriv, sock->priv);
   sock->priv = NULL;

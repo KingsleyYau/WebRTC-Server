@@ -29,7 +29,7 @@ struct srtp_policy_t;
 /*
  * RTP_HEADER_LEN indicates the size of an RTP header
  */
-#define MTU 1500
+#define MTU 1536
 #define UDP_HEADER_LEN 42
 #define RTP_HEADER_LEN 12
 #define RTP_MAX_PAYLOAD_LEN (MTU - UDP_HEADER_LEN - RTP_HEADER_LEN)

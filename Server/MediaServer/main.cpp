@@ -22,7 +22,8 @@ using namespace std;
 
 #include "MediaServer.h"
 
-string sConf = "";  // 配置文件
+string gConfFilePath = "";  // 配置文件
+static MediaServer gMediaServer;
 
 bool Parse(int argc, char *argv[]);
 void SignalFunc(int sign_no);
@@ -63,17 +64,16 @@ int main(int argc, char *argv[]) {
 	Parse(argc, argv);
 
 	bool bFlag = false;
-	MediaServer server;
-	if( sConf.length() > 0 ) {
-		bFlag = server.Start(sConf);
+	if( gConfFilePath.length() > 0 ) {
+		bFlag = gMediaServer.Start(gConfFilePath);
 	} else {
 		printf("# Usage : ./rtp2rtmp-server [ -f <config file> ] \n");
-		bFlag = server.Start("/etc/rtp2rtmp-server.config");
+		bFlag = gMediaServer.Start("/etc/rtp2rtmp-server.config");
 	}
 
 	LogManager::GetLogManager()->LogFlushMem2File();
 
-	while( bFlag && server.IsRunning() ) {
+	while( bFlag && gMediaServer.IsRunning() ) {
 		/* do nothing here */
 		fflush(stdout);
 		sleep(5);
@@ -89,7 +89,7 @@ bool Parse(int argc, char *argv[]) {
 		value = argv[i+1];
 
 		if( key.compare("-f") == 0 ) {
-			sConf = value;
+			gConfFilePath = value;
 		}
 	}
 
@@ -105,6 +105,13 @@ void SignalFunc(int sign_no) {
 				LOG_MSG, "main( waitpid : %d )", pid
 				);
 		MainLoop::GetMainLoop()->Call(pid);
+	}break;
+	case SIGINT:{
+		LogAync(
+				LOG_ERR_SYS, "main( interrupt )"
+				);
+		gMediaServer.Stop();
+		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	default:{
 		LogAync(

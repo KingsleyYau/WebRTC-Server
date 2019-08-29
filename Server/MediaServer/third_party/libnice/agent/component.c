@@ -1568,8 +1568,11 @@ nice_component_verify_remote_candidate (NiceComponent *component,
     char ip2[INET6_ADDRSTRLEN] = {0};
     nice_address_to_string(&cand->addr, ip2);
 
-    // Add by Max
-    nice_debug ("[Max] : "
+    /**
+     * Add Debug Log
+     * Add by Max 2019/08/01
+     */
+    nice_debug ("[Compenent] : "
   		  "nicesock->type : %d, "
   		  "cand->transport : %d, "
   		  "ip1 : (%u)%s:%u, "
@@ -1595,8 +1598,11 @@ nice_component_verify_remote_candidate (NiceComponent *component,
         nice_address_equal (address, &cand->addr)) {
       /* fast return if it's already the first */
       if (item == component->valid_candidates) {
-    	    // Add by Max
-    	    nice_debug ("[Max] - Verify TRUE: "
+    	    /**
+    	     * Add Debug Log
+    	     * Add by Max 2019/08/01
+    	     */
+    	    nice_debug ("[Compenent] - Verify TRUE: "
     	  		  "nicesock->type : %d, "
     	  		  "cand->transport : %d, "
     	  		  "ip1 : (%u)%s:%u, "
@@ -1621,8 +1627,11 @@ nice_component_verify_remote_candidate (NiceComponent *component,
       component->valid_candidates = g_list_concat (item,
           component->valid_candidates);
 
-	    // Add by Max
-	    nice_debug ("[Max] - Verify TRUE 2: "
+      /**
+       * Add Debug Log
+       * Add by Max 2019/08/01
+       */
+      nice_debug ("[Compenent] - Verify TRUE 2: "
 	  		  "nicesock->type : %d, "
 	  		  "cand->transport : %d, "
 	  		  "ip1 : (%u)%s:%u, "

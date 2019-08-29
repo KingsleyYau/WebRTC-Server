@@ -672,6 +672,12 @@ HostCandidateResult discovery_add_local_host_candidate (
     goto errors;
   }
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d Agent %p : nicesock:%p, transport:%d", __FILE__, __LINE__, agent, nicesock, transport);
+
   candidate->sockptr = nicesock;
   candidate->addr = nicesock->addr;
   candidate->base_addr = nicesock->addr;

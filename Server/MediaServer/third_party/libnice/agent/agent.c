@@ -6393,13 +6393,23 @@ nice_agent_parse_remote_stream_sdp (NiceAgent *agent, guint stream_id,
       candidate = nice_agent_parse_remote_candidate_sdp (agent, stream->id,
           sdp_lines[i]);
       if (candidate == NULL) {
-        g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
-        candidates = NULL;
-        break;
+    	  /**
+    	   * Add Debug Log
+    	   * Add by Max 2019/08/23
+    	   */
+    	  nice_debug ("Agent %p: get error candidate, sdp_lines[i]:%s", agent, sdp_lines[i]);
+    	  g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
+    	  candidates = NULL;
+    	  break;
       }
-      // Add by Max 2019/08/05
-      if ( *ufrag && candidate->ufrag ) {
+      /**
+       * Filter candidate with ufrag
+       * Add by Max 2019/08/05
+       */
+      if ( *ufrag && candidate->ufrag && (strlen(candidate->ufrag) > 0) ) {
     	  if (g_strcmp0 (*ufrag, candidate->ufrag) != 0) {
+    		  nice_debug ("Agent %p: skip candidate, ufrag:%s, candidate->ufrag:%s", agent,
+					*ufrag, candidate->ufrag);
     		  nice_candidate_free(candidate);
     		  continue;
     	  }
@@ -6468,8 +6478,11 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
         port = (guint16) g_ascii_strtoull (tokens[i], NULL, 10);
         break;
       default:
-        if (tokens[i + 1] == NULL)
-          goto done;
+        if ( tokens[i + 1] == NULL ) {
+            // Add by Max 2019/08/23
+            nice_debug ("Agent %p: parse candidate tokens error, i:%d, tokens[i]:%s, sdp:%s", agent, i, tokens[i], sdp);
+            goto done;
+        }
 
         if (g_strcmp0 (tokens[i], "typ") == 0) {
           type = tokens[i + 1];
@@ -6483,12 +6496,16 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
         	// Add by Max 2019/08/05
         	ufrag = tokens[i + 1];
         }
+
         i++;
         break;
     }
   }
-  if (type == NULL)
-    goto done;
+  if (type == NULL) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate typ error, type:%s, sdp:%s", agent, type, sdp);
+      goto done;
+  }
 
   ntype = -1;
   for (i = 0; i < G_N_ELEMENTS (type_names); i++) {
@@ -6497,8 +6514,11 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
       break;
     }
   }
-  if (ntype == -1)
-    goto done;
+  if (ntype == -1) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate ntype error, ntype:%d, sdp:%s", agent, ntype, sdp);
+      goto done;
+  }
 
   if (g_ascii_strcasecmp (transport, "UDP") == 0)
     ctransport = NICE_CANDIDATE_TRANSPORT_UDP;
@@ -6515,10 +6535,16 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
       ctransport = NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE;
     else if (g_ascii_strcasecmp (tcptype, "passive") == 0)
       ctransport = NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE;
-    else
+    else {
+        // Add by Max 2019/08/23
+        nice_debug ("Agent %p: parse candidate tcptype error, tcptype:%s, sdp:%s", agent, tcptype, sdp);
+    	goto done;
+    }
+  } else {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate transport error, transport:%s, sdp:%s", agent, transport, sdp);
       goto done;
-  } else
-    goto done;
+  }
 
   candidate = nice_candidate_new(ntype);
   candidate->component_id = component_id;
@@ -6532,7 +6558,9 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
   }
 
   if (!nice_address_set_from_string (&candidate->addr, addr)) {
-    nice_candidate_free (candidate);
+    // Add by Max 2019/08/23
+  	nice_debug ("Agent %p: parse candidate addr error, addr:%s, sdp:%s", agent, addr, sdp);
+	nice_candidate_free (candidate);
     candidate = NULL;
     goto done;
   }
@@ -6540,6 +6568,8 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
 
   if (raddr && rport) {
     if (!nice_address_set_from_string (&candidate->base_addr, raddr)) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate base_addr error, raddr:%s, rport:%u, sdp:%s", agent, raddr, rport, sdp);
       nice_candidate_free (candidate);
       candidate = NULL;
       goto done;

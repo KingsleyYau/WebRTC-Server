@@ -44,7 +44,6 @@ LIBS =		-L. \
 			-Wl,-Bstatic -L../third_party/libnice/random/.libs -lnice-random \
 			-Wl,-Bstatic -L../third_party/libnice/socket/.libs -lsocket \
 			-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
-			-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
 			-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
 			-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre
 				

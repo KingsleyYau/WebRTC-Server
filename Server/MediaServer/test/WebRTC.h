@@ -18,13 +18,14 @@
 #include <server/MainLoop.h>
 
 #include <common/KSafeList.h>
+#include <common/KThread.h>
 
-#include <rtp/DtlsSession.h>
-#include <rtp/RtpSession.h>
 #include <socket/ISocketSender.h>
-#include <rtp/RtpRawClient.h>
 
-#include <webrtc/IceClient.h>
+#include "DtlsSession.h"
+#include "RtpSession.h"
+#include "RtpRawClient.h"
+#include "IceClient.h"
 
 namespace mediaserver {
 typedef list<string> RtcpFbList;
@@ -50,6 +51,7 @@ const string WebRTCErrorMsg[] = {
 	"WebRTC Unknow Error.",
 };
 
+class WebRTCRunnable;
 class WebRTC;
 class WebRTCCallback {
 public:
@@ -61,6 +63,8 @@ public:
 };
 
 class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
+	friend class WebRTCRunnable;
+
 public:
 	WebRTC();
 	virtual ~WebRTC();
@@ -71,15 +75,12 @@ public:
 public:
 	void SetCallback(WebRTCCallback *callback);
 	bool Init(
-			const string& rtp2RtmpShellFilePath,
-			const string& rtpDstAudioIp = "127.0.0.1",
-			unsigned int rtpDstAudioPort = 10000,
-			const string& rtpDstVideoIp = "127.0.0.1",
-			unsigned int rtpDstVideoPort = 10002
+			const string rtp2RtmpShellFilePath,
+			const string rtpDstAudioIp = "127.0.0.1",
+			unsigned int rtpDstAudioPort = 10000
 			);
 	bool Start(
-			const string& sdp,
-			const string& rtmpUrl
+			const string& sdp
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
@@ -102,19 +103,6 @@ private:
 	 */
 	bool ParseRemoteSdp(const string& sdp);
 	/**
-	 * 创建本地转发的SDP
-	 * @return 本地转发的SDP
-	 */
-	string CreateLocalSdp();
-	/**
-	 * 创建本地转发的SDP文件
-	 */
-	bool CreateLocalSdpFile();
-	/**
-	 * 删除本地转发的SDP文件
-	 */
-	void RemoveLocalSdpFile();
-	/**
 	 * 开始转发RTP到RTMP
 	 */
 	bool StartRtpTransform();
@@ -124,19 +112,25 @@ private:
 	void StopRtpTransform();
 
 private:
+	void RecvRtpThread();
+
+private:
+	// Status
+	KMutex mClientMutex;
+	bool mRunning;
+
 	WebRTCCallback *mpWebRTCCallback;
 
 	IceClient mIceClient;
 	DtlsSession mDtlsSession;
 	RtpSession mRtpSession;
 
-	RtpRawClient mRtpDstAudioClient;
-	RtpRawClient mRtpDstVideoClient;
+	WebRTCRunnable* mpRtpClientRunnable;
+	KThread mRtpClientThread;
+	RtpRawClient mRtpClient;
 
 	string mRtpDstAudioIp;
 	unsigned int mRtpDstAudioPort;
-	string mRtpDstVideoIp;
-	unsigned int mRtpDstVideoPort;
 
 	unsigned int mVideoSSRC;
 	unsigned int mAudioSSRC;
@@ -155,9 +149,6 @@ private:
 	// 转发RTMP脚本的进程ID
 	int mRtpTransformPid;
 	KMutex mRtpTransformPidMutex;
-	// 本地SDP文件
-	FILE *mpSdpFile;
-	string mSdpFilePath;
 };
 
 } /* namespace mediaserver */

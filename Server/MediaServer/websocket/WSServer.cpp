@@ -81,6 +81,7 @@ bool WSServer::Start(int port, int maxConnection) {
         // Initialize Asio
     	mServer.init_asio();
     	mServer.set_reuse_addr(true);
+    	mServer.set_listen_backlog(maxConnection);
 
         // Register our message handler
     	mServer.set_open_handler(bind(&WSServer::OnOpen, this, ::_1));

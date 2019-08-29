@@ -43,6 +43,8 @@ WebRTC::WebRTC()
 	mpSdpFile = NULL;
 	mSdpFilePath = "";
 	mRtpTransformPid = 0;
+
+	mNeedTranscodeVideo = true;
 }
 
 WebRTC::~WebRTC() {
@@ -117,6 +119,10 @@ bool WebRTC::Start(
 		) {
 	bool bFlag = true;
 
+	// Reset Param
+	mNeedTranscodeVideo = true;
+
+	// Start Modules
 	bFlag &= ParseRemoteSdp(sdp);
 	bFlag &= mIceClient.Start();
 	bFlag &= mDtlsSession.Start();
@@ -299,7 +305,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
-								LOG_MSG,
+								LOG_WARNING,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media H264 Codec], "
@@ -316,17 +322,84 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								payload.fmtp
 								);
 
-						mVideoSdpPayload.payload_type = payload.payload_type;
-						mVideoSdpPayload.encoding_name = payload.encoding_name?payload.encoding_name:"";
-						mVideoSdpPayload.clock_rate = payload.clock_rate;
-						mVideoSdpPayload.encoding_params = payload.encoding_params?payload.encoding_params:"";
-						mVideoSdpPayload.fmtp = payload.fmtp?payload.fmtp:"";
+						if ( mNeedTranscodeVideo ) {
+							mVideoSdpPayload.payload_type = payload.payload_type;
+							mVideoSdpPayload.encoding_name = payload.encoding_name?payload.encoding_name:"";
+							mVideoSdpPayload.clock_rate = payload.clock_rate;
+							mVideoSdpPayload.encoding_params = payload.encoding_params?payload.encoding_params:"";
+							mVideoSdpPayload.fmtp = payload.fmtp?payload.fmtp:"";
 
-						break;
+							string fmtp = payload.fmtp;
+							size_t start = fmtp.find("profile-level-id=");
+							if ( string::npos != start ) {
+								size_t end = fmtp.find(";", start);
+								end = (string::npos != end)?end:fmtp.length();
 
+								int len = strlen("profile-level-id=");
+								string profileLevelId = fmtp.substr(start + len, end - start - len);
+
+								LogAync(
+										LOG_STAT,
+										"WebRTC::ParseRemoteSdp( "
+										"this : %p, "
+										"[Found Remote Media H264 Codec, Check Level Id], "
+										"profileLevelId : %s "
+										")",
+										this,
+										profileLevelId.c_str()
+										);
+
+								if ( profileLevelId.length() == 6 ) {
+									string profileIdc = profileLevelId.substr(0, 2);
+									LogAync(
+											LOG_STAT,
+											"WebRTC::ParseRemoteSdp( "
+											"this : %p, "
+											"[Found Remote Media H264 Codec, Check Idc], "
+											"profileIdc : %s "
+											")",
+											this,
+											profileIdc.c_str()
+											);
+									/**
+									 * We choose Baseline for the first option
+									 * Example:
+									 * 		profile-level-id=42C01E : Baseline profile 3.0
+									 *
+									 * profile_idc(8 bits)
+									 * 0x42 Baseline profile
+									 * 0x4D Main profile
+									 * 0x58 Extended profile
+									 *
+									 */
+									if ( profileIdc == "42" ) {
+										mNeedTranscodeVideo = false;
+
+										LogAync(
+												LOG_WARNING,
+												"WebRTC::ParseRemoteSdp( "
+												"this : %p, "
+												"[Found Remote Media H264 Codec, Relay Without Transcode], "
+												"media_type : %s, "
+												"payload : %d %s/%u/%s, "
+												"profileLevelId : %s "
+												")",
+												this,
+												sdp_media_type_str(media->type),
+												payload.payload_type,
+												payload.encoding_name,
+												payload.clock_rate,
+												payload.encoding_params,
+												profileLevelId.c_str()
+												);
+										break;
+									}
+								}
+							}
+						}
 					} else if ( 0 == strcmp(payload.encoding_name, "opus") ) {
 						LogAync(
-								LOG_MSG,
+								LOG_WARNING,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media OPUS Codec], "
@@ -537,7 +610,7 @@ bool WebRTC::CreateLocalSdpFile() {
 
 	if ( !bFlag ) {
 		LogAync(
-				LOG_ERR_USER,
+				LOG_WARNING,
 				"WebRTC::CreateLocalSdp( "
 				"this : %p, "
 				"[Fail], "
@@ -588,7 +661,9 @@ bool WebRTC::StartRtpTransform() {
 			mRtpTransformPid = pid;
 			MainLoop::GetMainLoop()->StartWatchChild(mRtpTransformPid, this);
 		} else {
-			int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), NULL, NULL);
+			char transcode[2] = {'\0'};
+			sprintf(transcode, "%d", mNeedTranscodeVideo);
+			int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), transcode, NULL, NULL);
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -784,12 +859,14 @@ void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 			"this : %p, "
 			"ice : %p, "
 			"local : %s, "
-			"remote : %s "
+			"remote : %s, "
+			"rtmpUrl : %s "
 			")",
 			this,
 			ice,
 			ice->GetLocalAddress().c_str(),
-			ice->GetRemoteAddress().c_str()
+			ice->GetRemoteAddress().c_str(),
+			mRtmpUrl.c_str()
 			);
 }
 
@@ -798,10 +875,12 @@ void WebRTC::OnIceConnected(IceClient *ice) {
 			LOG_WARNING,
 			"WebRTC::OnIceConnected( "
 			"this : %p, "
-			"ice : %p "
+			"ice : %p, "
+			"rtmpUrl : %s "
 			")",
 			this,
-			ice
+			ice,
+			mRtmpUrl.c_str()
 			);
 	mDtlsSession.Handshake();
 }
@@ -830,6 +909,28 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 	char pkt[RTP_MAX_LEN] = {0};
 	unsigned int pktSize = size;
 
+	if ( size > RTP_MAX_LEN ) {
+		LogAync(
+				LOG_WARNING,
+				"WebRTC::OnIceRecvData( "
+				"this : %p, "
+				"[Unknow Data Format], "
+				"ice : %p, "
+				"streamId : %u, "
+				"componentId : %u, "
+				"size : %d, "
+				"data[0] : 0x%X "
+				")",
+				this,
+				ice,
+				streamId,
+				componentId,
+				size,
+				(unsigned char)data[0]
+				);
+		return;
+	}
+
 	if( DtlsSession::IsDTLS(data, size) ) {
 		bFlag = mDtlsSession.RecvFrame(data, size);
 		if( bFlag ) {
@@ -840,9 +941,11 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						LOG_WARNING,
 						"WebRTC::OnIceRecvData( "
 						"this : %p, "
-						"[DTLS Handshake OK] "
+						"[DTLS Handshake OK], "
+						"rtmpUrl : %s "
 						")",
-						this
+						this,
+						mRtmpUrl.c_str()
 						);
 
 				bool bStart = false;
@@ -872,9 +975,11 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						LOG_WARNING,
 						"WebRTC::OnIceRecvData( "
 						"this : %p, "
-						"[DTLS Alert] "
+						"[DTLS Alert], "
+						"rtmpUrl : %s "
 						")",
-						this
+						this,
+						mRtmpUrl.c_str()
 						);
 				mRtpSession.Stop();
 				mRtpDstAudioClient.Stop();

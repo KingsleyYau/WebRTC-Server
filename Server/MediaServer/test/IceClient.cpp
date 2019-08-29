@@ -26,7 +26,7 @@ namespace mediaserver {
 ::GThread* gLoopThread = NULL;
 
 static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
-static const char *CandidateTransportName[] = {"", "tcptype active ", "tcptype passive ", ""};
+static const char *CandidateTransportName[] = {"", "tcptype active", "tcptype passive", ""};
 
 void* loop_thread(void *data) {
 	::GMainLoop* pLoop = (GMainLoop *)data;
@@ -35,14 +35,14 @@ void* loop_thread(void *data) {
 }
 
 void* niceLogFunc(const char *logBuffer) {
-	LogAync(
-			LOG_WARNING,
-			"IceClient::niceLogFunc( "
-			"[libnice], "
-			"%s "
-			")",
-			logBuffer
-			);
+//	LogAync(
+//			LOG_WARNING,
+//			"IceClient::niceLogFunc( "
+//			"[libnice], "
+//			"%s "
+//			")",
+//			logBuffer
+//			);
 	return 0;
 }
 
@@ -157,7 +157,7 @@ bool IceClient::Start() {
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
     // 保持心跳
-    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
+//    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 //    g_object_set(mpAgent, "max-connectivity-checks", 5, NULL);
 
     // 设置STUN服务器地址
@@ -223,12 +223,15 @@ void IceClient::Stop() {
 		if (mpAgent) {
 			mCond.lock();
 			mRunning = false;
-			nice_agent_remove_stream(mpAgent, mStreamId);
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 			mCond.wait();
 			mCond.unlock();
+
 			g_object_unref(mpAgent);
+
 			mpAgent = NULL;
+			mStreamId = -1;
+			mComponentId = -1;
 		} else {
 			mRunning = false;
 		}
@@ -299,21 +302,21 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     gchar *ufrag = NULL;
     gchar *pwd = NULL;
     GSList *plist = nice_agent_parse_remote_stream_sdp(mpAgent, streamId, mSdp.c_str(), &ufrag, &pwd);
-    if ( ufrag && pwd && g_slist_length(plist) > 0 ) {
-		LogAync(
-				LOG_WARNING,
-				"IceClient::ParseRemoteSdp( "
-				"this : %p, "
-				"plist_count : %d, "
-				"ufrag : %s, "
-				"pwd : %s "
-				")",
-				this,
-				g_slist_length(plist),
-				ufrag,
-				pwd
-				);
+	LogAync(
+			LOG_MSG,
+			"IceClient::ParseRemoteSdp( "
+			"this : %p, "
+			"plist_count : %d, "
+			"ufrag : %s, "
+			"pwd : %s "
+			")",
+			this,
+			g_slist_length(plist),
+			ufrag,
+			pwd
+			);
 
+    if ( ufrag && pwd && g_slist_length(plist) > 0 ) {
         bFlag = nice_agent_set_remote_credentials(mpAgent, streamId, ufrag, pwd);
         if( !bFlag ) {
     		LogAync(
@@ -460,18 +463,23 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 					portUse = nice_address_get_port(&local->addr);
 				}
 
+				string transport;
+				if ( strlen(CandidateTransportName[local->transport]) > 0 ) {
+					transport += " ";
+					transport += CandidateTransportName[local->transport];
+				}
 				if ( local->type == NICE_CANDIDATE_TYPE_RELAYED || local->type == NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE ) {
 					snprintf(candStr, sizeof(candStr) - 1,
-							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u %s\n",
+							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u%s\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
 							local->priority,
 							ip,
 							localPort,
 							CandidateTypeName[local->type],
 							baseip,
 							basePort,
-							CandidateTransportName[local->transport]
+							transport.c_str()
 							);
 					priority = local->priority;
 					ipUse = ip;
@@ -479,14 +487,14 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 
 				} else {
 					snprintf(candStr, sizeof(candStr) - 1,
-							"a=candidate:%s 1 %s %u %s %u typ %s %s\n",
+							"a=candidate:%s 1 %s %u %s %u typ %s%s\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
 							local->priority,
 							ip,
 							localPort,
 							CandidateTypeName[local->type],
-							CandidateTransportName[local->transport]
+							transport.c_str()
 							);
 				}
 

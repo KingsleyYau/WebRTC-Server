@@ -276,6 +276,12 @@ nice_socket_is_based_on (NiceSocket *sock, NiceSocket *other)
 void
 nice_socket_free (NiceSocket *sock)
 {
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d nice_socket_free, sock:%p", __FILE__, __LINE__, sock);
+
   if (sock) {
     sock->close (sock);
     g_slice_free (NiceSocket,sock);

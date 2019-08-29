@@ -889,6 +889,7 @@ bool RtpSession::SendAudioFrame(const char* frame, unsigned int size, unsigned i
 
 bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
+	int sendSize = 0;
 
 	srtp_err_status_t status = srtp_err_status_fail;
 	mClientMutex.lock();
@@ -899,9 +900,9 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 
     if (status == srtp_err_status_ok) {
     	if( mpRtpSender ) {
-    		int sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
-			if (sendSize != (int)pktSize) {
-				bFlag = false;
+    		sendSize = mpRtpSender->SendData((void *)pkt, pktSize);
+			if (sendSize == (int)pktSize) {
+				bFlag = true;
 			}
     	} else {
     		bFlag = false;
@@ -910,21 +911,27 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
     	bFlag = false;
     }
 
-//	LogAync(
-//			LOG_MSG,
-//			"RtpSession::SendRtpPacket( "
-//			"this : %p, "
-//			"status : %d, "
-//			"pktSize : %d, "
-//			"seq : %u, "
-//			"timestamp : %u "
-//			")",
-//			this,
-//			status,
-//			pktSize,
-//			ntohs(pkt->header.seq),
-//			ntohl(pkt->header.ts)
-//			);
+//    if ( !bFlag ) {
+//    	RtpHeader *header = (RtpHeader *)pkt;
+//
+//		LogAync(
+//				LOG_STAT,
+//				"RtpSession::SendRtpPacket( "
+//				"this : %p, "
+//				"status : %d, "
+//				"sendSize : %d, "
+//				"pktSize : %d, "
+//				"seq : %u, "
+//				"timestamp : %u "
+//				")",
+//				this,
+//				status,
+//				sendSize,
+//				pktSize,
+//				ntohs(header->seq),
+//				ntohl(header->ts)
+//				);
+//    }
 
 	return bFlag;
 }
@@ -998,8 +1005,8 @@ bool RtpSession::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
     if (status == srtp_err_status_ok) {
     	if( mpRtcpSender ) {
     		int sendSize = mpRtcpSender->SendData((void *)pkt, pktSize);
-			if (sendSize != (int)pktSize) {
-				bFlag = false;
+			if (sendSize == (int)pktSize) {
+				bFlag = true;
 			}
     	} else {
     		bFlag = false;
@@ -1143,7 +1150,7 @@ unsigned int RtpSession::GetRtcpSSRC(void *pkt, unsigned int& pktSize) {
 
 bool RtpSession::IsRtp(const char *frame, unsigned len) {
 	bool bFlag = false;
-	if( len > 0 ) {
+	if( len > sizeof(RtpHeader) ) {
 		RtpHeader *header = (RtpHeader *)frame;
 		bFlag = ((header->pt < 64) || ((header->pt >= 96) && (header->pt < 200)));
 	}
@@ -1152,7 +1159,7 @@ bool RtpSession::IsRtp(const char *frame, unsigned len) {
 
 bool RtpSession::IsRtcp(const char *frame, unsigned len) {
 	bool bFlag = false;
-	if( len > 0 ) {
+	if( len > sizeof(RtcpHeader) ) {
 		RtcpHeader *header = (RtcpHeader *)frame;
 		bFlag = ((header->pt >= 200) && (header->pt <= 210));
 	}

@@ -151,6 +151,7 @@ private:
 
 	// 执行转发RTMP的脚本
 	string mRtp2RtmpShellFilePath;
+	bool mNeedTranscodeVideo;
 	// 转发RTMP的链接
 	string mRtmpUrl;
 	// 转发RTMP脚本的进程ID

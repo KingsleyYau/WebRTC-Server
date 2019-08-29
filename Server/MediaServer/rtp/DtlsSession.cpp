@@ -661,8 +661,8 @@ bool DtlsSession::FlushSSL() {
 
 void DtlsSession::CheckHandshake() {
 	if ( (mDtlsSessionStatus == DtlsSessionStatus_HandshakeDone) && SSL_is_init_finished(mpSSL) ) {
+		// Check if peer send certificate
 		X509 *cert = SSL_get_peer_certificate(mpSSL);
-
 		unsigned char remoteFingerprint[EVP_MAX_MD_SIZE * 3];
 		memset(remoteFingerprint, 0, sizeof(remoteFingerprint));
 	    unsigned int fingerprintSize;
@@ -670,14 +670,16 @@ void DtlsSession::CheckHandshake() {
 	    bool bFlag = X509_digest(cert, EVP_sha256(), (unsigned char *)fingerprint, &fingerprintSize);
         X509_free(cert);
 
-	    char *c = (char *)&remoteFingerprint;
-	    for(int i = 0; i < (int)fingerprintSize; i++) {
-	    	sprintf(c, "%.2X:", fingerprint[i]);
-	    	c += 3;
-	    }
-	    if( bFlag ) {
-	    	*(c - 1) = 0;
-	    }
+        if( bFlag ) {
+			char *c = (char *)&remoteFingerprint;
+			for(int i = 0; i < (int)fingerprintSize; i++) {
+				sprintf(c, "%.2X:", fingerprint[i]);
+				c += 3;
+			}
+			if( bFlag ) {
+				*(c - 1) = 0;
+			}
+        }
 
 	    const char *cipherName = SSL_get_cipher(mpSSL);
 	    SRTP_PROTECTION_PROFILE *srtpProfile = SSL_get_selected_srtp_profile(mpSSL);
@@ -685,12 +687,10 @@ void DtlsSession::CheckHandshake() {
         unsigned char *clientKey, *clientSalt, *serverKey, *serverSalt;
         int ret = 0;
 
-		if( bFlag ) {
-            // Export keying material for SRTP
-			static const char *label = "EXTRACTOR-dtls_srtp";
-            ret = SSL_export_keying_material(mpSSL, material, SRTP_MASTER_LENGTH * 2, label, strlen(label), NULL, 0, 0);
-            bFlag = (ret == 1);
-		}
+		// Export keying material for SRTP
+		static const char *label = "EXTRACTOR-dtls_srtp";
+		ret = SSL_export_keying_material(mpSSL, material, SRTP_MASTER_LENGTH * 2, label, strlen(label), NULL, 0, 0);
+		bFlag = (ret == 1);
 
         if( bFlag ) {
         	// Key derivation (http://tools.ietf.org/html/rfc5764#section-4.2)

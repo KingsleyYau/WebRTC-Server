@@ -22,45 +22,56 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_MSG,
         			"Tester::Handle( "
 					"this : %p, "
-					"[Handshake Request] "
+					"[WS Handshake Request] "
         			")",
 					tester
         			);
 		}break;
         case MG_EV_WEBSOCKET_HANDSHAKE_DONE:{
         	LogAync(
-        			LOG_MSG,
+        			LOG_WARNING,
         			"Tester::Handle( "
 					"this : %p, "
-					"[Handshake Done] "
+					"[WS Handshake Done], "
+					"index : %d "
         			")",
-					tester
+					tester,
+					tester->index
         			);
+        	tester->rtc.Start("");
         }break;
         case MG_EV_WEBSOCKET_FRAME:{
             // Receive Data
+        	string str((const char*)wm->data, wm->size);
         	LogAync(
         			LOG_MSG,
         			"Tester::Handle( "
 					"this : %p, "
-					"[Recv Data], "
+					"[WS Recv Data], "
+					"size : %d,"
 					"\r\n%s\r\n"
         			")",
 					tester,
-					wm->data
+					wm->size,
+					str.c_str()
         			);
         	tester->HandleRecvData(wm->data, wm->size);
         }break;
         case MG_EV_CLOSE:{
             // Disconnect
         	LogAync(
-        			LOG_MSG,
+        			LOG_WARNING,
         			"Tester::Handle( "
 					"this : %p, "
-					"[Close] "
+					"[WS Close] "
+					"index : %d "
         			")",
-					tester
+					tester,
+					tester->index
         			);
+        	tester->rtc.Stop();
+
+        	tester->Start();
         }break;
     }
 }
@@ -81,7 +92,7 @@ bool Tester::Init(mg_mgr *mgr, const string& url, const string& stream, int inde
 	this->stream = stream;
 	this->index = index;
 
-	rtc.Init("", "127.0.0.1", 10000, "127.0.0.1", 10000 + 2);
+	rtc.Init("./push.sh", "127.0.0.1", 10000 + index);
 	rtc.SetCallback(this);
 
 	return true;
@@ -89,6 +100,19 @@ bool Tester::Init(mg_mgr *mgr, const string& url, const string& stream, int inde
 
 bool Tester::Start() {
     bool bFlag = false;
+
+	LogAync(
+			LOG_MSG,
+			"Tester::Start( "
+			"this : %p, "
+			"url : %s, "
+			"index : %d "
+			")",
+			this,
+			url.c_str(),
+			index
+			);
+
     if ( url.length() > 0 ) {
 		struct mg_connect_opts opt = {0};
 		opt.user_data = (void *)this;
@@ -97,19 +121,20 @@ bool Tester::Start() {
 		if ( NULL != conn && conn->err == 0 ) {
 			bFlag = true;
 		}
-		rtc.Start("", "");
     }
 
 	LogAync(
-			LOG_MSG,
+			LOG_WARNING,
 			"Tester::Start( "
 			"this : %p, "
 			"[%s], "
-			"url : %s "
+			"url : %s, "
+			"index : %d "
 			")",
 			this,
 			bFlag?"OK":"Fail",
-			url.c_str()
+			url.c_str(),
+			index
 			);
 
     return bFlag;
@@ -148,17 +173,17 @@ bool Tester::HandleRecvData(unsigned char *data, size_t size) {
 }
 
 void Tester::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
-	LogAync(
-			LOG_WARNING,
-			"Tester::OnWebRTCServerSdp( "
-			"this : %p, "
-			"rtc : %p, "
-			"sdp:\n%s"
-			")",
-			this,
-			rtc,
-			sdp.c_str()
-			);
+//	LogAync(
+//			LOG_WARNING,
+//			"Tester::OnWebRTCServerSdp( "
+//			"this : %p, "
+//			"rtc : %p, "
+//			"sdp:\n%s"
+//			")",
+//			this,
+//			rtc,
+//			sdp.c_str()
+//			);
 
 	Json::Value reqRoot;
 	Json::Value reqData = Json::Value::null;
@@ -173,23 +198,64 @@ void Tester::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 
 	string req = writer.write(reqRoot);
 
-	usleep(5 * 1000 * 1000);
+	usleep(1 * 1000 * 1000);
 	mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
 }
 
 void Tester::OnWebRTCStartMedia(WebRTC *rtc) {
-
+	LogAync(
+			LOG_WARNING,
+			"Tester::OnWebRTCStartMedia( "
+			"this : %p, "
+			"rtc : %p, "
+			"index : %d "
+			")",
+			this,
+			rtc,
+			index
+			);
 }
 
 void Tester::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) {
+	LogAync(
+			LOG_WARNING,
+			"Tester::OnWebRTCError( "
+			"this : %p, "
+			"rtc : %p, "
+			"index : %d "
+			")",
+			this,
+			rtc,
+			index
+			);
 
+	if ( conn ) {
+		mg_shutdown(conn);
+		conn = NULL;
+	}
+
+	Start();
 }
 
 void Tester::OnWebRTCClose(WebRTC *rtc) {
-//	if ( conn ) {
-//		mg_shutdown(conn);
-//		conn = NULL;
-//	}
+	LogAync(
+			LOG_WARNING,
+			"Tester::OnWebRTCClose( "
+			"this : %p, "
+			"rtc : %p, "
+			"index : %d "
+			")",
+			this,
+			rtc,
+			index
+			);
+
+	if ( conn ) {
+		mg_shutdown(conn);
+		conn = NULL;
+	}
+
+	Start();
 }
 
 WebRTCTester::WebRTCTester() {
@@ -208,7 +274,9 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	LogAync(
 			LOG_ERR_SYS,
 			"WebRTCTester::Start( "
-			")"
+			"maxCount : %d "
+			")",
+			maxCount
 			);
 
 	mg_mgr_init(&mMgr, NULL);

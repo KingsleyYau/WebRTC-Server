@@ -29,9 +29,6 @@ public:
 	void Stop();
 
 private:
-	void SetSocketSender(SocketSender *sender);
-
-private:
 	UdpSender mRtpSender;
 	UdpSender mRtcpSender;
 

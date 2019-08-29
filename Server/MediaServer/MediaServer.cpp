@@ -214,20 +214,20 @@ bool MediaServer::Start() {
 	}
 	mRunning = true;
 
-	// 创建HTTP server
-	if( bFlag ) {
-		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
-		if( bFlag ) {
-			LogAync(
-					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(HTTP)-成功] )"
-					);
-
-		} else {
-			LogAync(
-					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-失败] )"
-					);
-		}
-	}
+//	// 创建HTTP server
+//	if( bFlag ) {
+//		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
+//		if( bFlag ) {
+//			LogAync(
+//					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(HTTP)-成功] )"
+//					);
+//
+//		} else {
+//			LogAync(
+//					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-失败] )"
+//					);
+//		}
+//	}
 
 	if( bFlag ) {
 		bFlag = mWSServer.Start(miWebsocketPort);
@@ -418,10 +418,6 @@ void MediaServer::StateHandle() {
 			mCountMutex.lock();
 			iTotal = mTotal;
 
-			if( iStateTime != 0 ) {
-				iSecondTotal = 1.0 * iTotal / iStateTime;
-			}
-
 			mTotal = 0;
 			mCountMutex.unlock();
 
@@ -429,12 +425,10 @@ void MediaServer::StateHandle() {
 					LOG_ERR_USER,
 					"MediaServer::StateHandle( "
 					"event : [状态服务], "
-					"过去%u秒共收到请求(Websocket) : %u, "
-					"平均收到Websocket请求 : %.1lf/秒 "
+					"过去%u秒共收到请求(Websocket) : %u个 "
 					")",
 					iStateTime,
-					iTotal,
-					iSecondTotal
+					iTotal
 					);
 
 			iStateTime = miStateTime;
@@ -841,6 +835,21 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
 		bFound = true;
+
+		if( bFound ) {
+			Json::Value resRoot;
+			Json::FastWriter writer;
+
+			resRoot["id"] = 0;
+			resRoot["route"] = "imRTC/sendErrorNotice";
+			resRoot["errno"] = 0;
+			resRoot["errmsg"] = errMsg;
+
+			string res = writer.write(resRoot);
+			mWSServer.SendText(hdl, res);
+
+			mWSServer.Disconnect(hdl);
+		}
 	}
 	mWebRTCMap.Unlock();
 
@@ -861,20 +870,20 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			errMsg.c_str()
 			);
 
-	if( bFound ) {
-		Json::Value resRoot;
-		Json::FastWriter writer;
-
-		resRoot["id"] = 0;
-		resRoot["route"] = "imRTC/sendErrorNotice";
-		resRoot["errno"] = 0;
-		resRoot["errmsg"] = errMsg;
-
-		string res = writer.write(resRoot);
-		mWSServer.SendText(hdl, res);
-
-		mWSServer.Disconnect(hdl);
-	}
+//	if( bFound ) {
+//		Json::Value resRoot;
+//		Json::FastWriter writer;
+//
+//		resRoot["id"] = 0;
+//		resRoot["route"] = "imRTC/sendErrorNotice";
+//		resRoot["errno"] = 0;
+//		resRoot["errmsg"] = errMsg;
+//
+//		string res = writer.write(resRoot);
+//		mWSServer.SendText(hdl, res);
+//
+//		mWSServer.Disconnect(hdl);
+//	}
 }
 
 void MediaServer::OnWebRTCClose(WebRTC *rtc) {
@@ -887,6 +896,10 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
 		bFound = true;
+
+		if( bFound ) {
+			mWSServer.Disconnect(hdl);
+		}
 	}
 	mWebRTCMap.Unlock();
 
@@ -903,9 +916,9 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 			rtc->GetRtmpUrl().c_str()
 			);
 
-	if( bFound ) {
-		mWSServer.Disconnect(hdl);
-	}
+//	if( bFound ) {
+//		mWSServer.Disconnect(hdl);
+//	}
 }
 
 void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr) {

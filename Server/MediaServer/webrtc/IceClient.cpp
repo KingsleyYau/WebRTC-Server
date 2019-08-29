@@ -26,7 +26,7 @@ namespace mediaserver {
 ::GThread* gLoopThread = NULL;
 
 static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
-static const char *CandidateTransportName[] = {"", "tcptype active ", "tcptype passive ", ""};
+static const char *CandidateTransportName[] = {"", "tcptype active", "tcptype passive", ""};
 
 void* loop_thread(void *data) {
 	::GMainLoop* pLoop = (GMainLoop *)data;
@@ -228,14 +228,24 @@ void IceClient::Stop() {
 				);
 
 		if (mpAgent) {
+			// Release Agent
 			mCond.lock();
 			mRunning = false;
-			nice_agent_remove_stream(mpAgent, mStreamId);
+			/**
+			 * 关闭完成前不能调用nice_agent_remove_stream, 否则会导致relay的端口关不掉
+			 *
+			 */
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 			mCond.wait();
 			mCond.unlock();
+
 			g_object_unref(mpAgent);
+
+			// Reset Parameter
 			mpAgent = NULL;
+			mStreamId = -1;
+			mComponentId = -1;
+
 		} else {
 			mRunning = false;
 		}
@@ -294,7 +304,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	mClientMutex.lock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_MSG,
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
 			"sdp :\n%s"
@@ -308,7 +318,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     GSList *plist = nice_agent_parse_remote_stream_sdp(mpAgent, streamId, mSdp.c_str(), &ufrag, &pwd);
     if ( ufrag && pwd && g_slist_length(plist) > 0 ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_MSG,
 				"IceClient::ParseRemoteSdp( "
 				"this : %p, "
 				"plist_count : %d, "
@@ -524,18 +534,24 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 					portUse = nice_address_get_port(&local->addr);
 				}
 
+				string transport;
+					if ( strlen(CandidateTransportName[local->transport]) > 0 ) {
+						transport += " ";
+						transport += CandidateTransportName[local->transport];
+					}
+
 				if ( local->type == NICE_CANDIDATE_TYPE_RELAYED || local->type == NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE ) {
 					snprintf(candStr, sizeof(candStr) - 1,
-							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u %s\n",
+							"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u%s\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
 							local->priority,
 							ip,
 							localPort,
 							CandidateTypeName[local->type],
 							baseip,
 							basePort,
-							CandidateTransportName[local->transport]
+						    transport.c_str()
 							);
 					priority = local->priority;
 					ipUse = ip;
@@ -543,14 +559,14 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 
 				} else {
 					snprintf(candStr, sizeof(candStr) - 1,
-							"a=candidate:%s 1 %s %u %s %u typ %s %s\n",
+							"a=candidate:%s 1 %s %u %s %u typ %s%s\n",
 							local->foundation,
-							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"udp":"tcp",
+							(local->transport == NICE_CANDIDATE_TRANSPORT_UDP)?"UDP":"TCP",
 							local->priority,
 							ip,
 							localPort,
 							CandidateTypeName[local->type],
-							CandidateTransportName[local->transport]
+							transport.c_str()
 							);
 				}
 
@@ -600,7 +616,11 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			mpIceClientCallback->OnIceConnected(this);
 		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
-		nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+		mClientMutex.lock();
+		if ( mpAgent ) {
+			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+		}
+		mClientMutex.unlock();
 	}
 }
 

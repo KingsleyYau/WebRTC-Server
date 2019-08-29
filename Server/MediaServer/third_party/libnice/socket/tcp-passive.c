@@ -174,6 +174,12 @@ nice_tcp_passive_socket_new (GMainContext *ctx, NiceAddress *addr)
   sock->set_writable_callback = socket_set_writable_callback;
   sock->close = socket_close;
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d nice_tcp_passive_socket_new, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
+
   return sock;
 }
 
@@ -181,6 +187,12 @@ static void
 socket_close (NiceSocket *sock)
 {
   TcpPassivePriv *priv = sock->priv;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/26
+   */
+  nice_debug ("%s:%d socket_close, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
 
   if (sock->fileno != NULL) {
     g_socket_close (sock->fileno, NULL);

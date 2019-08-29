@@ -128,14 +128,14 @@ main(int argc, char *argv[])
   g_object_set(agent, "controlling-mode", controlling, NULL);
 
   // Add by Max
-  NiceAddress addrLocal;
-  nice_address_init(&addrLocal);
-  nice_address_set_from_string(&addrLocal, "192.168.88.133");
-  nice_agent_add_local_address(agent, &addrLocal);
+//  NiceAddress addrLocal;
+//  nice_address_init(&addrLocal);
+//  nice_address_set_from_string(&addrLocal, "192.168.88.133");
+//  nice_agent_add_local_address(agent, &addrLocal);
 
 //  g_object_set(agent, "ice-udp", FALSE, NULL);
   g_object_set(agent, "ice-tcp", TRUE, NULL);
-  g_object_set(agent, "force-relay", TRUE, NULL);
+  g_object_set(agent, "force-relay", FALSE, NULL);
   g_object_set(agent, "upnp", FALSE, NULL);
   g_object_set(agent, "stun-reliable-timeout", 20000, NULL);
 
@@ -153,7 +153,7 @@ main(int argc, char *argv[])
     g_error("Failed to add stream");
 
   // Add by Max
-  nice_agent_set_relay_info(agent, stream_id, 1, "192.168.88.133", 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+  nice_agent_set_relay_info(agent, stream_id, 1, "192.168.88.134", 3478, "MaxClient", "123", NICE_RELAY_TYPE_TURN_TCP);
 
   // Attach to the component to receive the data
   // Without this call, candidates cannot be gathered

@@ -971,7 +971,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 	//				);
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_MSG,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
@@ -1028,7 +1028,7 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_MSG,
 					"RtpSession::RecvRtcpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
