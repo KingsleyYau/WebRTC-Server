@@ -92,7 +92,7 @@ void RtpRawClient::Stop() {
 
 void RtpRawClient::Shutdown() {
 	LogAync(
-			LOG_WARNING,
+			LOG_MSG,
 			"RtpRawClient::Shutdown( "
 			"this : %p "
 			")",

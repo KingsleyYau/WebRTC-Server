@@ -288,35 +288,64 @@ void Tester::OnWebRTCClose(WebRTC *rtc) {
 	mMutex.unlock();
 }
 
+class WebRTCTesterRunnable : public KRunnable {
+public:
+	WebRTCTesterRunnable(WebRTCTester *container) {
+		mContainer = container;
+	}
+	virtual ~WebRTCTesterRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->MainThread();
+	}
+private:
+	WebRTCTester *mContainer;
+};
+
 WebRTCTester::WebRTCTester() {
 	// TODO Auto-generated constructor stub
+	mpRunnable = new WebRTCTesterRunnable(this);
+
 	mRunning = false;
 	mpTesterList = NULL;
+
+	miReconnect = 0;
+	miMaxCount = 0;
 }
 
 WebRTCTester::~WebRTCTester() {
 	// TODO Auto-generated destructor stub
+	if( mpRunnable ) {
+		delete mpRunnable;
+		mpRunnable = NULL;
+	}
 }
 
-bool WebRTCTester::Start(const string& stream, const string& webSocketServer, unsigned int maxCount, const string turnServer, int iReconnect) {
+bool WebRTCTester::Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount, const string turnServer, int iReconnect) {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_ERR_SYS,
 			"WebRTCTester::Start( "
-			"maxCount : %d "
+			"iMaxCount : %d, "
+			"iReconnect : %d "
 			")",
-			maxCount
+			iMaxCount,
+			iReconnect
 			);
 
 	mg_mgr_init(&mMgr, NULL);
 
 	mRunning = true;
 	mWebSocketServer = webSocketServer;
+	miMaxCount = iMaxCount;
+	miReconnect = iReconnect;
 
 	char indexStr[16] = {'\0'};
-	mpTesterList = new Tester[maxCount];
-	for(unsigned int i = 0; i < maxCount; i++) {
+	mpTesterList = new Tester[iMaxCount];
+	for(unsigned int i = 0; i < iMaxCount; i++) {
 		Tester *tester = &mpTesterList[i];
 
 		sprintf(indexStr, "%u", i);
@@ -326,11 +355,50 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 		tester->Start();
 	}
 
+	if( bFlag ) {
+		if( 0 == mThread.Start(mpRunnable) ) {
+			LogAync(
+					LOG_ERR_SYS,
+					"WebRTCTester::Start( "
+					"this : %p, "
+					"[Create Main Thread Fail] "
+					")",
+					this
+					);
+			bFlag = false;
+		}
+	}
+
+	return bFlag;
+}
+
+void WebRTCTester::Stop() {
+	LogAync(
+			LOG_ERR_SYS,
+			"WebRTCTester::Stop("
+			")"
+			);
+	mRunning = false;
+	mThread.Stop();
+
+	mg_mgr_free(&mMgr);
+}
+
+bool WebRTCTester::IsRunning() {
+	return mRunning;
+}
+
+void WebRTCTester::MainThread() {
+	LogAync(
+			LOG_MSG,
+			"WebRTCTester::MainThread( [Start] )"
+			);
+
 	long long lastTime = getCurrentTime();
-	int second = ( iReconnect > 0 )?(rand() % iReconnect):0;
+	int second = ( miReconnect > 0 )?(rand() % miReconnect):0;
 	LogAync(
 			LOG_WARNING,
-			"WebRTCTester::Start( "
+			"WebRTCTester::MainThread( "
 			"[Disconnect Client After %d seconds] "
 			")",
 			second
@@ -339,13 +407,13 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	while ( mRunning ) {
 		mg_mgr_poll(&mMgr, 100);
 
-		if ( iReconnect > 0 ) {
+		if ( miReconnect > 0 ) {
 			long long now = getCurrentTime();
 			if ( now - lastTime > second * 1000 ) {
 				// Update
-				int clientIndex = rand() % maxCount;
+				int clientIndex = rand() % miMaxCount;
 				lastTime = now;
-				second = rand() % iReconnect;
+				second = rand() % miReconnect;
 
 				LogAync(
 						LOG_WARNING,
@@ -363,18 +431,10 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 		}
 	}
 
-	mg_mgr_free(&mMgr);
-
-	return bFlag;
-}
-
-void WebRTCTester::Stop() {
 	LogAync(
-			LOG_ERR_SYS,
-			"WebRTCTester::Stop("
-			")"
+			LOG_MSG,
+			"WebRTCTester::MainThread( [Exit] )"
 			);
-	mRunning = false;
 }
 
 } /* namespace mediaserver */

@@ -76,7 +76,13 @@ int main(int argc, char *argv[]) {
 	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
 
     string baseUrl = "ws://" + string(ws);
-    gTester.Start(name, baseUrl, iTotal, turn, iReconnect);
+    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect);
+
+	while( bFlag && gTester.IsRunning() ) {
+		/* do nothing here */
+		fflush(stdout);
+		sleep(3);
+	}
 
 	return EXIT_SUCCESS;
 }

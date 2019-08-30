@@ -14,6 +14,7 @@
 
 // Common
 #include <common/LogManager.h>
+#include <common/KThread.h>
 
 namespace mediaserver {
 class WebRTCTester;
@@ -51,16 +52,23 @@ public:
 	KMutex mMutex;
 };
 
+class WebRTCTesterRunnable;
 class WebRTCTester {
+	friend class WebRTCTesterRunnable;
+
 public:
 	WebRTCTester();
 	virtual ~WebRTCTester();
 
-	bool Start(const string& stream, const string& webSocketServer, unsigned int maxCount = 1, const string turnServer = "", int iReconnect = 0);
+	bool Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount = 1, const string turnServer = "", int iReconnect = 0);
 	void Stop();
+	bool IsRunning();
 
 private:
 	bool Connect(Tester *tester);
+
+private:
+	void MainThread();
 
 private:
     mg_mgr mMgr;
@@ -69,6 +77,11 @@ private:
     Tester *mpTesterList;
 
     bool mRunning;
+    int miReconnect;
+    int miMaxCount;
+
+    WebRTCTesterRunnable* mpRunnable;
+	KThread mThread;
 };
 
 } /* namespace mediaserver */
