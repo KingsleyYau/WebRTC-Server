@@ -189,22 +189,24 @@ void WebRTC::Stop() {
 
 	mClientMutex.lock();
 	if( mRunning ) {
+		// 停止接收
+		mRunning = false;
+
 		// 停止媒体流服务
 		mIceClient.Stop();
 		mDtlsSession.Stop();
 		mRtpSession.Stop();
-		mRtpClient.Stop();
+		mRtpClient.Shutdown();
 
 		// 停止转发RTP
 		StopRtpTransform();
 
 		mRtpClientThread.Stop();
+		mRtpClient.Stop();
 
 		// 还原参数
 		mAudioSSRC = 0;
 		mVideoSSRC = 0;
-
-		mRunning = false;
 	}
 	mClientMutex.unlock();
 

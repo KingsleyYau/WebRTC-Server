@@ -239,6 +239,7 @@ void IceClient::Stop() {
 			mCond.wait();
 			mCond.unlock();
 
+			nice_agent_remove_stream(mpAgent, mStreamId);
 			g_signal_handlers_disconnect_by_data(mpAgent, this);
 			g_object_unref(mpAgent);
 

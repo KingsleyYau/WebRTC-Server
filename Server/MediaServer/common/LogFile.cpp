@@ -124,7 +124,9 @@ FILE* CFileCtrl::CreateLog()
         m_pLogFile = NULL;
         m_nFileLen = 0;
     }
-    if ((m_pLogFile = fopen(szTime, "w+b")) == 0) {
+
+    m_pLogFile = fopen(szTime, "w+b");
+    if ( m_pLogFile ) {
         m_nFileLen = fseek(m_pLogFile, 0L, SEEK_END);
     }
     return m_pLogFile;
@@ -140,7 +142,8 @@ FILE*  CFileCtrl::FileOpen(const char *szFileName, int aiMod)
     m_nFileLen = 0;
     m_ncurRead = 0;
 
-    if ((m_pLogFile = fopen(szFileName, "w+b")) == 0) {
+    m_pLogFile = fopen(szFileName, "w+b");
+    if ( m_pLogFile ) {
         m_nFileLen = fseek(m_pLogFile, 0L, SEEK_END);
         fseek(m_pLogFile, 0 - m_nFileLen, SEEK_CUR);
     }
@@ -285,7 +288,7 @@ void CFileCtrl::FlushMem2File()
 
 int CFileCtrl::Mkdirs(const char *path, mode_t mode) {
 	int ret = 0;
-	char curPath[MAX_PATH];
+	char curPath[MAX_PATH] = {'\0'};
 
 	int len = strlen(path);
     strncpy(curPath, path, strlen(path));

@@ -125,6 +125,10 @@ private:
 	void StopRtpTransform();
 
 private:
+	// Status
+	KMutex mClientMutex;
+	bool mRunning;
+
 	WebRTCCallback *mpWebRTCCallback;
 
 	IceClient mIceClient;

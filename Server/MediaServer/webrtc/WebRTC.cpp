@@ -22,7 +22,8 @@
 namespace mediaserver {
 
 WebRTC::WebRTC()
-:mRtpTransformPidMutex(KMutex::MutexType_Recursive) {
+:mClientMutex(KMutex::MutexType_Recursive),
+ mRtpTransformPidMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
 	mIceClient.SetCallback(this);
 	mDtlsSession.SetSocketSender(this);
@@ -45,6 +46,8 @@ WebRTC::WebRTC()
 	mRtpTransformPid = 0;
 
 	mNeedTranscodeVideo = true;
+
+	mRunning = false;
 }
 
 WebRTC::~WebRTC() {
@@ -119,6 +122,13 @@ bool WebRTC::Start(
 		) {
 	bool bFlag = true;
 
+	mClientMutex.lock();
+	if( mRunning ) {
+		Stop();
+	}
+
+	mRunning = true;
+
 	// Reset Param
 	mNeedTranscodeVideo = true;
 
@@ -154,42 +164,50 @@ bool WebRTC::Start(
 		Stop();
 	}
 
+	mClientMutex.unlock();
+
 	return bFlag;
 }
 
 void WebRTC::Stop() {
-	LogAync(
-			LOG_MSG,
-			"WebRTC::Stop( "
-			"this : %p "
-			")",
-			this
-			);
+	mClientMutex.lock();
+	if( mRunning ) {
+		LogAync(
+				LOG_MSG,
+				"WebRTC::Stop( "
+				"this : %p "
+				")",
+				this
+				);
 
-	// 停止媒体流服务
-	mIceClient.Stop();
-	mDtlsSession.Stop();
-	mRtpSession.Stop();
-	mRtpDstAudioClient.Stop();
-	mRtpDstVideoClient.Stop();
+		// 停止媒体流服务
+		mIceClient.Stop();
+		mDtlsSession.Stop();
+		mRtpSession.Stop();
+		mRtpDstAudioClient.Stop();
+		mRtpDstVideoClient.Stop();
 
-	// 停止转发RTMP
-	StopRtpTransform();
+		// 停止转发RTMP
+		StopRtpTransform();
 
-	// 还原参数
-	mAudioSSRC = 0;
-	mVideoSSRC = 0;
+		// 还原参数
+		mAudioSSRC = 0;
+		mVideoSSRC = 0;
 
-	LogAync(
-			LOG_WARNING,
-			"WebRTC::Stop( "
-			"this : %p, "
-			"[OK], "
-			"rtmpUrl : %s "
-			")",
-			this,
-			mRtmpUrl.c_str()
-			);
+		mRunning = false;
+
+		LogAync(
+				LOG_WARNING,
+				"WebRTC::Stop( "
+				"this : %p, "
+				"[OK], "
+				"rtmpUrl : %s "
+				")",
+				this,
+				mRtmpUrl.c_str()
+				);
+	}
+	mClientMutex.unlock();
 }
 
 void WebRTC::UpdateCandidate(const string& sdp) {

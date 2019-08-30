@@ -328,6 +328,13 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 
 	long long lastTime = getCurrentTime();
 	int second = ( iReconnect > 0 )?(rand() % iReconnect):0;
+	LogAync(
+			LOG_WARNING,
+			"WebRTCTester::Start( "
+			"[Disconnect Client After %d seconds] "
+			")",
+			second
+			);
 
 	while ( mRunning ) {
 		mg_mgr_poll(&mMgr, 100);

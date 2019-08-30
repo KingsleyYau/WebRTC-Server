@@ -24,6 +24,7 @@ using namespace mediaserver;
 
 char ws[128] = {"192.168.88.133:9881"};
 char turn[128] = {"192.168.88.134"};
+char interface[128] = {""};
 char name[128] = {"tester"};
 int iCurrent = 0;
 int iTotal = 1;
@@ -72,10 +73,10 @@ int main(int argc, char *argv[]) {
 	LogManager::GetLogManager()->SetDebugMode(true);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
-	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, "");
+	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
 
     string baseUrl = "ws://" + string(ws);
-    gTester.Start(name, baseUrl, iTotal);
+    gTester.Start(name, baseUrl, iTotal, turn, iReconnect);
 
 	return EXIT_SUCCESS;
 }
@@ -97,6 +98,9 @@ bool Parse(int argc, char *argv[]) {
 		} else if( key.compare("-s") == 0 ) {
 			memset(turn, 0, sizeof(turn));
 			memcpy(turn, value.c_str(), value.length());
+		} else if( key.compare("-i") == 0 ) {
+			memset(interface, 0, sizeof(interface));
+			memcpy(interface, value.c_str(), value.length());
 		} else if( key.compare("-n") == 0 ) {
 			iTotal = atoi(value.c_str());
 		} else if( key.compare("-r") == 0 ) {
@@ -125,7 +129,6 @@ void SignalFunc(int sign_no) {
 				);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		gTester.Stop();
-		LogManager::GetLogManager()->LogFlushMem2File();
 		signal(sign_no, SIG_DFL);
 		kill(getpid(), sign_no);
 	}break;

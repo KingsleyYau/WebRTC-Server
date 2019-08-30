@@ -34,7 +34,7 @@ bool RtpRawClient::Init(const string sendIp, int rtpSendPort, int rtpRecvPort) {
 	if( !mRunning ) {
 		mSendIp = sendIp;
 		mRtpSendPort = rtpSendPort;
-		mRtpReceiver.Init(sendIp, rtpRecvPort);
+		mRtpRecvPort = rtpRecvPort;
 
 		if( bFlag ) {
 			LogAync(
@@ -78,6 +78,7 @@ bool RtpRawClient::Start(char *localKey, int localSize, char *remoteKey, int rem
 
 	bFlag &= mRtpSender.Init(mSendIp, mRtpSendPort);
 	bFlag &= mRtcpSender.Init(mSendIp, mRtpSendPort + 1);
+	bFlag &= mRtpReceiver.Init(mSendIp, mRtpRecvPort);
 
 	return bFlag;
 }
@@ -89,6 +90,17 @@ void RtpRawClient::Stop() {
 	mRtpReceiver.Close();
 }
 
+void RtpRawClient::Shutdown() {
+	LogAync(
+			LOG_WARNING,
+			"RtpRawClient::Shutdown( "
+			"this : %p "
+			")",
+			this
+			);
+	mRtpReceiver.Shutdown();
+}
+
 bool RtpRawClient::RecvRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 	char buffer[2048] = {'\0'};
@@ -98,6 +110,17 @@ bool RtpRawClient::RecvRtpPacket(void *pkt, unsigned int& pktSize) {
 		bFlag = true;
 	} else if ( size == 0 ) {
 		bFlag = true;
+	} else {
+		LogAync(
+				LOG_WARNING,
+				"RtpRawClient::RecvRtpPacket( "
+				"this : %p, "
+				"[Fail], "
+				"size : %d "
+				")",
+				this,
+				size
+				);
 	}
 	return bFlag;
 }

@@ -29,6 +29,7 @@ public:
 	bool Init(const string sendIp, int rtpSendPort, int rtpRecvPort);
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
 	void Stop();
+	void Shutdown();
 
 	/**
 	 * 接收原始RTP包(网络字节序)
@@ -43,6 +44,7 @@ private:
 	string mSendIp;
 	int mRtpSendPort;
 	int mRtpRecvPort;
+
 };
 
 } /* namespace mediaserver */
