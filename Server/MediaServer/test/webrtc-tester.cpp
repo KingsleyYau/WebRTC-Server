@@ -134,7 +134,7 @@ void SignalFunc(int sign_no) {
 				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
 				);
 		LogManager::GetLogManager()->LogFlushMem2File();
-		gTester.Stop();
+//		gTester.Stop();
 		signal(sign_no, SIG_DFL);
 		kill(getpid(), sign_no);
 	}break;

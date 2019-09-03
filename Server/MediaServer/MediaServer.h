@@ -57,6 +57,13 @@ struct MediaClient {
 		connected = false;
 	}
 
+	void Reset() {
+		rtc = NULL;
+		connectTime = 0;
+		startMediaTime = 0;
+		connected = false;
+	}
+
 	MediaClient& operator=(const MediaClient& item) {
 		hdl = item.hdl;
 		rtc = item.rtc;

@@ -731,15 +731,6 @@ bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 }
 
 void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
-	LogAync(
-			LOG_STAT,
-			"MediaServer::OnWebRTCServerSdp( "
-			"event : [WebRTC-返回SDP-Start], "
-			"rtc : %p "
-			")",
-			rtc
-			);
-
 	connection_hdl hdl;
 	bool bFound = false;
 
@@ -749,6 +740,23 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
 		bFound = true;
+
+		if ( bFound ) {
+			Json::Value resRoot;
+			Json::Value resData;
+			Json::FastWriter writer;
+
+			resRoot["id"] = 0;
+			resRoot["route"] = "imRTC/sendSdpAnswerNotice";
+			resRoot["errno"] = 0;
+			resRoot["errmsg"] = "";
+
+			resData["sdp"] = sdp;
+			resRoot["req_data"] = resData;
+
+			string res = writer.write(resRoot);
+			mWSServer.SendText(hdl, res);
+		}
 	}
 	mWebRTCMap.Unlock();
 
@@ -766,23 +774,6 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 			rtc->GetRtmpUrl().c_str()
 //			sdp.c_str()
 			);
-
-	if ( bFound ) {
-		Json::Value resRoot;
-		Json::Value resData;
-		Json::FastWriter writer;
-
-		resRoot["id"] = 0;
-		resRoot["route"] = "imRTC/sendSdpAnswerNotice";
-		resRoot["errno"] = 0;
-		resRoot["errmsg"] = "";
-
-		resData["sdp"] = sdp;
-		resRoot["req_data"] = resData;
-
-		string res = writer.write(resRoot);
-		mWSServer.SendText(hdl, res);
-	}
 }
 
 void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
@@ -795,6 +786,19 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
 		bFound = true;
+
+		if( bFound ) {
+			Json::Value resRoot;
+			Json::FastWriter writer;
+
+			resRoot["id"] = 0;
+			resRoot["route"] = "imRTC/sendStartMediaNotice";
+			resRoot["errno"] = 0;
+			resRoot["errmsg"] = "";
+
+			string res = writer.write(resRoot);
+			mWSServer.SendText(hdl, res);
+		}
 	}
 	mWebRTCMap.Unlock();
 
@@ -810,19 +814,6 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 			rtc,
 			rtc->GetRtmpUrl().c_str()
 			);
-
-	if( bFound ) {
-		Json::Value resRoot;
-		Json::FastWriter writer;
-
-		resRoot["id"] = 0;
-		resRoot["route"] = "imRTC/sendStartMediaNotice";
-		resRoot["errno"] = 0;
-		resRoot["errmsg"] = "";
-
-		string res = writer.write(resRoot);
-		mWSServer.SendText(hdl, res);
-	}
 }
 
 void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) {
@@ -980,11 +971,12 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl, const string& 
 	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
 	if ( itr != mWebsocketMap.End() ) {
 		client = itr->second;
-		client->connected = false;
 
-		rtc = client->rtc;
-		mWebRTCMap.Erase(rtc);
 		connectTime = client->connectTime;
+		rtc = client->rtc;
+
+		mWebRTCMap.Erase(rtc);
+		client->Reset();
 	}
 	mWebsocketMap.Erase(hdl);
 	mWebRTCMap.Unlock();
@@ -1094,7 +1086,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 								if ( client->rtc ) {
 									rtc = client->rtc;
-									rtc->Stop();
 								} else {
 									rtc = mWebRTCList.PopFront();
 									if ( rtc ) {
@@ -1103,6 +1094,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 									}
 								}
 							}
+							mWebRTCMap.Unlock();
 
 							if ( rtc ) {
 								bFlag = rtc->Start(sdp, rtmpUrl);
@@ -1115,7 +1107,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							} else {
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
 							}
-							mWebRTCMap.Unlock();
 
 						} else {
 							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);

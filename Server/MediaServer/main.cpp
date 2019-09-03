@@ -110,8 +110,9 @@ void SignalFunc(int sign_no) {
 		LogAync(
 				LOG_ERR_SYS, "main( interrupt )"
 				);
-		gMediaServer.Stop();
 		LogManager::GetLogManager()->LogFlushMem2File();
+		gMediaServer.Stop();
+		exit(0);
 	}break;
 	default:{
 		LogAync(

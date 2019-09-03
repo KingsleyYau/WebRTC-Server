@@ -156,7 +156,12 @@ void discovery_prune_socket (NiceAgent *agent, NiceSocket *sock)
  */
 void refresh_free (NiceAgent *agent, CandidateRefresh *cand)
 {
-  nice_debug ("Freeing candidate refresh %p", cand);
+	/**
+	 * Add Debug Log
+	 * Add by Max 2019/09/02
+	 */
+	nice_debug ("[Max] Agent %p, refresh_free, cand %p, destroy_cb %p, destroy_cb_data %p", agent, cand, cand->destroy_cb, cand->destroy_cb_data);
+//	nice_debug ("Freeing candidate refresh cand %p, destroy_cb %p, destroy_cb_data %p", cand, cand->destroy_cb, cand->destroy_cb_data);
 
   agent->refresh_list = g_slist_remove (agent->refresh_list, cand);
 
@@ -231,6 +236,11 @@ static gboolean refresh_remove_async (NiceAgent *agent, CandidateRefresh *cand,
     return FALSE;
   }
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, refresh_remove_async, destroy_cb %p, destroy_cb_data %p, cand %p", agent, cb, cb_data, cand);
   nice_debug ("Sending request to remove TURN allocation for refresh %p", cand);
 
   cand->disposing = TRUE;
@@ -312,11 +322,21 @@ static void refresh_prune_async (NiceAgent *agent, GSList *refreshes,
   data->cb = function;
 
   for (it = refreshes; it; it = it->next) {
-    if (refresh_remove_async (agent, it->data,
-        (GDestroyNotify) on_refresh_removed, data)) {
-      ++data->items_to_free;
-    }
+	  /**
+	   * Add Debug Log
+	   * Add by Max 2019/09/02
+	   */
+	  nice_debug ("[Max] Agent %p, refresh_prune_async, function %p, user_data %p, cand %p", agent, function, user_data, it->data);
+	  if (refresh_remove_async (agent, it->data, (GDestroyNotify) on_refresh_removed, data)) {
+		  ++data->items_to_free;
+	  }
   }
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/02
+   */
+  nice_debug ("[Max] Agent %p, refresh_prune_async, function %p, user_data %p, items_to_free %u", agent, function, user_data, data->items_to_free);
 
   if (data->items_to_free == 0) {
     /* Stream doesn't have any refreshes to remove. Invoke our callback once to

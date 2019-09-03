@@ -73,6 +73,12 @@ nice_stream_new (guint stream_id, guint n_components, NiceAgent *agent)
 
     component = nice_component_new (n + 1, agent, stream);
     stream->components = g_slist_append (stream->components, component);
+
+    /**
+     * Add Debug Log
+     * Add by Max 2019/08/30
+     */
+    nice_debug ("[Max] Agent %p, new stream %p, add component %p", agent, stream, component);
   }
 
   stream->n_components = n_components;
@@ -86,6 +92,12 @@ void
 nice_stream_close (NiceAgent *agent, NiceStream *stream)
 {
   GSList *i;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, close stream %p, components.length %d", agent, stream, g_slist_length(stream->components));
 
   for (i = stream->components; i; i = i->next) {
     NiceComponent *component = i->data;
@@ -169,6 +181,12 @@ nice_stream_finalize (GObject *obj)
   NiceStream *stream;
 
   stream = NICE_STREAM (obj);
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/03
+   */
+  nice_debug ("[Max] Stream %p, nice_stream_finalize, components.length %d", stream, g_slist_length(stream->components));
 
   g_free (stream->name);
   g_slist_free_full (stream->components, (GDestroyNotify) g_object_unref);

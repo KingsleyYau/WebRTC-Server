@@ -304,6 +304,12 @@ nice_component_close (NiceAgent *agent, NiceComponent *cmp)
   GOutputVector *vec;
   IncomingCheck *c;
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, component %p close", agent, cmp);
+
   /* Start closing the pseudo-TCP socket first. FIXME: There is a very big and
    * reliably triggerable race here. pseudo_tcp_socket_close() does not block
    * on the socket closing — it only sends the first packet of the FIN
@@ -1121,8 +1127,9 @@ nice_component_get_property (GObject *obj,
         NiceAgent *agent;
 
         agent = g_weak_ref_get (&component->agent_ref);
-        if (agent)
+        if (agent) {
           g_value_take_object (value, agent);
+        }
         break;
       }
     case PROP_STREAM:
@@ -1181,6 +1188,12 @@ nice_component_finalize (GObject *obj)
   NiceComponent *cmp;
 
   cmp = NICE_COMPONENT (obj);
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/03
+   */
+  nice_debug ("[Max] Compenent %p, nice_component_finalize", cmp);
 
   /* Component should have been closed already. */
   g_warn_if_fail (cmp->local_candidates == NULL);
@@ -1568,24 +1581,26 @@ nice_component_verify_remote_candidate (NiceComponent *component,
     char ip2[INET6_ADDRSTRLEN] = {0};
     nice_address_to_string(&cand->addr, ip2);
 
-    /**
-     * Add Debug Log
-     * Add by Max 2019/08/01
-     */
-    nice_debug ("[Compenent] : "
-  		  "nicesock->type : %d, "
-  		  "cand->transport : %d, "
-  		  "ip1 : (%u)%s:%u, "
-		  "ip2 : (%u)%s:%u",
-  		  nicesock->type,
-		  cand->transport,
-		  address->s.addr.sa_family,
-		  ip1,
-		  nice_address_get_port(address),
-		  cand->addr.s.addr.sa_family,
-		  ip2,
-		  nice_address_get_port(&cand->addr)
-		  );
+//    /**
+//     * Add Debug Log
+//     * Add by Max 2019/08/01
+//     */
+//    nice_debug ("[Max] verify_remote_candidate, "
+//    	  "component %p, "
+//  		  "nicesock->type %d, "
+//  		  "cand->transport %d, "
+//  		  "ip1 (%u)%s:%u, "
+//		  "ip2 (%u)%s:%u",
+//		  component,
+//  		  nicesock->type,
+//		  cand->transport,
+//		  address->s.addr.sa_family,
+//		  ip1,
+//		  nice_address_get_port(address),
+//		  cand->addr.s.addr.sa_family,
+//		  ip2,
+//		  nice_address_get_port(&cand->addr)
+//		  );
 
     if ((((nicesock->type == NICE_SOCKET_TYPE_TCP_BSD ||
                     nicesock->type == NICE_SOCKET_TYPE_UDP_TURN) &&
@@ -1598,24 +1613,26 @@ nice_component_verify_remote_candidate (NiceComponent *component,
         nice_address_equal (address, &cand->addr)) {
       /* fast return if it's already the first */
       if (item == component->valid_candidates) {
-    	    /**
-    	     * Add Debug Log
-    	     * Add by Max 2019/08/01
-    	     */
-    	    nice_debug ("[Compenent] - Verify TRUE: "
-    	  		  "nicesock->type : %d, "
-    	  		  "cand->transport : %d, "
-    	  		  "ip1 : (%u)%s:%u, "
-    			  "ip2 : (%u)%s:%u",
-    	  		  nicesock->type,
-    			  cand->transport,
-    			  address->s.addr.sa_family,
-    			  ip1,
-    			  nice_address_get_port(address),
-    			  cand->addr.s.addr.sa_family,
-    			  ip2,
-    			  nice_address_get_port(&cand->addr)
-    			  );
+//		/**
+//		 * Add Debug Log
+//		 * Add by Max 2019/08/01
+//		 */
+//		nice_debug ("[Max] verify_remote_candidate, TRUE, "
+//			  "component %p, "
+//			  "nicesock->type %d, "
+//			  "cand->transport %d, "
+//			  "ip1 (%u)%s:%u, "
+//			  "ip2 (%u)%s:%u",
+//			  component,
+//			  nicesock->type,
+//			  cand->transport,
+//			  address->s.addr.sa_family,
+//			  ip1,
+//			  nice_address_get_port(address),
+//			  cand->addr.s.addr.sa_family,
+//			  ip2,
+//			  nice_address_get_port(&cand->addr)
+//			  );
         return TRUE;
       }
 
@@ -1627,24 +1644,26 @@ nice_component_verify_remote_candidate (NiceComponent *component,
       component->valid_candidates = g_list_concat (item,
           component->valid_candidates);
 
-      /**
-       * Add Debug Log
-       * Add by Max 2019/08/01
-       */
-      nice_debug ("[Compenent] - Verify TRUE 2: "
-	  		  "nicesock->type : %d, "
-	  		  "cand->transport : %d, "
-	  		  "ip1 : (%u)%s:%u, "
-			  "ip2 : (%u)%s:%u",
-	  		  nicesock->type,
-			  cand->transport,
-			  address->s.addr.sa_family,
-			  ip1,
-			  nice_address_get_port(address),
-			  cand->addr.s.addr.sa_family,
-			  ip2,
-			  nice_address_get_port(&cand->addr)
-			  );
+//      /**
+//       * Add Debug Log
+//       * Add by Max 2019/08/01
+//       */
+//      nice_debug ("[Max] verify_remote_candidate, TRUE 2, "
+//    		  "component %p, "
+//	  		  "nicesock->type : %d, "
+//	  		  "cand->transport : %d, "
+//	  		  "ip1 : (%u)%s:%u, "
+//			  "ip2 : (%u)%s:%u",
+//			  component,
+//	  		  nicesock->type,
+//			  cand->transport,
+//			  address->s.addr.sa_family,
+//			  ip1,
+//			  nice_address_get_port(address),
+//			  cand->addr.s.addr.sa_family,
+//			  ip2,
+//			  nice_address_get_port(&cand->addr)
+//			  );
 
       return TRUE;
     }

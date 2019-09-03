@@ -24,6 +24,7 @@
 namespace mediaserver {
 ::GMainLoop* gLoop = NULL;
 ::GThread* gLoopThread = NULL;
+::GMainContext *gContext = NULL;
 
 static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
 static const char *CandidateTransportName[] = {"", "tcptype active", "tcptype passive", ""};
@@ -55,7 +56,8 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp) {
 	gStunServerIp = stunServerIp;
 
 	g_networking_init();
-	gLoop = g_main_loop_new(NULL, FALSE);
+//	gContext = g_main_context_new();
+	gLoop = g_main_loop_new(gContext, FALSE);
 	gLoopThread = g_thread_new("loopThread", &loop_thread, gLoop);
 
 	nice_debug_enable(TRUE);
@@ -68,6 +70,16 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp) {
 //}
 
 void cb_closed(void *src, void *res, void *data) {
+	LogAync(
+			LOG_STAT,
+			"IceClient::cb_closed( "
+			"this : %p, "
+			"agent : %p"
+			")",
+			data,
+			src
+			);
+
 	IceClient *pClient = (IceClient *)data;
 	NiceAgent *agent = NICE_AGENT((GObject *)src);
 	pClient->OnClose(agent);
@@ -91,6 +103,11 @@ void cb_component_state_changed(NiceAgent *agent, guint streamId, guint componen
 void cb_new_selected_pair_full(NiceAgent* agent, guint streamId, guint componentId, NiceCandidate *lcandidate, NiceCandidate* rcandidate, gpointer data) {
 	IceClient* pClient = (IceClient *)data;
 	pClient->OnNewSelectedPairFull(agent, streamId, componentId, lcandidate, rcandidate);
+}
+
+void cb_stream_removed_actually(NiceAgent *agent, guint streamId, gpointer data) {
+	IceClient* pClient = (IceClient *)data;
+	pClient->OnStreamRemovedActually(agent, streamId);
 }
 
 IceClient::IceClient() :
@@ -161,11 +178,11 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "force-relay", FALSE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
-    g_object_set(mpAgent, "stun-max-retransmissions", 7, NULL);
+//    g_object_set(mpAgent, "stun-max-retransmissions", 7, NULL);
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
     // 保持心跳
-    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
+//    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 
     // 设置STUN服务器地址
     g_object_set(mpAgent, "stun-server", gStunServerIp.c_str(), NULL);
@@ -182,6 +199,7 @@ bool IceClient::Start() {
     g_signal_connect(mpAgent, "candidate-gathering-done", G_CALLBACK(cb_candidate_gathering_done), this);
     g_signal_connect(mpAgent, "component-state-changed", G_CALLBACK(cb_component_state_changed), this);
     g_signal_connect(mpAgent, "new-selected-pair-full", G_CALLBACK(cb_new_selected_pair_full), this);
+    g_signal_connect(mpAgent, "stream-removed-actually", G_CALLBACK(cb_stream_removed_actually), this);
 
     guint componentId = 1;
 	guint streamId = nice_agent_add_stream(mpAgent, componentId);
@@ -202,11 +220,13 @@ bool IceClient::Start() {
 			"IceClient::Start( "
 			"this : %p, "
 			"[%s], "
+			"agent : %p, "
 			"streamId : %u, "
 			"componentId : %u "
 			")",
 			this,
 			bFlag?"OK":"Fail",
+			mpAgent,
 			streamId,
 			componentId
 			);
@@ -219,27 +239,89 @@ bool IceClient::Start() {
 void IceClient::Stop() {
 	mClientMutex.lock();
 	if( mRunning ) {
+		::NiceAgent *agent = mpAgent;
+
 		LogAync(
 				LOG_MSG,
 				"IceClient::Stop( "
-				"this : %p "
+				"this : %p, "
+				"agent : %p "
 				")",
-				this
+				this,
+				agent
 				);
 
 		if (mpAgent) {
-			// Release Agent
-			mCond.lock();
+			LogAync(
+					LOG_MSG,
+					"IceClient::Stop( "
+					"[Close Turn Port], "
+					"this : %p, "
+					"agent : %p "
+					")",
+					this,
+					agent
+					);
+			// Notice Turn Server To Remove Port
+			mCloseCond.lock();
 			mRunning = false;
 			/**
-			 * 关闭完成前不能调用nice_agent_remove_stream, 否则会导致relay的端口关不掉
-			 *
+			 * 通知turnserver关闭对应端口
+			 * 不能调用nice_agent_remove_stream, 否则会导致有些端口关不掉
+			 * 问题: 由于nice_agent_remove_stream对pop出来stream的关闭操作是通过timer异步进行, 所以可能导致执行timer回调时候agent已经为空, 从而不能触发回调处理
+			 * 	1.调用nice_agent_remove_stream, 放入异步队列进行关闭, 但是回调时候agent(弱引用)可能已经释放, 导致不能执行关闭端口的回调函数
+			 * 		refresh_prune_stream_async->agent_timeout_add_with_context_internal->timeout_cb {
+			 * 			...
+			 * 			TimeoutData *data = user_data;
+			 * 			NiceAgent *agent;
+			 * 		  	agent = g_weak_ref_get (&data->agent_ref);
+			 * 		  	if (agent == NULL) {
+			 * 		  		return G_SOURCE_REMOVE;
+			 * 		  	}
+			 * 		 	...
+			 * 		 	ret = data->function (agent, data->user_data);
+			 * 		 	...
+			 * 		}->on_refresh_removed
+			 * 	2.调用g_object_unref, 直接释放
+			 * 		g_object_unref->nice_agent_dispose -> {
+			 * 			...
+			 * 			while (agent->streams) {
+			 * 				nice_stream_close (agent, s);
+			 * 			}
+			 * 			...
+			 * 		}
 			 */
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
-			mCond.wait();
-			mCond.unlock();
+			mCloseCond.wait();
+			mCloseCond.unlock();
 
+			// Remove Stream
+			LogAync(
+					LOG_MSG,
+					"IceClient::Stop( "
+					"[Remove Stream], "
+					"this : %p, "
+					"agent : %p "
+					")",
+					this,
+					agent
+					);
+			mStreamRemoveCond.lock();
 			nice_agent_remove_stream(mpAgent, mStreamId);
+			mStreamRemoveCond.wait();
+			mStreamRemoveCond.unlock();
+
+			// Release Agent
+			LogAync(
+					LOG_MSG,
+					"IceClient::Stop( "
+					"[Release Agent], "
+					"this : %p, "
+					"agent : %p "
+					")",
+					this,
+					agent
+					);
 			g_signal_handlers_disconnect_by_data(mpAgent, this);
 			g_object_unref(mpAgent);
 
@@ -258,9 +340,11 @@ void IceClient::Stop() {
 				LOG_MSG,
 				"IceClient::Stop( "
 				"this : %p, "
-				"[OK] "
+				"[OK], "
+				"agent : %p "
 				")",
-				this
+				this,
+				agent
 				);
 	}
 	mClientMutex.unlock();
@@ -446,27 +530,31 @@ void IceClient::OnClose(::NiceAgent *agent) {
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnClose( "
-			"this : %p "
+			"this : %p, "
+			"agent : %p "
 			")",
-			this
+			this,
+			agent
 			);
 
-	mCond.lock();
+	mCloseCond.lock();
 	if( mRunning ) {
 		if( mpIceClientCallback ) {
 			mpIceClientCallback->OnIceClose(this);
 		}
 	}
-	mCond.signal();
-	mCond.unlock();
+	mCloseCond.signal();
+	mCloseCond.unlock();
 
 	LogAync(
 			LOG_MSG,
 			"IceClient::OnClose( "
 			"this : %p, "
-			"[Exit] "
+			"[Exit], "
+			"agent : %p "
 			")",
-			this
+			this,
+			agent
 			);
 }
 
@@ -659,4 +747,36 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 		mpIceClientCallback->OnIceNewSelectedPairFull(this);
 	}
 }
+
+void IceClient::OnStreamRemovedActually(::NiceAgent *agent, unsigned int streamId) {
+	LogAync(
+			LOG_MSG,
+			"IceClient::OnStreamRemovedActually( "
+			"this : %p, "
+			"agent : %p, "
+			"streamId : %u "
+			")",
+			this,
+			agent,
+			streamId
+			);
+
+	mStreamRemoveCond.lock();
+	mStreamRemoveCond.signal();
+	mStreamRemoveCond.unlock();
+
+	LogAync(
+			LOG_MSG,
+			"IceClient::OnStreamRemovedActually( "
+			"this : %p, "
+			"[Exit], "
+			"agent : %p, "
+			"streamId : %u "
+			")",
+			this,
+			agent,
+			streamId
+			);
+}
+
 } /* namespace mediaserver */
