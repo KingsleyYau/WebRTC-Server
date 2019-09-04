@@ -43,7 +43,7 @@ public:
 	virtual ~IceClient();
 
 public:
-	static bool GobalInit(const string& stunServerIp, const string& localIp);
+	static bool GobalInit(const string& stunServerIp, const string& localIp, const string& turnUserName, const string& turnPassword);
 
 public:
 	void SetCallback(IceClientCallback *callback);

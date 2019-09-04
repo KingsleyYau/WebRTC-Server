@@ -31,6 +31,7 @@ CFileCtrl::CFileCtrl()
 CFileCtrl::~CFileCtrl()
 {
     pthread_mutex_destroy(&m_hMutex);
+    pthread_mutex_destroy(&m_hMutexBuffer);
     
     CloseFile();
     if (m_pBuffer) {
@@ -84,8 +85,13 @@ int CFileCtrl::Initialize(
     }
 
     m_dwMaxFileLength = m_dwMaxFileLength * BUFFER_SIZE_1K * BUFFER_SIZE_1K;
-    pthread_mutex_init(&m_hMutex, NULL);
+
+	pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&m_hMutex, &mattr);
     pthread_mutex_init(&m_hMutexBuffer, NULL);
+    pthread_mutexattr_destroy(&mattr);
 
     mode_t mod = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
     Mkdirs(szlogPath, mod);

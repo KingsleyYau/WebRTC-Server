@@ -26,7 +26,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_MSG,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Handshake Request], "
+					"[Websocket-Handshake_Request], "
 					"index : %d "
         			")",
 					tester,
@@ -38,7 +38,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_WARNING,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Handshake Done], "
+					"[Websocket-Handshake_Done], "
 					"index : %d "
         			")",
 					tester,
@@ -54,7 +54,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_MSG,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Recv Data], "
+					"[Websocket-Recv_Data], "
 					"index : %d, "
 					"size : %d,"
 					"\r\n%s\r\n"
@@ -73,7 +73,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_WARNING,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Close], "
+					"[Websocket-Close], "
 					"index : %d "
         			")",
 					tester,
@@ -158,6 +158,7 @@ void Tester::Disconnect() {
 			LOG_WARNING,
 			"Tester::Disconnect( "
 			"this : %p, "
+			"[Websocket], "
 			"url : %s, "
 			"index : %d "
 			")",
@@ -244,6 +245,7 @@ void Tester::OnWebRTCStartMedia(WebRTC *rtc) {
 			LOG_WARNING,
 			"Tester::OnWebRTCStartMedia( "
 			"this : %p, "
+			"[WebRTC-开始媒体传输], "
 			"rtc : %p, "
 			"index : %d "
 			")",

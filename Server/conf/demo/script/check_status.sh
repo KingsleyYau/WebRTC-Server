@@ -7,5 +7,5 @@ echo "-------------------- 		top		 --------------------" && \
 top -b -n 1 | head -n 6 && \
 top -b -n 1 | grep 'mediaserver\|turnserver\|ffmpeg' && \
 echo "-------------------- 	netstat	 --------------------" && \
-netstat -anpu | grep 'mediaserver\|turnserver\|ffmpeg' \
+netstat -anpult | grep 'mediaserver\|turnserver\|ffmpeg' \
 "

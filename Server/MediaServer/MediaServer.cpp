@@ -62,6 +62,8 @@ MediaServer::MediaServer()
 	mWebRTCPortStart = 10000;
 	mWebRTCMaxClient = 10;
 	mWebRTCRtp2RtmpShellFilePath = "/root/Max/webrtc/bin/rtp2rtmp.sh";
+	mTurnUserName = "";
+	mTurnPassword = "";
 
 	// 日志参数
 	miStateTime = 0;
@@ -164,7 +166,9 @@ bool MediaServer::Start() {
 			"mWebRTCDtlsCertPath : %s, "
 			"mWebRTCDtlsKeyPath : %s, "
 			"mWebRTCLocalIp : %s, "
-			"mStunServerIp : %s "
+			"mStunServerIp : %s, "
+			"mTurnUserName : %s, "
+			"mTurnPassword : %s "
 			")",
 			mWebRTCPortStart,
 			mWebRTCMaxClient,
@@ -173,7 +177,9 @@ bool MediaServer::Start() {
 			mWebRTCDtlsCertPath.c_str(),
 			mWebRTCDtlsKeyPath.c_str(),
 			mWebRTCLocalIp.c_str(),
-			mStunServerIp.c_str()
+			mStunServerIp.c_str(),
+			mTurnUserName.c_str(),
+			mTurnPassword.c_str()
 			);
 
 	// 信令服务(Websocket)
@@ -204,7 +210,7 @@ bool MediaServer::Start() {
 
 	// 初始化全局属性
 	HttpClient::Init();
-	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp) ) {
+	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp, mTurnUserName, mTurnPassword) ) {
 		return false;
 	}
 
@@ -323,6 +329,8 @@ bool MediaServer::LoadConfig() {
 			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
 			mWebRTCLocalIp = conf.GetPrivate("WEBRTC", "ICELOCALIP", "");
 			mStunServerIp = conf.GetPrivate("WEBRTC", "STUNSERVERIP", "127.0.0.1");
+			mTurnUserName = conf.GetPrivate("WEBRTC", "TURNUSERNAME", "MaxServer");
+			mTurnPassword = conf.GetPrivate("WEBRTC", "TURNPASSWORD", "123");
 
 			// Websocket参数
 			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());

@@ -226,6 +226,10 @@ private:
 	string mWebRTCLocalIp;
 	// STUN服务器IP
 	string mStunServerIp;
+	// TURN用户名
+	string mTurnUserName;
+	// TURN密码
+	string mTurnPassword;
 	/***************************** 媒体流服务(WebRTC)参数 end **************************************/
 
 

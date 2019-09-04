@@ -51,11 +51,15 @@ void* niceLogFunc(const char *logBuffer) {
 
 static string gStunServerIp = "";
 static string gLocalIp = "";
-bool IceClient::GobalInit(const string& stunServerIp, const string& localIp) {
+static string gTurnUserName = "";
+static string gTurnPassword = "";
+bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, const string& turnUserName, const string& turnPassword) {
 	bool bFlag = true;
 
-	gLocalIp = localIp;
 	gStunServerIp = stunServerIp;
+	gLocalIp = localIp;
+	gTurnUserName = turnUserName;
+	gTurnPassword = turnPassword;
 
 	g_networking_init();
 //	gContext = g_main_context_new();
@@ -209,7 +213,7 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, "MaxServer", "123", NICE_RELAY_TYPE_TURN_TCP);
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, gTurnUserName.c_str(), gTurnPassword.c_str(), NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);

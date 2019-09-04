@@ -56,10 +56,17 @@ WebRTC::~WebRTC() {
 	// TODO Auto-generated destructor stub
 }
 
-bool WebRTC::GobalInit(const string& certPath, const string& keyPath, const string& stunServerIp, const string& localIp) {
+bool WebRTC::GobalInit(
+		const string& certPath,
+		const string& keyPath,
+		const string& stunServerIp,
+		const string& localIp,
+		const string& turnUserName,
+		const string& turnPassword
+		) {
 	bool bFlag = true;
 
-	bFlag &= IceClient::GobalInit(stunServerIp, localIp);
+	bFlag &= IceClient::GobalInit(stunServerIp, localIp, turnUserName, turnPassword);
 	bFlag &= DtlsSession::GobalInit(certPath, keyPath);
 	bFlag &= RtpSession::GobalInit();
 
