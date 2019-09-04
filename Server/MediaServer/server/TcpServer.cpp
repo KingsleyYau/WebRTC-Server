@@ -205,7 +205,7 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 
 	if( bFlag ) {
 		// 启动IO监听线程
-		if( 0 == mIOThread.Start(mpIORunnable) ) {
+		if( 0 == mIOThread.Start(mpIORunnable, "TcpServer") ) {
 			LogAync(
 					LOG_ERR_SYS,
 					"TcpServer::Start( [Create IO thread Fail], "

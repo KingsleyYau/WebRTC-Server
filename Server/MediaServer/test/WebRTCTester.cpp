@@ -365,7 +365,7 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	}
 
 	if( bFlag ) {
-		if( 0 == mThread.Start(mpRunnable) ) {
+		if( 0 == mThread.Start(mpRunnable, "TestMainThread") ) {
 			LogAync(
 					LOG_ERR_SYS,
 					"WebRTCTester::Start( "

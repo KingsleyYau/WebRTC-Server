@@ -100,8 +100,8 @@ bool AsyncIOServer::Start(
 	// 创建处理线程
 	mpHandleThreads = new KThread*[iThreadCount];
 	for(int i = 0; i < iThreadCount; i++) {
-		mpHandleThreads[i] = new KThread(mpRecvRunnable);
-		mpHandleThreads[i]->Start();
+		mpHandleThreads[i] = new KThread();
+		mpHandleThreads[i]->Start(mpRecvRunnable, "AsyncServer");
 	}
 
 	// 开始监听socket

@@ -69,7 +69,6 @@ bool WSServer::Start(int port, int maxConnection) {
 	if( mRunning ) {
 		Stop();
 	}
-	mRunning = true;
 	miMaxConnection = maxConnection;
 
     try {
@@ -80,6 +79,8 @@ bool WSServer::Start(int port, int maxConnection) {
 
         // Initialize Asio
     	mServer.init_asio();
+    	mRunning = true;
+
     	mServer.set_reuse_addr(true);
     	mServer.set_listen_backlog(maxConnection);
 
@@ -117,7 +118,7 @@ bool WSServer::Start(int port, int maxConnection) {
 
 	if( bFlag ) {
 		// 启动IO监听线程
-		if( 0 == mIOThread.Start(mpIORunnable) ) {
+		if( 0 == mIOThread.Start(mpIORunnable, "WSServer") ) {
 			LogAync(
 					LOG_ERR_SYS,
 					"WSServer::Start( "
@@ -171,13 +172,17 @@ void WSServer::Stop() {
 
 	mServerMutex.lock();
 
-	mRunning = false;
-	if( mServer.is_listening() ) {
-		mServer.stop_listening();
+	if ( mRunning ) {
+		mRunning = false;
+		if( mServer.is_listening() ) {
+			mServer.stop_listening();
+		}
+		/**
+		 * Must be call after mServer.init_asio()
+		 */
+		mServer.stop();
+		mIOThread.Stop();
 	}
-	mServer.stop();
-
-	mIOThread.Stop();
 
 	mServerMutex.unlock();
 

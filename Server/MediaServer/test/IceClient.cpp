@@ -58,7 +58,7 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp) {
 
 	g_networking_init();
 	gLoop = g_main_loop_new(NULL, FALSE);
-	gLoopThread = g_thread_new("loopThread", &loop_thread, gLoop);
+	gLoopThread = g_thread_new("IceThread", &loop_thread, gLoop);
 
 	nice_debug_enable(TRUE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);

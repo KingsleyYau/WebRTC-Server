@@ -148,7 +148,7 @@ bool WebRTC::Start(
 
 	if( bFlag ) {
 		// 启动IO监听线程
-		if( 0 == mRtpClientThread.Start(mpRtpClientRunnable) ) {
+		if( 0 == mRtpClientThread.Start(mpRtpClientRunnable, "RecvRtpThread") ) {
 			LogAync(
 					LOG_ERR_SYS,
 					"WebRTC::Start( "

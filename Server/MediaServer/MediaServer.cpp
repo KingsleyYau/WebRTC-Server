@@ -237,6 +237,16 @@ bool MediaServer::Start() {
 
 	if( bFlag ) {
 		bFlag = mWSServer.Start(miWebsocketPort);
+		if( bFlag ) {
+			LogAync(
+					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(Websocket)-成功] )"
+					);
+
+		} else {
+			LogAync(
+					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(Websocket)-失败] )"
+					);
+		}
 	}
 
 	if( bFlag ) {
@@ -257,7 +267,7 @@ bool MediaServer::Start() {
 
 	// 开始状态监视线程
 	if( bFlag ) {
-		if( mStateThread.Start(mpStateRunnable) != 0 ) {
+		if( mStateThread.Start(mpStateRunnable, "StateThread") != 0 ) {
 			LogAync(
 					LOG_WARNING,
 					"MediaServer::Start( "
@@ -928,6 +938,24 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 
 void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr) {
 	long long currentTime = getCurrentTime();
+	mServerMutex.lock();
+	if( !mRunning ) {
+		LogAync(
+				LOG_ERR_SYS,
+				"MediaServer::OnWSOpen( "
+				"event : [Websocket-新连接, 服务器启动中...], "
+				"hdl : %p, "
+				"addr : %s, "
+				"connectTime : %lld "
+				")",
+				hdl.lock().get(),
+				addr.c_str(),
+				currentTime
+				);
+		mWSServer.Disconnect(hdl);
+	}
+	mServerMutex.unlock();
+
 	LogAync(
 			LOG_WARNING,
 			"MediaServer::OnWSOpen( "
@@ -969,11 +997,28 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 }
 
 void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl, const string& addr) {
-	MediaClient *client = NULL;
-	WebRTC *rtc = NULL;
-
 	long long connectTime = getCurrentTime();
 	long long currentTime = connectTime;
+
+	mServerMutex.lock();
+	if( !mRunning ) {
+		LogAync(
+				LOG_WARNING,
+				"MediaServer::OnWSClose( "
+				"event : [Websocket-断开, 服务器启动中...], "
+				"hdl : %p, "
+				"addr : %s, "
+				"aliveTime : %lld "
+				")",
+				hdl.lock().get(),
+				addr.c_str(),
+				currentTime - connectTime
+				);
+	}
+	mServerMutex.unlock();
+
+	MediaClient *client = NULL;
+	WebRTC *rtc = NULL;
 
 	mWebRTCMap.Lock();
 	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);

@@ -24,23 +24,29 @@
 #include "KCond.h"
 #include "KRunnable.h"
 
+#include <string>
+using namespace std;
+
 class KThread
 {
 public:
 	KThread();
 	KThread(KRunnable *runnable);
 	virtual ~KThread();
-	pthread_t Start(KRunnable *runnable = NULL);
+	pthread_t Start(KRunnable *runnable = NULL, string threadName = "");
 	KRunnable* Stop();
 	void sleep(uint32_t msec);
 	bool isRunning() const;
 	pthread_t getThreadId() const;
+
 protected:
 	virtual void onRun();
+
 private:
 	KRunnable *m_pKRunnable;
 	bool m_isRunning;
 	pthread_t m_pthread_t;
+	string mThreadName;
 	static void *thread_proc_func(void *args);
 };
 #endif

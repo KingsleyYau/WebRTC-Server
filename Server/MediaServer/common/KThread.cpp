@@ -7,7 +7,9 @@
  */
 
 #include "KThread.h"
+
 #include <time.h>
+#include <sys/prctl.h>
 
 KThread::KThread() {
 	m_pthread_t = 0;
@@ -35,7 +37,7 @@ void* KThread::thread_proc_func(void *args){
 	return (void*)0;
 }
 
-pthread_t KThread::Start(KRunnable *runnable){
+pthread_t KThread::Start(KRunnable *runnable, string threadName){
 	if( isRunning() ) {
 		return 0;
 	}
@@ -43,6 +45,8 @@ pthread_t KThread::Start(KRunnable *runnable){
 	if( runnable != NULL ) {
 		this->m_pKRunnable = runnable;
 	}
+
+	mThreadName = threadName;
 
 	pthread_attr_t attrs;
 	pthread_attr_init(&attrs);
@@ -86,6 +90,10 @@ bool KThread::isRunning() const{
 }
 
 void KThread::onRun() {
+	if ( mThreadName.length() > 0 ) {
+		prctl(PR_SET_NAME, mThreadName.c_str());
+	}
+
 	if( NULL != m_pKRunnable ) {
 		m_pKRunnable->onRun();
 	}
