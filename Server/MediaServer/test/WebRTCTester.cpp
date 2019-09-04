@@ -7,6 +7,9 @@
  */
 
 #include "WebRTCTester.h"
+
+#include <include/CommonHeader.h>
+
 // ThirdParty
 #include <json/json.h>
 #include <common/CommonFunc.h>
@@ -138,7 +141,7 @@ bool Tester::Start() {
 			"index : %d "
 			")",
 			this,
-			bFlag?"OK":"Fail",
+			FLAG_2_STRING(bFlag),
 			url.c_str(),
 			index
 			);

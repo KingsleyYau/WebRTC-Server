@@ -6,6 +6,8 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
+#include <include/CommonHeader.h>
+
 #include <common/LogManager.h>
 #include <common/Math.h>
 #include <common/CommonFunc.h>
@@ -136,7 +138,7 @@ bool RtpSession::GobalInit() {
 			"RtpSession::GobalInit( "
 			"[%s] "
 			")",
-			bFlag?"OK":"Fail"
+			FLAG_2_STRING(bFlag)
 			);
 
 	return bFlag;
