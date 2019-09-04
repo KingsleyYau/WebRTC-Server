@@ -6,6 +6,9 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
+#include <include/CommonHeader.h>
+
+// Common
 #include <common/CommonFunc.h>
 #include <common/LogManager.h>
 #include <common/Math.h>
@@ -223,7 +226,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 			"DtlsSession::SSL_Generate_Keys( "
 			"[%s] "
 			")",
-			bFlag?"OK":"Fail"
+			FLAG_2_STRING(bFlag)
 			);
 
 	return bFlag;
@@ -368,7 +371,7 @@ bool DtlsSession::GobalInit(const string& certPath, const string& keyPath) {
 			"certPath : %s, "
 			"keyPath : %s "
 			")",
-			bFlag?"OK":"Fail",
+			FLAG_2_STRING(bFlag),
 			OpenSSL_version(OPENSSL_VERSION),
 			ERR_reason_error_string(ERR_get_error()),
 			gFingerprint,

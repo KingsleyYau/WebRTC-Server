@@ -6,6 +6,8 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
+#include <include/CommonHeader.h>
+
 #include <common/LogManager.h>
 #include <common/Math.h>
 #include <common/CommonFunc.h>
@@ -136,7 +138,7 @@ bool RtpSession::GobalInit() {
 			"RtpSession::GobalInit( "
 			"[%s] "
 			")",
-			bFlag?"OK":"Fail"
+			FLAG_2_STRING(bFlag)
 			);
 
 	return bFlag;
@@ -952,30 +954,33 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 
 				if( bFlag ) {
 					if( ((RtpPacket *)pkt)->header.m ) {
-						// 每10个视频帧强制刷新一次视频信息
-						if( ++mVideoFrameCount % 15 == 0 ) {
+						++mVideoFrameCount;
+						if( mVideoFrameCount % 16 == 0 ) {
+							// 强制刷新一次视频信息
 							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+							// 强制刷新一次关键帧信息
+							SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
 						}
 					}
 				}
 			}
-	//		LogAync(
-	//				LOG_MSG,
-	//				"RtpSession::RecvRtpPacket( "
-	//				"this : %p, "
-	//				"status : %d, "
-	//				"seq : %u, "
-	//				"timestamp : %u, "
-	//				"pktSize : %d "
-	//				"%s"
-	//				")",
-	//				this,
-	//				status,
-	//				ntohs(pkt->header.seq),
-	//				ntohl(pkt->header.ts),
-	//				pktSize,
-	//				pkt.header.m?", [Mark] ":""
-	//				);
+//			LogAync(
+//					LOG_MSG,
+//					"RtpSession::RecvRtpPacket( "
+//					"this : %p, "
+//					"status : %d, "
+//					"seq : %u, "
+//					"timestamp : %u, "
+//					"pktSize : %d "
+//					"%s"
+//					")",
+//					this,
+//					status,
+//					ntohs(pkt->header.seq),
+//					ntohl(pkt->header.ts),
+//					pktSize,
+//					pkt.header.m?", [Mark] ":""
+//					);
 		} else {
 			LogAync(
 					LOG_WARNING,
@@ -1053,12 +1058,14 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 	bool bFlag = false;
 
 	srtp_err_status_t status = srtp_err_status_fail;
-	RtcpPacketPLI pkt = {0};
+	char tmp[MTU];
 	int pktSize = 0;
+	int sendSize = 0;
 
 	Arithmetic art;
 	mClientMutex.lock();
 	if( mRunning ) {
+		RtcpPacketPLI pkt = {0};
 		pkt.header.version = 2;
 		pkt.header.p = 0;
 		pkt.header.rc = 1;
@@ -1068,22 +1075,39 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 		pkt.ssrc = htonl(0x12345678);
 		pkt.media_ssrc = remoteSSRC;
 
-		pktSize = sizeof(RtcpPacketPLI);
+		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
+		pktSize += sizeof(RtcpPacketPLI);
 
-		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)&pkt, &pktSize);
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
 	}
 	mClientMutex.unlock();
 
     if (status == srtp_err_status_ok) {
     	if( mpRtcpSender ) {
-    		int sendSize = mpRtcpSender->SendData((void *)&pkt, pktSize);
-			if (sendSize != pktSize) {
-				bFlag = false;
+    		sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
+			if (sendSize == pktSize) {
+				bFlag = true;
 			}
     	} else {
     		bFlag = false;
     	}
     }
+
+//	LogAync(
+//			LOG_MSG,
+//			"RtpSession::SendRtcpPLI( "
+//			"this : %p, "
+//			"[%s], "
+//			"status : %d, "
+//			"pktSize : %d, "
+//			"sendSize : %d "
+//			")",
+//			this,
+//			FLAG_2_STRING(bFlag),
+//			status,
+//			pktSize,
+//			sendSize
+//			);
 
 	return bFlag;
 }
@@ -1094,6 +1118,7 @@ bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 	srtp_err_status_t status = srtp_err_status_fail;
 	char tmp[MTU];
 	int pktSize = 0;
+	int sendSize = 0;
 
 	mClientMutex.lock();
 	if( mRunning ) {
@@ -1122,14 +1147,28 @@ bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 
     if (status == srtp_err_status_ok) {
 		if( mpRtcpSender ) {
-			int sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
-			if (sendSize != pktSize) {
-				bFlag = false;
+			sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
+			if (sendSize == pktSize) {
+				bFlag = true;
 			}
-		} else {
-			bFlag = false;
 		}
     }
+
+//	LogAync(
+//			LOG_MSG,
+//			"RtpSession::SendRtcpFIR( "
+//			"this : %p, "
+//			"[%s], "
+//			"status : %d, "
+//			"pktSize : %d, "
+//			"sendSize : %d "
+//			")",
+//			this,
+//			FLAG_2_STRING(bFlag),
+//			status,
+//			pktSize,
+//			sendSize
+//			);
 
 	return bFlag;
 }

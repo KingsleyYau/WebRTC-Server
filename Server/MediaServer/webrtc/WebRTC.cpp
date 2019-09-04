@@ -11,6 +11,8 @@
 // System
 #include <signal.h>
 
+#include <include/CommonHeader.h>
+
 // Common
 #include <common/LogManager.h>
 #include <common/StringHandle.h>
@@ -66,7 +68,7 @@ bool WebRTC::GobalInit(const string& certPath, const string& keyPath, const stri
 			"WebRTC::GobalInit( "
 			"[%s] "
 			")",
-			bFlag?"OK":"Fail"
+			FLAG_2_STRING(bFlag)
 			);
 
 	return bFlag;
@@ -106,7 +108,7 @@ bool WebRTC::Init(
 			"rtpDstVideoPort : %u "
 			")",
 			this,
-			bFlag?"OK":"Fail",
+			FLAG_2_STRING(bFlag),
 			rtpDstAudioIp.c_str(),
 			rtpDstAudioPort,
 			rtpDstVideoIp.c_str(),
@@ -156,7 +158,7 @@ bool WebRTC::Start(
 			"rtmpUrl : %s "
 			")",
 			this,
-			bFlag?"OK":"Fail",
+			FLAG_2_STRING(bFlag),
 			rtmpUrl.c_str()
 			);
 
@@ -996,9 +998,9 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						this,
 						mRtmpUrl.c_str()
 						);
-				mRtpSession.Stop();
-				mRtpDstAudioClient.Stop();
-				mRtpDstVideoClient.Stop();
+//				mRtpSession.Stop();
+//				mRtpDstAudioClient.Stop();
+//				mRtpDstVideoClient.Stop();
 
 				if( mpWebRTCCallback ) {
 					mpWebRTCCallback->OnWebRTCClose(this);

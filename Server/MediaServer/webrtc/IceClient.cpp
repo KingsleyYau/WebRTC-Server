@@ -8,6 +8,8 @@
 
 #include "IceClient.h"
 
+#include <include/CommonHeader.h>
+
 // Common
 #include <common/LogManager.h>
 #include <common/Math.h>
@@ -225,7 +227,7 @@ bool IceClient::Start() {
 			"componentId : %u "
 			")",
 			this,
-			bFlag?"OK":"Fail",
+			FLAG_2_STRING(bFlag),
 			mpAgent,
 			streamId,
 			componentId

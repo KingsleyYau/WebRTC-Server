@@ -8,4 +8,5 @@
 #ifndef INCLUDE_COMMONHEADER_H_
 #define INCLUDE_COMMONHEADER_H_
 
+#define FLAG_2_STRING(bFlag) bFlag?"OK":"Fail"
 #endif /* INCLUDE_COMMONHEADER_H_ */
