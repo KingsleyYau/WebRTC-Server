@@ -267,7 +267,7 @@ bool MediaServer::Start() {
 
 	// 开始状态监视线程
 	if( bFlag ) {
-		if( mStateThread.Start(mpStateRunnable, "StateThread") != 0 ) {
+		if( mStateThread.Start(mpStateRunnable, "State") != 0 ) {
 			LogAync(
 					LOG_WARNING,
 					"MediaServer::Start( "

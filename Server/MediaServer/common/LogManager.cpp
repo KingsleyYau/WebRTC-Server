@@ -158,7 +158,7 @@ bool LogManager::Start(LOG_LEVEL nLevel, const string& dir) {
     mIsRunning = true;
 
 	/* start log thread */
-	if( mLogThread.Start(mpLogRunnable) != 0 ) {
+	if( mLogThread.Start(mpLogRunnable, "Log") != 0 ) {
 
 	}
 
