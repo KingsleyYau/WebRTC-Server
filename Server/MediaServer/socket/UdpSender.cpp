@@ -92,17 +92,16 @@ bool UdpSender::Init(const string& sendIp, int sendPort) {
 }
 
 void UdpSender::Close() {
-	LogAync(
-			LOG_ERR_SYS,
-			"UdpSender::Close( "
-			"this : %p, "
-			"fd : %d "
-			")",
-			this,
-			mFd
-			);
-
 	if( mFd != -1 ) {
+		LogAync(
+				LOG_MSG,
+				"UdpSender::Close( "
+				"this : %p, "
+				"fd : %d "
+				")",
+				this,
+				mFd
+				);
 		close(mFd);
 		mFd = -1;
 	}

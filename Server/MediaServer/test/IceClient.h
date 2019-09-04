@@ -36,6 +36,7 @@ class IceClient {
 	friend void cb_candidate_gathering_done(::NiceAgent *agent, unsigned int streamId, void* data);
 	friend void cb_component_state_changed(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state, void *data);
 	friend void cb_new_selected_pair_full(::NiceAgent* agent, unsigned int streamId, unsigned int componentId, ::NiceCandidate *lcandidate, ::NiceCandidate* rcandidate, void* data);
+	friend void cb_stream_removed_actually(::NiceAgent *agent, unsigned int streamId, void* data);
 
 public:
 	IceClient();
@@ -63,6 +64,7 @@ private:
 	void OnCandidateGatheringDone(::NiceAgent *agent, unsigned int streamId);
 	void OnComponentStateChanged(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state);
 	void OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId, unsigned int componentId, ::NiceCandidate *local, ::NiceCandidate* remote);
+	void OnStreamRemovedActually(::NiceAgent *agent, unsigned int streamId);
 
 private:
 	bool ParseRemoteSdp(unsigned int streamId);
@@ -83,7 +85,8 @@ private:
 	string mLocalAddress;
 	string mRemoteAddress;
 
-	KCond mCond;
+	KCond mCloseCond;
+	KCond mStreamRemoveCond;
 };
 
 } /* namespace mediaserver */

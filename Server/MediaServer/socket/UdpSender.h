@@ -21,7 +21,7 @@ using namespace std;
 
 namespace mediaserver {
 
-class UdpSender: public SocketSender {
+class UdpSender : public SocketSender {
 public:
 	UdpSender();
 	virtual ~UdpSender();
@@ -29,7 +29,7 @@ public:
 public:
 	bool Init(const string& sendIp, int sendPort);
 	void Close();
-	int SendData(const void *data, unsigned int len);
+	int SendData(const void *buffer, unsigned int size);
 
 private:
 	// Socket

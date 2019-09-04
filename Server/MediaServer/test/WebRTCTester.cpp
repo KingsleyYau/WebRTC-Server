@@ -26,9 +26,11 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_MSG,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Handshake Request] "
+					"[WS Handshake Request], "
+					"index : %d "
         			")",
-					tester
+					tester,
+					tester->index
         			);
 		}break;
         case MG_EV_WEBSOCKET_HANDSHAKE_DONE:{
@@ -53,10 +55,12 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			"Tester::Handle( "
 					"this : %p, "
 					"[WS Recv Data], "
+					"index : %d, "
 					"size : %d,"
 					"\r\n%s\r\n"
         			")",
 					tester,
+					tester->index,
 					wm->size,
 					str.c_str()
         			);
@@ -69,7 +73,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			LOG_WARNING,
         			"Tester::Handle( "
 					"this : %p, "
-					"[WS Close] "
+					"[WS Close], "
 					"index : %d "
         			")",
 					tester,

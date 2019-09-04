@@ -788,8 +788,6 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						")",
 						this
 						);
-				mRtpSession.Stop();
-				mRtpClient.Stop();
 
 				if( mpWebRTCCallback ) {
 					mpWebRTCCallback->OnWebRTCClose(this);

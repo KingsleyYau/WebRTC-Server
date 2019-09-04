@@ -20,7 +20,7 @@ CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-v
 CXXFLAGS 	+=	-I. -I.. -I../third_party
 
 OBJS 		=	$(THIRD_PARTY)
-OBJS 		+=	UdpSender.o
+OBJS 		+=	UdpSender.o UdpReceiver.o
 		
 TARGET 		=	libsocket.a
 
