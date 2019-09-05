@@ -19,10 +19,7 @@
 #include <respond/BaseRespond.h>
 #include <respond/BaseResultRespond.h>
 
-/***************************** 线程处理 **************************************/
-/**
- * 状态监视线程
- */
+/***************************** 状态监视处理 **************************************/
 class StateRunnable : public KRunnable {
 public:
 	StateRunnable(MediaServer *container) {
@@ -39,7 +36,26 @@ private:
 	MediaServer *mContainer;
 };
 
-/***************************** 线程处理 end **************************************/
+/***************************** 状态监视处理 **************************************/
+
+/***************************** 超时处理 **************************************/
+class TimeoutCheckRunnable : public KRunnable {
+public:
+	TimeoutCheckRunnable(MediaServer *container) {
+		mContainer = container;
+	}
+	virtual ~TimeoutCheckRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->TimeoutCheckHandle();
+	}
+private:
+	MediaServer *mContainer;
+};
+
+/***************************** 超时处理 **************************************/
 
 MediaServer::MediaServer()
 :mServerMutex(KMutex::MutexType_Recursive) {
@@ -48,8 +64,10 @@ MediaServer::MediaServer()
 	mAsyncIOServer.SetAsyncIOServerCallback(this);
 	// Websocket服务
 	mWSServer.SetCallback(this);
-	// 处理线程
+	// 状态监视线程
 	mpStateRunnable = new StateRunnable(this);
+	// 超时处理线程
+	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
 
 	// 内部服务(HTTP)参数
 	miPort = 0;
@@ -84,9 +102,14 @@ MediaServer::~MediaServer() {
 	// TODO Auto-generated destructor stub
 	Stop();
 
-	if( mpStateRunnable ) {
+	if ( mpStateRunnable ) {
 		delete mpStateRunnable;
 		mpStateRunnable = NULL;
+	}
+
+	if ( mpTimeoutCheckRunnable ) {
+		delete mpTimeoutCheckRunnable;
+		mpTimeoutCheckRunnable = NULL;
 	}
 }
 
@@ -220,7 +243,7 @@ bool MediaServer::Start() {
 	}
 	mRunning = true;
 
-	// 创建HTTP server
+	// 启动HTTP服务
 	if( bFlag ) {
 		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
 		if( bFlag ) {
@@ -235,6 +258,7 @@ bool MediaServer::Start() {
 		}
 	}
 
+	// 启动Websocket服务
 	if( bFlag ) {
 		bFlag = mWSServer.Start(miWebsocketPort);
 		if( bFlag ) {
@@ -249,6 +273,7 @@ bool MediaServer::Start() {
 		}
 	}
 
+	// 启动WebRTC服务
 	if( bFlag ) {
 		// WebRTC最大转发数
 		for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
@@ -262,6 +287,25 @@ bool MediaServer::Start() {
 		for(unsigned int i = 0; i < miWebsocketMaxClient; i++) {
 			MediaClient *client = new MediaClient();
 			mMediaClientList.PushBack(client);
+		}
+	}
+
+	// 开始超时处理线程
+	if( bFlag ) {
+		if( mTimeoutCheckThread.Start(mpTimeoutCheckRunnable, "Timeout") != 0 ) {
+			LogAync(
+					LOG_WARNING,
+					"MediaServer::Start( "
+					"event : [开始超时处理线程] "
+					")");
+		} else {
+			bFlag = false;
+			LogAync(
+					LOG_ERR_SYS,
+					"MediaServer::Start( "
+					"event : [开始超时处理线程-失败] "
+					")"
+					);
 		}
 	}
 
@@ -398,8 +442,9 @@ bool MediaServer::Stop() {
 		mAsyncIOServer.Stop();
 		// 停止监听Websocket
 		mWSServer.Stop();
-		// 停止线程
+		// 停止定时任务
 		mStateThread.Stop();
+		mTimeoutCheckThread.Stop();
 	}
 
 	mServerMutex.unlock();
@@ -417,7 +462,7 @@ bool MediaServer::Stop() {
 	return true;
 }
 
-/***************************** 线程处理函数 **************************************/
+/***************************** 定时任务 **************************************/
 void MediaServer::StateHandle() {
 	unsigned int iCount = 1;
 	unsigned int iStateTime = miStateTime;
@@ -456,7 +501,34 @@ void MediaServer::StateHandle() {
 	}
 }
 
-/***************************** 线程处理函数 end **************************************/
+void MediaServer::TimeoutCheckHandle() {
+	while( IsRunning() ) {
+		mWebRTCMap.Lock();
+		for (WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
+			MediaClient *client = itr->second;
+			if ( client->IsTimeout() ) {
+				LogAync(
+						LOG_WARNING,
+						"MediaServer::TimeoutCheckHandle( "
+						"event : [超时处理服务:断开超时连接], "
+						"hdl : %p "
+						")",
+						client->hdl.lock().get()
+						);
+
+				if ( client->connected ) {
+					mWSServer.Disconnect(client->hdl);
+					client->connected = false;
+				}
+			}
+		}
+		mWebRTCMap.Unlock();
+
+		sleep(1);
+	}
+}
+/***************************** 定时任务 **************************************/
+
 
 
 /***************************** 内部服务(HTTP)回调 **************************************/
@@ -802,6 +874,7 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
 		MediaClient *client = itr->second;
+		client->startMediaTime  = getCurrentTime();
 		hdl = client->hdl;
 		bFound = true;
 
@@ -1135,7 +1208,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
 							if ( itr != mWebsocketMap.End() ) {
 								MediaClient *client = itr->second;
-								client->startMediaTime = getCurrentTime();
+								client->callTime = getCurrentTime();
 
 								if ( client->rtc ) {
 									rtc = client->rtc;

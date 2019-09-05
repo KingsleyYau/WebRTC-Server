@@ -15,6 +15,7 @@
 #include <common/KSafeMap.h>
 #include <common/TimeProc.hpp>
 #include <common/StringHandle.h>
+#include <common/CommonFunc.h>
 
 // ThirdParty
 #include <json/json.h>
@@ -47,29 +48,43 @@ using namespace mediaserver;
 using namespace std;
 
 #define VERSION_STRING "1.0.0"
+#define REQUEST_TIME_OUT_MS 30000
 
 // 在线连接对象
 struct MediaClient {
 	MediaClient() {
-		rtc = NULL;
-		connectTime = 0;
-		startMediaTime = 0;
-		connected = false;
+		Reset();
 	}
 
 	void Reset() {
 		rtc = NULL;
-		connectTime = 0;
-		startMediaTime = 0;
 		connected = false;
+		connectTime = 0;
+		callTime = 0;
+		startMediaTime = 0;
 	}
 
 	MediaClient& operator=(const MediaClient& item) {
 		hdl = item.hdl;
 		rtc = item.rtc;
 		connectTime = item.connectTime;
+		callTime = item.callTime;
 		startMediaTime = item.startMediaTime;
 		return *this;
+	}
+
+	bool IsTimeout() {
+		bool bFlag = false;
+
+		if ( connectTime != 0 && callTime == 0 ) {
+			long long currentTime = getCurrentTime();
+			long long ms = currentTime - connectTime;
+			if ( ms > REQUEST_TIME_OUT_MS ) {
+				bFlag = true;
+			}
+		}
+
+		return bFlag;
 	}
 
 	connection_hdl hdl;
@@ -77,8 +92,10 @@ struct MediaClient {
 
 	WebRTC *rtc;
 	long long connectTime;
+	long long callTime;
 	long long startMediaTime;
 };
+
 // 在线连接列表, 因为2个Map是同时使用, 所以只需用WebRTCMap的锁
 typedef KSafeMap<WebRTC*, MediaClient*> WebRTCMap;
 typedef KSafeMap<connection_hdl, MediaClient*, std::owner_less<connection_hdl> > WebsocketMap;
@@ -87,6 +104,7 @@ typedef KSafeList<WebRTC *> WebRTCList;
 // 空闲的MediaClient列表
 typedef KSafeList<MediaClient *> MediaClientList;
 
+class TimeoutCheckRunnable;
 class StateRunnable;
 class MediaServer :
 		public AsyncIOServerCallback,
@@ -94,6 +112,8 @@ class MediaServer :
 		public WebRTCCallback,
 		public WSServerCallback
 {
+	friend class TimeoutCheckRunnable;
+	friend class StateRunnable;
 
 public:
 	MediaServer();
@@ -112,14 +132,6 @@ public:
 	 * 是否正在运行
 	 */
 	bool IsRunning();
-
-	/***************************** 线程处理函数 **************************************/
-	/**
-	 * 检测状态线程处理
-	 */
-	void StateHandle();
-
-	/***************************** 线程处理函数 end **************************************/
 
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 	// AsyncIOServerCallback
@@ -165,7 +177,22 @@ private:
 	 */
 	bool ReloadLogConfig();
 
-	/***************************** 内部服务接口 **************************************/
+
+	/***************************** 定时任务 **************************************/
+	/**
+	 * 状态监视线程处理
+	 */
+	void StateHandle();
+
+	/**
+	 * 超时线程处理
+	 */
+	void TimeoutCheckHandle();
+	/***************************** 定时任务 **************************************/
+
+
+
+	/***************************** 内部服务(HTTP)接口 **************************************/
 	/**
 	 * 内部服务(HTTP), 解析请求, 仅解析头部
 	 */
@@ -186,8 +213,7 @@ private:
 			HttpParser* parser,
 			IRespond* respond
 			);
-
-	/***************************** 内部服务接口 end **************************************/
+	/***************************** 内部服务(HTTP)接口 **************************************/
 
 private:
 	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
@@ -204,7 +230,8 @@ private:
 	int miMaxQueryPerThread;
 	// 请求超时(秒)
 	unsigned int miTimeout;
-	/***************************** 内部服务(HTTP)参数 end **************************************/
+	/***************************** 内部服务(HTTP)参数 **************************************/
+
 
 
 	/***************************** 媒体流服务(WebRTC)参数 **************************************/
@@ -230,7 +257,8 @@ private:
 	string mTurnUserName;
 	// TURN密码
 	string mTurnPassword;
-	/***************************** 媒体流服务(WebRTC)参数 end **************************************/
+	/***************************** 媒体流服务(WebRTC)参数 **************************************/
+
 
 
 	/***************************** 信令服务(Websocket)参数 **************************************/
@@ -249,16 +277,26 @@ private:
 	string mLogDir;
 	// 是否debug模式
 	int miDebugMode;
-	/***************************** 日志参数 end **************************************/
+	/***************************** 日志参数 **************************************/
 
 
 
-	/***************************** 处理线程 **************************************/
+	/***************************** 状态监视线程 **************************************/
 	// 状态监视线程
 	StateRunnable* mpStateRunnable;
 	KThread mStateThread;
 
-	/***************************** 处理线程 end **************************************/
+	/***************************** 状态监视线程 **************************************/
+
+
+
+	/***************************** 超时处理线程 **************************************/
+	// 超时处理线程
+	TimeoutCheckRunnable* mpTimeoutCheckRunnable;
+	KThread mTimeoutCheckThread;
+
+	/***************************** 超时处理线程 **************************************/
+
 
 
 	/***************************** 统计参数 **************************************/
@@ -269,7 +307,8 @@ private:
 	// 监听线程输出间隔
 	unsigned int miStateTime;
 
-	/***************************** 统计参数 end **************************************/
+	/***************************** 统计参数 **************************************/
+
 
 
 	/***************************** 运行参数 **************************************/
