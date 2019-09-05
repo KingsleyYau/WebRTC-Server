@@ -377,7 +377,7 @@ bool MediaServer::LoadConfig() {
 			// WebRTC参数
 			mWebRTCPortStart = atoi(conf.GetPrivate("WEBRTC", "WEBRTCPORTSTART", "10000").c_str());
 			mWebRTCMaxClient = atoi(conf.GetPrivate("WEBRTC", "WEBRTCMAXCLIENT", "10").c_str());
-			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "bin/rtp2rtmp.sh");
+			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
 			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
 			mWebRTCDtlsCertPath = conf.GetPrivate("WEBRTC", "DTLSCER", "etc/webrtc_dtls.crt");
 			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
@@ -410,6 +410,10 @@ bool MediaServer::ReloadLogConfig() {
 			// 日志参数
 			miLogLevel = atoi(conf.GetPrivate("LOG", "LOGLEVEL", "5").c_str());
 			miDebugMode = atoi(conf.GetPrivate("LOG", "DEBUGMODE", "0").c_str());
+
+			// WebRTC参数
+			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
+			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
 
 			LogManager::GetLogManager()->SetLogLevel(miLogLevel);
 			LogManager::GetLogManager()->SetDebugMode(miDebugMode);
@@ -630,10 +634,6 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
 
-	} else if( parser->GetPath() == "/PLAY" ) {
-		// 开始拉流
-		OnRequestPlayStream(parser);
-
 	} else if( parser->GetPath() == "/STOP" ) {
 		// 断开流
 		OnRequestStopStream(parser);
@@ -753,31 +753,6 @@ void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 	HttpSendRespond(parser, &respond);
 }
 
-void MediaServer::OnRequestPlayStream(HttpParser* parser) {
-	LogAync(
-			LOG_WARNING,
-			"MediaServer::OnRequestPlayStream( "
-			"event : [内部服务(HTTP)-收到命令:拉流], "
-			"parser : %p "
-			")",
-			parser
-			);
-	// 拉流
-	const string stream = parser->GetParam("stream");
-	const string ip = parser->GetParam("ip");
-	const string port = parser->GetParam("port");
-	const string identification = ip + ":" + port;
-
-	string url = "rtmp://192.168.88.17:19351/live/" + stream;
-	string errMsg;
-	bool bFlag = mRtmpStreamPool.PlayStream(url, identification, errMsg);
-
-	// 马上返回数据
-	BaseResultRespond respond;
-	respond.SetParam(bFlag, errMsg.c_str());
-	HttpSendRespond(parser, &respond);
-}
-
 void MediaServer::OnRequestStopStream(HttpParser* parser) {
 	LogAync(
 			LOG_WARNING,
@@ -788,12 +763,10 @@ void MediaServer::OnRequestStopStream(HttpParser* parser) {
 			parser
 			);
 	// 断开流
-	const string ip = parser->GetParam("ip");
-	const string port = parser->GetParam("port");
-	const string identification = ip + ":" + port;
+	const string stream = parser->GetParam("stream");
 
 	string errMsg;
-	bool bFlag = mRtmpStreamPool.StopStream(identification, errMsg);
+	bool bFlag = true;
 
 	// 马上返回数据
 	BaseResultRespond respond;

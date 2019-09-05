@@ -145,23 +145,22 @@ public:
 
 	// HttpHandler
 	void OnRequestReloadLogConfig(HttpParser* parser);
-	void OnRequestPlayStream(HttpParser* parser);
 	void OnRequestStopStream(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
-	/***************************** 内部服务(HTTP), 命令回调 end **************************************/
+	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 
 	/***************************** WebRTCCallback **************************************/
 	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp);
 	void OnWebRTCStartMedia(WebRTC *rtc);
 	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
 	void OnWebRTCClose(WebRTC *rtc);
-	/***************************** WebRTCCallback End **************************************/
+	/***************************** WebRTCCallback **************************************/
 
 	/***************************** WSServerCallback **************************************/
 	void OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr);
 	void OnWSClose(WSServer *server, connection_hdl hdl, const string& addr);
 	void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str);
-	/***************************** WSServerCallback End **************************************/
+	/***************************** WSServerCallback **************************************/
 
 private:
 	/**
@@ -266,7 +265,7 @@ private:
 	short miWebsocketPort;
 	// 最大连接数
 	unsigned int miWebsocketMaxClient;
-	/***************************** 信令服务(Websocket)参数 end **************************************/
+	/***************************** 信令服务(Websocket)参数 **************************************/
 
 
 

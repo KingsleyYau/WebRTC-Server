@@ -50,7 +50,7 @@ then
 else
 	$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 -i $SDP_FILE \
 				-vcodec copy \
-				-acodec:a libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
+				-acodec libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
 fi
 
 while true;do
