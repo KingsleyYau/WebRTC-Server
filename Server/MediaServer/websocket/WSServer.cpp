@@ -85,6 +85,7 @@ bool WSServer::Start(int port, int maxConnection) {
     	mServer.set_listen_backlog(maxConnection);
 
         // Register our message handler
+    	mServer.set_validate_handler(bind(&WSServer::OnValid, this, ::_1));
     	mServer.set_open_handler(bind(&WSServer::OnOpen, this, ::_1));
         mServer.set_close_handler(bind(&WSServer::OnClose, this, ::_1));
     	mServer.set_message_handler(bind(&WSServer::OnMessage, this, ::_1, ::_2));
@@ -317,12 +318,11 @@ void WSServer::Disconnect(connection_hdl hdl) {
 //    return ctx;
 //}
 
-void WSServer::OnOpen(connection_hdl hdl) {
+bool WSServer::OnValid(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
-
 	LogAync(
 			LOG_STAT,
-			"WSServer::OnOpen( "
+			"WSServer::OnValid( "
 			"hdl : %p, "
 			"addr : %s "
 			")",
@@ -330,8 +330,26 @@ void WSServer::OnOpen(connection_hdl hdl) {
 			conn->get_remote_endpoint().c_str()
 			);
 
+	return true;
+}
+
+void WSServer::OnOpen(connection_hdl hdl) {
+	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
+	string userAgent = conn->get_request_header("User-Agent");
+	LogAync(
+			LOG_STAT,
+			"WSServer::OnOpen( "
+			"hdl : %p, "
+			"addr : %s, "
+			"userAgent : %s "
+			")",
+			hdl.lock().get(),
+			conn->get_remote_endpoint().c_str(),
+			userAgent.c_str()
+			);
+
 	if ( mpWSServerCallback ) {
-		mpWSServerCallback->OnWSOpen(this, hdl, conn->get_remote_endpoint());
+		mpWSServerCallback->OnWSOpen(this, hdl, conn->get_remote_endpoint(), userAgent);
 	}
 }
 

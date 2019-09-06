@@ -22,3 +22,8 @@
 
 # MediaServer
 #break MediaServer.cpp:673
+
+# Websocket
+#break WSServer.cpp:342
+#break connection_impl.hpp:528
+#break connection_impl.hpp:1263

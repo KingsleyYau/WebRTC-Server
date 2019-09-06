@@ -157,7 +157,7 @@ public:
 	/***************************** WebRTCCallback **************************************/
 
 	/***************************** WSServerCallback **************************************/
-	void OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr);
+	void OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr, const string& userAgent);
 	void OnWSClose(WSServer *server, connection_hdl hdl, const string& addr);
 	void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str);
 	/***************************** WSServerCallback **************************************/

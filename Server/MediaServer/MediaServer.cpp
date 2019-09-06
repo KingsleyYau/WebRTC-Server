@@ -982,7 +982,7 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 //	}
 }
 
-void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr) {
+void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr, const string& userAgent) {
 	long long currentTime = getCurrentTime();
 	mServerMutex.lock();
 	if( !mRunning ) {
@@ -992,11 +992,13 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 				"event : [Websocket-新连接, 服务器启动中...], "
 				"hdl : %p, "
 				"addr : %s, "
-				"connectTime : %lld "
+				"connectTime : %lld, "
+				"userAgent : %s "
 				")",
 				hdl.lock().get(),
 				addr.c_str(),
-				currentTime
+				currentTime,
+				userAgent.c_str()
 				);
 		mWSServer.Disconnect(hdl);
 	}
@@ -1008,11 +1010,13 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 			"event : [Websocket-新连接], "
 			"hdl : %p, "
 			"addr : %s, "
-			"connectTime : %lld "
+			"connectTime : %lld, "
+			"userAgent : %s "
 			")",
 			hdl.lock().get(),
 			addr.c_str(),
-			currentTime
+			currentTime,
+			userAgent.c_str()
 			);
 
 	MediaClient *client = mMediaClientList.PopFront();
@@ -1032,11 +1036,13 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 				"event : [超过最大连接数, 断开连接], "
 				"hdl : %p, "
 				"addr : %s, "
-				"connectTime : %lld "
+				"connectTime : %lld, "
+				"userAgent : %s "
 				")",
 				hdl.lock().get(),
 				addr.c_str(),
-				currentTime
+				currentTime,
+				userAgent.c_str()
 				);
 		mWSServer.Disconnect(hdl);
 	}
@@ -1228,10 +1234,14 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							if ( itr != mWebsocketMap.End() ) {
 								MediaClient *client = itr->second;
 								rtc = client->rtc;
-								rtc->UpdateCandidate(sdp);
-								bFlag = true;
+								if ( rtc ) {
+									rtc->UpdateCandidate(sdp);
+									bFlag = true;
+								} else {
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Update_Candidate_Before_Call);
+								}
 							} else {
-								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Update_Candidate_Before_Call);
+								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
 							}
 							mWebRTCMap.Unlock();
 
