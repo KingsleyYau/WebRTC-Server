@@ -243,6 +243,21 @@ bool MediaServer::Start() {
 	}
 	mRunning = true;
 
+	// 启动子进程监听
+	if( bFlag ) {
+		bFlag = MainLoop::GetMainLoop()->Start();
+		if( bFlag ) {
+			LogAync(
+					LOG_WARNING, "MediaServer::Start( event : [开启监听子进程循环-成功] )"
+					);
+
+		} else {
+			LogAync(
+					LOG_ERR_SYS, "MediaServer::Start( event : [开启监听子进程循环-失败] )"
+					);
+		}
+	}
+
 	// 启动HTTP服务
 	if( bFlag ) {
 		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
@@ -449,6 +464,8 @@ bool MediaServer::Stop() {
 		// 停止定时任务
 		mStateThread.Stop();
 		mTimeoutCheckThread.Stop();
+		// 停止子进程监听循环
+		MainLoop::GetMainLoop()->Stop();
 	}
 
 	mServerMutex.unlock();

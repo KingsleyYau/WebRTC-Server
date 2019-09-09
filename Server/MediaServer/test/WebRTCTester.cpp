@@ -129,7 +129,7 @@ bool Tester::Start() {
 		opt.user_data = (void *)this;
 
 		mMutex.lock();
-		conn = mg_connect_ws_opt(mgr, Handle, opt, url.c_str(), "", NULL);
+		conn = mg_connect_ws_opt(mgr, Handle, opt, url.c_str(), "", "User-Agent: WebRTC-Tester\r\n");
 		if ( NULL != conn && conn->err == 0 ) {
 			bFlag = true;
 		}
