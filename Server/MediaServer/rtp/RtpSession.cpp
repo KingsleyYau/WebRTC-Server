@@ -955,7 +955,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 				if( bFlag ) {
 					if( ((RtpPacket *)pkt)->header.m ) {
 						++mVideoFrameCount;
-						if( mVideoFrameCount % 16 == 0 ) {
+						if( mVideoFrameCount % 30 == 0 ) {
 							// 强制刷新一次视频信息
 							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
 							// 强制刷新一次关键帧信息

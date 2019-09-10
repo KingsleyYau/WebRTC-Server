@@ -575,18 +575,18 @@ string WebRTC::CreateLocalSdp() {
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
 			"SDP:"
-			"v=0\r\n"
-			"o=- 0 0 IN IP4 127.0.0.1\r\n"
-			"s=No Name\r\n"
-			"t=0 0\r\n"
-			"m=video %u RTP/AVP %u\r\n"
-			"c=IN IP4 %s\r\n"
-			"a=rtpmap:%u %s/%u\r\n"
-			"a=fmtp:%u %s\r\n"
-			"m=audio %u RTP/AVP %u\r\n"
-			"c=IN IP4 %s\r\n"
-			"a=rtpmap:%u %s/%u%s\r\n"
-			"a=fmtp:%u %s\r\n",
+			"v=0\n"
+			"o=- 0 0 IN IP4 127.0.0.1\n"
+			"s=No Name\n"
+			"t=0 0\n"
+			"m=video %u RTP/AVP %u\n"
+			"c=IN IP4 %s\n"
+			"a=rtpmap:%u %s/%u\n"
+			"a=fmtp:%u %s\n"
+			"m=audio %u RTP/AVP %u\n"
+			"c=IN IP4 %s\n"
+			"a=rtpmap:%u %s/%u%s\n"
+			"a=fmtp:%u %s\n",
 			mRtpDstVideoPort,
 			mVideoSdpPayload.payload_type,
 			mRtpDstVideoIp.c_str(),
@@ -779,7 +779,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 		if( rtcpFb.length() > 0 ) {
 			audioRtcpFb += "a=";
 			audioRtcpFb += rtcpFb;
-			audioRtcpFb += "\r\n";
+			audioRtcpFb += "\n";
 		}
 	}
 
@@ -791,48 +791,48 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 		if( rtcpFb.length() > 0 ) {
 			videoRtcpFb += "a=";
 			videoRtcpFb += rtcpFb;
-			videoRtcpFb += "\r\n";
+			videoRtcpFb += "\n";
 		}
 	}
 
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
-			"v=0\r\n"
-			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\r\n"
-			"s=MediaServer\r\n"
-			"t=0 0\r\n"
-			"a=group:BUNDLE %s %s\r\n"
-			"a=msid-semantic: WMS\r\n"
-			"m=audio %u UDP/TLS/RTP/SAVPF %u\r\n"
-			"c=IN IP4 %s\r\n"
-			"a=rtcp:9 IN IP4 0.0.0.0\r\n"
+			"v=0\n"
+			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+			"s=MediaServer\n"
+			"t=0 0\n"
+			"a=group:BUNDLE %s %s\n"
+			"a=msid-semantic: WMS\n"
+			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
+			"c=IN IP4 %s\n"
+			"a=rtcp:9 IN IP4 0.0.0.0\n"
 			"%s"
-			"a=ice-ufrag:%s\r\n"
-			"a=ice-pwd:%s\r\n"
-			"a=ice-options:trickle\r\n"
-			"a=fingerprint:sha-256 %s\r\n"
-			"a=setup:active\r\n"
-			"a=mid:%s\r\n"
-			"a=recvonly\r\n"
-			"a=rtcp-mux\r\n"
-			"a=rtpmap:%u %s/%u%s\r\n"
-//			"a=rtcp-fb:%u transport-cc\r\n"
+			"a=ice-ufrag:%s\n"
+			"a=ice-pwd:%s\n"
+			"a=ice-options:trickle\n"
+			"a=fingerprint:sha-256 %s\n"
+			"a=setup:active\n"
+			"a=mid:%s\n"
+			"a=recvonly\n"
+			"a=rtcp-mux\n"
+			"a=rtpmap:%u %s/%u%s\n"
+//			"a=rtcp-fb:%u transport-cc\n"
 			"%s"
-			"a=fmtp:%u minptime=10;useinbandfec=1\r\n"
-			"m=video 9 UDP/TLS/RTP/SAVPF %u\r\n"
-			"c=IN IP4 0.0.0.0\r\n"
-			"a=rtcp:9 IN IP4 0.0.0.0\r\n"
-			"a=ice-ufrag:%s\r\n"
-			"a=ice-pwd:%s\r\n"
-			"a=ice-options:trickle\r\n"
-			"a=fingerprint:sha-256 %s\r\n"
-			"a=setup:active\r\n"
-			"a=mid:%s\r\n"
-//			"b=AS:800\r\n"
-			"a=recvonly\r\n"
-			"a=rtcp-mux\r\n"
-			"a=rtcp-rsize\r\n"
-			"a=rtpmap:%u %s/%u\r\n"
+			"a=fmtp:%u minptime=10;useinbandfec=1\n"
+			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
+			"c=IN IP4 0.0.0.0\n"
+			"a=rtcp:9 IN IP4 0.0.0.0\n"
+			"a=ice-ufrag:%s\n"
+			"a=ice-pwd:%s\n"
+			"a=ice-options:trickle\n"
+			"a=fingerprint:sha-256 %s\n"
+			"a=setup:active\n"
+			"a=mid:%s\n"
+//			"b=AS:800\n"
+			"a=recvonly\n"
+			"a=rtcp-mux\n"
+			"a=rtcp-rsize\n"
+			"a=rtpmap:%u %s/%u\n"
 			"%s",
 			mAudioMid.c_str(),
 			mVideoMid.c_str(),
@@ -865,7 +865,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 	string sdpStr = sdp;
 	char fmtp[256] = {'0'};
 	snprintf(fmtp, sizeof(fmtp) - 1,
-			"a=fmtp:%u %s\r\n",
+			"a=fmtp:%u %s\n",
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.fmtp.c_str()
 			);

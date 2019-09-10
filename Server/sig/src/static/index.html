@@ -252,7 +252,7 @@ class RTCClient {
             offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
-        offer.sdp = this.createCustomSdp(offer.sdp);
+        offer.sdp = this.createLocalSdp(offer.sdp);
 
         await this.pc.setLocalDescription(offer);
 
@@ -271,9 +271,11 @@ class RTCClient {
     }
 
     close () {
-        this.pc.close();
+        if ( this.pc != null ) {
+            this.pc.close();
+            this.pc = null;
+        }
         this.stopLocalVideo();
-        this.pc = null;
     }
 
     async showLocalVideo (videoSource) {
@@ -282,19 +284,25 @@ class RTCClient {
          * Edge does not support custom video size
          * only support original video capture size, example: 320x240, 640x480
          */
-        return window.navigator.mediaDevices.getUserMedia(
-            {
-                video: {
-                    deviceId: videoSource ? {exact: videoSource} : undefined,
-                    width: {exact: 640}/*{min: 320, max: 540}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
-                    frameRate: {exact: 15}/*{min: 10, max: 15}*/
-                },
-                audio : true
-            }).then(mediaStream => {
+        let config = {};
+        config = {
+            video: {
+                deviceId: videoSource ? {exact: videoSource} : undefined,
+                width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
+                // frameRate: {exact: 15}/*{min: 10, max: 15}*/
+            },
+            audio: true
+        }
+
+        return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
                 let video = mediaStream.getVideoTracks()[0];
                 if ( typeof(video)=="undefined" || video==null ) {
                     console.log("No Video Can Be Captured.");
                 }
+
+                // let newStream = mediaStream.clone();
+                // this.setVideoTrackContentHints(newStream, 'detailed');
+                // this.setVideoTrackContentHints(newStream, 'detail');
                 this.pc.addStream(mediaStream);
                 this.mediaStream = mediaStream;
                 $("[id=localVideo]").attr('srcObject', mediaStream);
@@ -313,35 +321,37 @@ class RTCClient {
         }
     }
 
-    setBandwidth(bandwidth) {
-        // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
-        // (local) renegotiation. Note that this will be within the envelope of
-        // the initial maximum bandwidth negotiated via SDP.
-        if ((adapter.browserDetails.browser === 'chrome' ||
-            (adapter.browserDetails.browser === 'firefox' &&
-                adapter.browserDetails.version >= 64)) &&
-            'RTCRtpSender' in window &&
-            'setParameters' in window.RTCRtpSender.prototype) {
-            const sender = this.pc.getSenders()[0];
-            const parameters = sender.getParameters();
-            if (!parameters.encodings) {
-                parameters.encodings = [{}];
-            }
-            if (bandwidth === 'unlimited') {
-                delete parameters.encodings[0].maxBitrate;
-            } else {
-                parameters.encodings[0].maxBitrate = bandwidth * 1000;
-            }
-            sender.setParameters(parameters)
-                .then(() => {
-                    bandwidthSelector.disabled = false;
-                })
-                .catch(e => console.error(e));
-        }
-    }
-    createCustomSdp(sdp) {
+    // setBandwidth(bandwidth) {
+    //     // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+    //     // (local) renegotiation. Note that this will be within the envelope of
+    //     // the initial maximum bandwidth negotiated via SDP.
+    //     if ((adapter.browserDetails.browser === 'chrome' ||
+    //         (adapter.browserDetails.browser === 'firefox' &&
+    //             adapter.browserDetails.version >= 64)) &&
+    //         'RTCRtpSender' in window &&
+    //         'setParameters' in window.RTCRtpSender.prototype) {
+    //         const sender = this.pc.getSenders()[0];
+    //         const parameters = sender.getParameters();
+    //         if (!parameters.encodings) {
+    //             parameters.encodings = [{}];
+    //         }
+    //         parameters.encodings[0].maxFramerate = 15;
+    //         if (bandwidth === 'unlimited') {
+    //             delete parameters.encodings[0].maxBitrate;
+    //         } else {
+    //             parameters.encodings[0].maxBitrate = bandwidth * 1000;
+    //         }
+    //         sender.setParameters(parameters)
+    //             .then(() => {
+    //             })
+    //             .catch(e => console.error(e));
+    //     }
+    // }
+
+    createLocalSdp(sdp) {
         var newSdp = sdp;
-        // newSdp = this.addBitRate(sdp);
+        // 设置码率
+        newSdp = this.setBitRate(sdp);
         // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
         // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
         // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
@@ -355,14 +365,30 @@ class RTCClient {
         // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
         // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
         // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
-
         return newSdp;
     }
 
-    addBitRate(sdp) {
+    setBitRate(sdp) {
         var newSdp = sdp;
-        newSdp = newSdp.replace(/a=mid:(.*)\r\n/g, 'a=mid:$1\r\nb=AS:' + 10 + '\r\n');
+        // 只对Safari和Chrome生效
+        newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=1000;x-google-max-bitrate=1000\r\n');
+        // 对Firefox生效, 只能限制, 不能提高
+        // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
         return newSdp;
+    }
+
+    setVideoTrackContentHints(stream, hint) {
+        const tracks = stream.getVideoTracks();
+        tracks.forEach(track => {
+            if ('contentHint' in track) {
+                track.contentHint = hint;
+                if (track.contentHint !== hint) {
+                    console.log('RTCClient::createStream( Invalid video track contentHint: ' + hint + ' )');
+                }
+            } else {
+                console.log('RTCClient::createStream( contentHint attribute not supported )');
+            }
+        });
     }
 
     stat() {
@@ -371,6 +397,7 @@ class RTCClient {
                 this.pc.getStats(null).then(
                     results => {
                         results.forEach(res => {
+                            // console.log("RTCClient::stat( " + res.type + " )");
                             if ( res.type == 'media-source') {
                                 let statsString = "";
                                 statsString += '<h3>Report type=';
@@ -487,7 +514,6 @@ function onload() {
                 // Update sdp to media server
                 sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
             }
-
         }
     };
 
@@ -593,10 +619,10 @@ document.addEventListener("DOMContentLoaded", function() {
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
                 <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
-                <p>Local Video</p>
-                <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
-                <video id="localVideo" width="400" height="300" autoplay style="display: none"></video><label id="stats"></label>
             </div>
+            <p>Local Video</p>
+            <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
+            <video id="localVideo" width="640" height="480" autoplay style="display: none"></video><label id="stats"></label>
         </div>
 
         <div id="remote">

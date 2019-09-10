@@ -66,6 +66,7 @@ bool MainLoop::Start() {
 	}
 	mRunning = true;
 
+	bFlag = (mMainLoopThread.Start(mpMainLoopRunnable, "MainLoop") != 0);
 	if( bFlag ) {
 		// 服务启动成功
 		LogAync(
