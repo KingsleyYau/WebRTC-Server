@@ -237,6 +237,8 @@ class RTCClient {
         $("[id=localSdpTextarea]").attr("disabled", true);
         $("[id=callButton]").attr("disabled", false);
         $("[id=acceptButton]").attr("disabled", false);
+
+        $("[id=stats]").html("");
     }
 
     async call (videoSource) {
@@ -250,7 +252,8 @@ class RTCClient {
             offerToReceiveAudio: true,
             offerToReceiveVideo: true
         });
-        offer.sdp = this.forceH264(offer.sdp);
+        offer.sdp = this.createCustomSdp(offer.sdp);
+
         await this.pc.setLocalDescription(offer);
 
         let localDescription = JSON.stringify(this.pc.localDescription);
@@ -270,6 +273,7 @@ class RTCClient {
     close () {
         this.pc.close();
         this.stopLocalVideo();
+        this.pc = null;
     }
 
     async showLocalVideo (videoSource) {
@@ -282,8 +286,9 @@ class RTCClient {
             {
                 video: {
                     deviceId: videoSource ? {exact: videoSource} : undefined,
-                    width: {exact: 640}, height: {exact: 480}
-                    },
+                    width: {exact: 640}/*{min: 320, max: 540}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
+                    frameRate: {exact: 15}/*{min: 10, max: 15}*/
+                },
                 audio : true
             }).then(mediaStream => {
                 let video = mediaStream.getVideoTracks()[0];
@@ -308,11 +313,35 @@ class RTCClient {
         }
     }
 
-    // Also remove mode 0 if it's offered
-    // Note, we don't bother removing the fmtp lines, which makes a good test
-    // for some SDP parsing issues.
-    forceH264(sdp) {
+    setBandwidth(bandwidth) {
+        // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+        // (local) renegotiation. Note that this will be within the envelope of
+        // the initial maximum bandwidth negotiated via SDP.
+        if ((adapter.browserDetails.browser === 'chrome' ||
+            (adapter.browserDetails.browser === 'firefox' &&
+                adapter.browserDetails.version >= 64)) &&
+            'RTCRtpSender' in window &&
+            'setParameters' in window.RTCRtpSender.prototype) {
+            const sender = this.pc.getSenders()[0];
+            const parameters = sender.getParameters();
+            if (!parameters.encodings) {
+                parameters.encodings = [{}];
+            }
+            if (bandwidth === 'unlimited') {
+                delete parameters.encodings[0].maxBitrate;
+            } else {
+                parameters.encodings[0].maxBitrate = bandwidth * 1000;
+            }
+            sender.setParameters(parameters)
+                .then(() => {
+                    bandwidthSelector.disabled = false;
+                })
+                .catch(e => console.error(e));
+        }
+    }
+    createCustomSdp(sdp) {
         var newSdp = sdp;
+        // newSdp = this.addBitRate(sdp);
         // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
         // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
         // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
@@ -329,6 +358,44 @@ class RTCClient {
 
         return newSdp;
     }
+
+    addBitRate(sdp) {
+        var newSdp = sdp;
+        newSdp = newSdp.replace(/a=mid:(.*)\r\n/g, 'a=mid:$1\r\nb=AS:' + 10 + '\r\n');
+        return newSdp;
+    }
+
+    stat() {
+        setTimeout(() => {
+            if( this.pc != null ) {
+                this.pc.getStats(null).then(
+                    results => {
+                        results.forEach(res => {
+                            if ( res.type == 'media-source') {
+                                let statsString = "";
+                                statsString += '<h3>Report type=';
+                                statsString += res.type;
+                                statsString += '</h3>\n';
+                                statsString += `id ${res.id}<br>`;
+                                statsString += `time ${res.timestamp}<br>`;
+                                Object.keys(res).forEach(k => {
+                                    if (k !== 'timestamp' && k !== 'type' && k !== 'id') {
+                                        statsString += `${k}: ${res[k]}<br>`;
+                                    }
+                                });
+                                $("[id=stats]").html(statsString);
+                            }
+                        });
+                    }
+                );
+
+                this.stat();
+            } else {
+                $("[id=stats]").html("");
+            }
+        }, 1000);
+    }
+
 }
 
 function showUserAgent() {
@@ -445,6 +512,8 @@ function onload() {
             type = 'call';
             // Set local display
             $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            // Start stat
+            rtc.stat();
             // Send sdp call to media server
             call();
 
@@ -488,7 +557,7 @@ function gotDevices(deviceInfos) {
 
         if (deviceInfo.kind === 'videoinput') {
             console.log('Got Video Capture Input : ', deviceInfo);
-            $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + deviceInfo.label + "</option>");
+            $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
         }
     }
 }
@@ -515,8 +584,8 @@ document.addEventListener("DOMContentLoaded", function() {
             </div>
             <div id="rtmpUrl" style="display: none">
                 RTMP Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="http://192.168.88.17:8880/" target="blank" name="play">Flash播放</a><p>
-                FLV Url : <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a>
-                HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">Flvjs播放</a>
+                FLV Url : <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a><p>
+                <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
             </div>
 
             Stream : <input id="stream" type="text" name="" value="max0" /><br>
@@ -524,10 +593,10 @@ document.addEventListener("DOMContentLoaded", function() {
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
                 <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
+                <p>Local Video</p>
+                <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
+                <video id="localVideo" width="400" height="300" autoplay style="display: none"></video><label id="stats"></label>
             </div>
-            <p>Local Video</p>
-            <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
-            <video id="localVideo" width="400" height="300" autoplay style="display: none"></video>
         </div>
 
         <div id="remote">

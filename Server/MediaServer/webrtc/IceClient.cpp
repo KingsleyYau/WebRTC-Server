@@ -39,7 +39,7 @@ void* loop_thread(void *data) {
 
 void* niceLogFunc(const char *logBuffer) {
 //	LogAync(
-//			LOG_WARNING,
+//			LOG_STAT,
 //			"IceClient::niceLogFunc( "
 //			"[libnice], "
 //			"%s "
@@ -62,11 +62,12 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, con
 	gTurnPassword = turnPassword;
 
 	g_networking_init();
+//	g_thread_init(NULL);
 //	gContext = g_main_context_new();
 	gLoop = g_main_loop_new(gContext, FALSE);
 	gLoopThread = g_thread_new("IceClient", &loop_thread, gLoop);
 
-	nice_debug_enable(TRUE);
+	nice_debug_enable(FALSE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
 
 	return bFlag;
