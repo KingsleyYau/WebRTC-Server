@@ -2,6 +2,19 @@
 <html>
 <title>WebRTC Upload Media Stream Test Page</title>
 
+<head>
+    <style id="compiled-css" type="text/css">
+        .crop{
+            overflow:hidden;
+            display:block;
+            height: 360px;
+        }
+        #video{
+            margin-left: -15px;
+        }
+    </style>
+</head>
+
 <script src="jquery.min.js"></script>
 <script src="sdp_serializer.js"></script>
 <script src="adapter-latest.js"></script>
@@ -380,8 +393,11 @@ class RTCClient {
         tracks.forEach(track => {
             // Get old constraints
             let constraints = track.getConstraints();
+            // constraints.width = 640;
+            // constraints.height = 360;
+            // It is always success, unless you set some parameter with exact value
             track.applyConstraints(constraints).then(() => {
-                console.log('RTCClient::setVideoTrackContent(), [OK], constraints: ', constraints);
+                console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
             }, e => {
                 console.log('RTCClient::setVideoTrackContent(), [Fail], e:', e);
             });
@@ -578,7 +594,7 @@ function onload() {
 }
 
 function handleError(e) {
-    console.log('navigator.MediaDevices.getUserMedia, [Fail], e: ', e);
+    console.log('navigator.MediaDevices.getUserMedia, [Fail], e:', e);
 }
 
 function gotDevices(deviceInfos) {
@@ -630,7 +646,10 @@ document.addEventListener("DOMContentLoaded", function() {
             </div>
             <p>Local Video</p>
             <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
-            <video id="localVideo" width="640" height="480" autoplay style="display: none"></video><label id="stats"></label>
+            <div class="crop">
+                <video id="localVideo" width="640" height="480" autoplay style="display:none"></video>
+            </div>
+            <label id="stats"></label>
         </div>
 
         <div id="remote">
