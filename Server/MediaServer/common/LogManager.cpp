@@ -54,7 +54,9 @@ LogManager *LogManager::GetLogManager() {
 	return gLogManager;
 }
 
-LogManager::LogManager() {
+LogManager::LogManager()
+:mMutex(KMutex::MutexType_Recursive)
+{
 	// TODO Auto-generated constructor stub
 	mIsRunning = false;
 	mpFileCtrl = NULL;
