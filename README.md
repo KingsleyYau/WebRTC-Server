@@ -8,7 +8,9 @@ Catalog
       
 # 流媒体推拉流模块
 ## 功能
-接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP)
+- 接收客户端SDP信令(Websocket)
+- 接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP)
+
 ### 时序图
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
 
