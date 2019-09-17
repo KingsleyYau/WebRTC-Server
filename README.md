@@ -10,6 +10,7 @@ Catalog
 ## 功能
 - 接收客户端SDP信令(Websocket)
 - 接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP)
+- 视频只支持接收H264, 不是Baseline profile的会进行转码, 音频只支持Opus, 转码AAC
 
 ### 时序图
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
