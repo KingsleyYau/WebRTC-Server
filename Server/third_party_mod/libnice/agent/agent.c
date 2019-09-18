@@ -136,6 +136,11 @@ enum
   SIGNAL_NEW_SELECTED_PAIR_FULL,
   SIGNAL_NEW_CANDIDATE_FULL,
   SIGNAL_NEW_REMOTE_CANDIDATE_FULL,
+  /**
+   * Add 4 Notice Streams Have Been Removed Actually
+   * Add by Max 2019/09/03
+   */
+  SIGNAL_STREAMS_REMOVED_ACTUALLY,
 
   N_SIGNALS,
 };
@@ -1139,6 +1144,28 @@ nice_agent_class_init (NiceAgentClass *klass)
           1,
           NICE_TYPE_CANDIDATE,
           G_TYPE_INVALID);
+
+  /**
+   * Add by Max 2019/09/03
+   * NiceAgent::stream-removed-actually:
+   * @agent: The #NiceAgent object
+   * @stream_id: The ID of the stream
+   *
+   * This signal is fired whenever a stream has been removed actually
+   * after a call to nice_agent_remove_stream()
+   */
+  signals[SIGNAL_STREAMS_REMOVED_ACTUALLY] =
+      g_signal_new (
+          "stream-removed-actually",
+          G_OBJECT_CLASS_TYPE (klass),
+          G_SIGNAL_RUN_LAST,
+          0,
+          NULL,
+          NULL,
+          NULL,
+          G_TYPE_NONE,
+          1,
+          G_TYPE_UINT, G_TYPE_INVALID);
 
   /* Init debug options depending on env variables */
   nice_debug_init ();
@@ -2696,8 +2723,12 @@ nice_agent_add_stream (
 
   agent_lock (agent);
   stream = nice_stream_new (agent->next_stream_id++, n_components, agent);
-
   agent->streams = g_slist_append (agent->streams, stream);
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, add stream %p, streams.length %d", agent, stream, g_slist_length(agent->streams));
   nice_debug ("Agent %p : allocating stream id %u (%p)", agent, stream->id, stream);
   if (agent->reliable) {
     nice_debug ("Agent %p : reliable stream", agent);
@@ -3281,20 +3312,29 @@ static void priv_remove_keepalive_timer (NiceAgent *agent)
 static gboolean
 on_stream_refreshes_pruned (NiceAgent *agent, NiceStream *stream)
 {
-  // This is called from a timeout cb with agent lock held
+	// This is called from a timeout cb with agent lock held
+	/**
+	 * Add 4 Notice Streams Have Been Removed Actually
+	 * Add by Max 2019/09/03
+	 */
+	nice_debug ("[Max] Agent %p, on_stream_refreshes_pruned %p, stream %d, stream_id %u", agent, stream, stream->id);
+	agent_queue_signal (agent, signals[SIGNAL_STREAMS_REMOVED_ACTUALLY], stream->id);
+	agent_unlock_and_emit (agent);
+	agent_lock (agent);
+	nice_debug ("[Max] Agent %p, on_stream_refreshes_pruned emit %p, stream %d, stream_id %u", agent, stream, stream->id);
 
-  nice_stream_close (agent, stream);
+	nice_stream_close (agent, stream);
 
-  agent_unlock (agent);
+	agent_unlock (agent);
 
-  /* Actually free the stream. This should be done with the lock released, as
-   * it could end up disposing of a NiceIOStream, which tries to take the
-   * agent lock itself. */
-  g_object_unref (stream);
+	/* Actually free the stream. This should be done with the lock released, as
+	 * it could end up disposing of a NiceIOStream, which tries to take the
+	 * agent lock itself. */
+	g_object_unref (stream);
 
-  agent_lock (agent);
+	agent_lock (agent);
 
-  return G_SOURCE_REMOVE;
+	return G_SOURCE_REMOVE;
 }
 
 NICEAPI_EXPORT void
@@ -3310,6 +3350,12 @@ nice_agent_remove_stream (
 
   g_return_if_fail (NICE_IS_AGENT (agent));
   g_return_if_fail (stream_id >= 1);
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/02
+   */
+  nice_debug ("[Max] Agent %p, nice_agent_remove_stream, stream_id %u", agent, stream_id);
 
   agent_lock (agent);
   stream = agent_find_stream (agent, stream_id);
@@ -3327,6 +3373,11 @@ nice_agent_remove_stream (
 
   /* Remove the stream and signal its removal. */
   agent->streams = g_slist_remove (agent->streams, stream);
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, nice_agent_remove_stream %p, stream_id %u", agent, stream, stream_id);
 
   if (!agent->streams)
     priv_remove_keepalive_timer (agent);
@@ -5150,6 +5201,12 @@ nice_agent_dispose (GObject *object)
   QueuedSignal *sig;
   NiceAgent *agent = NICE_AGENT (object);
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, nice_agent_dispose, streams.length %d", agent, g_slist_length(agent->streams));
+
   agent_lock (agent);
 
   /* step: free resources for the binding discovery timers */
@@ -5669,8 +5726,15 @@ typedef struct _TimeoutData
 static void
 timeout_data_destroy (TimeoutData *data)
 {
-  g_weak_ref_clear (&data->agent_ref);
-  g_slice_free (TimeoutData, data);
+	/**
+	 * Add Debug Log
+	 * Add by Max 2019/09/03
+	 */
+	NiceAgent *agent;
+	agent = g_weak_ref_get (&data->agent_ref);
+	nice_debug ("[Max] Agent %p, timeout_data_destroy, function %p, user_data %p", agent, data->function, data->user_data);
+	g_weak_ref_clear (&data->agent_ref);
+	g_slice_free (TimeoutData, data);
 }
 
 static TimeoutData *
@@ -5682,6 +5746,12 @@ timeout_data_new (NiceAgent *agent, NiceTimeoutLockedCallback function,
   g_weak_ref_init (&data->agent_ref, agent);
   data->function = function;
   data->user_data = user_data;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/03
+   */
+  nice_debug ("[Max] Agent %p, timeout_data_new, function %p, user_data %p", agent, data->function, data->user_data);
 
   return data;
 }
@@ -5695,7 +5765,8 @@ timeout_cb (gpointer user_data)
 
   agent = g_weak_ref_get (&data->agent_ref);
   if (agent == NULL) {
-    return G_SOURCE_REMOVE;
+	  nice_debug ("[Max] Agent %p, timeout_cb, function %p, user_data %p", agent, data->function, data->user_data);
+	  return G_SOURCE_REMOVE;
   }
 
   agent_lock (agent);
@@ -5745,6 +5816,13 @@ static void agent_timeout_add_with_context_internal (NiceAgent *agent,
     g_source_unref (*out);
     *out = NULL;
   }
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/08/30
+   */
+  nice_debug ("[Max] Agent %p, agent_timeout_add_with_context_internal, main_context %p, out %p, name [%s], function %p, user_data %p, interval %u",
+		  agent, agent->main_context, out, name, function, user_data, interval);
 
   /* Create the new source. */
   if (seconds)
@@ -6393,13 +6471,23 @@ nice_agent_parse_remote_stream_sdp (NiceAgent *agent, guint stream_id,
       candidate = nice_agent_parse_remote_candidate_sdp (agent, stream->id,
           sdp_lines[i]);
       if (candidate == NULL) {
-        g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
-        candidates = NULL;
-        break;
+    	  /**
+    	   * Add Debug Log
+    	   * Add by Max 2019/08/23
+    	   */
+    	  nice_debug ("[Max] Agent %p, parse candidate error, sdp_lines[i]:%s", agent, sdp_lines[i]);
+    	  g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
+    	  candidates = NULL;
+    	  break;
       }
-      // Add by Max 2019/08/05
-      if ( *ufrag && candidate->ufrag ) {
+      /**
+       * Filter candidate with ufrag
+       * Add by Max 2019/08/05
+       */
+      if ( *ufrag && candidate->ufrag && (strlen(candidate->ufrag) > 0) ) {
     	  if (g_strcmp0 (*ufrag, candidate->ufrag) != 0) {
+    		  nice_debug ("Agent %p: skip candidate, ufrag:%s, candidate->ufrag:%s", agent,
+					*ufrag, candidate->ufrag);
     		  nice_candidate_free(candidate);
     		  continue;
     	  }
@@ -6468,8 +6556,11 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
         port = (guint16) g_ascii_strtoull (tokens[i], NULL, 10);
         break;
       default:
-        if (tokens[i + 1] == NULL)
-          goto done;
+        if ( tokens[i + 1] == NULL ) {
+            // Add by Max 2019/08/23
+            nice_debug ("Agent %p: parse candidate tokens error, i:%d, tokens[i]:%s, sdp:%s", agent, i, tokens[i], sdp);
+            goto done;
+        }
 
         if (g_strcmp0 (tokens[i], "typ") == 0) {
           type = tokens[i + 1];
@@ -6483,12 +6574,16 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
         	// Add by Max 2019/08/05
         	ufrag = tokens[i + 1];
         }
+
         i++;
         break;
     }
   }
-  if (type == NULL)
-    goto done;
+  if (type == NULL) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate typ error, type:%s, sdp:%s", agent, type, sdp);
+      goto done;
+  }
 
   ntype = -1;
   for (i = 0; i < G_N_ELEMENTS (type_names); i++) {
@@ -6497,8 +6592,11 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
       break;
     }
   }
-  if (ntype == -1)
-    goto done;
+  if (ntype == -1) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate ntype error, ntype:%d, sdp:%s", agent, ntype, sdp);
+      goto done;
+  }
 
   if (g_ascii_strcasecmp (transport, "UDP") == 0)
     ctransport = NICE_CANDIDATE_TRANSPORT_UDP;
@@ -6515,10 +6613,16 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
       ctransport = NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE;
     else if (g_ascii_strcasecmp (tcptype, "passive") == 0)
       ctransport = NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE;
-    else
+    else {
+        // Add by Max 2019/08/23
+        nice_debug ("Agent %p: parse candidate tcptype error, tcptype:%s, sdp:%s", agent, tcptype, sdp);
+    	goto done;
+    }
+  } else {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate transport error, transport:%s, sdp:%s", agent, transport, sdp);
       goto done;
-  } else
-    goto done;
+  }
 
   candidate = nice_candidate_new(ntype);
   candidate->component_id = component_id;
@@ -6532,7 +6636,9 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
   }
 
   if (!nice_address_set_from_string (&candidate->addr, addr)) {
-    nice_candidate_free (candidate);
+    // Add by Max 2019/08/23
+  	nice_debug ("Agent %p: parse candidate addr error, addr:%s, sdp:%s", agent, addr, sdp);
+	nice_candidate_free (candidate);
     candidate = NULL;
     goto done;
   }
@@ -6540,6 +6646,8 @@ nice_agent_parse_remote_candidate_sdp (NiceAgent *agent, guint stream_id,
 
   if (raddr && rport) {
     if (!nice_address_set_from_string (&candidate->base_addr, raddr)) {
+      // Add by Max 2019/08/23
+      nice_debug ("Agent %p: parse candidate base_addr error, raddr:%s, rport:%u, sdp:%s", agent, raddr, rport, sdp);
       nice_candidate_free (candidate);
       candidate = NULL;
       goto done;
@@ -6686,6 +6794,11 @@ on_agent_refreshes_pruned (NiceAgent *agent, gpointer user_data)
   GTask *task = user_data;
 
   /* This is called from a timeout cb with agent lock held */
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/02
+   */
+  nice_debug ("[Max] Agent %p, on_agent_refreshes_pruned, user_data %p", agent, task);
 
   agent_unlock (agent);
 
@@ -6708,6 +6821,11 @@ nice_agent_close_async (NiceAgent *agent, GAsyncReadyCallback callback,
 
   agent_lock (agent);
 
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/02
+   */
+  nice_debug ("[Max] Agent %p, nice_agent_close_async, function %p, user_data %p", agent, on_agent_refreshes_pruned, task);
   refresh_prune_agent_async (agent, on_agent_refreshes_pruned, task);
 
   agent_unlock (agent);
