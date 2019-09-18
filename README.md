@@ -15,6 +15,9 @@ Catalog
 ### 时序图
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
 
+### 测试页面
+https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/index.html
+
 ## 第三方开源
 [nice](https://github.com/libnice/libnice)</br>
 [srtp](https://github.com/cisco/libsrtp)</br>
