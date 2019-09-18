@@ -394,10 +394,17 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 									 * 		profile-level-id=42C01E : Baseline profile 3.0
 									 *
 									 * profile_idc(8 bits)
-									 * 0x42 Baseline profile
-									 * 0x4D Main profile
-									 * 0x58 Extended profile
+									 * 0x42(66) Baseline profile
+									 * 0x4D(77) Main profile
+									 * 0x58(88) Extended profile
 									 *
+									 * compatiable(8 bits)
+									 *
+									 * level_idc(8 bits)
+									 * 等级	最大比特率(BP、MP、EP)kbit/s	高分辨率示例@最高帧率(最大存储帧)
+									 * 3 	10000 	[352*480@61.4(12) | 352*576@51.1(10) | 720*480@30.0(6) | 720*576@25.0(5)]
+									 * 3.1 	14000 	[720*480@80.0(13) | 720*576@66.7(11) | 1280*720@30.0(5)]
+									 * 3.2	20000	[1280*720@60.0(5) | 1280*1024@42.2(4)]
 									 */
 									if ( profileIdc == "42" ) {
 										mNeedTranscodeVideo = false;
