@@ -6,7 +6,7 @@ Catalog
       * [第三方开源](#第三方开源)
       
       
-# 流媒体推拉流模块
+# WebRTC流媒体网关服务器
 ## 功能
 - 接收客户端SDP信令(Websocket)
 - 接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP)
