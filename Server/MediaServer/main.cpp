@@ -1,7 +1,7 @@
 /*
  * server.cpp
  *
- *  Created on: 2015-9-28
+ *  Created on: 2019-07-21
  *      Author: Max.Chiu
  *      Email: Kingsleyyau@gmail.com
  */
@@ -27,6 +27,7 @@ static MediaServer gMediaServer;
 
 bool Parse(int argc, char *argv[]);
 void SignalFunc(int sign_no);
+const char *Banner(void);
 
 int main(int argc, char *argv[]) {
 	printf("############## MediaServer ############## \n");
@@ -34,11 +35,18 @@ int main(int argc, char *argv[]) {
 	printf("# Build date : %s %s \n", __DATE__, __TIME__);
 	srand(time(0));
 
-	/* Ignore */
+	// 忽略对已经关闭的Socket发送信息导致错误
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;
 	sigemptyset(&sa.sa_mask);
 	sigaction(SIGPIPE, &sa, 0);
+
+	// 不需要重新执行
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SignalFunc;
+	sigemptyset(&sa.sa_mask);
+	// 回收子进程
+	sigaction(SIGCHLD, &sa, 0);
 
 	/* Handle */
 	memset(&sa, 0, sizeof(sa));
@@ -47,7 +55,8 @@ int main(int argc, char *argv[]) {
 	sigemptyset(&sa.sa_mask);
 
 //	sigaction(SIGHUP, &sa, 0);
-	sigaction(SIGINT, &sa, 0); // Ctrl-C
+	// Ctrl-C
+	sigaction(SIGINT, &sa, 0);
 	sigaction(SIGQUIT, &sa, 0);
 	sigaction(SIGILL, &sa, 0);
 	sigaction(SIGABRT, &sa, 0);
@@ -58,8 +67,6 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGTERM, &sa, 0);
 	sigaction(SIGXCPU, &sa, 0);
 	sigaction(SIGXFSZ, &sa, 0);
-	// 回收子进程
-	sigaction(SIGCHLD, &sa, 0);
 
 	Parse(argc, argv);
 
@@ -73,8 +80,12 @@ int main(int argc, char *argv[]) {
 
 	LogManager::GetLogManager()->LogFlushMem2File();
 
+	if (bFlag) {
+		printf("%s", Banner());
+	}
+
 	while( bFlag && gMediaServer.IsRunning() ) {
-		/* do nothing here */
+		LogManager::GetLogManager()->LogFlushMem2File();
 		fflush(stdout);
 		sleep(5);
 	}
@@ -106,14 +117,6 @@ void SignalFunc(int sign_no) {
 				);
 		MainLoop::GetMainLoop()->Call(pid);
 	}break;
-	case SIGINT:{
-		LogAync(
-				LOG_ERR_SYS, "main( interrupt )"
-				);
-		LogManager::GetLogManager()->LogFlushMem2File();
-		gMediaServer.Stop();
-		exit(0);
-	}break;
 	default:{
 		LogAync(
 				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
@@ -123,4 +126,21 @@ void SignalFunc(int sign_no) {
 		kill(getpid(), sign_no);
 	}break;
 	}
+}
+
+const char *Banner(void) {
+	return ("\n"
+			"\033[33;44m.=============================================================.\033[0m\n"
+			"\033[33;44m|   __  ___         ___       _____                           |\033[0m\n"
+			"\033[33;44m|   /  |/  /__  ____/ (_)___ _/ ___/___  ______   _____  _____|\033[0m\n"
+			"\033[33;44m|  / /|_/ / _ \\/ __  / / __ `/\\__ \\/ _ \\/ ___/ | / / _ \\/ ___/|\033[0m\n"
+			"\033[33;44m| / /  / /  __/ /_/ / / /_/ /___/ /  __/ /   | |/ /  __/ /    |\033[0m\n"
+			"\033[33;44m|/_/  /_/\\___/\\__,_/_/\\__,_//____/\\___/_/    |___/\\___/_/     |\033[0m\n"
+			"\033[33;44m|                                                             |\033[0m\n"
+			"\033[33;44m.=============================================================.\033[0m\n"
+			"\033[33;44m|   MediaServer (https://github.com/KingsleyYau)              |\033[0m\n"
+			"\033[33;44m|   Author: Max.Chiu                                          |\033[0m\n"
+			"\033[33;44m|   Email: Kingsleyyau@gmail.com                              |\033[0m\n"
+			"\033[33;44m.=============================================================.\033[0m\n"
+			);
 }
