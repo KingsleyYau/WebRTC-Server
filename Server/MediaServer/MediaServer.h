@@ -17,13 +17,12 @@
 #include <common/TimeProc.hpp>
 #include <common/StringHandle.h>
 #include <common/CommonFunc.h>
-
 // ThirdParty
 #include <json/json.h>
-
+// Http Client
+#include <httpclient/HttpClient.h>
 // Base Server
 #include <server/AsyncIOServer.h>
-
 // Websocket
 #include <websocket/WSServer.h>
 
@@ -238,6 +237,7 @@ private:
 
 private:
 	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
+	bool SendExtLoginRequest(HttpClient* client, const string& param);
 
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/

@@ -599,6 +599,8 @@ void MediaServer::TimeoutCheckHandle() {
 }
 
 void MediaServer::ExtLoginHandle() {
+	HttpClient client;
+
 	while( IsRunning() ) {
 		ExtLoginItem *item = (ExtLoginItem *)mExtLoginItemList.PopFront();
 		if ( item ) {
@@ -624,7 +626,7 @@ void MediaServer::ExtLoginHandle() {
 				}
 
 				if( param.length() > 0 ) {
-					// Send Http Request
+					bFlag = SendExtLoginRequest(&client, param);
 				} else {
 					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 				}
@@ -636,20 +638,21 @@ void MediaServer::ExtLoginHandle() {
 			if ( itr != mWebsocketMap.End() ) {
 				MediaClient *client = itr->second;
 
-				LogAync(
-						LOG_WARNING,
-						"MediaServer::ExtLoginHandle( "
-						"[%s], "
-						"hdl : %p, "
-						"param : %s "
-						")",
-						FLAG_2_STRING(bFlag),
-						item->client->hdl.lock().get(),
-						param.c_str()
-						);
+//				LogAync(
+//						LOG_WARNING,
+//						"MediaServer::ExtLoginHandle( "
+//						"[%s], "
+//						"hdl : %p, "
+//						"param : %s "
+//						")",
+//						FLAG_2_STRING(bFlag),
+//						item->client->hdl.lock().get(),
+//						param.c_str()
+//						);
 
 				if ( client->connected ) {
-					if ( bFlag ) {
+					// 外部校验失败, 重复登录, 踢掉
+					if ( bFlag && !client->login ) {
 						client->login = true;
 						string res = writer.write(resRoot);
 						mWSServer.SendText(client->hdl, res);
@@ -1442,4 +1445,57 @@ void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorM
 	ErrObject obj = RequestErrObjects[errType];
 	resErrorNo = obj.errNo;
 	resErrorMsg = obj.errMsg;
+}
+
+bool MediaServer::SendExtLoginRequest(
+		HttpClient* client,
+		const string& param
+		) {
+	bool bFlag = false;
+
+	long httpCode = 0;
+	const char* respond = NULL;
+	int respondSize = 0;
+	HttpEntiy httpEntiy;
+
+	string url = mExtLoginPath + "&";
+	url += param;
+	if ( client->Request(url.c_str(), &httpEntiy) ) {
+		httpCode = client->GetRespondCode();
+		client->GetBody(&respond, respondSize);
+
+		if( respondSize > 0 ) {
+			// 发送成功
+			Json::Value resRoot;
+			Json::Reader reader;
+			if( reader.parse(respond, resRoot, false) ) {
+				if( resRoot.isObject() ) {
+					if( resRoot["result"].isInt() ) {
+						int errNo = resRoot["result"].asInt();
+						if ( errNo == 1 ) {
+							bFlag = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+//	if( !bFlag ) {
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::SendExtLoginRequest( "
+			"[%s], "
+			"url : %s, "
+			"respondSize : %d, "
+			"respond : %s "
+			")",
+			FLAG_2_STRING(bFlag),
+			url.c_str(),
+			respondSize,
+			respond
+			);
+//	}
+
+	return bFlag;
 }
