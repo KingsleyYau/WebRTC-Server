@@ -10,6 +10,8 @@
 // System
 #include <sys/syscall.h>
 #include <algorithm>
+// Include
+#include <include/CommonHeader.h>
 // Common
 #include <common/CommonFunc.h>
 #include <httpclient/HttpClient.h>
@@ -57,6 +59,25 @@ private:
 
 /***************************** 超时处理 **************************************/
 
+/***************************** 外部登录处理处理 **************************************/
+class ExtLoginRunnable : public KRunnable {
+public:
+	ExtLoginRunnable(MediaServer *container) {
+		mContainer = container;
+	}
+	virtual ~ExtLoginRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->ExtLoginHandle();
+	}
+private:
+	MediaServer *mContainer;
+};
+
+/***************************** 超时处理 **************************************/
+
 MediaServer::MediaServer()
 :mServerMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
@@ -68,6 +89,8 @@ MediaServer::MediaServer()
 	mpStateRunnable = new StateRunnable(this);
 	// 超时处理线程
 	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
+	// 外部登录校验线程
+	mpExtLoginRunnable = new ExtLoginRunnable(this);
 
 	// 内部服务(HTTP)参数
 	miPort = 0;
@@ -110,6 +133,11 @@ MediaServer::~MediaServer() {
 	if ( mpTimeoutCheckRunnable ) {
 		delete mpTimeoutCheckRunnable;
 		mpTimeoutCheckRunnable = NULL;
+	}
+
+	if ( mpExtLoginRunnable ) {
+		delete mpExtLoginRunnable;
+		mpExtLoginRunnable = NULL;
 	}
 }
 
@@ -324,6 +352,25 @@ bool MediaServer::Start() {
 		}
 	}
 
+	// 开始外部登录校验线程
+	if( bFlag ) {
+		if( mExtLoginThread.Start(mpExtLoginRunnable, "ExtLogin") != 0 ) {
+			LogAync(
+					LOG_WARNING,
+					"MediaServer::Start( "
+					"event : [开始外部登录校验线程] "
+					")");
+		} else {
+			bFlag = false;
+			LogAync(
+					LOG_ERR_SYS,
+					"MediaServer::Start( "
+					"event : [开始外部登录校验线程-失败] "
+					")"
+					);
+		}
+	}
+
 	// 开始状态监视线程
 	if( bFlag ) {
 		if( mStateThread.Start(mpStateRunnable, "State") != 0 ) {
@@ -404,6 +451,7 @@ bool MediaServer::LoadConfig() {
 			// Websocket参数
 			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());
 			miWebsocketMaxClient = atoi(conf.GetPrivate("WEBSOCKET", "MAXCLIENT", "1000").c_str());
+			mExtLoginPath = conf.GetPrivate("WEBSOCKET", "EXTLOGINPATH", "");
 
 			bFlag = true;
 		}
@@ -464,6 +512,7 @@ bool MediaServer::Stop() {
 		// 停止定时任务
 		mStateThread.Stop();
 		mTimeoutCheckThread.Stop();
+		mExtLoginThread.Stop();
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
 	}
@@ -546,6 +595,76 @@ void MediaServer::TimeoutCheckHandle() {
 		mWebRTCMap.Unlock();
 
 		sleep(1);
+	}
+}
+
+void MediaServer::ExtLoginHandle() {
+	while( IsRunning() ) {
+		ExtLoginItem *item = (ExtLoginItem *)mExtLoginItemList.PopFront();
+		if ( item ) {
+			bool bFlag = true;
+
+			// Request Param
+			Json::Value reqRoot = item->reqRoot;
+			string param = "";
+
+			// Respond
+			Json::Value resRoot;
+			Json::FastWriter writer;
+			resRoot["id"] = reqRoot["id"];
+			resRoot["route"] = reqRoot["route"];
+			resRoot["errno"] = RequestErrorType_None;
+			resRoot["errmsg"] = "";
+
+			if ( reqRoot["req_data"].isObject() ) {
+				Json::Value reqData = reqRoot["req_data"];
+
+				if( reqData["param"].isString() ) {
+					param = reqData["param"].asString();
+				}
+
+				if( param.length() > 0 ) {
+					// Send Http Request
+				} else {
+					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
+				}
+			}
+
+			// Callback to client
+			mWebRTCMap.Lock();
+			WebsocketMap::iterator itr = mWebsocketMap.Find(item->client->hdl);
+			if ( itr != mWebsocketMap.End() ) {
+				MediaClient *client = itr->second;
+
+				LogAync(
+						LOG_WARNING,
+						"MediaServer::ExtLoginHandle( "
+						"[%s], "
+						"hdl : %p, "
+						"param : %s "
+						")",
+						FLAG_2_STRING(bFlag),
+						item->client->hdl.lock().get(),
+						param.c_str()
+						);
+
+				if ( client->connected ) {
+					if ( bFlag ) {
+						client->login = true;
+						string res = writer.write(resRoot);
+						mWSServer.SendText(client->hdl, res);
+					} else {
+						mWSServer.Disconnect(client->hdl);
+						client->connected = false;
+					}
+				}
+			}
+			mWebRTCMap.Unlock();
+
+			delete item;
+		} else {
+			Sleep(100);
+		}
 	}
 }
 /***************************** 定时任务 **************************************/
@@ -1130,6 +1249,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl, const string& 
 
 void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string& str) {
 	bool bFlag = false;
+	bool bRespond = true;
 
 	Json::Value reqRoot;
 	Json::Reader reader;
@@ -1266,6 +1386,22 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
 						}
 					}
+				} else if ( mExtLoginPath.length() > 0 && route == "imRTC/login" ) {
+					// Start External Login
+					mWebRTCMap.Lock();
+					WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
+					if ( itr != mWebsocketMap.End() ) {
+						MediaClient *client = itr->second;
+						ExtLoginItem *item = new ExtLoginItem();
+						item->client = client;
+						item->reqRoot = reqRoot;
+						mExtLoginItemList.PushBack(item);
+						bRespond = false;
+						bFlag = true;
+					} else {
+						GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
+					}
+					mWebRTCMap.Unlock();
 				} else {
 					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}
@@ -1273,15 +1409,16 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 				GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 			}
 		}
-
 	} else {
 		GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Data_Format_Parse);
 	}
 
 	resRoot["data"] = resData;
-
 	string res = writer.write(resRoot);
-	mWSServer.SendText(hdl, res);
+
+	if ( bRespond ) {
+		mWSServer.SendText(hdl, res);
+	}
 
 	if ( !bFlag ) {
 		LogAync(
