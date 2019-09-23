@@ -159,6 +159,7 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
 	struct curl_slist* pList = NULL;
 	struct curl_httppost* pPost = NULL;
 	struct curl_httppost* pLast = NULL;
+	string postData("");
 
 	if( entiy != NULL ) {
 		/* Basic Authentication */
@@ -174,27 +175,51 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
 			FileLog("httpclient", "HttpClient::Request( Add header : [%s] )", header.c_str());
 		}
 
-		/* Contents */
-		for( HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++ ) {
-			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, itr->first.c_str(),
-					CURLFORM_COPYCONTENTS, itr->second.c_str(), CURLFORM_END);
-			FileLog("httpclient", "HttpClient::Request( Add content : [%s : %s] )", itr->first.c_str(), itr->second.c_str());
-		}
+        if( entiy->mRawData.length() > 0 && !entiy->mIsGetMethod ) {
+            curl_easy_setopt(mpCURL, CURLOPT_POSTFIELDS, entiy->mRawData.c_str());
+        } else if (entiy->mFileMap.empty() && !entiy->mContentMap.empty() && !entiy->mIsGetMethod) {
+            /* Contents */
+            for( HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++ ) {
+                if (!postData.empty()) {
+                    postData += "&";
+                }
+                char* tempBuffer = curl_easy_escape(mpCURL, itr->second.c_str(), itr->second.length());
+                if (NULL != tempBuffer) {
+                    postData += itr->first;
+                    postData += "=";
+                    postData += tempBuffer;
 
-		/* Files */
-		for( FileMap::const_iterator itr = entiy->mFileMap.begin(); itr != entiy->mFileMap.end(); itr++ ) {
-			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, "filename",
-					CURLFORM_COPYCONTENTS, itr->first.c_str(), CURLFORM_END);
+                    curl_free(tempBuffer);
+                }
 
-			curl_formadd(&pPost, &pLast,
-					CURLFORM_COPYNAME, itr->first.c_str(),
-					CURLFORM_FILE, itr->second.fileName.c_str(),
-					CURLFORM_CONTENTTYPE, itr->second.mimeType.c_str(),
-					CURLFORM_END);
+                FileLog("httpclient", "HttpClient::Request( this : %p, Add content : [%s : %s] )", this, itr->first.c_str(), itr->second.c_str());
+            }
 
-			FileLog("httpclient", "HttpClient::Request( Add file filename : [%s], content [%s : %s,%s] )"
-					, itr->first.c_str(), itr->first.c_str(), itr->second.fileName.c_str(), itr->second.mimeType.c_str());
-		}
+            curl_easy_setopt(mpCURL, CURLOPT_POSTFIELDS, postData.c_str());
+        } else {
+
+    		/* Contents */
+    		for( HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++ ) {
+    			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, itr->first.c_str(),
+    					CURLFORM_COPYCONTENTS, itr->second.c_str(), CURLFORM_END);
+    			FileLog("httpclient", "HttpClient::Request( Add content : [%s : %s] )", itr->first.c_str(), itr->second.c_str());
+    		}
+
+    		/* Files */
+    		for( FileMap::const_iterator itr = entiy->mFileMap.begin(); itr != entiy->mFileMap.end(); itr++ ) {
+    			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, "filename",
+    					CURLFORM_COPYCONTENTS, itr->first.c_str(), CURLFORM_END);
+
+    			curl_formadd(&pPost, &pLast,
+    					CURLFORM_COPYNAME, itr->first.c_str(),
+    					CURLFORM_FILE, itr->second.fileName.c_str(),
+    					CURLFORM_CONTENTTYPE, itr->second.mimeType.c_str(),
+    					CURLFORM_END);
+
+    			FileLog("httpclient", "HttpClient::Request( Add file filename : [%s], content [%s : %s,%s] )"
+    					, itr->first.c_str(), itr->first.c_str(), itr->second.fileName.c_str(), itr->second.mimeType.c_str());
+    		}
+        }
 
 		if( pList != NULL ) {
 			curl_easy_setopt(mpCURL, CURLOPT_HTTPHEADER, pList);

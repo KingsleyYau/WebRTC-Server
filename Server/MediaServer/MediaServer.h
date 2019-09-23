@@ -9,6 +9,8 @@
 #ifndef MEDIASERVER_H_
 #define MEDIASERVER_H_
 
+#include <uuid/uuid.h>
+
 // Common
 #include <common/LogManager.h>
 #include <common/ConfFile.hpp>
@@ -59,26 +61,33 @@ struct MediaClient {
 	void Reset() {
 		rtc = NULL;
 		connected = false;
+		addr = "";
 		connectTime = 0;
 		callTime = 0;
 		startMediaTime = 0;
-		login = false;
+		logined = false;
+		uuid = "";
+		extParam = "";
 	}
 
 	MediaClient& operator=(const MediaClient& item) {
 		hdl = item.hdl;
 		rtc = item.rtc;
+		connected = item.connected;
+		addr = item.addr;
 		connectTime = item.connectTime;
 		callTime = item.callTime;
 		startMediaTime = item.startMediaTime;
-		login = item.login;
+		logined = item.logined;
+		uuid = item.uuid;
+		extParam = item.extParam;
 		return *this;
 	}
 
 	bool IsTimeout() {
 		bool bFlag = false;
 
-		if ( connectTime != 0 && callTime == 0 && !login ) {
+		if ( connectTime != 0 && callTime == 0 && !logined ) {
 			long long currentTime = getCurrentTime();
 			long long ms = currentTime - connectTime;
 			if ( ms > REQUEST_TIME_OUT_MS ) {
@@ -91,34 +100,49 @@ struct MediaClient {
 
 	connection_hdl hdl;
 	bool connected;
+	string addr;
 
 	WebRTC *rtc;
 	long long connectTime;
 	long long callTime;
 	long long startMediaTime;
-	bool login;
+	bool logined;
+
+	string uuid;
+	string extParam;
+};
+
+enum ExtRequestType {
+	ExtRequestTypeUnknow = 0,
+	ExtRequestTypeLogin,
+	ExtRequestTypeLogout,
 };
 
 // 在线连接对象
-struct ExtLoginItem {
-	ExtLoginItem() {
-		client = NULL;
+struct ExtRequestItem {
+	ExtRequestItem() {
+		uuid = "";
+		type = ExtRequestTypeUnknow;
 	}
 
-	MediaClient *client;
+	ExtRequestType type;
+	string uuid;
+	string extParam;
 	Json::Value reqRoot;
 };
 // 在线连接列表, 因为2个Map是同时使用, 所以只需用WebRTCMap的锁
 typedef KSafeMap<WebRTC*, MediaClient*> WebRTCMap;
 typedef KSafeMap<connection_hdl, MediaClient*, std::owner_less<connection_hdl> > WebsocketMap;
+// 在线的用户列表
+typedef KSafeMap<string, MediaClient*> MediaClientMap;
 // 空闲的WebRTC列表
 typedef KSafeList<WebRTC *> WebRTCList;
 // 空闲的MediaClient列表
 typedef KSafeList<MediaClient *> MediaClientList;
-// 外部登录请求队列
-typedef KSafeList<ExtLoginItem *> ExtLoginItemList;
+// 外部请求队列
+typedef KSafeList<ExtRequestItem *> ExtRequestList;
 
-class ExtLoginRunnable;
+class ExtRequestRunnable;
 class TimeoutCheckRunnable;
 class StateRunnable;
 class MediaServer :
@@ -127,7 +151,7 @@ class MediaServer :
 		public WebRTCCallback,
 		public WSServerCallback
 {
-	friend class ExtLoginRunnable;
+	friend class ExtRequestRunnable;
 	friend class TimeoutCheckRunnable;
 	friend class StateRunnable;
 
@@ -174,7 +198,7 @@ public:
 
 	/***************************** WSServerCallback **************************************/
 	void OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr, const string& userAgent);
-	void OnWSClose(WSServer *server, connection_hdl hdl, const string& addr);
+	void OnWSClose(WSServer *server, connection_hdl hdl);
 	void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str);
 	/***************************** WSServerCallback **************************************/
 
@@ -205,9 +229,9 @@ private:
 	void TimeoutCheckHandle();
 
 	/**
-	 * 外部登录线程处理
+	 * 外部请求线程处理
 	 */
-	void ExtLoginHandle();
+	void ExtRequestHandle();
 	/***************************** 定时任务 **************************************/
 
 
@@ -237,7 +261,12 @@ private:
 
 private:
 	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
-	bool SendExtLoginRequest(HttpClient* client, const string& param);
+
+	void HandleExtForceSync(HttpClient* httpClient);
+
+	void HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item);
+	void HandleExtLogout(HttpClient* httpClient, ExtRequestItem *item);
+	bool SendExtSetStatusRequest(HttpClient* httpClient, bool isLogin, const string& param);
 
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/
@@ -287,8 +316,10 @@ private:
 	short miWebsocketPort;
 	// 最大连接数
 	unsigned int miWebsocketMaxClient;
-	// 外部登录验证接口路径(空则不开启)
-	string mExtLoginPath;
+	// 外部上下线校验接口路径(空则不开启)
+	string mExtSetStatusPath;
+	// 外部同步已经校验在线列表接口路径(空则不开启)
+	string mExtSyncStatusPath;
 	/***************************** 信令服务(Websocket)参数 **************************************/
 
 
@@ -311,7 +342,6 @@ private:
 
 	// 监听线程输出间隔
 	unsigned int miStateTime;
-
 	/***************************** 统计参数 **************************************/
 
 
@@ -326,8 +356,8 @@ private:
 	KThread mTimeoutCheckThread;
 
 	// 外部登录校验线程
-	ExtLoginRunnable* mpExtLoginRunnable;
-	KThread mExtLoginThread;
+	ExtRequestRunnable* mpExtRequestRunnable;
+	KThread mExtRequestThread;
 	/***************************** 定时任务线程 **************************************/
 
 
@@ -353,14 +383,20 @@ private:
 	// Websocket与WebRTC关联
 	WebRTCMap mWebRTCMap;
 	WebsocketMap mWebsocketMap;
+	MediaClientMap mMediaClientMap;
 	// 可用的WebRTC Object
 	WebRTCList mWebRTCList;
 
 	// 可用的MediaClient
 	MediaClientList mMediaClientList;
 
-	// 外部登录接口的队列
-	ExtLoginItemList mExtLoginItemList;
+	// 外部请求队列
+	ExtRequestList mExtRequestList;
+	// 外部下线请求队列
+	ExtRequestList mExtLogoutRequestList;
+
+	// 是否需要强制同步在线列表
+	bool mbForceExtSync;
 	/***************************** 运行参数 end **************************************/
 };
 

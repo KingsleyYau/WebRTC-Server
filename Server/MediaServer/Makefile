@@ -60,7 +60,7 @@ LIBS = \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
 	-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
-	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre
+	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre -luuid
 	
 OBJS = main.o MediaServer.o
 		

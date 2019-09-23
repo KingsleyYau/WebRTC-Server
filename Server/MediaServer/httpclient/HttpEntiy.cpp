@@ -55,6 +55,10 @@ void HttpEntiy::SetSaveCookie(bool isSaveCookie) {
 	mbSaveCookie = isSaveCookie;
 }
 
+void HttpEntiy::SetRawData(string data) {
+    mRawData = data;
+}
+
 void HttpEntiy::AddContent(string key, string value) {
 //	FileLog("httpclient", "HttpEntiy::AddContent( key : %s, value : %s )", key.c_str(), value.c_str());
 	HttpMap::iterator itr = mContentMap.find(key);

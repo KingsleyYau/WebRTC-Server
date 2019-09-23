@@ -35,6 +35,7 @@ public:
 	void SetGetMethod(bool isGetMethod);
 	void SetSaveCookie(bool isSaveCookie);
 
+	void SetRawData(string data);
 	void AddContent(string key, string value);
 	void AddFile(string key, string fileName, string mimeType = "image/jpeg");
 
@@ -45,6 +46,7 @@ private:
 	HttpMap mContentMap;
 	FileMap mFileMap;
 	string mAuthorization;
+	string mRawData;
 	bool mIsGetMethod;
 	bool mbSaveCookie;
 };
