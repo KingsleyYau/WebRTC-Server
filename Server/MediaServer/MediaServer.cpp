@@ -1180,6 +1180,12 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	if ( itr != mWebsocketMap.End() ) {
 		client = itr->second;
 
+		// 插入外部注销通知
+		ExtRequestItem *item = new ExtRequestItem();
+		item->type = ExtRequestTypeLogout;
+		item->uuid = client->uuid;
+		mExtLogoutRequestList.PushBack(item);
+
 		// Remove rtc
 		addr = client->addr;
 		connectTime = client->connectTime;
@@ -1574,12 +1580,12 @@ bool MediaServer::SendExtSetStatusRequest(
 	// Request
 	Json::Value reqRoot;
 	Json::FastWriter writer;
-	reqRoot["status"] = isLogin;
 	reqRoot["param"] = param;
+	reqRoot["status"] = (int)isLogin;
 	string req = writer.write(reqRoot);
 
 	HttpEntiy httpEntiy;
-	httpEntiy.SetRawData(req.c_str());
+	httpEntiy.SetRawData(req);
 
 	string url = mExtSetStatusPath;
 	if ( httpClient->Request(url.c_str(), &httpEntiy) ) {
