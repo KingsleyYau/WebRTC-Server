@@ -627,6 +627,8 @@ void MediaServer::ExtRequestHandle() {
 			if ( !bFlag ) {
 				miExtSyncStatusTime++;
 				miExtSyncStatusTime = (miExtSyncStatusTime >= miExtSyncStatusMaxTime)?miExtSyncStatusMaxTime:miExtSyncStatusTime;
+			} else {
+				miExtSyncStatusTime = 1;
 			}
 		}
 	}
@@ -1449,7 +1451,7 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 		int respondSize = 0;
 
 		// Request JSON
-		Json::Value reqRoot;
+		Json::Value reqRoot = Json::arrayValue;
 		Json::FastWriter writer;
 
 		mWebRTCMap.Lock();
