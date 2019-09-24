@@ -260,12 +260,25 @@ private:
 	/***************************** 内部服务(HTTP)接口 **************************************/
 
 private:
+	/**
+	 * 获取错误信息结构体
+	 */
 	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
-
-	void HandleExtForceSync(HttpClient* httpClient);
-
+	/**
+	 * 外部同步在线状态
+	 */
+	bool HandleExtForceSync(HttpClient* httpClient);
+	/**
+	 * 外部登录
+	 */
 	void HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item);
+	/**
+	 * 外部注销
+	 */
 	void HandleExtLogout(HttpClient* httpClient, ExtRequestItem *item);
+	/**
+	 * 外部状态改变接口
+	 */
 	bool SendExtSetStatusRequest(HttpClient* httpClient, bool isLogin, const string& param);
 
 private:
@@ -318,8 +331,12 @@ private:
 	unsigned int miWebsocketMaxClient;
 	// 外部上下线校验接口路径(空则不开启)
 	string mExtSetStatusPath;
-	// 外部同步已经校验在线列表接口路径(空则不开启)
+	// 外部同步在线列表接口路径(空则不开启)
 	string mExtSyncStatusPath;
+	// 外部同步在线列表失败重试最长时间(默认为10秒)
+	unsigned int miExtSyncStatusMaxTime;
+	// 外部同步在线列表失败重试时间(初始化为1秒, 递增至最大值)
+	unsigned int miExtSyncStatusTime;
 	/***************************** 信令服务(Websocket)参数 **************************************/
 
 
@@ -392,8 +409,6 @@ private:
 
 	// 外部请求队列
 	ExtRequestList mExtRequestList;
-	// 外部下线请求队列
-	ExtRequestList mExtLogoutRequestList;
 
 	// 是否需要强制同步在线列表
 	bool mbForceExtSync;

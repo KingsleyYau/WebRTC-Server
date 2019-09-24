@@ -115,6 +115,8 @@ MediaServer::MediaServer()
 	miWebsocketPort = 0;
 	miWebsocketMaxClient = 0;
 	mbForceExtSync = false;
+	miExtSyncStatusMaxTime = 10;
+	miExtSyncStatusTime = 1;
 
 	// 统计参数
 	mTotal = 0;
@@ -602,8 +604,10 @@ void MediaServer::TimeoutCheckHandle() {
 
 void MediaServer::ExtRequestHandle() {
 	HttpClient httpClient;
+	bool bFlag = false;
+
 	while( IsRunning() ) {
-		HandleExtForceSync(&httpClient);
+		bFlag = HandleExtForceSync(&httpClient);
 
 		ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
 		if ( item ) {
@@ -619,7 +623,11 @@ void MediaServer::ExtRequestHandle() {
 
 			delete item;
 		} else {
-			Sleep(100);
+			sleep(miExtSyncStatusTime);
+			if ( !bFlag ) {
+				miExtSyncStatusTime++;
+				miExtSyncStatusTime = (miExtSyncStatusTime >= miExtSyncStatusMaxTime)?miExtSyncStatusMaxTime:miExtSyncStatusTime;
+			}
 		}
 	}
 }
@@ -726,7 +734,7 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
 
-	} else if( parser->GetPath() == "/STOP" ) {
+	} else if( parser->GetPath() == "/test" ) {
 		// 断开流
 		OnRequestStopStream(parser);
 
@@ -1180,11 +1188,14 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	if ( itr != mWebsocketMap.End() ) {
 		client = itr->second;
 
-		// 插入外部注销通知
-		ExtRequestItem *item = new ExtRequestItem();
-		item->type = ExtRequestTypeLogout;
-		item->uuid = client->uuid;
-		mExtLogoutRequestList.PushBack(item);
+		if ( client->logined ) {
+			// 插入外部注销通知
+			ExtRequestItem *item = new ExtRequestItem();
+			item->type = ExtRequestTypeLogout;
+			item->uuid = client->uuid;
+			item->extParam = client->extParam;
+			mExtRequestList.PushBack(item);
+		}
 
 		// Remove rtc
 		addr = client->addr;
@@ -1426,13 +1437,15 @@ void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorM
 	resErrorMsg = obj.errMsg;
 }
 
-void MediaServer::HandleExtForceSync(HttpClient* httpClient) {
-	bool bFlag = false;
+bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
+	bool bFlag = true;
 
 	if ( mbForceExtSync ) {
+		bFlag = false;
+
 		// Request HTTP
 		long httpCode = 0;
-		const char* respond = NULL;
+		const char* res = NULL;
 		int respondSize = 0;
 
 		// Request JSON
@@ -1441,12 +1454,16 @@ void MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 
 		mWebRTCMap.Lock();
 		// Pop All Logout Request
-		while ( mExtLogoutRequestList.Empty() ) {
-			mExtLogoutRequestList.PopFront();
+		for(ExtRequestList::iterator itr =  mExtRequestList.Begin(); itr != mExtRequestList.End(); itr++) {
+			ExtRequestItem *item = *itr;
+			if ( item->type == ExtRequestTypeLogout ) {
+				delete item;
+				mExtRequestList.PopValueUnSafe(itr++);
+			}
 		}
 
 		// Send Sync Online List
-		for(WebsocketMap::iterator itr = mWebsocketMap.Begin();;) {
+		for(WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
 			MediaClient *client = itr->second;
 			if ( client->logined ) {
 				reqRoot["params"].append(client->extParam);
@@ -1454,24 +1471,24 @@ void MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 		}
 		mWebRTCMap.Unlock();
 
-		string res = writer.write(reqRoot);
+		string req = writer.write(reqRoot);
 
 		HttpEntiy httpEntiy;
-		httpEntiy.SetRawData(res.c_str());
+		httpEntiy.SetRawData(req.c_str());
 
 		string url = mExtSyncStatusPath;
 		if ( httpClient->Request(url.c_str(), &httpEntiy) ) {
 			httpCode = httpClient->GetRespondCode();
-			httpClient->GetBody(&respond, respondSize);
+			httpClient->GetBody(&res, respondSize);
 
 			if( respondSize > 0 ) {
 				// 发送成功
 				Json::Value resRoot;
 				Json::Reader reader;
-				if( reader.parse(respond, resRoot, false) ) {
+				if( reader.parse(res, resRoot, false) ) {
 					if( resRoot.isObject() ) {
-						if( resRoot["result"].isInt() ) {
-							int errNo = resRoot["result"].asInt();
+						if( resRoot["ret"].isInt() ) {
+							int errNo = resRoot["ret"].asInt();
 							if ( errNo == 1 ) {
 								bFlag = true;
 								mbForceExtSync = false;
@@ -1487,15 +1504,17 @@ void MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 				"MediaServer::HandleExtForceSync( "
 				"event : [外部同步在线状态-%s], "
 				"url : %s, "
-				"respondSize : %d, "
-				"respond : %s "
+				"req : %s, "
+				"res : %s "
 				")",
 				FLAG_2_STRING(bFlag),
 				url.c_str(),
-				respondSize,
-				respond
+				req.c_str(),
+				res
 				);
 	}
+
+	return bFlag;
 }
 
 void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
@@ -1552,7 +1571,7 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 		LogAync(
 				LOG_WARNING,
 				"MediaServer::HandleExtLogin( "
-				"event : [外部登录校验, 客户端连接已经断开], "
+				"event : [外部登录, 客户端连接已经断开], "
 				"uuid : %s "
 				")",
 				item->uuid.c_str()
@@ -1607,24 +1626,26 @@ bool MediaServer::SendExtSetStatusRequest(
 				}
 			}
 		}
+	}
 
-		if ( httpCode != 200 ) {
-			mbForceExtSync = true;
-		}
+	if ( httpCode != 200 ) {
+		mbForceExtSync = true;
 	}
 
 	LogAync(
 			LOG_WARNING,
 			"MediaServer::SendExtSetStatusRequest( "
-			"event : [外部%s校验-%s], "
+			"event : [外部%s-%s], "
 			"url : %s, "
 			"req : %s, "
+			"httpCode : %d, "
 			"res : %s "
 			")",
 			isLogin?"登录":"注销",
 			FLAG_2_STRING(bFlag),
 			url.c_str(),
 			req.c_str(),
+			httpCode,
 			res
 			);
 
