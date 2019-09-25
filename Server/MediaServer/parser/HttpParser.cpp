@@ -13,6 +13,7 @@
 #include <common/StringHandle.h>
 #include <common/LogManager.h>
 
+namespace mediaserver {
 #define HTTP_URL_MAX_FIRST_LINE 2048
 #define HTTP_URL_MAX_PATH 4096
 
@@ -51,115 +52,132 @@ void HttpParser::SetCallback(HttpParserCallback* callback) {
 }
 
 int HttpParser::ParseData(char* buffer, int len) {
-	int ret = -1;
+	int ret = 0;
+	int last = len;
+	bool bContinue = true;
 
 	Lock();
-	switch( mState ) {
-	case HttpState_UnKnow : {
-		int lineNumber = 0;
-		bool bFlag = false;
+	while( bContinue ) {
+		switch( mState ) {
+		case HttpState_UnKnow : {
+			int lineNumber = 0;
+			bool bFlag = false;
 
-		char line[HTTP_URL_MAX_PATH];
-		int lineLen = 0;
+			char line[HTTP_URL_MAX_PATH];
+			int lineLen = 0;
 
-		const char* header = buffer;
-		const char* sepHeader = strstr(buffer, HTTP_HEADER_SEP);
-		const char* sep = NULL;
-		if( sepHeader ) {
-			// 接收头部完成
-			mState = HttpState_Header;
+			const char* header = buffer;
+			const char* sepHeader = strstr(buffer, HTTP_HEADER_SEP);
+			const char* sep = NULL;
+			if( sepHeader ) {
+				// 接收头部完成
+				mState = HttpState_Header;
 
-			// Parse HTTP header separator
-			ret = sepHeader - buffer + strlen(HTTP_HEADER_SEP);
+				// Parse HTTP header separator
+				ret += sepHeader - buffer + strlen(HTTP_HEADER_SEP);
 
-			// Parse HTTP header line separator
-			while( true ) {
-				if( (sep = strstr(header, HTTP_LINE_SEP)) && (sep != (sepHeader + 2)) ) {
-					lineLen = sep - header;
-					if( lineLen < (int)(sizeof(line) - 1) ) {
-						memcpy(line, header, lineLen);
-						line[lineLen] = '\0';
+				// Parse HTTP header line separator
+				while( true ) {
+					if( (sep = strstr(header, HTTP_LINE_SEP)) && (sep != (sepHeader + 2)) ) {
+						lineLen = sep - header;
+						if( lineLen < (int)(sizeof(line) - 1) ) {
+							memcpy(line, header, lineLen);
+							line[lineLen] = '\0';
 
-						if( lineNumber == 0 ) {
-							// 暂时只获取第一行
-							bFlag = ParseFirstLine(line);
-						} else {
-							ParseHeader(line);
+							if( lineNumber == 0 ) {
+								// 暂时只获取第一行
+								bFlag = ParseFirstLine(line);
+							} else {
+								ParseHeader(line);
+							}
 						}
+
+						// 换行
+						header += lineLen + strlen(HTTP_LINE_SEP);
+						lineNumber++;
+
+					} else {
+						break;
 					}
-
-					// 换行
-					header += lineLen + strlen(HTTP_LINE_SEP);
-					lineNumber++;
-
-				} else {
-					break;
 				}
 			}
-		}
 
-		if( mpCallback ) {
 			if( mState == HttpState_Header) {
 				// 解析头部完成
+				last = len - ret;
 				if( bFlag ) {
 					// 解析第一行完成
-					mpCallback->OnHttpParserHeader(this);
+					if( mpCallback ) {
+						mpCallback->OnHttpParserHeader(this);
+					}
 				} else {
 					// 解析第一行错误
-					mpCallback->OnHttpParserError(this);
+					if( mpCallback ) {
+						mpCallback->OnHttpParserError(this);
+					}
 				}
 			} else if( len > HTTP_URL_MAX_PATH ) {
 				// 头部超过限制 HTTP_URL_MAX_PATH
-				mpCallback->OnHttpParserError(this);
-			}
-		}
-	}break;
-	case HttpState_Header:{
-		// 接收头部完成, 继续接收body
-		if( miContentLength > 0 ) {
-			if( !mpBody ) {
-				mpBody = new char[miContentLength + 1];
-				memset(mpBody, '\0', miContentLength + 1);
-			}
-
-			int readLength = MIN(len, miContentLength - miCurContentIndex);
-			if( readLength > 0 ) {
-				memcpy(mpBody + miCurContentIndex, buffer, readLength);
-				miCurContentIndex += readLength;
-				ret = readLength;
-
-				if( miCurContentIndex >= miContentLength ) {
-					// 接收Body完成
-					mState = HttpState_Body;
-
-					if( mpCallback ) {
-						mpCallback->OnHttpParserBody(this);
-					}
-				}
-			} else {
 				if( mpCallback ) {
 					mpCallback->OnHttpParserError(this);
 				}
+			} else {
+				// 数据不够, 继续收数据
+				bContinue = false;
 			}
+		}break;
+		case HttpState_Header:{
+			bContinue = false;
+			// 接收头部完成, 继续接收body
+			if( miContentLength > 0 ) {
+				if( !mpBody ) {
+					mpBody = new char[miContentLength + 1];
+					memset(mpBody, '\0', miContentLength + 1);
+				}
 
-		} else {
+				int readLength = MIN(last, miContentLength - miCurContentIndex);
+				if( readLength > 0 ) {
+					memcpy(mpBody + miCurContentIndex, buffer + ret, readLength);
+					miCurContentIndex += readLength;
+					ret += readLength;
+					last -= readLength;
+
+					if( miCurContentIndex >= miContentLength ) {
+						// 接收Body完成
+						mState = HttpState_Body;
+
+						if( mpCallback ) {
+							mpCallback->OnHttpParserBody(this);
+						}
+					}
+				} else {
+					if( mpCallback ) {
+						mpCallback->OnHttpParserError(this);
+					}
+				}
+
+			} else {
+				// 没有Content-Length的请求不解析
+				if( mpCallback ) {
+					mpCallback->OnHttpParserError(this);
+				}
+
+				ret += last;
+			}
+		}break;
+		case HttpState_Body:{
+			bContinue = false;
+			// 接收body完成还有数据, 出错
 			if( mpCallback ) {
-				mpCallback->OnHttpParserBody(this);
+				mpCallback->OnHttpParserError(this);
 			}
-
-			ret = len;
+		}break;
+		default:{
+			bContinue = false;
+			break;
 		}
-	}break;
-	case HttpState_Body:{
-		// 暂时不处理
-		// 接收body完成还有数据, 出错
-		if( mpCallback ) {
-			mpCallback->OnHttpParserError(this);
 		}
-	}break;
-	default:break;
 	}
-
 	Unlock();
 
 	return ret;
@@ -327,4 +345,5 @@ void HttpParser::Lock() {
 
 void HttpParser::Unlock() {
 	mClientMutex.unlock();
+}
 }

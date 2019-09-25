@@ -24,13 +24,15 @@
 #include <map>
 using namespace std;
 
+namespace mediaserver {
+
 typedef map<string, string> Parameters;
 
 typedef enum HttpState {
 	HttpState_UnKnow = 0,
 	HttpState_Header,
 	HttpState_Body,
-};
+} HttpState;
 
 typedef enum HttpType {
 	GET,
@@ -82,5 +84,5 @@ private:
 	void Lock();
 	void Unlock();
 };
-
+}
 #endif /* PARSER_HTTPPARSER_H_ */
