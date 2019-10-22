@@ -2,6 +2,9 @@
 # Pakcage mediasever script
 # Author:	Max.Chiu
 
+mkdir -p tmp
+rm -rf package/*
+
 ENVS=(local demo product)
 for ENV in ${ENVS[@]};do
 	echo "############## Start packaging [$ENV] ##############"
@@ -22,9 +25,13 @@ for ENV in ${ENVS[@]};do
 	cp -rf conf/$ENV/var tmp/$ENV/var/
 	
 	mkdir -p package
-	tar zcvf package/$ENV.tar.gz tmp/$ENV/
+	cd tmp
+	tar zcvf ../package/$ENV.tar.gz $ENV
+	cd -
 	
 	echo "############## Finish packaging [$ENV] ##############"
 	echo "# Package file: package/$ENV.tar.gz"
 	echo ""
 done
+
+rm -rf tmp
