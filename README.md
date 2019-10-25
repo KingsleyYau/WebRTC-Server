@@ -30,4 +30,4 @@ https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/i
 [curl](https://curl.haxx.se/)</br>
 [nice](https://github.com/libnice/libnice)</br>
 [srtp](https://github.com/cisco/libsrtp)</br>
-[websocket](https://github.com/zaphoyd/websocketpp)</br>
+[websocket](https://github.com/zaphoyd/websocketpp)用于信令交互</br>
