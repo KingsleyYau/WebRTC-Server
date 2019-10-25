@@ -94,12 +94,15 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
         char logBuffer[MAX_LOG_BUFFER_LEN];
 		char bitBuffer[64];
 
+	    struct timeval tv;
+	    gettimeofday(&tv, NULL);
+
 	    //get current time
 	    time_t stm = time(NULL);
         struct tm tTime;
         localtime_r(&stm,&tTime);
-        snprintf(bitBuffer, 64, "[ %d-%02d-%02d %02d:%02d:%02d tid:%-6d ] %s:%d ",
-        		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec,
+        snprintf(bitBuffer, 64, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] %s:%d ",
+        		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
 				(int)syscall(SYS_gettid),
 				file,
 				line

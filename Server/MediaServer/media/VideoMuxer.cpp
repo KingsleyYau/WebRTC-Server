@@ -175,7 +175,7 @@ const char* Nalu::FindSlice(const char* start, int size, int& sliceSize) {
     const char* slice = NULL;
     
     for(int i = 0; i < size; i++) {
-        if( i + sizeof(sliceStartCode) < size &&
+        if( i + (int)sizeof(sliceStartCode) < size &&
            memcmp(start + i, sliceStartCode, sizeof(sliceStartCode)) == 0 ) {
             sliceSize = sizeof(sliceStartCode);
             slice = start + i;

@@ -6,7 +6,7 @@
  */
 
 #include "DataParser.h"
-
+namespace mediaserver {
 DataParser::DataParser() {
 	// TODO Auto-generated constructor stub
 	mParser = NULL;
@@ -26,4 +26,5 @@ int DataParser::ParseData(char* buffer, int len) {
 		return mParser->ParseData(buffer, len);
 	}
 	return len;
+}
 }

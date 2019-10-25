@@ -18,6 +18,7 @@ typedef enum RequestErrorType {
 	RequestErrorType_WebRTC_Start_Fail,
 	RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow,
 	RequestErrorType_WebRTC_Update_Candidate_Before_Call,
+	RequestErrorType_Ext_Login_Error,
 } RequestErrorType;
 
 typedef struct ErrObject {
@@ -39,12 +40,13 @@ typedef struct ErrObject {
 const ErrObject RequestErrObjects[] = {
 		ErrObject(RequestErrorType_None, RequestErrorType_None, ""),
 		ErrObject(RequestErrorType_Unknow_Error, RequestErrorType_Unknow_Error, "Unknow Error."),
-		ErrObject(RequestErrorType_Request_Data_Format_Parse, RequestErrorType_Unknow_Error, "Request Data Format Parse Error."),
-		ErrObject(RequestErrorType_Request_Unknow_Command, RequestErrorType_None, "Request Missing Param Error."),
-		ErrObject(RequestErrorType_Request_Missing_Param, RequestErrorType_Unknow_Error, "Request Missing Param Error."),
-		ErrObject(RequestErrorType_WebRTC_Start_Fail, RequestErrorType_Unknow_Error, "WebRTC Start Fail Error."),
-		ErrObject(RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow, RequestErrorType_None, "WebRTC No More Connection Allow Error."),
-		ErrObject(RequestErrorType_WebRTC_Update_Candidate_Before_Call, RequestErrorType_Unknow_Error, "WebRTC Update Candidate Before Call Error."),
+		ErrObject(RequestErrorType_Request_Data_Format_Parse, RequestErrorType_Request_Data_Format_Parse, "Request Data Format Parse Error."),
+		ErrObject(RequestErrorType_Request_Unknow_Command, RequestErrorType_Request_Unknow_Command, "Request Missing Param Error."),
+		ErrObject(RequestErrorType_Request_Missing_Param, RequestErrorType_Request_Missing_Param, "Request Missing Param Error."),
+		ErrObject(RequestErrorType_WebRTC_Start_Fail, RequestErrorType_WebRTC_Start_Fail, "WebRTC Start Fail Error."),
+		ErrObject(RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow, RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow, "WebRTC No More Connection Allow Error."),
+		ErrObject(RequestErrorType_WebRTC_Update_Candidate_Before_Call, RequestErrorType_WebRTC_Update_Candidate_Before_Call, "WebRTC Update Candidate Before Call Error."),
+		ErrObject(RequestErrorType_Ext_Login_Error, RequestErrorType_Ext_Login_Error, "External Login Error."),
 };
 
 #endif /* INCLUDE_ERRCODE_H_ */

@@ -10,7 +10,7 @@
 
 #include "IDataParser.h"
 #include <string.h>
-
+namespace mediaserver {
 class DataParser : public IDataParser {
 public:
 	DataParser();
@@ -26,5 +26,5 @@ private:
 	IDataParser *mParser;
 
 };
-
+}
 #endif /* PARSER_DATAPARSER_H_ */

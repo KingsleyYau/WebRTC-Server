@@ -30,7 +30,7 @@ class WSServerCallback {
 public:
 	virtual ~WSServerCallback(){};
 	virtual void OnWSOpen(WSServer *server, connection_hdl, const string& addr, const string& userAgent) = 0;
-	virtual void OnWSClose(WSServer *server, connection_hdl hdl, const string& addr) = 0;
+	virtual void OnWSClose(WSServer *server, connection_hdl hdl) = 0;
 	virtual void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str) = 0;
 };
 

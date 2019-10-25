@@ -354,8 +354,6 @@ void WSServer::OnOpen(connection_hdl hdl) {
 }
 
 void WSServer::OnClose(connection_hdl hdl) {
-	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
-
 	LogAync(
 			LOG_STAT,
 			"WSServer::OnClose( "
@@ -365,7 +363,7 @@ void WSServer::OnClose(connection_hdl hdl) {
 			);
 
 	if ( mpWSServerCallback ) {
-		mpWSServerCallback->OnWSClose(this, hdl, conn->get_remote_endpoint());
+		mpWSServerCallback->OnWSClose(this, hdl);
 	}
 }
 

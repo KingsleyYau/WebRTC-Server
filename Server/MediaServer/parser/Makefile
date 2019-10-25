@@ -8,17 +8,17 @@
 
 export MAKE	:=	make
 
-release=0
-ifeq ($(release), 1)
-CXXFLAGS = -O3 
+ifeq ($(RELEASE), 1)
+CXXFLAGS = -O2
 else
 CXXFLAGS = -O2 -g
 endif
 
+CXXFLAGS += -std=c++11
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS +=	-I. -I.. -I../include
+CXXFLAGS +=	-I. -I.. -I../include -I../third_party/json
 
-OBJS 		=	DataParser.o HttpParser.o 
+OBJS 		=	DataParser.o HttpParser.o JsonParser.o
 		
 TARGET =	libparser.a
 

@@ -8,8 +8,7 @@
 
 export MAKE	:=	make
 
-release=0
-ifeq ($(release), 1)
+ifeq ($(RELEASE), 1)
 CXXFLAGS = -O3 
 else
 CXXFLAGS = -O2 -g #-D_CHECK_MEMORY_LEAK
