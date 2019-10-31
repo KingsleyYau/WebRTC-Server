@@ -29,7 +29,7 @@ namespace Json {
    class JSON_API FastWriter : public Writer
    {
    public:
-      FastWriter();
+      FastWriter( bool encodeToUnicodeString = false );
       virtual ~FastWriter(){}
 
       void enableYAMLCompatibility();
@@ -42,6 +42,11 @@ namespace Json {
 
       std::string document_;
       bool yamlCompatiblityEnabled_;
+      /**
+       * Add by Max 2019/10/31
+       * For output UNICODE String, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
+       */
+      bool encodeToUnicodeString_;
    };
 
    /** \brief Writes a Value in <a HREF="http://www.json.org">JSON</a> format in a human friendly way.
@@ -161,7 +166,7 @@ namespace Json {
    std::string JSON_API valueToString( UInt value );
    std::string JSON_API valueToString( double value );
    std::string JSON_API valueToString( bool value );
-   std::string JSON_API valueToQuotedString( const char *value );
+   std::string JSON_API valueToQuotedString( const char *value, bool encodeToUnicodeString = false );
 
    /// \brief Output using the StyledStreamWriter.
    /// \see Json::operator>>()

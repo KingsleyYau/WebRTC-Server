@@ -1,4 +1,4 @@
-# Copyright (C) 2015 The CamShareMiddleware
+# Copyright (C) 2015 The Mediaserver
 # webrtc-tester Makefile
 #
 # Created on: 2015/10/10
@@ -8,8 +8,7 @@
 
 export MAKE	:=	make
 
-release=0
-ifeq ($(release), 1)
+ifeq ($(RELEASE), 1)
 CXXFLAGS = -O3 
 else
 CXXFLAGS = -O2 -g
@@ -22,6 +21,7 @@ CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
 			-I../third_party/libsdp/include \
 			-I../third_party/libnice/nice -I../third_party/libnice/agent \
 			-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/ \
+			-I/usr/include/mysql \
 			-I$(OPENSSL_INCLUDE)
 
 CFLAGS += -DDISABLE_MD5=1
@@ -52,8 +52,18 @@ OBJS += DtlsSession.o RtpSession.o RtpRawClient.o MainLoop.o
 OBJS +=	WebRTCTester.o webrtc-tester.o mongoose.o
 TARGET = webrtc-tester
 
-.PHONY: clean $(TARGET)
+TARGET_JSON_LIBS = -L. \
+			-Wl,-Bstatic -L../common -lcommon \
+			-Wl,-Bstatic -L../database -ldatabase \
+			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bdynamic -L/usr/lib64/mysql -lmysqlclient \
+			-Wl,-Bdynamic -ldl -pthread 
+			
+TARGET_JSON_OBJS = json-tester.o
+TARGET_JSON = json-tester
 
+.PHONY: clean $(TARGET) ${TARGET_JSON}
+	
 $(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
 	@echo '################################################################'
@@ -61,8 +71,16 @@ $(TARGET): $(OBJS)
 	@echo '# Bulid webrtc-tester completed!'
 	@echo ''
 	@echo '################################################################'
-		
-all: $(TARGET)
+
+$(TARGET_JSON): $(TARGET_JSON_OBJS)
+	$(CXX) -o $(TARGET_JSON) $(TARGET_JSON_OBJS) $(TARGET_JSON_LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid json-tester completed!'
+	@echo ''
+	@echo '################################################################'
+				
+all: $(TARGET) $(TARGET_JSON)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) $(TARGET_JSON)

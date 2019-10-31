@@ -12,6 +12,48 @@
 #endif
 
 namespace Json {
+/**
+ * Modify by Max 2019/10/31
+ * For output UNICODE text string, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
+ */
+static bool containsMultiByte( const char* str ) {
+	while ( *str ) {
+		if ( ( *(str++) ) & 0x80 ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Modify by Max 2019/10/31
+ * For output UNICODE text string, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
+ */
+static int UTF8TocodePoint(const char *c, unsigned int *result) {
+	int count = 0;
+
+	if (((*c) & 0x80) == 0) {
+		*result = static_cast<unsigned int>(*c);
+		count = 1;
+	} else if (((*c) & 0xe0) == 0xc0) {
+		*result = static_cast<unsigned int>((((*c) & 0x1f) << 6) | ((*(c + 1)) & 0x3f));
+		count = 2;
+	} else if (((*c) & 0xf0) == 0xe0) {
+		*result = static_cast<unsigned int>((((*c) & 0xf) << 12) | (((*(c + 1)) & 0x3f) << 6) | (((*(c + 2)) & 0x3f)));
+		count = 3;
+	} else if (((*c) & 0xf8) == 0xf0) {
+		*result = static_cast<unsigned int>((((*c) & 0x7) << 18) | (((*(c + 1)) & 0x3f) << 12) | (((*(c + 2)) & 0x3f) << 6) | (((*(c + 3)) & 0x3f)));
+		count = 4;
+	} else if (((*c) & 0xfc) == 0xf8) {
+		*result = static_cast<unsigned int>((((*c) & 0x3) << 24) | (((*(c + 1)) & 0x3f) << 18) | (((*(c + 2)) & 0x3f) << 12) | (((*(c + 3)) & 0x3f) << 6) | (((*(c + 4)) & 0x3f)));
+		count = 5;
+	} else if (((*c) & 0xfe) == 0xfc) {
+		*result = static_cast<unsigned int>((((*c) & 0x1) << 30) | (((*(c + 1)) & 0x3f) << 24) | (((*(c + 2)) & 0x3f) << 18) | (((*(c + 3)) & 0x3f) << 12) | (((*(c + 4)) & 0x3f) << 6) | (((*(c + 5)) & 0x3f)));
+		count = 6;
+	}
+
+	return count;
+}
 
 static bool isControlCharacter(char ch)
 {
@@ -108,11 +150,21 @@ std::string valueToString( bool value )
    return value ? "true" : "false";
 }
 
-std::string valueToQuotedString( const char *value )
+std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
 {
-   // Not sure how to handle unicode...
-   if (strpbrk(value, "\"\\\b\f\n\r\t") == NULL && !containsControlCharacter( value ))
-      return std::string("\"") + value + "\"";
+	/**
+	 * Modify by Max 2019/10/31
+	 * For output UNICODE text string, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
+	 */
+	if ( !encodeToUnicodeString ) {
+		// Not sure how to handle unicode...
+		if (strpbrk(value, "\"\\\b\f\n\r\t") == NULL && !containsControlCharacter( value ))
+			return std::string("\"") + value + "\"";
+	} else {
+	   if (strpbrk(value, "\"\\\b\f\n\r\t") == NULL && !containsControlCharacter( value ) && !containsMultiByte( value ))
+		  return std::string("\"") + value + "\"";
+	}
+
    // We have to walk value and escape any special characters.
    // Appending to std::string is not efficient, but this should be rare.
    // (Note: forward slashes are *not* rare, but I am not escaping them.)
@@ -162,8 +214,27 @@ std::string valueToQuotedString( const char *value )
             }
             else
             {
-               result += *c;
+            	/**
+            	 * Modify by Max 2019/10/31
+            	 * For output UNICODE text string, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
+            	 */
+            	if ( !encodeToUnicodeString ) {
+            		result += *c;
+            	} else {
+            		if ((*c) & 0x80) {
+                    	unsigned int num = 0;
+                    	c += UTF8TocodePoint(c, &num) - 1;
+                    	std::ostringstream oss;
+                    	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
+                    	result += oss.str();
+            		} else {
+            			result += *c;
+            		}
+            	}
             }
+//            else {
+//            	result += *c;
+//            }
             break;
       }
    }
@@ -181,9 +252,10 @@ Writer::~Writer()
 // Class FastWriter
 // //////////////////////////////////////////////////////////////////
 
-FastWriter::FastWriter()
+FastWriter::FastWriter( bool encodeToUnicodeString )
    : yamlCompatiblityEnabled_( false )
 {
+	encodeToUnicodeString_ = encodeToUnicodeString;
 }
 
 
@@ -222,7 +294,7 @@ FastWriter::writeValue( const Value &value )
       document_ += valueToString( value.asDouble() );
       break;
    case stringValue:
-      document_ += valueToQuotedString( value.asCString() );
+      document_ += valueToQuotedString( value.asCString(), encodeToUnicodeString_ );
       break;
    case booleanValue:
       document_ += valueToString( value.asBool() );
