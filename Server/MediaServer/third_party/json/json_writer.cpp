@@ -224,8 +224,19 @@ std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
             		if ((*c) & 0x80) {
                     	unsigned int num = 0;
                     	c += UTF8TocodePoint(c, &num) - 1;
+
                     	std::ostringstream oss;
-                    	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
+                    	if ( num >= 0x1F300 && num <= 0x1F3FF ) {
+                    		oss << "\\uD83C";
+                    		int tmp = num - 0x1F300 + 0xDF00;
+                    		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
+                    	} else if ( num >= 0x1F400 && num <= 0x1F7FF ) {
+                    		oss << "\\uD83D";
+                    		int tmp = num - 0x1F400 + 0xDC00;
+                    		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
+                    	} else {
+                        	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
+                    	}
                     	result += oss.str();
             		} else {
             			result += *c;
