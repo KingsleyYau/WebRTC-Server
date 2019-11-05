@@ -140,6 +140,7 @@ bool WebRTC::Start(
 
 	// Reset Param
 	mNeedTranscodeVideo = true;
+	mWebRTCMediaType = WebRTCMediaType_None;
 
 	// Start Modules
 	bFlag &= ParseRemoteSdp(sdp);
@@ -280,6 +281,8 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 					if( group.size() > 2 ) {
 						mAudioMid = group[1];
 						mVideoMid = group[2];
+					} else if ( group.size() == 2 ) {
+						mAudioMid = mVideoMid = group[1];
 					}
 				}
 
@@ -310,6 +313,16 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						sdp_media_type_str(media->type),
 						media->attr_count
 						);
+
+				if ( session->media_count == 2 ) {
+					mWebRTCMediaType = WebRTCMediaType_BothVideoAudio;
+				} else {
+					if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
+						mWebRTCMediaType = WebRTCMediaType_OnlyAudio;
+					} else {
+						mWebRTCMediaType = WebRTCMediaType_OnlyVideo;
+					}
+				}
 
 				for(int i = 0; i < (int)media->payload_type_array_count; i++) {
 					sdp_payload payload = media->payload_type_array[i];
@@ -579,39 +592,135 @@ string WebRTC::CreateLocalSdp() {
 	/**
 	 * 这里必须把视频放前面, 否则FFMPEG会解析不了视频
 	 */
-	char sdp[4096] = {'0'};
-	snprintf(sdp, sizeof(sdp) - 1,
+	char header[1024] = {'0'};
+	snprintf(header, sizeof(header) - 1,
 			"SDP:"
 			"v=0\n"
 			"o=- 0 0 IN IP4 127.0.0.1\n"
 			"s=No Name\n"
 			"t=0 0\n"
-			"m=video %u RTP/AVP %u\n"
-			"c=IN IP4 %s\n"
-			"a=rtpmap:%u %s/%u\n"
-			"a=fmtp:%u %s\n"
-			"m=audio %u RTP/AVP %u\n"
-			"c=IN IP4 %s\n"
-			"a=rtpmap:%u %s/%u%s\n"
-			"a=fmtp:%u %s\n",
-			mRtpDstVideoPort,
-			mVideoSdpPayload.payload_type,
-			mRtpDstVideoIp.c_str(),
-			mVideoSdpPayload.payload_type,
-			mVideoSdpPayload.encoding_name.c_str(),
-			mVideoSdpPayload.clock_rate,
-			mVideoSdpPayload.payload_type,
-			mVideoSdpPayload.fmtp.c_str(),
-			mRtpDstAudioPort,
-			mAudioSdpPayload.payload_type,
-			mRtpDstAudioIp.c_str(),
-			mAudioSdpPayload.payload_type,
-			mAudioSdpPayload.encoding_name.c_str(),
-			mAudioSdpPayload.clock_rate,
-			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
-			mAudioSdpPayload.payload_type,
-			mAudioSdpPayload.fmtp.c_str()
-			);
+	);
+
+	char video[2048] = {'0'};
+	char audio[2048] = {'0'};
+
+	char sdp[4096] = {'0'};
+	switch (mWebRTCMediaType) {
+		case WebRTCMediaType_BothVideoAudio:{
+			snprintf(video, sizeof(video) - 1,
+					"m=video %u RTP/AVP %u\n"
+					"c=IN IP4 %s\n"
+					"a=rtpmap:%u %s/%u\n"
+					"a=fmtp:%u %s\n",
+					mRtpDstVideoPort,
+					mVideoSdpPayload.payload_type,
+					mRtpDstVideoIp.c_str(),
+					mVideoSdpPayload.payload_type,
+					mVideoSdpPayload.encoding_name.c_str(),
+					mVideoSdpPayload.clock_rate,
+					mVideoSdpPayload.payload_type,
+					mVideoSdpPayload.fmtp.c_str()
+					);
+			snprintf(audio, sizeof(audio) - 1,
+					"m=audio %u RTP/AVP %u\n"
+					"c=IN IP4 %s\n"
+					"a=rtpmap:%u %s/%u%s\n"
+					"a=fmtp:%u %s\n",
+					mRtpDstAudioPort,
+					mAudioSdpPayload.payload_type,
+					mRtpDstAudioIp.c_str(),
+					mAudioSdpPayload.payload_type,
+					mAudioSdpPayload.encoding_name.c_str(),
+					mAudioSdpPayload.clock_rate,
+					(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+					mAudioSdpPayload.payload_type,
+					mAudioSdpPayload.fmtp.c_str()
+					);
+			snprintf(sdp, sizeof(sdp) - 1,
+					"%s%s%s",
+					header,
+					video,
+					audio
+					);
+		}break;
+		case WebRTCMediaType_OnlyVideo:{
+			snprintf(video, sizeof(video) - 1,
+					"m=video %u RTP/AVP %u\n"
+					"c=IN IP4 %s\n"
+					"a=rtpmap:%u %s/%u\n"
+					"a=fmtp:%u %s\n",
+					mRtpDstVideoPort,
+					mVideoSdpPayload.payload_type,
+					mRtpDstVideoIp.c_str(),
+					mVideoSdpPayload.payload_type,
+					mVideoSdpPayload.encoding_name.c_str(),
+					mVideoSdpPayload.clock_rate,
+					mVideoSdpPayload.payload_type,
+					mVideoSdpPayload.fmtp.c_str()
+					);
+			snprintf(sdp, sizeof(sdp) - 1,
+					"%s%s",
+					header,
+					video
+					);
+		}break;
+		case WebRTCMediaType_OnlyAudio:{
+			snprintf(audio, sizeof(audio) - 1,
+					"m=audio %u RTP/AVP %u\n"
+					"c=IN IP4 %s\n"
+					"a=rtpmap:%u %s/%u%s\n"
+					"a=fmtp:%u %s\n",
+					mRtpDstAudioPort,
+					mAudioSdpPayload.payload_type,
+					mRtpDstAudioIp.c_str(),
+					mAudioSdpPayload.payload_type,
+					mAudioSdpPayload.encoding_name.c_str(),
+					mAudioSdpPayload.clock_rate,
+					(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+					mAudioSdpPayload.payload_type,
+					mAudioSdpPayload.fmtp.c_str()
+					);
+			snprintf(sdp, sizeof(sdp) - 1,
+					"%s%s",
+					header,
+					audio
+					);
+		}break;
+		default:break;
+	};
+
+//	snprintf(sdp, sizeof(sdp) - 1,
+//			"SDP:"
+//			"v=0\n"
+//			"o=- 0 0 IN IP4 127.0.0.1\n"
+//			"s=No Name\n"
+//			"t=0 0\n"
+//			"m=video %u RTP/AVP %u\n"
+//			"c=IN IP4 %s\n"
+//			"a=rtpmap:%u %s/%u\n"
+//			"a=fmtp:%u %s\n"
+//			"m=audio %u RTP/AVP %u\n"
+//			"c=IN IP4 %s\n"
+//			"a=rtpmap:%u %s/%u%s\n"
+//			"a=fmtp:%u %s\n",
+//			mRtpDstVideoPort,
+//			mVideoSdpPayload.payload_type,
+//			mRtpDstVideoIp.c_str(),
+//			mVideoSdpPayload.payload_type,
+//			mVideoSdpPayload.encoding_name.c_str(),
+//			mVideoSdpPayload.clock_rate,
+//			mVideoSdpPayload.payload_type,
+//			mVideoSdpPayload.fmtp.c_str(),
+//			mRtpDstAudioPort,
+//			mAudioSdpPayload.payload_type,
+//			mRtpDstAudioIp.c_str(),
+//			mAudioSdpPayload.payload_type,
+//			mAudioSdpPayload.encoding_name.c_str(),
+//			mAudioSdpPayload.clock_rate,
+//			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+//			mAudioSdpPayload.payload_type,
+//			mAudioSdpPayload.fmtp.c_str()
+//			);
 
 	LogAync(
 			LOG_MSG,
@@ -749,34 +858,8 @@ void WebRTC::StopRtpTransform() {
 			);
 }
 
-int WebRTC::SendData(const void *data, unsigned int len) {
-	// Send RTP data through ICE data channel
-	return mIceClient.SendData(data, len);
-}
-
-void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
-	string candidate;
-	for(int i = 0; i < (int)candList.size(); i++) {
-		candidate += candList[i];
-	}
-
-	LogAync(
-			LOG_WARNING,
-			"WebRTC::OnIceCandidateGatheringDone( "
-			"this : %p, "
-			"ice : %p, "
-			"ip : %s, "
-			"port : %u, "
-			"rtmpUrl : %s, "
-			"candidate :\n%s"
-			")",
-			this,
-			ice,
-			ip.c_str(),
-			port,
-			mRtmpUrl.c_str(),
-			candidate.c_str()
-			);
+string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+	string result;
 
 	string audioRtcpFb = "";
 	while( !mAudioRtcpFbList.empty() ) {
@@ -869,17 +952,233 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 			videoRtcpFb.c_str()
 			);
 
-	string sdpStr = sdp;
+	result = sdp;
 	char fmtp[256] = {'0'};
 	snprintf(fmtp, sizeof(fmtp) - 1,
 			"a=fmtp:%u %s\n",
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.fmtp.c_str()
 			);
-	sdpStr += fmtp;
+	result += fmtp;
+
+	return result;
+}
+
+string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+	string result;
+
+	string videoRtcpFb = "";
+	while( !mVideoRtcpFbList.empty() ) {
+		string rtcpFb = mVideoRtcpFbList.front();
+		mVideoRtcpFbList.pop_front();
+
+		if( rtcpFb.length() > 0 ) {
+			videoRtcpFb += "a=";
+			videoRtcpFb += rtcpFb;
+			videoRtcpFb += "\n";
+		}
+	}
+
+	char sdp[4096] = {'0'};
+	snprintf(sdp, sizeof(sdp) - 1,
+			"v=0\n"
+			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+			"s=MediaServer\n"
+			"t=0 0\n"
+			"a=group:BUNDLE %s\n"
+			"a=msid-semantic: WMS\n"
+			"m=video %u UDP/TLS/RTP/SAVPF %u\n"
+			"c=IN IP4 %s\n"
+			"a=rtcp:9 IN IP4 0.0.0.0\n"
+			"%s"
+			"a=ice-ufrag:%s\n"
+			"a=ice-pwd:%s\n"
+			"a=ice-options:trickle\n"
+			"a=fingerprint:sha-256 %s\n"
+			"a=setup:active\n"
+			"a=mid:%s\n"
+			"a=recvonly\n"
+			"a=rtcp-mux\n"
+			"a=rtcp-rsize\n"
+			"a=rtpmap:%u %s/%u\n"
+			"%s",
+			mVideoMid.c_str(),
+			port,
+			mVideoSdpPayload.payload_type,
+			ip.c_str(),
+			candidate.c_str(),
+			ufrag.c_str(),
+			pwd.c_str(),
+			DtlsSession::GetFingerprint(),
+			mVideoMid.c_str(),
+			mVideoSdpPayload.payload_type,
+			mVideoSdpPayload.encoding_name.c_str(),
+			mVideoSdpPayload.clock_rate,
+			videoRtcpFb.c_str()
+			);
+
+	result = sdp;
+	char fmtp[256] = {'0'};
+	snprintf(fmtp, sizeof(fmtp) - 1,
+			"a=fmtp:%u %s\n",
+			mVideoSdpPayload.payload_type,
+			mVideoSdpPayload.fmtp.c_str()
+			);
+	result += fmtp;
+
+	return result;
+}
+
+string WebRTC::CreateAudioOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+	string result;
+	return result;
+}
+
+int WebRTC::SendData(const void *data, unsigned int len) {
+	// Send RTP data through ICE data channel
+	return mIceClient.SendData(data, len);
+}
+
+void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
+	string candidate;
+	for(int i = 0; i < (int)candList.size(); i++) {
+		candidate += candList[i];
+	}
+
+	LogAync(
+			LOG_WARNING,
+			"WebRTC::OnIceCandidateGatheringDone( "
+			"this : %p, "
+			"ice : %p, "
+			"ip : %s, "
+			"port : %u, "
+			"rtmpUrl : %s, "
+			"candidate :\n%s"
+			")",
+			this,
+			ice,
+			ip.c_str(),
+			port,
+			mRtmpUrl.c_str(),
+			candidate.c_str()
+			);
+
+//	string audioRtcpFb = "";
+//	while( !mAudioRtcpFbList.empty() ) {
+//		string rtcpFb = mAudioRtcpFbList.front();
+//		mAudioRtcpFbList.pop_front();
+//
+//		if( rtcpFb.length() > 0 ) {
+//			audioRtcpFb += "a=";
+//			audioRtcpFb += rtcpFb;
+//			audioRtcpFb += "\n";
+//		}
+//	}
+//
+//	string videoRtcpFb = "";
+//	while( !mVideoRtcpFbList.empty() ) {
+//		string rtcpFb = mVideoRtcpFbList.front();
+//		mVideoRtcpFbList.pop_front();
+//
+//		if( rtcpFb.length() > 0 ) {
+//			videoRtcpFb += "a=";
+//			videoRtcpFb += rtcpFb;
+//			videoRtcpFb += "\n";
+//		}
+//	}
+//
+//	char sdp[4096] = {'0'};
+//	snprintf(sdp, sizeof(sdp) - 1,
+//			"v=0\n"
+//			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+//			"s=MediaServer\n"
+//			"t=0 0\n"
+//			"a=group:BUNDLE %s %s\n"
+//			"a=msid-semantic: WMS\n"
+//			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
+//			"c=IN IP4 %s\n"
+//			"a=rtcp:9 IN IP4 0.0.0.0\n"
+//			"%s"
+//			"a=ice-ufrag:%s\n"
+//			"a=ice-pwd:%s\n"
+//			"a=ice-options:trickle\n"
+//			"a=fingerprint:sha-256 %s\n"
+//			"a=setup:active\n"
+//			"a=mid:%s\n"
+//			"a=recvonly\n"
+//			"a=rtcp-mux\n"
+//			"a=rtpmap:%u %s/%u%s\n"
+////			"a=rtcp-fb:%u transport-cc\n"
+//			"%s"
+//			"a=fmtp:%u minptime=10;useinbandfec=1\n"
+//			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
+//			"c=IN IP4 0.0.0.0\n"
+//			"a=rtcp:9 IN IP4 0.0.0.0\n"
+//			"a=ice-ufrag:%s\n"
+//			"a=ice-pwd:%s\n"
+//			"a=ice-options:trickle\n"
+//			"a=fingerprint:sha-256 %s\n"
+//			"a=setup:active\n"
+//			"a=mid:%s\n"
+////			"b=AS:800\n"
+//			"a=recvonly\n"
+//			"a=rtcp-mux\n"
+//			"a=rtcp-rsize\n"
+//			"a=rtpmap:%u %s/%u\n"
+//			"%s",
+//			mAudioMid.c_str(),
+//			mVideoMid.c_str(),
+//			port,
+//			mAudioSdpPayload.payload_type,
+//			ip.c_str(),
+//			candidate.c_str(),
+//			ufrag.c_str(),
+//			pwd.c_str(),
+//			DtlsSession::GetFingerprint(),
+//			mAudioMid.c_str(),
+//			mAudioSdpPayload.payload_type,
+//			mAudioSdpPayload.encoding_name.c_str(),
+//			mAudioSdpPayload.clock_rate,
+//			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+////			mAudioSdpPayload.payload_type,
+//			audioRtcpFb.c_str(),
+//			mAudioSdpPayload.payload_type,
+//			mVideoSdpPayload.payload_type,
+//			ufrag.c_str(),
+//			pwd.c_str(),
+//			DtlsSession::GetFingerprint(),
+//			mVideoMid.c_str(),
+//			mVideoSdpPayload.payload_type,
+//			mVideoSdpPayload.encoding_name.c_str(),
+//			mVideoSdpPayload.clock_rate,
+//			videoRtcpFb.c_str()
+//			);
+//
+//	string sdpStr = sdp;
+//	char fmtp[256] = {'0'};
+//	snprintf(fmtp, sizeof(fmtp) - 1,
+//			"a=fmtp:%u %s\n",
+//			mVideoSdpPayload.payload_type,
+//			mVideoSdpPayload.fmtp.c_str()
+//			);
+//	sdpStr += fmtp;
+
+	string sdpStr =  "";
+	switch (mWebRTCMediaType) {
+		case WebRTCMediaType_BothVideoAudio:{
+			sdpStr = CreateVideoAudioSdp(candidate, ip, port, candList, ufrag, pwd);
+		}break;
+		case WebRTCMediaType_OnlyVideo:{
+			sdpStr = CreateVideoOnlySdp(candidate, ip, port, candList, ufrag, pwd);
+		}break;
+		case WebRTCMediaType_OnlyAudio:{
+			sdpStr = CreateAudioOnlySdp(candidate, ip, port, candList, ufrag, pwd);
+		}break;
+		default:break;
+	};
 
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCServerSdp(this, sdpStr);
+		mpWebRTCCallback->OnWebRTCServerSdp(this, sdpStr, mWebRTCMediaType);
 	}
 
 }

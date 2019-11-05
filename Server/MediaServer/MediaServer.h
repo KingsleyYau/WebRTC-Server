@@ -62,6 +62,7 @@ struct MediaClient {
 		rtc = NULL;
 		connected = false;
 		addr = "";
+		id = 0;
 		connectTime = 0;
 		callTime = 0;
 		startMediaTime = 0;
@@ -75,6 +76,7 @@ struct MediaClient {
 		rtc = item.rtc;
 		connected = item.connected;
 		addr = item.addr;
+		id = item.id;
 		connectTime = item.connectTime;
 		callTime = item.callTime;
 		startMediaTime = item.startMediaTime;
@@ -101,6 +103,7 @@ struct MediaClient {
 	connection_hdl hdl;
 	bool connected;
 	string addr;
+	int id;
 
 	WebRTC *rtc;
 	long long connectTime;
@@ -189,7 +192,7 @@ public:
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 
 	/***************************** WebRTCCallback **************************************/
-	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp);
+	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type);
 	void OnWebRTCStartMedia(WebRTC *rtc);
 	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
 	void OnWebRTCClose(WebRTC *rtc);

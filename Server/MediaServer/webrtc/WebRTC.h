@@ -50,11 +50,25 @@ const string WebRTCErrorMsg[] = {
 	"WebRTC Unknow Error.",
 };
 
+typedef enum WebRTCMediaType {
+	WebRTCMediaType_BothVideoAudio,
+	WebRTCMediaType_OnlyVideo,
+	WebRTCMediaType_OnlyAudio,
+	WebRTCMediaType_None,
+} WebRTCMediaType;
+
+const string WebRTCMediaTypeString[] = {
+	"VA",
+	"V",
+	"A",
+	"N",
+};
+
 class WebRTC;
 class WebRTCCallback {
 public:
 	virtual ~WebRTCCallback(){};
-	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) = 0;
+	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type) = 0;
 	virtual void OnWebRTCStartMedia(WebRTC *rtc) = 0;
 	virtual void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) = 0;
 	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
@@ -130,6 +144,18 @@ private:
 	 * 停止转发RTP到RTMP
 	 */
 	void StopRtpTransform();
+	/**
+	 * 创建音视频SDP
+	 */
+	string CreateVideoAudioSdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
+	/**
+	 * 创建视频SDP
+	 */
+	string CreateVideoOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
+	/**
+	 * 创建音频SDP
+	 */
+	string CreateAudioOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 
 private:
 	// Status
@@ -171,6 +197,9 @@ private:
 	// 本地SDP文件
 	FILE *mpSdpFile;
 	string mSdpFilePath;
+
+	// 需要传输的媒体流类型
+	WebRTCMediaType mWebRTCMediaType;
 };
 
 } /* namespace mediaserver */

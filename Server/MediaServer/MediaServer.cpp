@@ -870,7 +870,7 @@ bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 	return true;
 }
 
-void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
+void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type) {
 	connection_hdl hdl;
 	bool bFound = false;
 
@@ -886,7 +886,7 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 			Json::Value resData;
 			Json::FastWriter writer;
 
-			resRoot["id"] = 0;
+			resRoot["id"] = client->id++;
 			resRoot["route"] = "imRTC/sendSdpAnswerNotice";
 			resRoot["errno"] = 0;
 			resRoot["errmsg"] = "";
@@ -906,12 +906,14 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 			"event : [WebRTC-返回SDP], "
 			"hdl : %p, "
 			"rtc : %p, "
-			"rtmpUrl : %s "
+			"rtmpUrl : %s, "
+			"type : %s "
 //			"\nsdp:\n%s"
 			")",
 			hdl.lock().get(),
 			rtc,
-			rtc->GetRtmpUrl().c_str()
+			rtc->GetRtmpUrl().c_str(),
+			WebRTCMediaTypeString[type].c_str()
 //			sdp.c_str()
 			);
 }
@@ -932,7 +934,7 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 			Json::Value resRoot;
 			Json::FastWriter writer;
 
-			resRoot["id"] = 0;
+			resRoot["id"] = client->id++;
 			resRoot["route"] = "imRTC/sendStartMediaNotice";
 			resRoot["errno"] = 0;
 			resRoot["errmsg"] = "";
@@ -972,7 +974,7 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			Json::Value resRoot;
 			Json::FastWriter writer;
 
-			resRoot["id"] = 0;
+			resRoot["id"] = client->id++;
 			resRoot["route"] = "imRTC/sendErrorNotice";
 			resRoot["errno"] = 0;
 			resRoot["errmsg"] = errMsg;
