@@ -388,7 +388,8 @@ bool DBConnection::Connect()
     if(m_pSQLConn == NULL) {
         return false;
     }
-    mysql_options(m_pSQLConn, MYSQL_SET_CHARSET_NAME, "utf8");
+//    mysql_options(m_pSQLConn, MYSQL_SET_CHARSET_NAME, "utf8");
+    mysql_options(m_pSQLConn, MYSQL_SET_CHARSET_NAME, "latin1");
     if (mysql_real_connect(m_pSQLConn, m_strHost.c_str(), m_strUser.c_str(), m_strPasswd.c_str(),
                             m_strDBname.c_str(), m_shPort, NULL, 0) == NULL){
         mysql_close(m_pSQLConn);
@@ -396,11 +397,11 @@ bool DBConnection::Connect()
         return false;
     }
 
-#ifdef CLN_UTF8
-    if (m_pSQLConn) {
-        mysql_query(m_pSQLConn, "set names utf8");
-    }
-#endif
+//#ifdef CLN_UTF8
+//    if (m_pSQLConn) {
+//        mysql_query(m_pSQLConn, "set names utf8");
+//    }
+//#endif
 
     return true;
 }

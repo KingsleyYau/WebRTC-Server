@@ -224,7 +224,7 @@ std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
             		if ((*c) & 0x80) {
                     	unsigned int num = 0;
                     	c += UTF8TocodePoint(c, &num) - 1;
-
+//                    	printf("# c: 0x%02x, num: 0x%x \n", (unsigned char)*c, num);
                     	std::ostringstream oss;
                     	if ( num >= 0x1F300 && num <= 0x1F3FF ) {
                     		oss << "\\uD83C";
@@ -238,6 +238,7 @@ std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
                         	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
                     	}
                     	result += oss.str();
+//                    	printf("# oss: %s \n", oss.str().c_str());
             		} else {
             			result += *c;
             		}
