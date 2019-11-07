@@ -29,28 +29,43 @@ static bool containsMultiByte( const char* str ) {
  * Modify by Max 2019/10/31
  * For output UNICODE text string, but not original char *, just output like \ud83d\ude03, but not output EMOJI or Chinese
  */
-static int UTF8TocodePoint(const char *c, unsigned int *result) {
+static int UTF8TocodePoint(const char *c, unsigned int *result, int len) {
 	int count = 0;
+	*result = 0;
 
 	if (((*c) & 0x80) == 0) {
-		*result = static_cast<unsigned int>(*c);
 		count = 1;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>(*c);
+		}
 	} else if (((*c) & 0xe0) == 0xc0) {
-		*result = static_cast<unsigned int>((((*c) & 0x1f) << 6) | ((*(c + 1)) & 0x3f));
 		count = 2;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>((((*c) & 0x1f) << 6) | ((*(c + 1)) & 0x3f));
+		}
 	} else if (((*c) & 0xf0) == 0xe0) {
-		*result = static_cast<unsigned int>((((*c) & 0xf) << 12) | (((*(c + 1)) & 0x3f) << 6) | (((*(c + 2)) & 0x3f)));
 		count = 3;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>((((*c) & 0xf) << 12) | (((*(c + 1)) & 0x3f) << 6) | (((*(c + 2)) & 0x3f)));
+		}
 	} else if (((*c) & 0xf8) == 0xf0) {
-		*result = static_cast<unsigned int>((((*c) & 0x7) << 18) | (((*(c + 1)) & 0x3f) << 12) | (((*(c + 2)) & 0x3f) << 6) | (((*(c + 3)) & 0x3f)));
 		count = 4;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>((((*c) & 0x7) << 18) | (((*(c + 1)) & 0x3f) << 12) | (((*(c + 2)) & 0x3f) << 6) | (((*(c + 3)) & 0x3f)));
+		}
 	} else if (((*c) & 0xfc) == 0xf8) {
-		*result = static_cast<unsigned int>((((*c) & 0x3) << 24) | (((*(c + 1)) & 0x3f) << 18) | (((*(c + 2)) & 0x3f) << 12) | (((*(c + 3)) & 0x3f) << 6) | (((*(c + 4)) & 0x3f)));
 		count = 5;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>((((*c) & 0x3) << 24) | (((*(c + 1)) & 0x3f) << 18) | (((*(c + 2)) & 0x3f) << 12) | (((*(c + 3)) & 0x3f) << 6) | (((*(c + 4)) & 0x3f)));
+		}
 	} else if (((*c) & 0xfe) == 0xfc) {
-		*result = static_cast<unsigned int>((((*c) & 0x1) << 30) | (((*(c + 1)) & 0x3f) << 24) | (((*(c + 2)) & 0x3f) << 18) | (((*(c + 3)) & 0x3f) << 12) | (((*(c + 4)) & 0x3f) << 6) | (((*(c + 5)) & 0x3f)));
 		count = 6;
+		if ( count <= len ) {
+			*result = static_cast<unsigned int>((((*c) & 0x1) << 30) | (((*(c + 1)) & 0x3f) << 24) | (((*(c + 2)) & 0x3f) << 18) | (((*(c + 3)) & 0x3f) << 12) | (((*(c + 4)) & 0x3f) << 6) | (((*(c + 5)) & 0x3f)));
+		}
 	}
+
+	count = (count<=len?count:0);
 
 	return count;
 }
@@ -172,7 +187,9 @@ std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
    std::string result;
    result.reserve(maxsize); // to avoid lots of mallocs
    result += "\"";
-   for (const char* c=value; *c != 0; ++c)
+   unsigned int strIndex = 0;
+   unsigned int strSize = strlen(value);
+   for (const char* c=value; *c != 0, strIndex < strSize; ++c, strIndex++)
    {
       switch(*c)
       {
@@ -223,22 +240,34 @@ std::string valueToQuotedString( const char *value, bool encodeToUnicodeString )
             	} else {
             		if ((*c) & 0x80) {
                     	unsigned int num = 0;
-                    	c += UTF8TocodePoint(c, &num) - 1;
+                    	int strLastSzie = strSize - strIndex;
+                    	int step = UTF8TocodePoint(c, &num, strLastSzie) - 1;
 //                    	printf("# c: 0x%02x, num: 0x%x \n", (unsigned char)*c, num);
-                    	std::ostringstream oss;
-                    	if ( num >= 0x1F300 && num <= 0x1F3FF ) {
-                    		oss << "\\uD83C";
-                    		int tmp = num - 0x1F300 + 0xDF00;
-                    		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
-                    	} else if ( num >= 0x1F400 && num <= 0x1F7FF ) {
-                    		oss << "\\uD83D";
-                    		int tmp = num - 0x1F400 + 0xDC00;
-                    		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
+                    	if ( step >= 0 ) {
+                        	c += step;
+                        	strIndex += step;
+
+                        	std::ostringstream oss;
+                        	if ( num >= 0x1F300 && num <= 0x1F3FF ) {
+                        		oss << "\\uD83C";
+                        		int tmp = num - 0x1F300 + 0xDF00;
+                        		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
+                        	} else if ( num >= 0x1F400 && num <= 0x1F7FF ) {
+                        		oss << "\\uD83D";
+                        		int tmp = num - 0x1F400 + 0xDC00;
+                        		oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(tmp);
+                        	} else {
+                            	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
+                        	}
+                        	result += oss.str();
+//                        	printf("# oss: %s \n", oss.str().c_str());
                     	} else {
-                        	oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(num);
+                    		// Error utf8 string, skip
+//                    		printf("# Error utf8 string, skip c: 0x%02x, strIndex: %d, strLastSzie: %d \n", (unsigned char)*c, strIndex, strLastSzie);
+//                    		c += strLastSzie;
+//                    		strIndex += strLastSzie;
+                    		result += *c;
                     	}
-                    	result += oss.str();
-//                    	printf("# oss: %s \n", oss.str().c_str());
             		} else {
             			result += *c;
             		}
