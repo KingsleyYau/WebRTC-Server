@@ -22,6 +22,7 @@ class ProxyService {
     constructor() {
         // 创建外部服务
         this.createExternalServer();
+        this.proxyHost = AppConfig.proxy.proxyHost;
     }
 
     createExternalServer(code, data) {
@@ -42,7 +43,10 @@ class ProxyService {
             Common.log('im', 'info', '[' + ctx.socketId + ']-Client.connected');
 
             try {
-                var proxy = new WebSocketClient(AppConfig.proxy.proxyHost);
+                var userAgent = ctx.req.headers["user-agent"];
+                // var proxy = new WebSocketClient(this.proxyHost);
+                var proxyHeaders = {headers:{"user-agent":userAgent}};
+                var proxy = new WebSocketClient(this.proxyHost, "", proxyHeaders);
                 proxy.on('message', (message) => {
                     Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
                     ctx.websocket.send(message);
@@ -100,12 +104,18 @@ class ProxyService {
 
         let port = AppConfig.proxy.port;
         if( !Common.isNull(opts.number) ) {
-            port += parseInt(opts.number);
+            port = parseInt(opts.number);
         }
-        AppConfig.proxy.port = port;
         this.app.listen(port);
 
-        Common.log('im', 'fatal', 'Proxy service start in port : ' + port);
+        if( !Common.isNull(opts.host) ) {
+            this.proxyHost = opts.host;
+        }
+
+        Common.log('im', 'fatal', 'Proxy service start in port : ' + port + ', host : ' + this.proxyHost);
+        for (let i = 0; i < process.argv.length; i++) {
+            Common.log('im', 'fatal', 'Proxy service param[' + i + ']:' + process.argv[i]);
+        }
     }
 }
 
@@ -128,6 +138,9 @@ if( process.argv.length > 2 ) {
     number = parseInt(process.argv[2], 10);
 }
 
-// 启动Im
+// 启动
 proxy = new ProxyService();
-proxy.start({number:number});
+proxy.start({number:9081, host:"ws://192.168.88.133:9881"});
+
+proxy_8093 = new ProxyService();
+proxy_8093.start({number:9083, host:"ws://192.168.88.133:9883"});
