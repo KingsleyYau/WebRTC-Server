@@ -3,7 +3,7 @@
 # Author: Max.Chiu
 # Date: 2019/12/11
 
-APP_DIR=/root/Max/mediaserver
+APP_DIR=/home/samson/Max/mediaserver
 cd $APP_DIR
 
 # Start turnserver
