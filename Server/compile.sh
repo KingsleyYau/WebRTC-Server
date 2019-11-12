@@ -1,6 +1,6 @@
 #!/bin/sh
 # WebRTC MediaServer compile whole script
-# Author:	Max.Chiu
+# Author: Max.Chiu
 
 BUILD_PATH=$(pwd)/build
 
@@ -19,9 +19,9 @@ fi
 # Build dependence
 cd dep
 # Build coturn
-#./build-coturn.sh $BUILD_PATH $NOCLEAN
+./build-coturn.sh $BUILD_PATH $NOCLEAN
 # Build ffmpeg
-#./build-ffmpeg.sh $BUILD_PATH $NOCLEAN
+./build-ffmpeg.sh $BUILD_PATH $NOCLEAN
 cd -
 
 # Build mediaserver
