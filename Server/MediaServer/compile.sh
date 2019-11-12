@@ -5,6 +5,10 @@
 echo "# Install dependent tools ..."
 sudo yum install -y automake libtool gcc-c++.x86_64 gtk-doc.x86_64 glib2-devel.x86_64 boost-devel.x86_64 libidn-devel.x86_64 libselinux-devel.x86_64
 
+wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo rpm -ivh epel-release-latest-7.noarch.rpm
+sudo yum install jq
+
 BUILD_PATH="$1"
 if [ "$BUILD_PATH" == "" ]; then
   echo "# BUILD_PATH must be set, like: /root/mediaserver/build"
