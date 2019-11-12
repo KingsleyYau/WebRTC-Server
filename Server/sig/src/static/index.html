@@ -53,6 +53,7 @@ async function connect() {
         } else {
             host = 'ws://' + window.location.hostname + ':9881';
         }
+        // host = 'wss://' + '127.0.0.1' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
         // host = 'wss://' + '52.196.96.7' + ':9081';
 
@@ -262,8 +263,8 @@ class RTCClient {
         await this.showLocalVideo(videoSource);
 
         let offer = await this.pc.createOffer({
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
+            offerToReceiveAudio: false,
+            offerToReceiveVideo: false
         });
         offer.sdp = this.createLocalSdp(offer.sdp);
 
@@ -304,7 +305,7 @@ class RTCClient {
                 width: 640/*{min: 320, max: 640}*/, height: 480/*{min: 240, max: 480}*/,
                 frameRate: 15/*{min: 10, max: 15}*/
             },
-            audio: true
+            audio: false
         }
 
         return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {

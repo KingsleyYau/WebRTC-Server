@@ -73,8 +73,8 @@ class HttpService {
 
         // SSL options
         var options = {
-            key: Fs.readFileSync('./ssl/server.key'),  // ssl文件路径
-            cert: Fs.readFileSync('./ssl/server.crt')  // ssl文件路径
+            key: Fs.readFileSync('./etc/server.key'),  // ssl文件路径
+            cert: Fs.readFileSync('./etc/server.crt')  // ssl文件路径
         };
         Https.createServer(options, this.app.callback()).listen(AppConfig.https.port);
 

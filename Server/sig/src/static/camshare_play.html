@@ -113,6 +113,7 @@ function play() {
 		// ArrayBuffer object if binary
 		var messageData = new Uint8Array(e.data);
 		console.log(messageData.byteLength);
+        console.log(messageData.toString(16));
 		player.decode(messageData);
 //		setTimeout(
 //				function() {
@@ -127,7 +128,7 @@ function play() {
 	client.onclose = function(e) {  
 		console.log(url + " closed : " + e);  
 	}
-	
+
 };
 </script>
 

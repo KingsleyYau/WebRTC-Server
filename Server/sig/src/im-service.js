@@ -38,8 +38,8 @@ class ImService {
     createExternalServer() {
         // SSL options
         const options = {
-            key: Fs.readFileSync('./ssl/server.key'),  // ssl文件路径
-            cert: Fs.readFileSync('./ssl/server.crt')  // ssl文件路径
+            key: Fs.readFileSync('./etc/server.key'),  // ssl文件路径
+            cert: Fs.readFileSync('./etc/server.crt')  // ssl文件路径
         };
 
         // 创建异步框架
