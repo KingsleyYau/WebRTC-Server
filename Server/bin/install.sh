@@ -1,6 +1,7 @@
 #!/bin/sh
 # Install mediasever script
-# Author:	Max.Chiu
+# Author: Max.Chiu
+# Date: 2019/11/11
 
 echo "############## Start installing mediaserver ##############"
 DEST_PATH="/app/live/mediaserver"

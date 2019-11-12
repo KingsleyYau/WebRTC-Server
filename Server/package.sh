@@ -1,6 +1,7 @@
 #!/bin/sh
 # Pakcage mediasever script
-# Author:	Max.Chiu
+# Author: Max.Chiu
+# Date: 2019/11/11
 
 mkdir -p tmp
 rm -rf package/*
