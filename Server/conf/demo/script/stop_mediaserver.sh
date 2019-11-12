@@ -1,8 +1,7 @@
 #!/bin/sh
 # Stop mediaserver shell
 # Author: Max.Chiu
-# 2019/08/09
-#
+# Date: 2019/08/13
 
 APP_DIR=/home/samson/Max/mediaserver
 cd $APP_DIR

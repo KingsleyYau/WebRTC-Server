@@ -1,8 +1,8 @@
 #!/bin/sh
 # Start mediaserver shell
 # Author: Max.Chiu
-# 2019/08/09
-#
+# Author: Max.Chiu
+# Date: 2019/08/13
 
 # Start media-server
 APP_DIR=/home/samson/Max/mediaserver

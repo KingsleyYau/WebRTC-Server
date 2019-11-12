@@ -1,8 +1,7 @@
 #!/bin/sh
 # Start mediaserver for camshare shell
 # Author: Max.Chiu
-# 2019/08/09
-#
+# Date: 2019/08/13
 
 # Start media-server
 APP_DIR=/home/samson/Max/mediaserver

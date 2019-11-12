@@ -1,6 +1,7 @@
 #!/bin/sh
 # Watch mediaserver script
-# Author:	Max.Chiu
+# Author: Max.Chiu
+# Date: 2019/08/13
 
 watch -n 1 -c "ps -ef | grep -v tail | grep -v grep | grep -v js | grep -v ffmpeg | grep 'mediaserver';\
 echo "-------------------- 		top		 --------------------";\

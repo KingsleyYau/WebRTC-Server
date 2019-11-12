@@ -1,8 +1,9 @@
 #!/bin/sh
 # RTP Stream to RTMP Stream script
-# Author:	Max.Chiu
+# Author: Max.Chiu
+# Date: 2019/08/13
 
-APP_DIR=/app/live/mediaserver
+APP_DIR=/home/samson/Max/mediaserver
 FFMPEG=$APP_DIR/bin/ffmpeg
 
 function Usage {

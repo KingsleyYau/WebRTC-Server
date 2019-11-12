@@ -1,8 +1,7 @@
 #!/bin/sh
 # Start mediaserver shell
 # Author: Max.Chiu
-# 2019/08/09
-#
+# Date: 2019/08/09
 
 # Start mediaserver
 APP_DIR=/root/Max/mediaserver

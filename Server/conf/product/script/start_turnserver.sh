@@ -1,11 +1,10 @@
 #!/bin/sh
 # Start turnserver shell
 # Author: Max.Chiu
-# 2018/12/25
-#
+# Date: 2019/08/13
 
 # Start coturn
-APP_DIR=/app/live/mediaserver
+APP_DIR=/home/samson/Max/mediaserver
 APP_EXE=$APP_DIR/bin/turnserver
 APP_CONFIG=$APP_DIR/etc/turnserver.conf
 APP_DATABASE=$APP_DIR/var/db/turndb

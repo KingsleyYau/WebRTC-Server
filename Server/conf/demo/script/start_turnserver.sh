@@ -1,8 +1,7 @@
 #!/bin/sh
 # Start turnserver shell
 # Author: Max.Chiu
-# 2018/12/25
-#
+# Date: 2019/08/13
 
 # Start coturn
 APP_DIR=/home/samson/Max/mediaserver
