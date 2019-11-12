@@ -166,6 +166,8 @@ bool MediaServer::Start(const string& config) {
 bool MediaServer::Start() {
 	bool bFlag = true;
 
+	pid_t pid = getpid();
+
 	LogManager::GetLogManager()->Start(miLogLevel, mLogDir);
 	LogManager::GetLogManager()->SetDebugMode(miDebugMode);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
@@ -187,6 +189,24 @@ bool MediaServer::Start() {
 			__DATE__,
 			__TIME__
 			);
+
+	LogAync(
+			LOG_ERR_SYS,
+			"MediaServer::Start( "
+			"[运行参数], "
+			"pid : %d, "
+			"mPidFilePath : %s "
+			")",
+			pid,
+			mPidFilePath.c_str()
+			);
+	if ( mPidFilePath.length() > 0 ) {
+		remove(mPidFilePath.c_str());
+
+		char cmd[1024];
+		snprintf(cmd, sizeof(cmd) - 1, "echo %d > %s", pid, mPidFilePath.c_str());
+		system(cmd);
+	}
 
 	// 内部服务(HTTP)参数
 	LogAync(
@@ -433,6 +453,7 @@ bool MediaServer::LoadConfig() {
 			miMaxQueryPerThread = atoi(conf.GetPrivate("BASE", "MAXQUERYPERCOPY", "10").c_str());
 			miTimeout = atoi(conf.GetPrivate("BASE", "TIMEOUT", "10").c_str());
 			miStateTime = atoi(conf.GetPrivate("BASE", "STATETIME", "30").c_str());
+			mPidFilePath = conf.GetPrivate("BASE", "PID", "").c_str();
 
 			// 日志参数
 			miLogLevel = atoi(conf.GetPrivate("LOG", "LOGLEVEL", "5").c_str());
@@ -519,6 +540,11 @@ bool MediaServer::Stop() {
 		mExtRequestThread.Stop();
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
+
+		if ( mPidFilePath.length() > 0 ) {
+			int ret = remove(mPidFilePath.c_str());
+			mPidFilePath = "";
+		}
 	}
 
 	mServerMutex.unlock();
@@ -534,6 +560,25 @@ bool MediaServer::Stop() {
 	LogManager::GetLogManager()->Stop();
 
 	return true;
+}
+
+void MediaServer::Exit() {
+	pid_t pid = getpid();
+
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::Exit( "
+			"pid : %d, "
+			"mPidFilePath : %s "
+			")",
+			pid,
+			mPidFilePath.c_str()
+			);
+
+	if ( mPidFilePath.length() > 0 ) {
+		int ret = remove(mPidFilePath.c_str());
+		mPidFilePath = "";
+	}
 }
 
 /***************************** 定时任务 **************************************/

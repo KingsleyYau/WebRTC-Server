@@ -1,0 +1,483 @@
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:178 MediaServer::Start( ############## MediaServer ############## )
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:189 MediaServer::Start( Version : 1.0.0, Build date : Sep 26 2019 15:53:45 )
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:209 MediaServer::Start( [内部服务(HTTP)], miPort : 9880, miMaxClient : 2000, miMaxHandleThread : 1, miMaxQueryPerThread : 0, miTimeout : 0, miStateTime : 1800 )
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:237 MediaServer::Start( [媒体流服务(WebRTC)], mWebRTCPortStart : 10000, mWebRTCMaxClient : 50, mWebRTCRtp2RtmpShellFilePath : /root/Max/mediaserver/script/rtp2rtmp.sh, mWebRTCRtp2RtmpBaseUrl : rtmp://127.0.0.1:4000/cdn_standard/, mWebRTCDtlsCertPath : /root/Max/mediaserver/etc/webrtc_dtls.crt, mWebRTCDtlsKeyPath : /root/Max/mediaserver/etc/webrtc_dtls.key, mWebRTCLocalIp : 192.168.88.133, mStunServerIp : 192.168.88.134, mTurnUserName : MaxServer, mTurnPassword : 123 )
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:249 MediaServer::Start( [信令服务(Websocket)], miWebsocketPort : 9881, miWebsocketMaxClient : 200 )
+[ 2019-10-28 08:36:49.909 tid:5103   ] MediaServer.cpp:263 MediaServer::Start( [日志服务], miDebugMode : 1, miLogLevel : 3, mlogDir : log/mediaserver )
+[ 2019-10-28 08:36:49.910 tid:5103   ] HttpClient.cpp:29 Init( curl_version : 7.42.0-DEV )
+[ 2019-10-28 08:36:49.965 tid:5103   ] DtlsSession.cpp:380 DtlsSession::GobalInit( [OK], SSL-Version : OpenSSL 1.1.1c  28 May 2019, SSL-Error : (null), gFingerPrint : 8A:9B:88:96:34:6C:5F:6D:E5:ED:A3:B5:58:60:15:C6:83:1A:00:79:E6:61:8A:8D:70:69:C5:6B:4E:71:82:35, certPath : /root/Max/mediaserver/etc/webrtc_dtls.crt, keyPath : /root/Max/mediaserver/etc/webrtc_dtls.key )
+[ 2019-10-28 08:36:49.966 tid:5103   ] RtpSession.cpp:142 RtpSession::GobalInit( [OK] )
+[ 2019-10-28 08:36:49.966 tid:5103   ] WebRTC.cpp:79 WebRTC::GobalInit( [OK] )
+[ 2019-10-28 08:36:49.966 tid:5103   ] MainLoop.cpp:77 MainLoop::Start( [OK] )
+[ 2019-10-28 08:36:49.966 tid:5103   ] MediaServer.cpp:283 MediaServer::Start( event : [启动监听子进程循环-OK] )
+[ 2019-10-28 08:36:49.966 tid:5103   ] AsyncIOServer.cpp:83 AsyncIOServer::Start( port : 9880, maxConnection : 2000, iThreadCount : 1, ip : 0.0.0.0 )
+[ 2019-10-28 08:36:49.966 tid:5106   ] MainLoop.cpp:162 MainLoop::MainLoopHandle( [Start] )
+[ 2019-10-28 08:36:50.106 tid:5103   ] TcpServer.cpp:96 TcpServer::Start( port : 9880, maxConnection : 2000, ip : 0.0.0.0 )
+[ 2019-10-28 08:36:50.106 tid:5107   ] AsyncIOServer.cpp:510 AsyncIOServer::RecvHandleThread( [Start] )
+[ 2019-10-28 08:36:50.107 tid:5103   ] TcpServer.cpp:199 TcpServer::Start( [Create watchers OK], port : 9880, maxConnection : 2000, ip : 0.0.0.0, mWatcherList : 2000 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] TcpServer.cpp:236 TcpServer::Start( [OK], port : 9880, maxConnection : 2000, ip : 0.0.0.0 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] AsyncIOServer.cpp:124 AsyncIOServer::Start( [OK], port : 9880, maxConnection : 2000, iThreadCount : 1, ip : 0.0.0.0 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] MediaServer.cpp:298 MediaServer::Start( event : [创建内部服务(HTTP)-OK] )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WSServer.cpp:66 WSServer::Start( port : 9881, maxConnection : 100 )
+[ 2019-10-28 08:36:50.107 tid:5108   ] TcpServer.cpp:386 TcpServer::IOHandleThread( [Start] )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WSServer.cpp:147 WSServer::Start( [OK], port : 9881, maxConnection : 100 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] MediaServer.cpp:313 MediaServer::Start( event : [创建内部服务(Websocket)-OK] )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbd108, [OK], sendIp : 127.0.0.1, rtpSendPort : 10000, rtpRecvPort : 10000 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbd220, [OK], sendIp : 127.0.0.1, rtpSendPort : 10002, rtpRecvPort : 10002 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcbce20, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10000, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10002 )
+[ 2019-10-28 08:36:50.107 tid:5109   ] WSServer.cpp:396 WSServer::IOHandleThread( [Start] )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbdae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10004, rtpRecvPort : 10004 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbdc00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10006, rtpRecvPort : 10006 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcbd800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10004, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10006 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbe4e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10008, rtpRecvPort : 10008 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbe600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10010, rtpRecvPort : 10010 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcbe200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10008, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10010 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbeee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10012, rtpRecvPort : 10012 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbf000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10014, rtpRecvPort : 10014 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcbec00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10012, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10014 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbf8e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10016, rtpRecvPort : 10016 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcbfa00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10018, rtpRecvPort : 10018 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcbf600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10016, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10018 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc02e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10020, rtpRecvPort : 10020 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc0400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10022, rtpRecvPort : 10022 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc0000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10020, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10022 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc0ce8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10024, rtpRecvPort : 10024 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc0e00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10026, rtpRecvPort : 10026 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc0a00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10024, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10026 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc16e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10028, rtpRecvPort : 10028 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc1800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10030, rtpRecvPort : 10030 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc1400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10028, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10030 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc20e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10032, rtpRecvPort : 10032 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc2200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10034, rtpRecvPort : 10034 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc1e00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10032, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10034 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc2ae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10036, rtpRecvPort : 10036 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc2c00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10038, rtpRecvPort : 10038 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc2800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10036, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10038 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc34e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10040, rtpRecvPort : 10040 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc3600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10042, rtpRecvPort : 10042 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc3200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10040, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10042 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc3ee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10044, rtpRecvPort : 10044 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc4000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10046, rtpRecvPort : 10046 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc3c00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10044, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10046 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc48e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10048, rtpRecvPort : 10048 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc4a00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10050, rtpRecvPort : 10050 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc4600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10048, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10050 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc52e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10052, rtpRecvPort : 10052 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc5400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10054, rtpRecvPort : 10054 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc5000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10052, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10054 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc5ce8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10056, rtpRecvPort : 10056 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc5e00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10058, rtpRecvPort : 10058 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc5a00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10056, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10058 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc66e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10060, rtpRecvPort : 10060 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc6800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10062, rtpRecvPort : 10062 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc6400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10060, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10062 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc70e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10064, rtpRecvPort : 10064 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc7200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10066, rtpRecvPort : 10066 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc6e00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10064, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10066 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc7ae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10068, rtpRecvPort : 10068 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc7c00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10070, rtpRecvPort : 10070 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc7800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10068, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10070 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc84e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10072, rtpRecvPort : 10072 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc8600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10074, rtpRecvPort : 10074 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc8200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10072, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10074 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc8ee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10076, rtpRecvPort : 10076 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc9000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10078, rtpRecvPort : 10078 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc8c00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10076, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10078 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc98e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10080, rtpRecvPort : 10080 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcc9a00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10082, rtpRecvPort : 10082 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcc9600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10080, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10082 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcca2e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10084, rtpRecvPort : 10084 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcca400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10086, rtpRecvPort : 10086 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcca000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10084, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10086 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccace8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10088, rtpRecvPort : 10088 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccae00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10090, rtpRecvPort : 10090 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccaa00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10088, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10090 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccb6e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10092, rtpRecvPort : 10092 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccb800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10094, rtpRecvPort : 10094 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccb400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10092, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10094 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccc0e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10096, rtpRecvPort : 10096 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccc200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10098, rtpRecvPort : 10098 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccbe00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10096, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10098 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcccae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10100, rtpRecvPort : 10100 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcccc00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10102, rtpRecvPort : 10102 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccc800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10100, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10102 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccd4e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10104, rtpRecvPort : 10104 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccd600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10106, rtpRecvPort : 10106 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccd200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10104, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10106 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccdee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10108, rtpRecvPort : 10108 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcce000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10110, rtpRecvPort : 10110 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccdc00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10108, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10110 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcce8e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10112, rtpRecvPort : 10112 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccea00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10114, rtpRecvPort : 10114 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcce600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10112, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10114 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccf2e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10116, rtpRecvPort : 10116 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccf400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10118, rtpRecvPort : 10118 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccf000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10116, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10118 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccfce8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10120, rtpRecvPort : 10120 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xccfe00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10122, rtpRecvPort : 10122 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xccfa00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10120, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10122 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd06e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10124, rtpRecvPort : 10124 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd0800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10126, rtpRecvPort : 10126 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd0400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10124, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10126 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd10e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10128, rtpRecvPort : 10128 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd1200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10130, rtpRecvPort : 10130 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd0e00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10128, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10130 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd1ae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10132, rtpRecvPort : 10132 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd1c00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10134, rtpRecvPort : 10134 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd1800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10132, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10134 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd24e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10136, rtpRecvPort : 10136 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd2600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10138, rtpRecvPort : 10138 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd2200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10136, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10138 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd2ee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10140, rtpRecvPort : 10140 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd3000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10142, rtpRecvPort : 10142 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd2c00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10140, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10142 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd38e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10144, rtpRecvPort : 10144 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd3a00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10146, rtpRecvPort : 10146 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd3600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10144, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10146 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd42e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10148, rtpRecvPort : 10148 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd4400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10150, rtpRecvPort : 10150 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd4000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10148, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10150 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd4ce8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10152, rtpRecvPort : 10152 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd4e00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10154, rtpRecvPort : 10154 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd4a00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10152, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10154 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd56e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10156, rtpRecvPort : 10156 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd5800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10158, rtpRecvPort : 10158 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd5400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10156, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10158 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd60e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10160, rtpRecvPort : 10160 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd6200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10162, rtpRecvPort : 10162 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd5e00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10160, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10162 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd6ae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10164, rtpRecvPort : 10164 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd6c00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10166, rtpRecvPort : 10166 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd6800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10164, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10166 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd74e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10168, rtpRecvPort : 10168 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd7600, [OK], sendIp : 127.0.0.1, rtpSendPort : 10170, rtpRecvPort : 10170 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd7200, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10168, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10170 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd7ee8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10172, rtpRecvPort : 10172 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd8000, [OK], sendIp : 127.0.0.1, rtpSendPort : 10174, rtpRecvPort : 10174 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd7c00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10172, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10174 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd88e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10176, rtpRecvPort : 10176 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd8a00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10178, rtpRecvPort : 10178 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd8600, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10176, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10178 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd92e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10180, rtpRecvPort : 10180 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd9400, [OK], sendIp : 127.0.0.1, rtpSendPort : 10182, rtpRecvPort : 10182 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd9000, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10180, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10182 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd9ce8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10184, rtpRecvPort : 10184 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcd9e00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10186, rtpRecvPort : 10186 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcd9a00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10184, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10186 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcda6e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10188, rtpRecvPort : 10188 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcda800, [OK], sendIp : 127.0.0.1, rtpSendPort : 10190, rtpRecvPort : 10190 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcda400, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10188, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10190 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcdb0e8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10192, rtpRecvPort : 10192 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcdb200, [OK], sendIp : 127.0.0.1, rtpSendPort : 10194, rtpRecvPort : 10194 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcdae00, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10192, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10194 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcdbae8, [OK], sendIp : 127.0.0.1, rtpSendPort : 10196, rtpRecvPort : 10196 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] RtpRawClient.cpp:51 RtpRawClient::Init( this : 0xcdbc00, [OK], sendIp : 127.0.0.1, rtpSendPort : 10198, rtpRecvPort : 10198 )
+[ 2019-10-28 08:36:50.107 tid:5103   ] WebRTC.cpp:123 WebRTC::Init( this : 0xcdb800, [OK], rtpDstAudioIp : 127.0.0.1, rtpDstAudioPort : 10196, rtpDstVideoIp : 127.0.0.1, rtpDstVideoPort : 10198 )
+[ 2019-10-28 08:36:50.108 tid:5103   ] MediaServer.cpp:346 MediaServer::Start( event : [启动超时处理线程-OK] )
+[ 2019-10-28 08:36:50.108 tid:5103   ] MediaServer.cpp:365 MediaServer::Start( event : [启动外部请求线程-OK] )
+[ 2019-10-28 08:36:50.108 tid:5103   ] MediaServer.cpp:384 MediaServer::Start( event : [启动状态监视线程-OK] )
+[ 2019-10-28 08:36:50.108 tid:5103   ] MediaServer.cpp:403 MediaServer::Start( event : [OK] )
+[ 2019-10-28 08:47:48.996 tid:5109   ] WSServer.cpp:331 WSServer::OnValid( hdl : 0xcb70f0, addr : 192.168.88.133:46822 )
+[ 2019-10-28 08:47:48.996 tid:5109   ] WSServer.cpp:349 WSServer::OnOpen( hdl : 0xcb70f0, addr : 192.168.88.133:46822, userAgent :  )
+[ 2019-10-28 08:47:48.997 tid:5109   ] MediaServer.cpp:1105 MediaServer::OnWSOpen( event : [Websocket-新连接], hdl : 0xcb70f0, addr : 192.168.88.133:46822, uuid : 7C885818-F1F6-451D-91FC-957065ED0C1D, connectTime : 1572223668996, userAgent :  )
+[ 2019-10-28 08:47:50.045 tid:5109   ] WSServer.cpp:385 WSServer::OnMessage( hdl : 0xcb70f0, ip : 192.168.88.133:46822, opcode : 0x1, payload : {"route":"imRTC/sendSdpCall","req_data":{"stream":"max11","sdp":"v=0\no=- 271554749912589992 2 IN IP4 127.0.0.1\ns=-\nt=0 0\na=group:BUNDLE 0 1\na=msid-semantic: WMS ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\nm=audio 56874 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126\nc=IN IP4 192.168.88.136\na=rtcp:9 IN IP4 0.0.0.0\na=candidate:1458749531 1 udp 2122260223 192.168.88.136 56874 typ host generation 0 network-id 1\na=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1\na=ice-ufrag:jnB7\na=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA\na=ice-options:trickle\na=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49\na=setup:actpass\na=mid:0\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\na=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\na=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\na=sendrecv\na=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\na=rtcp-mux\na=rtpmap:111 opus/48000/2\na=rtcp-fb:111 transport-cc\na=fmtp:111 minptime=10;useinbandfec=1;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:9 G722/8000\na=rtpmap:0 PCMU/8000\na=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\na=rtpmap:13 CN/8000\na=rtpmap:110 telephone-event/48000\na=rtpmap:112 telephone-event/32000\na=rtpmap:113 telephone-event/16000\na=rtpmap:126 telephone-event/8000\na=ssrc:2299905155 cname:rFtyeXXciaGZlW80\na=ssrc:2299905155 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\na=ssrc:2299905155 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2299905155 label:f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\nm=video 56875 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 122 127 121 125 107 108 109 124 120 123 119 114 115 116\nc=IN IP4 192.168.88.136\na=rtcp:9 IN IP4 0.0.0.0\na=candidate:1458749531 1 udp 2122260223 192.168.88.136 56875 typ host generation 0 network-id 1\na=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1\na=ice-ufrag:jnB7\na=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA\na=ice-options:trickle\na=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49\na=setup:actpass\na=mid:1\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\na=extmap:13 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\na=extmap:12 urn:3gpp:video-orientation\na=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\na=extmap:11 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\na=extmap:8 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07\na=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/color-space\na=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\na=sendrecv\na=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=rtcp-mux\na=rtcp-rsize\na=rtpmap:96 VP8/90000\na=rtcp-fb:96 goog-remb\na=rtcp-fb:96 transport-cc\na=rtcp-fb:96 ccm fir\na=rtcp-fb:96 nack\na=rtcp-fb:96 nack pli\na=rtpmap:97 rtx/90000\na=fmtp:97 apt=96;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:98 VP9/90000\na=rtcp-fb:98 goog-remb\na=rtcp-fb:98 transport-cc\na=rtcp-fb:98 ccm fir\na=rtcp-fb:98 nack\na=rtcp-fb:98 nack pli\na=fmtp:98 profile-id=0;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:99 rtx/90000\na=fmtp:99 apt=98;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:100 VP9/90000\na=rtcp-fb:100 goog-remb\na=rtcp-fb:100 transport-cc\na=rtcp-fb:100 ccm fir\na=rtcp-fb:100 nack\na=rtcp-fb:100 nack pli\na=fmtp:100 profile-id=2;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:101 rtx/90000\na=fmtp:101 apt=100;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:102 H264/90000\na=rtcp-fb:102 goog-remb\na=rtcp-fb:102 transport-cc\na=rtcp-fb:102 ccm fir\na=rtcp-fb:102 nack\na=rtcp-fb:102 nack pli\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:122 rtx/90000\na=fmtp:122 apt=102;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:127 H264/90000\na=rtcp-fb:127 goog-remb\na=rtcp-fb:127 transport-cc\na=rtcp-fb:127 ccm fir\na=rtcp-fb:127 nack\na=rtcp-fb:127 nack pli\na=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:121 rtx/90000\na=fmtp:121 apt=127;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:125 H264/90000\na=rtcp-fb:125 goog-remb\na=rtcp-fb:125 transport-cc\na=rtcp-fb:125 ccm fir\na=rtcp-fb:125 nack\na=rtcp-fb:125 nack pli\na=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:107 rtx/90000\na=fmtp:107 apt=125;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:108 H264/90000\na=rtcp-fb:108 goog-remb\na=rtcp-fb:108 transport-cc\na=rtcp-fb:108 ccm fir\na=rtcp-fb:108 nack\na=rtcp-fb:108 nack pli\na=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:109 rtx/90000\na=fmtp:109 apt=108;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:124 H264/90000\na=rtcp-fb:124 goog-remb\na=rtcp-fb:124 transport-cc\na=rtcp-fb:124 ccm fir\na=rtcp-fb:124 nack\na=rtcp-fb:124 nack pli\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d0032;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:120 rtx/90000\na=fmtp:120 apt=124;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:123 H264/90000\na=rtcp-fb:123 goog-remb\na=rtcp-fb:123 transport-cc\na=rtcp-fb:123 ccm fir\na=rtcp-fb:123 nack\na=rtcp-fb:123 nack pli\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:119 rtx/90000\na=fmtp:119 apt=123;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:114 red/90000\na=rtpmap:115 rtx/90000\na=fmtp:115 apt=114;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:116 ulpfec/90000\na=ssrc-group:FID 2514927701 2914677776\na=ssrc:2514927701 cname:rFtyeXXciaGZlW80\na=ssrc:2514927701 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2514927701 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2514927701 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2914677776 cname:rFtyeXXciaGZlW80\na=ssrc:2914677776 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2914677776 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2914677776 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\n"},"id":0} )
+[ 2019-10-28 08:47:50.045 tid:5109   ] MediaServer.cpp:1243 MediaServer::OnWSMessage( event : [Websocket-请求], hdl : 0xcb70f0, str : {"route":"imRTC/sendSdpCall","req_data":{"stream":"max11","sdp":"v=0\no=- 271554749912589992 2 IN IP4 127.0.0.1\ns=-\nt=0 0\na=group:BUNDLE 0 1\na=msid-semantic: WMS ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\nm=audio 56874 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126\nc=IN IP4 192.168.88.136\na=rtcp:9 IN IP4 0.0.0.0\na=candidate:1458749531 1 udp 2122260223 192.168.88.136 56874 typ host generation 0 network-id 1\na=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1\na=ice-ufrag:jnB7\na=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA\na=ice-options:trickle\na=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49\na=setup:actpass\na=mid:0\na=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\na=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\na=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\na=sendrecv\na=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\na=rtcp-mux\na=rtpmap:111 opus/48000/2\na=rtcp-fb:111 transport-cc\na=fmtp:111 minptime=10;useinbandfec=1;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:103 ISAC/16000\na=rtpmap:104 ISAC/32000\na=rtpmap:9 G722/8000\na=rtpmap:0 PCMU/8000\na=rtpmap:8 PCMA/8000\na=rtpmap:106 CN/32000\na=rtpmap:105 CN/16000\na=rtpmap:13 CN/8000\na=rtpmap:110 telephone-event/48000\na=rtpmap:112 telephone-event/32000\na=rtpmap:113 telephone-event/16000\na=rtpmap:126 telephone-event/8000\na=ssrc:2299905155 cname:rFtyeXXciaGZlW80\na=ssrc:2299905155 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\na=ssrc:2299905155 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2299905155 label:f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c\nm=video 56875 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 122 127 121 125 107 108 109 124 120 123 119 114 115 116\nc=IN IP4 192.168.88.136\na=rtcp:9 IN IP4 0.0.0.0\na=candidate:1458749531 1 udp 2122260223 192.168.88.136 56875 typ host generation 0 network-id 1\na=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1\na=ice-ufrag:jnB7\na=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA\na=ice-options:trickle\na=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49\na=setup:actpass\na=mid:1\na=extmap:14 urn:ietf:params:rtp-hdrext:toffset\na=extmap:13 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\na=extmap:12 urn:3gpp:video-orientation\na=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\na=extmap:11 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\na=extmap:8 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07\na=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/color-space\na=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\na=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\na=sendrecv\na=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=rtcp-mux\na=rtcp-rsize\na=rtpmap:96 VP8/90000\na=rtcp-fb:96 goog-remb\na=rtcp-fb:96 transport-cc\na=rtcp-fb:96 ccm fir\na=rtcp-fb:96 nack\na=rtcp-fb:96 nack pli\na=rtpmap:97 rtx/90000\na=fmtp:97 apt=96;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:98 VP9/90000\na=rtcp-fb:98 goog-remb\na=rtcp-fb:98 transport-cc\na=rtcp-fb:98 ccm fir\na=rtcp-fb:98 nack\na=rtcp-fb:98 nack pli\na=fmtp:98 profile-id=0;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:99 rtx/90000\na=fmtp:99 apt=98;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:100 VP9/90000\na=rtcp-fb:100 goog-remb\na=rtcp-fb:100 transport-cc\na=rtcp-fb:100 ccm fir\na=rtcp-fb:100 nack\na=rtcp-fb:100 nack pli\na=fmtp:100 profile-id=2;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:101 rtx/90000\na=fmtp:101 apt=100;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:102 H264/90000\na=rtcp-fb:102 goog-remb\na=rtcp-fb:102 transport-cc\na=rtcp-fb:102 ccm fir\na=rtcp-fb:102 nack\na=rtcp-fb:102 nack pli\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:122 rtx/90000\na=fmtp:122 apt=102;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:127 H264/90000\na=rtcp-fb:127 goog-remb\na=rtcp-fb:127 transport-cc\na=rtcp-fb:127 ccm fir\na=rtcp-fb:127 nack\na=rtcp-fb:127 nack pli\na=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:121 rtx/90000\na=fmtp:121 apt=127;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:125 H264/90000\na=rtcp-fb:125 goog-remb\na=rtcp-fb:125 transport-cc\na=rtcp-fb:125 ccm fir\na=rtcp-fb:125 nack\na=rtcp-fb:125 nack pli\na=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:107 rtx/90000\na=fmtp:107 apt=125;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:108 H264/90000\na=rtcp-fb:108 goog-remb\na=rtcp-fb:108 transport-cc\na=rtcp-fb:108 ccm fir\na=rtcp-fb:108 nack\na=rtcp-fb:108 nack pli\na=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:109 rtx/90000\na=fmtp:109 apt=108;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:124 H264/90000\na=rtcp-fb:124 goog-remb\na=rtcp-fb:124 transport-cc\na=rtcp-fb:124 ccm fir\na=rtcp-fb:124 nack\na=rtcp-fb:124 nack pli\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d0032;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:120 rtx/90000\na=fmtp:120 apt=124;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:123 H264/90000\na=rtcp-fb:123 goog-remb\na=rtcp-fb:123 transport-cc\na=rtcp-fb:123 ccm fir\na=rtcp-fb:123 nack\na=rtcp-fb:123 nack pli\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:119 rtx/90000\na=fmtp:119 apt=123;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:114 red/90000\na=rtpmap:115 rtx/90000\na=fmtp:115 apt=114;x-google-max-bitrate=1000;x-google-start-bitrate=1000\na=rtpmap:116 ulpfec/90000\na=ssrc-group:FID 2514927701 2914677776\na=ssrc:2514927701 cname:rFtyeXXciaGZlW80\na=ssrc:2514927701 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2514927701 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2514927701 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2914677776 cname:rFtyeXXciaGZlW80\na=ssrc:2914677776 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\na=ssrc:2914677776 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D\na=ssrc:2914677776 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f\n"},"id":0} )
+[ 2019-10-28 08:47:50.045 tid:5109   ] MediaServer.cpp:1287 MediaServer::OnWSMessage( event : [Websocket-请求-拨号], hdl : 0xcb70f0, stream : max11 )
+[ 2019-10-28 08:47:50.045 tid:5109   ] WebRTC.cpp:249 WebRTC::ParseRemoteSdp( this : 0xcbce20, sdp : 
+v=0
+o=- 271554749912589992 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=msid-semantic: WMS ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D
+m=audio 56874 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126
+c=IN IP4 192.168.88.136
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:1458749531 1 udp 2122260223 192.168.88.136 56874 typ host generation 0 network-id 1
+a=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1
+a=ice-ufrag:jnB7
+a=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA
+a=ice-options:trickle
+a=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+a=sendrecv
+a=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:103 ISAC/16000
+a=rtpmap:104 ISAC/32000
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:106 CN/32000
+a=rtpmap:105 CN/16000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:112 telephone-event/32000
+a=rtpmap:113 telephone-event/16000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:2299905155 cname:rFtyeXXciaGZlW80
+a=ssrc:2299905155 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c
+a=ssrc:2299905155 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D
+a=ssrc:2299905155 label:f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c
+m=video 56875 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 122 127 121 125 107 108 109 124 120 123 119 114 115 116
+c=IN IP4 192.168.88.136
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:1458749531 1 udp 2122260223 192.168.88.136 56875 typ host generation 0 network-id 1
+a=candidate:410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1
+a=ice-ufrag:jnB7
+a=ice-pwd:AdXuISQrexX0wXXPoPdSKJLA
+a=ice-options:trickle
+a=fingerprint:sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49
+a=setup:actpass
+a=mid:1
+a=extmap:14 urn:ietf:params:rtp-hdrext:toffset
+a=extmap:13 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:12 urn:3gpp:video-orientation
+a=extmap:2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:11 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+a=extmap:8 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07
+a=extmap:9 http://www.webrtc.org/experiments/rtp-hdrext/color-space
+a=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+a=sendrecv
+a=msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 goog-remb
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 ccm fir
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:98 VP9/90000
+a=rtcp-fb:98 goog-remb
+a=rtcp-fb:98 transport-cc
+a=rtcp-fb:98 ccm fir
+a=rtcp-fb:98 nack
+a=rtcp-fb:98 nack pli
+a=fmtp:98 profile-id=0;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:99 rtx/90000
+a=fmtp:99 apt=98;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:100 VP9/90000
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 transport-cc
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=fmtp:100 profile-id=2;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:101 rtx/90000
+a=fmtp:101 apt=100;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:102 H264/90000
+a=rtcp-fb:102 goog-remb
+a=rtcp-fb:102 transport-cc
+a=rtcp-fb:102 ccm fir
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:122 rtx/90000
+a=fmtp:122 apt=102;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:127 H264/90000
+a=rtcp-fb:127 goog-remb
+a=rtcp-fb:127 transport-cc
+a=rtcp-fb:127 ccm fir
+a=rtcp-fb:127 nack
+a=rtcp-fb:127 nack pli
+a=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:121 rtx/90000
+a=fmtp:121 apt=127;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:125 H264/90000
+a=rtcp-fb:125 goog-remb
+a=rtcp-fb:125 transport-cc
+a=rtcp-fb:125 ccm fir
+a=rtcp-fb:125 nack
+a=rtcp-fb:125 nack pli
+a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:107 rtx/90000
+a=fmtp:107 apt=125;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:108 H264/90000
+a=rtcp-fb:108 goog-remb
+a=rtcp-fb:108 transport-cc
+a=rtcp-fb:108 ccm fir
+a=rtcp-fb:108 nack
+a=rtcp-fb:108 nack pli
+a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:109 rtx/90000
+a=fmtp:109 apt=108;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:124 H264/90000
+a=rtcp-fb:124 goog-remb
+a=rtcp-fb:124 transport-cc
+a=rtcp-fb:124 ccm fir
+a=rtcp-fb:124 nack
+a=rtcp-fb:124 nack pli
+a=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d0032;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:120 rtx/90000
+a=fmtp:120 apt=124;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:123 H264/90000
+a=rtcp-fb:123 goog-remb
+a=rtcp-fb:123 transport-cc
+a=rtcp-fb:123 ccm fir
+a=rtcp-fb:123 nack
+a=rtcp-fb:123 nack pli
+a=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:119 rtx/90000
+a=fmtp:119 apt=123;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:114 red/90000
+a=rtpmap:115 rtx/90000
+a=fmtp:115 apt=114;x-google-max-bitrate=1000;x-google-start-bitrate=1000
+a=rtpmap:116 ulpfec/90000
+a=ssrc-group:FID 2514927701 2914677776
+a=ssrc:2514927701 cname:rFtyeXXciaGZlW80
+a=ssrc:2514927701 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f
+a=ssrc:2514927701 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D
+a=ssrc:2514927701 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f
+a=ssrc:2914677776 cname:rFtyeXXciaGZlW80
+a=ssrc:2914677776 msid:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f
+a=ssrc:2914677776 mslabel:ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D
+a=ssrc:2914677776 label:0d2f6a5e-1181-4381-9fc8-a24dbf7a403f
+)
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:277 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Group Bundle], group:BUNDLE 0 1 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:297 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_count : 2 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:312 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media], media_type : audio, media_attr_count : 20 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, payload[0] : [111 opus/48000/2 minptime=10;useinbandfec=1;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:444 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media OPUS Codec], media_type : audio, payload : 111 opus/48000/2, fmtp : minptime=10;useinbandfec=1;x-google-max-bitrate=1000;x-google-start-bitrate=1000 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [candidate 1458749531 1 udp 2122260223 192.168.88.136 56874 typ host generation 0 network-id 1] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [candidate 410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [ice-ufrag jnB7] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [ice-pwd AdXuISQrexX0wXXPoPdSKJLA] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [ice-options trickle] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [fingerprint sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [setup actpass] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [mid 0] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [extmap 1 urn:ietf:params:rtp-hdrext:ssrc-audio-level] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [extmap 2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [extmap 3 urn:ietf:params:rtp-hdrext:sdes:mid] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [extmap 4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [extmap 5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [msid ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D f5e6c63a-ff6e-4dfd-ac90-f31bc615a61c] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [rtcp-fb 111 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : audio, attr : [ssrc 2299905155 cname:rFtyeXXciaGZlW80] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:312 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media], media_type : video, media_attr_count : 77 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[0] : [96 VP8/90000/(null) (null)] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[1] : [97 rtx/90000/(null) apt=96;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[2] : [98 VP9/90000/(null) profile-id=0;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[3] : [99 rtx/90000/(null) apt=98;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[4] : [100 VP9/90000/(null) profile-id=2;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[5] : [101 rtx/90000/(null) apt=100;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:331 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, payload[6] : [102 H264/90000/(null) level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:350 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media H264 Codec], media_type : video, payload : 102 H264/90000/(null), fmtp : level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:377 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media H264 Codec, Check Level Id], profileLevelId : 42001f )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:390 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media H264 Codec, Check Idc], profileIdc : 42 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:421 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Media H264 Codec, Relay Without Transcode], media_type : video, payload : 102 H264/90000/(null), profileLevelId : 42001f )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [candidate 1458749531 1 udp 2122260223 192.168.88.136 56875 typ host generation 0 network-id 1] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [candidate 410074283 1 tcp 1518280447 192.168.88.136 9 typ host tcptype active generation 0 network-id 1] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [ice-ufrag jnB7] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [ice-pwd AdXuISQrexX0wXXPoPdSKJLA] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [ice-options trickle] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [fingerprint sha-256 73:33:E9:B7:15:88:42:8B:32:28:59:80:D0:E1:58:59:3A:04:55:A7:ED:AD:17:21:5F:E7:38:A6:B6:55:61:49] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [setup actpass] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [mid 1] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 14 urn:ietf:params:rtp-hdrext:toffset] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 13 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 12 urn:3gpp:video-orientation] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 2 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 11 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 8 http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 9 http://www.webrtc.org/experiments/rtp-hdrext/color-space] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 3 urn:ietf:params:rtp-hdrext:sdes:mid] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [extmap 5 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [msid ylqeMiwpPpQ213MXgllOsST0KHPJRbV5S57D 0d2f6a5e-1181-4381-9fc8-a24dbf7a403f] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 96 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 96 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 96 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 96 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 96 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 98 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 98 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 98 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 98 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 98 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 100 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 100 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 100 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 100 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 100 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 102 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:528 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Video RTCP Feedback], media_type : video, rtcp-fb:102 goog-remb )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 102 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:528 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Video RTCP Feedback], media_type : video, rtcp-fb:102 transport-cc )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 102 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:528 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Video RTCP Feedback], media_type : video, rtcp-fb:102 ccm fir )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 102 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:528 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Video RTCP Feedback], media_type : video, rtcp-fb:102 nack )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 102 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:528 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Found Remote Video RTCP Feedback], media_type : video, rtcp-fb:102 nack pli )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 127 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 127 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 127 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 127 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 127 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 125 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 125 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 125 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 125 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 125 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 108 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 108 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 108 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 108 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 108 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 124 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 124 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 124 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 124 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 124 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 123 goog-remb] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 123 transport-cc] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 123 ccm fir] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 123 nack] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [rtcp-fb 123 nack pli] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [ssrc-group FID 2514927701 2914677776] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:471 WebRTC::ParseRemoteSdp( this : 0xcbce20, media_type : video, attr : [ssrc 2514927701 cname:rFtyeXXciaGZlW80] )
+[ 2019-10-28 08:47:50.046 tid:5109   ] WebRTC.cpp:561 WebRTC::ParseRemoteSdp( this : 0xcbce20, [Parse Remote SDP OK], mVideoSdpPayload : 102 H264/90000, fmtp : level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f;x-google-max-bitrate=1000;x-google-start-bitrate=1000, mAudioSSRC : 2299905155, mAudioMid : 0, mVideoSSRC : 2514927701, mVideoMid : 1 )
+[ 2019-10-28 08:47:50.046 tid:5109   ] IceClient.cpp:150 IceClient::Start( this : 0xcbce70 )
+[ 2019-10-28 08:47:50.062 tid:5109   ] IceClient.cpp:709 IceClient::OnComponentStateChanged( this : 0xcbce70, streamId : 1, componentId : 1, state : gathering )
+[ 2019-10-28 08:47:50.062 tid:5109   ] IceClient.cpp:239 IceClient::Start( this : 0xcbce70, [OK], agent : 0x7efed401d020, streamId : 1, componentId : 1 )
+[ 2019-10-28 08:47:50.062 tid:5109   ] DtlsSession.cpp:421 DtlsSession::Start( this : 0xcbcfb8, )
+[ 2019-10-28 08:47:50.069 tid:5109   ] DtlsSession.cpp:462 DtlsSession::Start( this : 0xcbcfb8, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:237 RtpSession::Start( this : 0xcbd108, localKey : , remoteKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:344 RtpSession::StartSend( this : 0xcbd108, size : 0, localKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:378 RtpSession::StartSend( this : 0xcbd108, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:425 RtpSession::StartRecv( this : 0xcbd108, size : 0, remoteKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:460 RtpSession::StartRecv( this : 0xcbd108, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:259 RtpSession::Start( this : 0xcbd108, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] UdpSender.cpp:74 UdpSender::Init( this : 0xcbd1c0, [OK], fd : 15, sendIp : 127.0.0.1, sendPort : 10000 )
+[ 2019-10-28 08:47:50.069 tid:5109   ] UdpSender.cpp:74 UdpSender::Init( this : 0xcbd1e8, [OK], fd : 17, sendIp : 127.0.0.1, sendPort : 10001 )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:237 RtpSession::Start( this : 0xcbd220, localKey : , remoteKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:344 RtpSession::StartSend( this : 0xcbd220, size : 0, localKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:378 RtpSession::StartSend( this : 0xcbd220, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:425 RtpSession::StartRecv( this : 0xcbd220, size : 0, remoteKey :  )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:460 RtpSession::StartRecv( this : 0xcbd220, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] RtpSession.cpp:259 RtpSession::Start( this : 0xcbd220, [OK] )
+[ 2019-10-28 08:47:50.069 tid:5109   ] UdpSender.cpp:74 UdpSender::Init( this : 0xcbd2d8, [OK], fd : 18, sendIp : 127.0.0.1, sendPort : 10002 )
+[ 2019-10-28 08:47:50.069 tid:5109   ] UdpSender.cpp:74 UdpSender::Init( this : 0xcbd300, [OK], fd : 19, sendIp : 127.0.0.1, sendPort : 10003 )
+[ 2019-10-28 08:47:50.069 tid:5109   ] WebRTC.cpp:170 WebRTC::Start( this : 0xcbce20, [OK], rtmpUrl : rtmp://127.0.0.1:4000/cdn_standard/max11 )
+[ 2019-10-28 08:47:50.069 tid:5109   ] WSServer.cpp:211 WSServer::SendText( hdl : 0xcb70f0, ip : 192.168.88.133:46822, str(121) : {"data":{"rtmpUrl":"rtmp://127.0.0.1:4000/cdn_standard/max11"},"errmsg":"","errno":0,"id":0,"route":"imRTC/sendSdpCall"}
+ )
+[ 2019-10-28 08:47:50.262 tid:5105   ] main.cpp:123 main( Get signal : 11 )

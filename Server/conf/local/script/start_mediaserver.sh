@@ -4,7 +4,7 @@
 # 2019/08/09
 #
 
-# Start media-server
+# Start mediaserver
 APP_DIR=/root/Max/mediaserver
 APP_EXE=$APP_DIR/bin/mediaserver
 APP_CONFIG=$APP_DIR/etc/mediaserver.config

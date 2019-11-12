@@ -121,6 +121,7 @@ void SignalFunc(int sign_no) {
 		LogAync(
 				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
 				);
+		gMediaServer.Exit();
 		LogManager::GetLogManager()->LogFlushMem2File();
 		signal(sign_no, SIG_DFL);
 		kill(getpid(), sign_no);

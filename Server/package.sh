@@ -5,9 +5,15 @@
 mkdir -p tmp
 rm -rf package/*
 
+VERSION=`cat version.json | jq -c '.version' `
+VERSION=`echo $VERSION | sed s/\"//g`
+echo "VERSION:$VERSION"
+
 ENVS=(local demo product)
 for ENV in ${ENVS[@]};do
 	echo "############## Start packaging [$ENV] ##############"
+	# Copy Install/Update Script Files
+	cp -rf bin/ tmp/$ENV/
 	
 	# Copy Executable Files
 	mkdir -p tmp/$ENV/bin/
@@ -18,19 +24,20 @@ for ENV in ${ENVS[@]};do
 	
 	# Copy Config Files
 	mkdir -p tmp/$ENV/etc/
-	cp -rf conf/$ENV/etc tmp/$ENV/etc/
+	cp -rf conf/$ENV/etc tmp/$ENV/
 	mkdir -p tmp/$ENV/script/
-	cp -rf conf/$ENV/script tmp/$ENV/script/
+	cp -rf conf/$ENV/script tmp/$ENV/
 	mkdir -p tmp/$ENV/var/
-	cp -rf conf/$ENV/var tmp/$ENV/var/
+	cp -rf conf/$ENV/var tmp/$ENV/
 	
 	mkdir -p package
 	cd tmp
-	tar zcvf ../package/$ENV.tar.gz $ENV
+	PACKAGE_FILE="${ENV}-${VERSION}.tar.gz"
+	tar zcvf ../package/$PACKAGE_FILE $ENV
 	cd -
 	
 	echo "############## Finish packaging [$ENV] ##############"
-	echo "# Package file: package/$ENV.tar.gz"
+	echo "# Package file: package/$PACKAGE_FILE"
 	echo ""
 done
 

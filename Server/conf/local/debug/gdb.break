@@ -1,3 +1,6 @@
+# Mediaserver
+break MediaServer.cpp:573
+
 # RTMP
 #break srs_librtmp.cpp:22886
 #break srs_librtmp.cpp:29258

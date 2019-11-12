@@ -175,6 +175,10 @@ public:
 	 * 是否正在运行
 	 */
 	bool IsRunning();
+	/**
+	 * 清除进程信息
+	 */
+	void Exit();
 
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 	// AsyncIOServerCallback
@@ -385,6 +389,7 @@ private:
 	// 是否运行
 	KMutex mServerMutex;
 	bool mRunning;
+	string mPidFilePath;
 
 	// 配置文件
 	KMutex mConfigMutex;

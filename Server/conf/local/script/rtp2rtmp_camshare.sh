@@ -2,7 +2,8 @@
 # RTP Stream to RTMP Stream script
 # Author:	Max.Chiu
 
-FFMPEG=/root/Max/mediaserver/bin/ffmpeg
+APP_DIR=/root/Max/mediaserver
+FFMPEG=$APP_DIR/bin/ffmpeg
 
 function Usage {
 	echo "Usage : ./rtp2rtmp.sh rtp.sdp rtmp://192.168.88.17:19351/live/max0"
