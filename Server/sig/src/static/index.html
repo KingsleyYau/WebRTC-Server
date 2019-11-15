@@ -328,7 +328,7 @@ class RTCClient {
 
                 $("[id=localVideo]").attr('srcObject', mediaStream);
                 // canvasStream = $("[id=localVideo]")[0].captureStream();
-                this.pc.addStream(canvasStream);
+                this.pc.addStream(mediaStream);
             }).catch( e => {
                 console.log("RTCClient::showLocalVideo(), [Fail], e: ", e);
             });
