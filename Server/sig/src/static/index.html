@@ -12,9 +12,14 @@
         #video{
             margin-left: -15px;
         }
+        .sepia {
+            -webkit-filter: sepia(1);
+            filter: sepia(1);
+        }
     </style>
 </head>
 
+<script src="imagefilter.js"></script>
 <script src="jquery.min.js"></script>
 <script src="sdp_serializer.js"></script>
 <script src="adapter-latest.js"></script>
@@ -24,6 +29,10 @@
 var client;
 var reqId = 0;
 var callAlready = false;
+
+var img;
+var canvasStream;
+var imageFilter;
 
 function reset() {
     reqId = 0;
@@ -53,7 +62,7 @@ async function connect() {
         } else {
             host = 'ws://' + window.location.hostname + ':9881';
         }
-        // host = 'wss://' + '127.0.0.1' + ':9081';
+        host = 'wss://' + '127.0.0.1' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
         // host = 'wss://' + '52.196.96.7' + ':9081';
 
@@ -315,9 +324,11 @@ class RTCClient {
                 }
 
                 this.setVideoTrackContent(mediaStream);
-                this.pc.addStream(mediaStream);
                 this.mediaStream = mediaStream;
+
                 $("[id=localVideo]").attr('srcObject', mediaStream);
+                // canvasStream = $("[id=localVideo]")[0].captureStream();
+                this.pc.addStream(canvasStream);
             }).catch( e => {
                 console.log("RTCClient::showLocalVideo(), [Fail], e: ", e);
             });
@@ -463,6 +474,19 @@ function isEdge() {
     return ( adapter.browserDetails.browser == 'edge' );
 }
 
+function draw() {
+    // var width = 640;
+    // var height = 480;
+    // canvas.width = width;
+    // canvas.height = height;
+    // ctx.drawImage(img, 0, 0, width, height);
+    //
+    imageFilter.draw();
+    setTimeout(() => {
+        draw();
+    }, 30);
+}
+
 function onload() {
     if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('WebRTC.mediaDevices is not supported.');
@@ -475,6 +499,26 @@ function onload() {
     }
 
     console.log("Browser is " + adapter.browserDetails.browser);
+
+    var canvas = $("[id=localCanvas]")[0];
+
+    imageFilter = new ImageFilter();
+    imageFilter.init(canvas);
+    imageFilter.loadImage('img/1.jpg');
+    draw();
+
+    canvasStream = canvas.captureStream(0);
+    // $("[id=localVideo]")[0].className = 'sepia';
+    // img = $("[id=localVideo]")[0];
+    // var canvas = $("[id=localCanvas]")[0];
+    // ctx = canvas.getContext("2d");
+
+    // draw(canvas, ctx, img);
+    // var img = $("[id=localImg]")[0];
+    // img.onload = function() {
+    //     draw(canvas, ctx, img);
+    //     canvasStream = canvas.captureStream();
+    // }
 
     const configChromeDemo = {
         // iceServers: JSON.parse('[{"urls":["stun:192.168.88.134:3478"]}]')
@@ -589,6 +633,9 @@ function onload() {
         rtc.hangup();
     });
 
+    $("[id=imgBtn]").click(function() {
+    });
+
     $("[id=videoSource]").change( function () {
 
     });
@@ -639,22 +686,27 @@ document.addEventListener("DOMContentLoaded", function() {
                 <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
             </div>
 
-            Stream : <input id="stream" type="text" name="" value="max0" /><br>
-            Local SDP<p>
+            # Stream : <input id="stream" type="text" name="" value="max0" /><br>
+            <p>### Local Video & Canvas ###</p>
+            <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
-                <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
+                <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button><button id="imgBtn">Img</button>
             </div>
-            <p>Local Video</p>
-            <label for="videoSelector">Video source: </label><select id="videoSelector"></select>
-            <div class="crop">
+            <p>
+            <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
+            <div class="">
+                <p># Video</p>
                 <video id="localVideo" width="640" height="480" autoplay style="display:none"></video>
+                <canvas id="localCanvas" width="640" height="480" style="display:block"></canvas>
+                <img id="localImg" src="img/1.jpg" style="display: none">
             </div>
             <label id="stats"></label>
         </div>
 
+        <p>### Remote Video ###</p>
         <div id="remote">
-            <p>Remote SDP</p>
+            <p># Remote SDP #</p>
             <textarea id="remoteSdpTextarea"></textarea>
         </div>
     </div>
