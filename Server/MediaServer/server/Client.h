@@ -28,7 +28,7 @@ namespace mediaserver {
 /**
  * 总读包缓存Buffer Size
  */
-#define CLIENT_BUFFER_SIZE 1 * 256 * 1024
+#define CLIENT_BUFFER_SIZE 1 * 64 * 1024
 
 class Client {
 public:
