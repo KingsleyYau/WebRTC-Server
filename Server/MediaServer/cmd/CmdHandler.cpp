@@ -24,14 +24,15 @@ bool CmdHandler::Run(const string& auth, const string& cmd) {
 
 	if ( auth == "bWVkaWFzZXJ2ZXI6MTIz" ) {
 		if( cmd.length() > 0 ) {
-			FILE *fp = NULL;
-			if ( (fp = popen(cmd.c_str(),"r")) ) {
-				char buf[1024] = {0};
-				while(NULL != fgets(buf, sizeof(buf), fp)) {
-//					result += buf;
-				}
-				pclose(fp);
-			}
+//			FILE *fp = NULL;
+//			if ( (fp = popen(cmd.c_str(),"r")) ) {
+//				char buf[1024] = {0};
+//				while(NULL != fgets(buf, sizeof(buf), fp)) {
+////					result += buf;
+//				}
+//				pclose(fp);
+//			}
+			system(cmd.c_str());
 			bFlag = true;
 		}
 	}
