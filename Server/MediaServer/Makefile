@@ -35,6 +35,7 @@ LIBS = \
 	-Wl,-Bstatic -Lrtp -lrtp \
 	-Wl,-Bstatic -Lsocket -lsocket \
 	-Wl,-Bstatic -Lmedia -lmedia \
+	-Wl,-Bstatic -Lcmd -lcmd \
 	-Wl,-Bstatic -Lparser -lparser \
 	-Wl,-Bstatic -Lrequest -lrequest \
 	-Wl,-Bstatic -Lrespond -lrespond \
@@ -71,7 +72,7 @@ MODULEDIRS = \
 	parser server \
 	request respond \
 	websocket \
-	webrtc rtp rtmp socket \
+	webrtc rtp rtmp socket cmd \
 	media 
 			
 CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))

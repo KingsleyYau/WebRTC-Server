@@ -58,6 +58,7 @@ public:
 
 	int ParseData(char* buffer, int len);
 
+	string GetAuth();
 	string GetParam(const string& key);
 	string GetPath();
 	HttpType GetType();
@@ -72,6 +73,7 @@ private:
 	char* mpBody;
 	int miCurContentIndex;
 	string mContentType = "";
+	string mAuth = "";
 
 	KMutex mClientMutex;
 	HttpState mState;

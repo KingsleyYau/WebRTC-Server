@@ -16,6 +16,7 @@
 namespace mediaserver {
 #define HTTP_URL_MAX_FIRST_LINE 2048
 #define HTTP_URL_MAX_PATH 4096
+#define HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH 4096
 
 #define HTTP_PARAM_SEP ":"
 #define HTTP_LINE_SEP "\r\n"
@@ -24,6 +25,7 @@ namespace mediaserver {
 #define HTTP_HEADER_CONTENTLENGTH "Content-Length"
 #define HTTP_HEADER_CONTENTTYPE "Content-Type"
 #define HTTP_HEADER_CONTENTTYPE_URLENCODED "application/x-www-form-urlencoded"
+#define HTTP_HEADER_AUTH "Authorization"
 
 HttpParser::HttpParser() {
 	// TODO Auto-generated constructor stub
@@ -157,11 +159,12 @@ int HttpParser::ParseData(char* buffer, int len) {
 				}
 
 			} else {
-				// 没有Content-Length的请求不解析
-				if( mpCallback ) {
-					mpCallback->OnHttpParserError(this);
+				// 没有Content-Length的请求不解析, 并且数据过大
+				if ( ret > HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH ) {
+					if( mpCallback ) {
+						mpCallback->OnHttpParserError(this);
+					}
 				}
-
 				ret += last;
 			}
 		}break;
@@ -198,6 +201,10 @@ string HttpParser::GetPath() {
 
 HttpType HttpParser::GetType() {
 	return mHttpType;
+}
+
+string HttpParser::GetAuth() {
+	return mAuth;
 }
 
 const char* HttpParser::GetBody() {
@@ -249,11 +256,11 @@ bool HttpParser::ParseFirstLine(const string& wholeLine) {
 		}break;
 		case 1:{
 			// 解析url
-			Arithmetic ari;
-			char temp[HTTP_URL_MAX_FIRST_LINE] = {'\0'};
-			int decodeLen = ari.decode_url(line.c_str(), line.length(), temp);
-			temp[decodeLen] = '\0';
-			string path = temp;
+//			Arithmetic ari;
+//			char temp[HTTP_URL_MAX_FIRST_LINE] = {'\0'};
+//			int decodeLen = ari.decode_url(line.c_str(), line.length(), temp);
+//			temp[decodeLen] = '\0';
+			string path = line;
 			string::size_type posSep = path.find("?");
 			if( (string::npos != posSep) && (posSep + 1 < path.length()) ) {
 				// 解析路径
@@ -311,7 +318,13 @@ void HttpParser::ParseParameters(const string& wholeLine) {
 		if( (string::npos != posSep) && (posSep + 1 < line.length()) ) {
 			key = line.substr(0, posSep);
 			value = line.substr(posSep + 1, line.length() - (posSep + 1));
-			mParameters.insert(Parameters::value_type(key, value));
+
+			Arithmetic arc;
+			char tmp[4096];
+			if ( value.length() < sizeof(tmp) ) {
+				arc.decode_url(value.c_str(), value.length(), tmp);
+				mParameters.insert(Parameters::value_type(key, tmp));
+			}
 
 		} else {
 			key = line;
@@ -332,10 +345,14 @@ void HttpParser::ParseHeader(const string& line) {
 		value = StringHandle::trim(line.substr(pos + 1, line.size() - 1));
 	}
 
-	if( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTLENGTH) == 0 ) {
+	if ( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTLENGTH) == 0 ) {
 		miContentLength = atoi(value.c_str());
-	} else if( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTTYPE) == 0 ) {
+	} else if ( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTTYPE) == 0 ) {
 		mContentType = value;
+	} else if ( strcasecmp(key.c_str(), HTTP_HEADER_AUTH) == 0 ) {
+		string::size_type posAuth = value.find(" ", 0);
+		string auth = StringHandle::trim(value.substr(posAuth + 1, value.size() - 1));
+		mAuth = auth;
 	}
 }
 

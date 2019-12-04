@@ -145,9 +145,13 @@ typedef KSafeList<MediaClient *> MediaClientList;
 // 外部请求队列
 typedef KSafeList<ExtRequestItem *> ExtRequestList;
 
+// CMD请求队列
+typedef KSafeList<HttpParser *> CmdItemList;
+
 class ExtRequestRunnable;
 class TimeoutCheckRunnable;
 class StateRunnable;
+class CmdRunnable;
 class MediaServer :
 		public AsyncIOServerCallback,
 		public HttpParserCallback,
@@ -157,6 +161,7 @@ class MediaServer :
 	friend class ExtRequestRunnable;
 	friend class TimeoutCheckRunnable;
 	friend class StateRunnable;
+	friend class CmdRunnable;
 
 public:
 	MediaServer();
@@ -192,6 +197,7 @@ public:
 
 	// HttpHandler
 	void OnRequestReloadLogConfig(HttpParser* parser);
+	bool OnRequestCmd(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 
@@ -238,6 +244,11 @@ private:
 	 * 外部请求线程处理
 	 */
 	void ExtRequestHandle();
+
+	/**
+	 * 命令请求线程处理
+	 */
+	void CmdHandle();
 	/***************************** 定时任务 **************************************/
 
 
@@ -381,6 +392,10 @@ private:
 	// 外部登录校验线程
 	ExtRequestRunnable* mpExtRequestRunnable;
 	KThread mExtRequestThread;
+
+	// 其他
+	CmdRunnable* mpCmdRunnable;
+	KThread mCmdThread[8];
 	/***************************** 定时任务线程 **************************************/
 
 
@@ -420,6 +435,12 @@ private:
 	// 是否需要强制同步在线列表
 	bool mbForceExtSync;
 	/***************************** 运行参数 end **************************************/
+
+
+	/***************************** 其他参数 **************************************/
+	// 命令请求队列
+	CmdItemList mCmdItemList;
+	/***************************** 其他参数 end **************************************/
 };
 
 #endif /* MEDIASERVER_H_ */

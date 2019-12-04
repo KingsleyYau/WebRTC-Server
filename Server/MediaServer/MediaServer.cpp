@@ -19,7 +19,9 @@
 // Request
 // Respond
 #include <respond/BaseRespond.h>
+#include <respond/BaseRawRespond.h>
 #include <respond/BaseResultRespond.h>
+#include <cmd/CmdHandler.h>
 
 /***************************** 状态监视处理 **************************************/
 class StateRunnable : public KRunnable {
@@ -59,7 +61,7 @@ private:
 
 /***************************** 超时处理 **************************************/
 
-/***************************** 外部登录处理处理 **************************************/
+/***************************** 外部登录处理 **************************************/
 class ExtRequestRunnable : public KRunnable {
 public:
 	ExtRequestRunnable(MediaServer *container) {
@@ -76,7 +78,26 @@ private:
 	MediaServer *mContainer;
 };
 
-/***************************** 超时处理 **************************************/
+/***************************** 外部登录处理 **************************************/
+
+/***************************** 其他处理 **************************************/
+class CmdRunnable : public KRunnable {
+public:
+	CmdRunnable(MediaServer *container) {
+		mContainer = container;
+	}
+	virtual ~CmdRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->CmdHandle();
+	}
+private:
+	MediaServer *mContainer;
+};
+
+/***************************** 外部登录处理处理 **************************************/
 
 MediaServer::MediaServer()
 :mServerMutex(KMutex::MutexType_Recursive) {
@@ -91,6 +112,8 @@ MediaServer::MediaServer()
 	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
 	// 外部请求线程
 	mpExtRequestRunnable = new ExtRequestRunnable(this);
+	// 命令请求线程
+	mpCmdRunnable = new CmdRunnable(this);
 
 	// 内部服务(HTTP)参数
 	miPort = 0;
@@ -141,6 +164,11 @@ MediaServer::~MediaServer() {
 	if ( mpExtRequestRunnable ) {
 		delete mpExtRequestRunnable;
 		mpExtRequestRunnable = NULL;
+	}
+
+	if ( mpCmdRunnable ) {
+		delete mpCmdRunnable;
+		mpCmdRunnable = NULL;
 	}
 }
 
@@ -306,6 +334,12 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_ERR_SYS, "MediaServer::Start( event : [启动监听子进程循环-Fail] )"
 					);
+		}
+	}
+
+	if( bFlag ) {
+		for( int i = 0; i < _countof(mCmdThread); i++ ) {
+			mCmdThread[i].Start(mpCmdRunnable, "CmdThread");
 		}
 	}
 
@@ -538,6 +572,9 @@ bool MediaServer::Stop() {
 		mStateThread.Stop();
 		mTimeoutCheckThread.Stop();
 		mExtRequestThread.Stop();
+		for( int i = 0; i < _countof(mCmdThread); i++ ) {
+			mCmdThread[i].Stop();
+		}
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
 
@@ -678,6 +715,28 @@ void MediaServer::ExtRequestHandle() {
 		}
 	}
 }
+
+
+void MediaServer::CmdHandle() {
+	while( IsRunning() ) {
+		HttpParser *parser = mCmdItemList.PopFront();
+		if ( parser ) {
+			Client* client = (Client *)parser->custom;
+
+			string auth = parser->GetAuth();
+			string cmd = parser->GetParam("cmd");
+
+			BaseResultRespond respond;
+			HttpSendRespond(parser, &respond);
+			mAsyncIOServer.Disconnect(client);
+
+			CmdHandler cmdHandler;
+			bool bFlag = cmdHandler.Run(auth, cmd);
+		}
+
+		usleep(500 * 1000);
+	}
+}
 /***************************** 定时任务 **************************************/
 
 
@@ -762,10 +821,12 @@ void MediaServer::OnHttpParserError(HttpParser* parser) {
 			LOG_WARNING,
 			"MediaServer::OnHttpParserError( "
 			"parser : %p, "
-			"client : %p "
+			"client : %p, "
+			"path : %s "
 			")",
 			parser,
-			client
+			client,
+			parser->GetPath().c_str()
 			);
 
 	mAsyncIOServer.Disconnect(client);
@@ -780,7 +841,8 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 	if( parser->GetPath() == "/reload" ) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
-
+	} else if ( parser->GetPath() == "/cmd" ) {
+		bFlag = OnRequestCmd(parser);
 	} else {
 		bFlag = false;
 	}
@@ -789,10 +851,13 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 }
 
 bool MediaServer::HttpParseRequestBody(HttpParser* parser) {
-	bool bFlag = true;
+	bool bFlag = false;
 
-	// 未知命令
-	bFlag = OnRequestUndefinedCommand(parser);
+	if ( parser->GetPath() == "/cmd" ) {
+	} else {
+		// 未知命令
+		bFlag = OnRequestUndefinedCommand(parser);
+	}
 
 	return bFlag;
 }
@@ -804,18 +869,18 @@ bool MediaServer::HttpSendRespond(
 	bool bFlag = false;
 	Client* client = (Client *)parser->custom;
 
-	LogAync(
-			LOG_MSG,
-			"MediaServer::HttpSendRespond( "
-			"event : [内部服务(HTTP)-返回请求到客户端], "
-			"parser : %p, "
-			"client : %p, "
-			"respond : %p "
-			")",
-			parser,
-			client,
-			respond
-			);
+//	LogAync(
+//			LOG_MSG,
+//			"MediaServer::HttpSendRespond( "
+//			"event : [内部服务(HTTP)-返回请求到客户端], "
+//			"parser : %p, "
+//			"client : %p, "
+//			"respond : %p "
+//			")",
+//			parser,
+//			client,
+//			respond
+//			);
 
 	// 发送头部
 	char buffer[MAX_BUFFER_LEN];
@@ -836,20 +901,20 @@ bool MediaServer::HttpSendRespond(
 		bool more = false;
 		while( true ) {
 			len = respond->GetData(buffer, MAX_BUFFER_LEN, more);
-			LogAync(
-					LOG_WARNING,
-					"MediaServer::HttpSendRespond( "
-					"event : [内部服务(HTTP)-返回请求内容到客户端], "
-					"parser : %p, "
-					"client : %p, "
-					"respond : %p, "
-					"buffer : %s "
-					")",
-					parser,
-					client,
-					respond,
-					buffer
-					);
+//			LogAync(
+//					LOG_WARNING,
+//					"MediaServer::HttpSendRespond( "
+//					"event : [内部服务(HTTP)-返回请求内容到客户端], "
+//					"parser : %p, "
+//					"client : %p, "
+//					"respond : %p, "
+//					"buffer : %s "
+//					")",
+//					parser,
+//					client,
+//					respond,
+//					buffer
+//					);
 
 			mAsyncIOServer.Send(client, buffer, len);
 
@@ -894,6 +959,12 @@ void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 	// 马上返回数据
 	BaseResultRespond respond;
 	HttpSendRespond(parser, &respond);
+}
+
+bool MediaServer::OnRequestCmd(HttpParser* parser) {
+	mCmdItemList.PushBack(parser);
+
+	return false;
 }
 
 bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
