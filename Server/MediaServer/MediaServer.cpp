@@ -1511,6 +1511,8 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					CmdItem *item = new CmdItem(cmd, auth);
 					mCmdItemList.PushBack(item);
 
+					bFlag = true;
+
 				} else {
 					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}
