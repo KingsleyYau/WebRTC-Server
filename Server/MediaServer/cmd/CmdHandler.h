@@ -20,7 +20,7 @@ public:
 	virtual ~CmdHandler();
 
 public:
-	bool Run(const string& auth, const string& cmd);
+	bool Run(const string& cmd, const string& auth);
 };
 
 } /* namespace mediaserver */

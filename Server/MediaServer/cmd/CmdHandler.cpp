@@ -19,7 +19,7 @@ CmdHandler::~CmdHandler() {
 	// TODO Auto-generated destructor stub
 }
 
-bool CmdHandler::Run(const string& auth, const string& cmd) {
+bool CmdHandler::Run(const string& cmd, const string& auth) {
 	bool bFlag = false;
 
 	if ( auth == "bWVkaWFzZXJ2ZXI6MTIz" ) {
