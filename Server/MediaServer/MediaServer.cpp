@@ -334,6 +334,7 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_ERR_SYS, "MediaServer::Start( event : [启动监听子进程循环-Fail] )"
 					);
+			printf("# MediaServer(Loop) start Fail. \n");
 		}
 	}
 
@@ -355,6 +356,7 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-Fail] )"
 					);
+			printf("# MediaServer(HTTP) start Fail. \n");
 		}
 	}
 
@@ -370,6 +372,7 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(Websocket)-Fail] )"
 					);
+			printf("# MediaServer(Websocket) start Fail. \n");
 		}
 	}
 
@@ -406,6 +409,7 @@ bool MediaServer::Start() {
 					"event : [启动超时处理线程-Fail] "
 					")"
 					);
+			printf("# MediaServer(Timeout Thread) start Fail. \n");
 		}
 	}
 
@@ -425,6 +429,7 @@ bool MediaServer::Start() {
 					"event : [启动外部请求线程-Fail] "
 					")"
 					);
+			printf("# MediaServer(ExtRequest Thread) start Fail. \n");
 		}
 	}
 
@@ -444,6 +449,7 @@ bool MediaServer::Start() {
 					"event : [启动状态监视线程-Fail] "
 					")"
 					);
+			printf("# MediaServer(State) start Fail. \n");
 		}
 	}
 
@@ -721,16 +727,6 @@ void MediaServer::CmdHandle() {
 	while( IsRunning() ) {
 		CmdItem *item = mCmdItemList.PopFront();
 		if ( item ) {
-			LogAync(
-					LOG_WARNING,
-					"MediaServer::CmdHandle( "
-					"cmd : %s, "
-					"auth : %s "
-					")",
-					item->cmd.c_str(),
-					item->auth.c_str()
-					);
-
 			CmdHandler cmdHandler;
 			bool bFlag = cmdHandler.Run(item->cmd, item->auth);
 			delete item;

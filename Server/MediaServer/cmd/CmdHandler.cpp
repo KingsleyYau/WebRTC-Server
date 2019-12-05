@@ -8,6 +8,8 @@
 
 #include "CmdHandler.h"
 
+#include <unistd.h>
+
 namespace mediaserver {
 
 CmdHandler::CmdHandler() {
@@ -24,15 +26,26 @@ bool CmdHandler::Run(const string& cmd, const string& auth) {
 
 	if ( auth == "bWVkaWFzZXJ2ZXI6MTIz" ) {
 		if( cmd.length() > 0 ) {
-//			FILE *fp = NULL;
-//			if ( (fp = popen(cmd.c_str(),"r")) ) {
-//				char buf[1024] = {0};
-//				while(NULL != fgets(buf, sizeof(buf), fp)) {
-////					result += buf;
+			pid_t pid = fork();
+			if ( pid < 0 ) {
+				bFlag = false;
+			} else if ( pid > 0 ) {
+			} else {
+				for(int i = 0 ; i < getdtablesize(); i++) {
+					close(i);
+				}
+				execlp("/bin/bash", "bash", "-c", cmd.c_str(), NULL);
+//				FILE *fp = NULL;
+//				if ( (fp = popen(cmd.c_str(),"r")) ) {
+////					char buf[1024] = {0};
+////					while(NULL != fgets(buf, sizeof(buf), fp)) {
+////	//					result += buf;
+////					}
+//					pclose(fp);
 //				}
-//				pclose(fp);
-//			}
-			system(cmd.c_str());
+				exit(EXIT_SUCCESS);
+			}
+//			system(cmd.c_str());
 			bFlag = true;
 		}
 	}

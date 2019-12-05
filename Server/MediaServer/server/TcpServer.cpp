@@ -418,7 +418,8 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 	struct sockaddr_in addr;
 	socklen_t iAddrLen = sizeof(struct sockaddr);
 	while ( (clientfd = accept(w->fd, (struct sockaddr *)&addr, &iAddrLen)) < 0 ) {
-		if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+		int errNo = errno;
+		if ( errNo == EAGAIN || errNo == EWOULDBLOCK ) {
 			LogAync(
 					LOG_STAT,
 					"TcpServer::IOHandleAccept( "
@@ -432,10 +433,10 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 			LogAync(
 					LOG_WARNING,
 					"TcpServer::AcceptCallback( "
-					"[Accept error] "
-//					"fd : %d "
-					")"
-//					w->fd
+					"[Accept error], "
+					"errno : %d "
+					")",
+					errNo
 					);
 			break;
 		}
