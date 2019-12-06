@@ -564,17 +564,17 @@ size_t Arithmetic::ChangeCharset(char* outbuf, size_t outbytes, const char* inbu
     return (outbytes - 2 - outlen);
 }
 
-string Arithmetic::AsciiToHexWithSep(char* data, int i_in_len) {
+string Arithmetic::AsciiToHexWithSep(char* data, int i_in_len, string sep) {
     string result = "";
     unsigned char c;
     for (int i = 0; i < i_in_len; i++){
     	c = data[i];
     	result += hex[c >> 4];
     	result += hex[c & (16 - 1)];
-        result += ':';
+        result += sep;
     }
 
-    if( result.length() > 0 ) {
+    if( result.length() > 0 && sep.length() > 0 ) {
     	result = result.substr(0, result.length() -1);
     }
 
