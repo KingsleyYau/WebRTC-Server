@@ -26,22 +26,16 @@ public:
 	void Check(const string& str);
 
 private:
-	/**
-	 * 命令请求线程处理
-	 */
 	void CmdHandle();
 	bool Run(CmdItem* item);
 
 private:
-	// 是否运行
 	KMutex mRunningMutex;
 	bool mRunning;
 
-	// 其他
 	CmdRunnable* mpCmdRunnable;
 	KThread mCmdThread[8];
 
-	// 命令请求队列
 	CmdItemList mCmdItemList;
 };
 

@@ -3,9 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 
-// ThirdParty
 #include <json/json.h>
-// Common
+
 #include <common/Arithmetic.h>
 #include <common/CommonFunc.h>
 
@@ -102,9 +101,7 @@ private:
 
 CmdHandler::CmdHandler() {
 	// TODO Auto-generated constructor stub
-	// 命令请求线程
 	mpCmdRunnable = new CmdRunnable(this);
-
 	mRunning = false;
 }
 
