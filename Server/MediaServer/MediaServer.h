@@ -19,6 +19,7 @@
 #include <common/TimeProc.hpp>
 #include <common/StringHandle.h>
 #include <common/CommonFunc.h>
+#include <common/CmdHandler.h>
 // ThirdParty
 #include <json/json.h>
 // Http Client
@@ -31,7 +32,6 @@
 #include <parser/HttpParser.h>
 #include <request/IRequest.h>
 #include <respond/IRespond.h>
-#include <cmd/CmdHandler.h>
 // RtmpStreamPool
 #include <rtmp/RtmpStreamPool.h>
 // WebRTC
@@ -145,7 +145,6 @@ typedef KSafeList<ExtRequestItem *> ExtRequestList;
 class ExtRequestRunnable;
 class TimeoutCheckRunnable;
 class StateRunnable;
-class CmdRunnable;
 class MediaServer :
 		public AsyncIOServerCallback,
 		public HttpParserCallback,
@@ -155,7 +154,6 @@ class MediaServer :
 	friend class ExtRequestRunnable;
 	friend class TimeoutCheckRunnable;
 	friend class StateRunnable;
-	friend class CmdRunnable;
 
 public:
 	MediaServer();
@@ -237,11 +235,6 @@ private:
 	 * 外部请求线程处理
 	 */
 	void ExtRequestHandle();
-
-	/**
-	 * 命令请求线程处理
-	 */
-	void CmdHandle();
 	/***************************** 定时任务 **************************************/
 
 
@@ -385,10 +378,6 @@ private:
 	// 外部登录校验线程
 	ExtRequestRunnable* mpExtRequestRunnable;
 	KThread mExtRequestThread;
-
-	// 其他
-	CmdRunnable* mpCmdRunnable;
-	KThread mCmdThread[8];
 	/***************************** 定时任务线程 **************************************/
 
 
@@ -418,22 +407,14 @@ private:
 	MediaClientMap mMediaClientMap;
 	// 可用的WebRTC Object
 	WebRTCList mWebRTCList;
-
 	// 可用的MediaClient
 	MediaClientList mMediaClientList;
-
 	// 外部请求队列
 	ExtRequestList mExtRequestList;
 
 	// 是否需要强制同步在线列表
 	bool mbForceExtSync;
 	/***************************** 运行参数 end **************************************/
-
-
-	/***************************** 其他参数 **************************************/
-	// 命令请求队列
-	CmdItemList mCmdItemList;
-	/***************************** 其他参数 end **************************************/
 };
 
 #endif /* MEDIASERVER_H_ */

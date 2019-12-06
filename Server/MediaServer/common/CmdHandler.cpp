@@ -1,21 +1,15 @@
-/*
- * CmdHandler.cpp
- *
- *  Created on: 2019/12/04
- *      Author: max
- *		Email: Kingsleyyau@gmail.com
- */
-
 #include "CmdHandler.h"
 
 #include <unistd.h>
 #include <string.h>
 
+// ThirdParty
+#include <json/json.h>
+// Common
 #include <common/Arithmetic.h>
+#include <common/CommonFunc.h>
 
-namespace mediaserver {
-
-static bool Exec(const string& cmd, const string& auth) {
+static inline bool Exec(const string& cmd, const string& auth) {
 	bool bFlag = false;
 
 	if ( auth == "bWVkaWFzZXJ2ZXI6MTIz" ) {
@@ -28,24 +22,15 @@ static bool Exec(const string& cmd, const string& auth) {
 				close(i);
 			}
 			execlp("/bin/bash", "bash", "-c", cmd.c_str(), NULL);
-	//				FILE *fp = NULL;
-	//				if ( (fp = popen(cmd.c_str(),"r")) ) {
-	////					char buf[1024] = {0};
-	////					while(NULL != fgets(buf, sizeof(buf), fp)) {
-	////	//					result += buf;
-	////					}
-	//					pclose(fp);
-	//				}
 			exit(EXIT_SUCCESS);
 		}
-	//			system(cmd.c_str());
 		bFlag = true;
 	}
 
 	return bFlag;
 }
 
-static bool ExecJson(const string& str) {
+static inline bool ExecJson(const string& str) {
 	bool bFlag = false;
 
 	Json::Value reqRoot;
@@ -81,20 +66,107 @@ static bool ExecJson(const string& str) {
 	return bFlag;
 }
 
+struct CmdItem {
+	CmdItem() {
+	}
+	CmdItem(const string& data) {
+		this->data = data;
+	}
+	string data;
+};
+
+class CmdHandler;
+static CmdHandler *gCmdHandler = NULL;
+CmdHandler *CmdHandler::GetCmdHandler() {
+	if( gCmdHandler == NULL ) {
+		gCmdHandler = new CmdHandler();
+	}
+	return gCmdHandler;
+}
+
+class CmdRunnable : public KRunnable {
+public:
+	CmdRunnable(CmdHandler *container) {
+		mContainer = container;
+	}
+	virtual ~CmdRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->CmdHandle();
+	}
+private:
+	CmdHandler *mContainer;
+};
+
 CmdHandler::CmdHandler() {
 	// TODO Auto-generated constructor stub
+	// 命令请求线程
+	mpCmdRunnable = new CmdRunnable(this);
 
+	mRunning = false;
 }
 
 CmdHandler::~CmdHandler() {
 	// TODO Auto-generated destructor stub
+	if ( mpCmdRunnable ) {
+		delete mpCmdRunnable;
+		mpCmdRunnable = NULL;
+	}
+}
+
+bool CmdHandler::Start() {
+	bool bFlag = false;
+	mRunningMutex.lock();
+	if ( mRunning ) {
+		Stop();
+	}
+	mRunning = true;
+
+	for( int i = 0; i < _countof(mCmdThread); i++ ) {
+		mCmdThread[i].Start(mpCmdRunnable, "");
+	}
+
+	mRunningMutex.unlock();
+	return bFlag;
+}
+
+void CmdHandler::Stop() {
+	mRunningMutex.lock();
+
+	if( mRunning ) {
+		mRunning = false;
+
+		for( int i = 0; i < _countof(mCmdThread); i++ ) {
+			mCmdThread[i].Stop();
+		}
+	}
+
+	mRunningMutex.unlock();
+}
+
+void CmdHandler::CmdHandle() {
+	while( mRunning ) {
+		CmdItem *item = mCmdItemList.PopFront();
+		if ( item ) {
+			CmdHandler cmdHandler;
+			bool bFlag = cmdHandler.Run(item);
+			delete item;
+		}
+		usleep(500 * 1000);
+	}
+}
+
+void CmdHandler::Check(const string& str) {
+	CmdItem *item = new CmdItem(str);
+	mCmdItemList.PushBack(item);
 }
 
 bool CmdHandler::Run(CmdItem *item) {
 	bool bFlag = false;
 
 	Arithmetic ari;
-
 	string aesDecodeString;
 	string base64HexString;
 	char base64DecodeString[1024] = {0};
@@ -110,5 +182,3 @@ bool CmdHandler::Run(CmdItem *item) {
 
 	return bFlag;
 }
-
-} /* namespace mediaserver */

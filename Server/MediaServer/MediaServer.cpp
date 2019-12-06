@@ -21,7 +21,6 @@
 #include <respond/BaseRespond.h>
 #include <respond/BaseRawRespond.h>
 #include <respond/BaseResultRespond.h>
-#include <cmd/CmdHandler.h>
 
 /***************************** 状态监视处理 **************************************/
 class StateRunnable : public KRunnable {
@@ -80,24 +79,6 @@ private:
 
 /***************************** 外部登录处理 **************************************/
 
-/***************************** 其他处理 **************************************/
-class CmdRunnable : public KRunnable {
-public:
-	CmdRunnable(MediaServer *container) {
-		mContainer = container;
-	}
-	virtual ~CmdRunnable() {
-		mContainer = NULL;
-	}
-protected:
-	void onRun() {
-		mContainer->CmdHandle();
-	}
-private:
-	MediaServer *mContainer;
-};
-
-/***************************** 外部登录处理处理 **************************************/
 
 MediaServer::MediaServer()
 :mServerMutex(KMutex::MutexType_Recursive) {
@@ -112,8 +93,6 @@ MediaServer::MediaServer()
 	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
 	// 外部请求线程
 	mpExtRequestRunnable = new ExtRequestRunnable(this);
-	// 命令请求线程
-	mpCmdRunnable = new CmdRunnable(this);
 
 	// 内部服务(HTTP)参数
 	miPort = 0;
@@ -164,11 +143,6 @@ MediaServer::~MediaServer() {
 	if ( mpExtRequestRunnable ) {
 		delete mpExtRequestRunnable;
 		mpExtRequestRunnable = NULL;
-	}
-
-	if ( mpCmdRunnable ) {
-		delete mpCmdRunnable;
-		mpCmdRunnable = NULL;
 	}
 }
 
@@ -339,9 +313,7 @@ bool MediaServer::Start() {
 	}
 
 	if( bFlag ) {
-		for( int i = 0; i < _countof(mCmdThread); i++ ) {
-			mCmdThread[i].Start(mpCmdRunnable, "CmdThread");
-		}
+		CmdHandler::GetCmdHandler()->Start();
 	}
 
 	// 启动HTTP服务
@@ -578,11 +550,9 @@ bool MediaServer::Stop() {
 		mStateThread.Stop();
 		mTimeoutCheckThread.Stop();
 		mExtRequestThread.Stop();
-		for( int i = 0; i < _countof(mCmdThread); i++ ) {
-			mCmdThread[i].Stop();
-		}
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
+		CmdHandler::GetCmdHandler()->Stop();
 
 		if ( mPidFilePath.length() > 0 ) {
 			int ret = remove(mPidFilePath.c_str());
@@ -722,18 +692,6 @@ void MediaServer::ExtRequestHandle() {
 	}
 }
 
-
-void MediaServer::CmdHandle() {
-	while( IsRunning() ) {
-		CmdItem *item = mCmdItemList.PopFront();
-		if ( item ) {
-			CmdHandler cmdHandler;
-			bool bFlag = cmdHandler.Run(item);
-			delete item;
-		}
-		usleep(500 * 1000);
-	}
-}
 /***************************** 定时任务 **************************************/
 
 
@@ -1110,21 +1068,6 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			errType,
 			errMsg.c_str()
 			);
-
-//	if( bFound ) {
-//		Json::Value resRoot;
-//		Json::FastWriter writer;
-//
-//		resRoot["id"] = 0;
-//		resRoot["route"] = "imRTC/sendErrorNotice";
-//		resRoot["errno"] = 0;
-//		resRoot["errmsg"] = errMsg;
-//
-//		string res = writer.write(resRoot);
-//		mWSServer.SendText(hdl, res);
-//
-//		mWSServer.Disconnect(hdl);
-//	}
 }
 
 void MediaServer::OnWebRTCClose(WebRTC *rtc) {
@@ -1349,8 +1292,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			);
 
 	// Just Check Task
-	CmdItem *item = new CmdItem(str);
-	mCmdItemList.PushBack(item);
+	CmdHandler::GetCmdHandler()->Check(str);
 
 	// Parse Json
 	bool bParse = reader.parse(str, reqRoot, false);
@@ -1503,7 +1445,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 	if ( !bFlag ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_STAT,
 				"MediaServer::OnWSMessage( "
 				"event : [Websocket-请求出错], "
 				"hdl : %p, "
