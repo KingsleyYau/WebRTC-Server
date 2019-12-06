@@ -27,18 +27,15 @@
 #include <server/AsyncIOServer.h>
 // Websocket
 #include <websocket/WSServer.h>
-
 // Request/Respond
 #include <parser/HttpParser.h>
 #include <request/IRequest.h>
 #include <respond/IRespond.h>
-
+#include <cmd/CmdHandler.h>
 // RtmpStreamPool
 #include <rtmp/RtmpStreamPool.h>
-
 // WebRTC
 #include <webrtc/WebRTC.h>
-
 // ErrorCode
 #include <ErrCode.h>
 
@@ -145,23 +142,6 @@ typedef KSafeList<MediaClient *> MediaClientList;
 // 外部请求队列
 typedef KSafeList<ExtRequestItem *> ExtRequestList;
 
-struct CmdItem {
-	CmdItem() {
-		cmd = "";
-		auth = "";
-	}
-
-	CmdItem(const string& cmd, const string& auth) {
-		this->cmd = cmd;
-		this->auth = auth;
-	}
-
-	string cmd;
-	string auth;
-};
-// CMD请求队列
-typedef KSafeList<CmdItem *> CmdItemList;
-
 class ExtRequestRunnable;
 class TimeoutCheckRunnable;
 class StateRunnable;
@@ -211,7 +191,6 @@ public:
 
 	// HttpHandler
 	void OnRequestReloadLogConfig(HttpParser* parser);
-	void OnRequestCmd(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 

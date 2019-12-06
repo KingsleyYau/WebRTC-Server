@@ -728,10 +728,9 @@ void MediaServer::CmdHandle() {
 		CmdItem *item = mCmdItemList.PopFront();
 		if ( item ) {
 			CmdHandler cmdHandler;
-			bool bFlag = cmdHandler.Run(item->cmd, item->auth);
+			bool bFlag = cmdHandler.Run(item);
 			delete item;
 		}
-
 		usleep(500 * 1000);
 	}
 }
@@ -839,8 +838,6 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 	if( parser->GetPath() == "/reload" ) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
-	} else if ( parser->GetPath() == "/cmd" ) {
-		OnRequestCmd(parser);
 	} else {
 		bFlag = false;
 	}
@@ -851,8 +848,7 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 bool MediaServer::HttpParseRequestBody(HttpParser* parser) {
 	bool bFlag = false;
 
-	if ( parser->GetPath() == "/cmd" ) {
-	} else {
+	{
 		// 未知命令
 		bFlag = OnRequestUndefinedCommand(parser);
 	}
@@ -953,15 +949,6 @@ void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 			);
 	// 重新加载日志配置
 	ReloadLogConfig();
-
-	// 马上返回数据
-	BaseResultRespond respond;
-	HttpSendRespond(parser, &respond);
-}
-
-void MediaServer::OnRequestCmd(HttpParser* parser) {
-	CmdItem *item = new CmdItem(parser->GetParam("cmd"), parser->GetAuth());
-	mCmdItemList.PushBack(item);
 
 	// 马上返回数据
 	BaseResultRespond respond;
@@ -1361,6 +1348,11 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			str.c_str()
 			);
 
+	// Just Check Task
+	CmdItem *item = new CmdItem(str);
+	mCmdItemList.PushBack(item);
+
+	// Parse Json
 	bool bParse = reader.parse(str, reqRoot, false);
 	if ( bParse ) {
 		if( reqRoot.isObject() ) {
@@ -1491,24 +1483,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
 					}
 					mWebRTCMap.Unlock();
-				} else if ( route == "imRTC/sendCmd" ) {
-					Json::Value reqData = reqRoot["req_data"];
-
-					string cmd = "";
-					if( reqData["cmd"].isString() ) {
-						cmd = reqData["cmd"].asString();
-					}
-
-					string auth = "";
-					if( reqData["auth"].isString() ) {
-						auth = reqData["auth"].asString();
-					}
-
-					CmdItem *item = new CmdItem(cmd, auth);
-					mCmdItemList.PushBack(item);
-
-					bFlag = true;
-
 				} else {
 					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}

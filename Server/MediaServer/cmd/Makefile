@@ -16,7 +16,7 @@ endif
 
 CXXFLAGS +=-std=c++11
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS +=	-I. -I.. -I../third_party -I../include
+CXXFLAGS +=	-I. -I.. -I../third_party -I../include -I../third_party/json 
 
 OBJS 		=	CmdHandler.o
 		
