@@ -51,6 +51,8 @@ public:
 public:
 	void SetRtpSender(SocketSender *sender);
 	void SetRtcpSender(SocketSender *sender);
+	void SetVideoSSRC(unsigned int ssrc);
+	void SetAudioSSRC(unsigned int ssrc);
 
 public:
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
@@ -128,6 +130,8 @@ private:
 	uint16_t mVideoRtpSeq;
 	// Video frame count
 	uint16_t mVideoFrameCount;
+	// Video SSRC
+	unsigned int mVideoSSRC;
 
 	// Audio
 	// Original audio timestamp
@@ -136,6 +140,8 @@ private:
 	unsigned int mAudioRtpTimestamp;
 	// RTP session audio sequence
 	uint16_t mAudioRtpSeq;
+	// Audio SSRC
+	unsigned int mAudioSSRC;
 
 	// libsrtp
 	srtp_ctx_t *mpSendSrtpCtx;

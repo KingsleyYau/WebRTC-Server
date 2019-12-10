@@ -46,6 +46,13 @@ typedef struct {
     char body[RTP_MAX_PAYLOAD_LEN];
 } RtpPacket;
 
+enum RtcpPayloadType {
+	RtcpPayloadTypeSR = 200,
+	RtcpPayloadTypeRR = 201,
+	RtcpPayloadTypeRTPFB = 205,
+	RtcpPayloadTypePSFB = 206,
+};
+
 // From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
 //
 // RTP header format.
@@ -197,11 +204,13 @@ void RtpSession::Reset() {
 	mInputVideoTimestamp = 0;
 	mSendVideoFrameTimestamp = 0;
 	mVideoFrameCount = 0;
+	mVideoSSRC = 0;
 
 	// Audio
 	mAudioTimestamp = 0;
 	mAudioRtpTimestamp = 0;
 	mAudioRtpSeq = 0;
+	mAudioSSRC = 0;
 
 	mpSps = NULL;
 	mSpsSize = 0;
@@ -218,6 +227,14 @@ void RtpSession::SetRtpSender(SocketSender *sender) {
 
 void RtpSession::SetRtcpSender(SocketSender *sender) {
 	mpRtcpSender = sender;
+}
+
+void RtpSession::SetVideoSSRC(unsigned int ssrc) {
+	mVideoSSRC = ssrc;
+}
+
+void RtpSession::SetAudioSSRC(unsigned int ssrc) {
+	mAudioSSRC = ssrc;
 }
 
 bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remoteSize) {
@@ -948,39 +965,92 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			memcpy((void *)pkt, (void *)frame, size);
 			pktSize = size;
 
+			unsigned short seq = ntohs(((RtpPacket *)pkt)->header.seq);
+			unsigned long ts = ntohl(((RtpPacket *)pkt)->header.ts);
+			unsigned int ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
+
+			LogAync(
+					LOG_STAT,
+					"RtpSession::RecvRtpPacket( "
+					"this : %p, "
+					"ssrc : %u, "
+					"seq : %u, "
+					"timestamp : %u, "
+					"pktSize : %d "
+					"%s"
+					")",
+					this,
+					ssrc,
+					seq,
+					ts,
+					pktSize,
+					((RtpPacket *)pkt)->header.m?", [Mark] ":""
+					);
+
 			if ( mpRecvSrtpCtx ) {
 				srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
 				bFlag = (status == srtp_err_status_ok);
 
 				if( bFlag ) {
-					if( ((RtpPacket *)pkt)->header.m ) {
-						++mVideoFrameCount;
-						if( mVideoFrameCount % 30 == 0 ) {
-//							// 强制刷新一次视频信息, 可能会导致播放端闪屏
-//							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
-							// 强制刷新一次关键帧信息
-							SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
+					if ( mVideoSSRC == ssrc ) {
+						if( ((RtpPacket *)pkt)->header.m ) {
+							++mVideoFrameCount;
+							if( mVideoFrameCount % 30 == 0 ) {
+								mVideoFrameCount = 0;
+//								LogAync(
+//										LOG_MSG,
+//										"RtpSession::RecvRtpPacket( "
+//										"this : %p, "
+//										"[Video Key Frame Request], "
+//										"ssrc : %u, "
+//										"seq : %u, "
+//										"timestamp : %lu, "
+//										"mVideoRtpTimestamp : %lu "
+//										")",
+//										this,
+//										ssrc,
+//										seq,
+//										ts,
+//										mVideoRtpTimestamp
+//										);
+								// 强制刷新一次视频信息
+//								SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+								SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
+							}
 						}
+//						/**
+//						 * 丢包逻辑
+//						 * 暂时只做简单处理
+//						 * 1.收到第一帧时候强制刷新一次FIR
+//						 * 2.<当前包>和<上次包>的时间间隔大于3s
+//						 */
+//						if ( mVideoRtpTimestamp == 0 || (ts - mVideoRtpTimestamp) / 90 > 3000 ) {
+//							mVideoFrameCount = 0;
+//							LogAync(
+//									LOG_MSG,
+//									"RtpSession::RecvRtpPacket( "
+//									"this : %p, "
+//									"[Video Loss], "
+//									"ssrc : %u, "
+//									"seq : %u, "
+//									"timestamp : %lu, "
+//									"mVideoRtpTimestamp : %lu "
+//									")",
+//									this,
+//									ssrc,
+//									seq,
+//									ts,
+//									mVideoRtpTimestamp
+//									);
+//							// 强制刷新一次视频信息(包含关键帧)
+//							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+//							// 强制刷新一次关键帧
+//							SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
+//						}
+//						mVideoRtpTimestamp = ts;
 					}
 				}
 			}
-//			LogAync(
-//					LOG_MSG,
-//					"RtpSession::RecvRtpPacket( "
-//					"this : %p, "
-//					"status : %d, "
-//					"seq : %u, "
-//					"timestamp : %u, "
-//					"pktSize : %d "
-//					"%s"
-//					")",
-//					this,
-//					status,
-//					ntohs(pkt->header.seq),
-//					ntohl(pkt->header.ts),
-//					pktSize,
-//					pkt.header.m?", [Mark] ":""
-//					);
 		} else {
 			LogAync(
 					LOG_WARNING,

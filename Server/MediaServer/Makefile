@@ -20,7 +20,8 @@ CXXFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-va
 CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/curl/include \
 			-Ithird_party/libsdp/include \
-			-Ithird_party/json -Ithird_party/websocketpp \
+			-Ithird_party/json \
+			-Ithird_party/websocketpp \
 			-I$(OPENSSL_INCLUDE)
 
 export BUILD_PATH = /root/mediaserver/build
@@ -35,7 +36,6 @@ LIBS = \
 	-Wl,-Bstatic -Lrtp -lrtp \
 	-Wl,-Bstatic -Lsocket -lsocket \
 	-Wl,-Bstatic -Lmedia -lmedia \
-	-Wl,-Bstatic -Lcmd -lcmd \
 	-Wl,-Bstatic -Lparser -lparser \
 	-Wl,-Bstatic -Lrequest -lrequest \
 	-Wl,-Bstatic -Lrespond -lrespond \
@@ -72,7 +72,7 @@ MODULEDIRS = \
 	parser server \
 	request respond \
 	websocket \
-	webrtc rtp rtmp socket cmd \
+	webrtc rtp rtmp socket \
 	media 
 			
 CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))

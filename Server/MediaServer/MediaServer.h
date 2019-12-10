@@ -19,7 +19,6 @@
 #include <common/TimeProc.hpp>
 #include <common/StringHandle.h>
 #include <common/CommonFunc.h>
-#include <common/CmdHandler.h>
 // ThirdParty
 #include <json/json.h>
 // Http Client

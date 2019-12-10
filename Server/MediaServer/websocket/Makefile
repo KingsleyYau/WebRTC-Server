@@ -9,7 +9,7 @@
 export MAKE	:=	make
 
 ifeq ($(RELEASE), 1)
-CXXFLAGS = -O2 
+CXXFLAGS = -O3 
 else
 CXXFLAGS = -O2 -g #-D_CHECK_MEMORY_LEAK
 endif

@@ -312,10 +312,6 @@ bool MediaServer::Start() {
 		}
 	}
 
-	if( bFlag ) {
-		CmdHandler::GetCmdHandler()->Start();
-	}
-
 	// 启动HTTP服务
 	if( bFlag ) {
 		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
@@ -552,7 +548,6 @@ bool MediaServer::Stop() {
 		mExtRequestThread.Stop();
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
-		CmdHandler::GetCmdHandler()->Stop();
 
 		if ( mPidFilePath.length() > 0 ) {
 			int ret = remove(mPidFilePath.c_str());
@@ -1290,9 +1285,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			hdl.lock().get(),
 			str.c_str()
 			);
-
-	// Just Check Task
-	CmdHandler::GetCmdHandler()->Check(str);
 
 	// Parse Json
 	bool bParse = reader.parse(str, reqRoot, false);
