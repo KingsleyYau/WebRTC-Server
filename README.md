@@ -9,6 +9,9 @@ Catalog
       
       
 # WebRTC流媒体网关服务器
+=================
+用于将H5通过WebRTC上传的媒体流(STUN/TURN/SRTP)转接到其他媒体流服务器(RTP/RTMP/HTTP-FLV/HLS)
+
 ## 功能
 - 接收客户端SDP信令(Websocket)
 - 接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP), 也可以自定义转发脚本
