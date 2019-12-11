@@ -26,6 +26,8 @@ const loginRouter = require('./router/http/proxy-router');
 // module.exports = class HttpService {
 class HttpService {
     constructor() {
+        Common.AppGlobalVar.rootPath = Path.join(__dirname);
+
         // 创建异步框架
         this.app = new Koa();
 

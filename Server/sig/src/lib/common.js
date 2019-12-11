@@ -34,8 +34,13 @@ appInfo = function() {
     return appInfo;
 }
 
+let AppGlobalVar = {
+    rootPath:""
+}
+
 module.exports = {
     isNull,
     log,
-    appInfo
+    appInfo,
+    AppGlobalVar,
 }
