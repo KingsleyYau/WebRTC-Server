@@ -10,7 +10,7 @@ VERSION=`cat version.json | jq -c '.version' `
 VERSION=`echo $VERSION | sed s/\"//g`
 echo "VERSION:$VERSION"
 
-ENVS=(local demo product)
+ENVS=(local demo demo_eu)
 for ENV in ${ENVS[@]};do
 	echo "############## Start packaging [$ENV] ##############"
 	# Copy Install/Update Script Files
@@ -27,10 +27,14 @@ for ENV in ${ENVS[@]};do
 	mkdir -p tmp/$ENV/etc/
 	cp -rf conf/$ENV/etc tmp/$ENV/
 	mkdir -p tmp/$ENV/script/
-	cp -rf conf/$ENV/script tmp/$ENV/
+	cp -rf script tmp/$ENV/
 	mkdir -p tmp/$ENV/var/
 	cp -rf conf/$ENV/var tmp/$ENV/
 	
+	# Clean index files
+	find tmp -name ".DS_Store" | xargs rm -rf
+	
+	# Start packaging
 	mkdir -p package
 	cd tmp
 	PACKAGE_FILE="${ENV}-${VERSION}.tar.gz"

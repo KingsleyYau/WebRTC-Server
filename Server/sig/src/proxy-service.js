@@ -40,7 +40,7 @@ class ProxyService {
             // return `next` to pass the context (ctx) on to the next ws middleware
             // 新的连接, 生成SocketId
             ctx.socketId = 'SOCKETID-' + Math.random().toString(36).substr(2).toLocaleUpperCase();
-            Common.log('im', 'info', '[' + ctx.socketId + ']-Client.connected');
+            Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.connected');
 
             try {
                 var userAgent = ctx.req.headers["user-agent"];
@@ -48,39 +48,41 @@ class ProxyService {
                 var proxyHeaders = {headers:{"user-agent":userAgent}};
                 var proxy = new WebSocketClient(this.proxyHost, "", proxyHeaders);
                 proxy.on('message', (message) => {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
-                    ctx.websocket.send(message);
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
+                    if ( ctx.websocket.readyState == ctx.websocket.OPEN ) {
+                        ctx.websocket.send(message);
+                    }
                 });
                 proxy.on('close', () => {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-Proxy.close, [代理断开]');
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.close, [代理断开]');
                     ctx.websocket.close();
                 });
 
                 ctx.websocket.on('close', function (err) {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], ' + err);
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], ' + err);
                     try {
                         proxy.close(1000, err.toString());
                     } catch (e) {
-                        Common.log('im', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], e : ' + e.toString());
+                        Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.close, [客户端断开], e : ' + e.toString());
                     }
                 });
                 ctx.websocket.on('error', function (err) {
-                    Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], ' + err);
+                    Common.log('proxy', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], ' + err);
                     try {
                         proxy.close(1000, err.toString());
                     } catch (e) {
-                        Common.log('im', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], e : ' + e.toString());
+                        Common.log('proxy', 'error', '[' + ctx.socketId + ']-Client.error, [客户端断开], e : ' + e.toString());
                     }
                 });
 
                 ctx.websocket.on('message', async (message) => {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, ' + message);
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message, ' + message);
                     if (proxy.readyState == proxy.OPEN) {
                         proxy.send(message);
                     } else {
                         await new Promise(function (resolve) {
                             proxy.on('open', () => {
-                                Common.log('im', 'info', '[' + ctx.socketId + ']-Client.message, [等待代理连接]');
+                                Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message, [等待代理连接]');
                                 proxy.send(message);
                                 resolve();
                             });
@@ -88,7 +90,7 @@ class ProxyService {
                     }
                 });
             } catch (e) {
-                Common.log('im', 'error', '[' + ctx.socketId + ']-Proxy.connect.error, [代理连接失败], e : ' + e.toString());
+                Common.log('proxy', 'error', '[' + ctx.socketId + ']-Proxy.connect.error, [代理连接失败], e : ' + e.toString());
                 ctx.websocket.close();
             }
 
@@ -112,9 +114,9 @@ class ProxyService {
             this.proxyHost = opts.host;
         }
 
-        Common.log('im', 'fatal', 'Proxy service start in port : ' + port + ', host : ' + this.proxyHost);
+        Common.log('proxy', 'fatal', 'Proxy service start in port : ' + port + ', host : ' + this.proxyHost);
         for (let i = 0; i < process.argv.length; i++) {
-            Common.log('im', 'fatal', 'Proxy service param[' + i + ']:' + process.argv[i]);
+            Common.log('proxy', 'fatal', 'Proxy service param[' + i + ']:' + process.argv[i]);
         }
     }
 }
@@ -140,7 +142,6 @@ if( process.argv.length > 2 ) {
 
 // 启动
 proxy = new ProxyService();
-proxy.start({number:9081, host:"ws://192.168.88.133:9881"});
-
-proxy_8093 = new ProxyService();
-proxy_8093.start({number:9083, host:"ws://192.168.88.133:9883"});
+// proxy.start({number:9081, host:"ws://192.168.88.133:9881"});
+proxy.start({number:9081, host:"ws://192.168.88.133:9981"});
+// proxy.start({number:9081, host:"ws://52.196.96.7:9981"});

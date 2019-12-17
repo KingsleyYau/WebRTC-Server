@@ -287,6 +287,7 @@ bool MediaServer::Start() {
 	// 初始化全局属性
 	HttpClient::Init();
 	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp, mTurnUserName, mTurnPassword) ) {
+		printf("# MediaServer(WebRTC) start Fail. \n");
 		return false;
 	}
 

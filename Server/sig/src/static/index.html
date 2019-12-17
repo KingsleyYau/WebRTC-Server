@@ -220,7 +220,6 @@ async function sendCmd() {
         route:'imRTC/sendCmd',
         req_data:{
             cmd:cmd,
-            auth:'bWVkaWFzZXJ2ZXI6MTIz'
         }
     }
     let data = JSON.stringify(obj);
@@ -361,10 +360,10 @@ class RTCClient {
         config = {
             video: {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                width: 640/*{min: 320, max: 640}*/, height: 480/*{min: 240, max: 480}*/,
+                width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
                 frameRate: 15/*{min: 10, max: 15}*/
             },
-            audio: false
+            audio: true
         }
 
         return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
@@ -705,7 +704,7 @@ function onload() {
 
     $("[id=cmdBtn]").click(function() {
         sendCmd().then(() => {
-            client.close();
+            // client.close();
         });
     });
 

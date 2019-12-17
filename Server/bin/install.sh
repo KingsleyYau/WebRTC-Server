@@ -4,7 +4,7 @@
 # Date: 2019/11/11
 
 echo "############## Start installing mediaserver ##############"
-yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 
+sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 
 
 DEST_PATH="/app/live/mediaserver"
 mkdir -p $DEST_PATH
@@ -28,5 +28,12 @@ chmod -R 755 $DEST_PATH/script/*
 echo "# Copy Var Files......"
 cp -rf var $DEST_PATH
 chmod -R 744 $DEST_PATH/var/*
+
+# Create Run Dir
+mkdir -p $DEST_PATH/run/
+
+# Create Log Dir
+mkdir -p $DEST_PATH/log/
+mkdir -p $DEST_PATH/log/turn
 
 echo "############## Finish installing mediaserver ##############"

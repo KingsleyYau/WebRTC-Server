@@ -6,6 +6,7 @@
 const Http = require('http');
 Http.globalAgent.maxSockets = Infinity;
 const Https = require('https');
+const Cors = require('@koa/cors');
 // 异步框架
 const Koa = require('koa');
 // 静态资源
@@ -30,6 +31,7 @@ class HttpService {
 
         // 创建异步框架
         this.app = new Koa();
+        this.app.use(Cors());
 
         // 配置静态资源文件
         let staticRoot = new Serve(Path.join(__dirname, 'static'));
@@ -50,7 +52,7 @@ class HttpService {
                 ctx.session.count++;
             }
 
-            Common.log('http', 'info', '[' + ctx.socketId + ']-request, ' + ' (' + ctx.session.count + '), ' + ctx.request.url);
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ctx.request.url);
 
             // 等待其他中间件处理的异步返回
             await next();
