@@ -10,6 +10,7 @@
 #define RTP_RTPSESSION_H_
 
 #include <common/KMutex.h>
+#include <common/KSafeMap.h>
 
 #include <media/VideoMuxer.h>
 
@@ -36,6 +37,8 @@ struct srtp_policy_t;
 #define RTP_MAX_LEN (MTU - UDP_HEADER_LEN)
 
 namespace mediaserver {
+typedef KSafeMap<int, int> LostPacketMap;
+
 class RtpSession {
 public:
 	RtpSession();
@@ -66,17 +69,6 @@ public:
 
 public:
 	/**
-	 * 设置H264视频信息
-	 */
-	void SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp);
-	/**
-	 * 发送一个完整的H264帧
-	 */
-	bool SendVideoFrameH264(const char* frame, unsigned int size, unsigned int timestamp);
-
-	bool SendAudioFrame(const char* frame, unsigned int size, unsigned int timestamp);
-
-	/**
 	 * 发送原始RTP包(网络字节序)
 	 */
 	bool SendRtpPacket(void *pkt, unsigned int& pktSize);
@@ -100,16 +92,31 @@ public:
 	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
 	 *
 	 */
-	bool SendRtcpPLI(unsigned int remoteSSRC);
+	bool SendRtcpPLI(unsigned int mediaSSRC);
 	/**
 	 * Send Full Intra Request (FIR)
 	 * 强制刷新视频信息(如H264的SPS和PPS)
 	 */
-	bool SendRtcpFIR(unsigned int remoteSSRC);
+	bool SendRtcpFIR(unsigned int mediaSSRC);
 
 private:
+	/**
+	 * 重置
+	 */
 	void Reset();
-	bool SendVideoKeyFrameH264();
+
+	/**
+	 *发送丢包数据
+	 */
+	bool SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size);
+	/**
+	 * 更新媒体信息(时间戳/帧号/丢包信息)
+	 */
+	void UpdateStreamInfo(const void *pkt, unsigned int pktSize);
+	/**
+	 * 更新丢包统计
+	 */
+	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
 
 protected:
 	// Status
@@ -122,46 +129,32 @@ private:
 	SocketSender *mpRtcpSender;
 
 	// Video
-	// Original video timestamp
-	unsigned int mVideoTimestamp;
-	// RTP session video timestamp
-	unsigned int mVideoRtpTimestamp;
-	// RTP session video sequence
-	uint16_t mVideoRtpSeq;
+	// Max video timestamp
+	unsigned int mVideoMaxTimestamp;
+	// Max video sequence
+	uint16_t mVideoMaxSeq;
 	// Video frame count
 	uint16_t mVideoFrameCount;
 	// Video SSRC
 	unsigned int mVideoSSRC;
+	// Lost packet map
+	LostPacketMap mVideoLostPacketMap;
 
 	// Audio
-	// Original audio timestamp
-	unsigned int mAudioTimestamp;
-	// RTP session audio timestamp
-	unsigned int mAudioRtpTimestamp;
-	// RTP session audio sequence
-	uint16_t mAudioRtpSeq;
+	// Max audio timestamp
+	unsigned int mAudioMaxTimestamp;
+	// Max audio sequence
+	uint16_t mAudioMaxSeq;
 	// Audio SSRC
 	unsigned int mAudioSSRC;
+	// Lost packet map
+	LostPacketMap mAudioLostPacketMap;
 
 	// libsrtp
 	srtp_ctx_t *mpSendSrtpCtx;
 	srtp_policy_t *mpSendPolicy;
 	srtp_ctx_t *mpRecvSrtpCtx;
 	srtp_policy_t *mpRecvPolicy;
-
-    // H264格式转换器
-    VideoMuxer mVideoMuxer;
-	int mNaluHeaderSize;
-
-    // 发包参数
-    u_int32_t mInputVideoTimestamp;
-    u_int32_t mSendVideoFrameTimestamp;
-
-    // 收包参数
-    char *mpSps;
-    int mSpsSize;
-    char *mpPps;
-    int mPpsSize;
 
     // 请求强制刷新关键帧的序号
     unsigned int mFirSeq;

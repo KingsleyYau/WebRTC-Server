@@ -12,6 +12,7 @@
 #include <common/Math.h>
 #include <common/CommonFunc.h>
 #include <common/Arithmetic.h>
+#include <common/Math.h>
 
 // libsrtp
 #include <srtp.h>
@@ -29,6 +30,9 @@ namespace mediaserver {
 #define RTCP_HEADER_LENGTH 4
 #define RTCP_COMMON_FEEDBACK_LENGTH 8
 
+#define RTCP_SSRC 0x12345678
+
+#pragma pack(push, 1)
 typedef struct {
     unsigned char cc : 4;      /* CSRC count             */
     unsigned char x : 1;       /* header extension flag  */
@@ -49,8 +53,8 @@ typedef struct {
 enum RtcpPayloadType {
 	RtcpPayloadTypeSR = 200,
 	RtcpPayloadTypeRR = 201,
-	RtcpPayloadTypeRTPFB = 205,
-	RtcpPayloadTypePSFB = 206,
+	RtcpPayloadTypeRTPFB = 205,	// Transport layer FB message
+	RtcpPayloadTypePSFB = 206, 	// Payload-specific FB message
 };
 
 // From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
@@ -76,8 +80,7 @@ typedef struct {
 
 // RFC 4585: Feedback format.
 //
-// Common packet format:
-//
+// PLI packet format:
 //   0                   1                   2                   3
 //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -90,7 +93,6 @@ typedef struct {
 //  :            Feedback Control Information (FCI)                 :
 //  :                                                               :
 // FMT Must be 1, PT must be PSFB
-// RTPFB  |  205  | Transport layer FB message
 // PSFB   |  206  | Payload-specific FB message
 typedef struct {
 	RtcpHeader header;
@@ -99,8 +101,8 @@ typedef struct {
 } RtcpPacketPLI; /* BIG END */
 
 // RFC 4585: Feedback format.
-// Common packet format:
 //
+// FIR packet format:
 //   0                   1                   2                   3
 //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -125,13 +127,34 @@ typedef struct {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 // FMT Must be 4, PT must be PSFB
-// RTPFB  |  205  | Transport layer FB message
 // PSFB   |  206  | Payload-specific FB message
 typedef struct {
     uint32_t media_ssrc;
     unsigned char seq;
     unsigned char reserved[3];
 } RtcpPacketFIRItem; /* BIG END */
+
+// RFC 4585: Feedback format.
+//
+// Nack packet format:
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P|   FMT   |       PT      |          length               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of packet sender                        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of media source                         |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  :        Packet Identifier 		|	Bitmap Lost Packet		    :
+//  :                                                               :
+// FMT Must be 1, PT must be PSFB
+// RTPFB  |  205  | Transport layer FB message
+typedef struct {
+	uint16_t seq;
+    uint16_t bitmap;
+} RtcpPacketNackItem; /* BIG END */
+#pragma pack(pop)
 
 bool RtpSession::GobalInit() {
 	bool bFlag = false;
@@ -172,18 +195,6 @@ RtpSession::RtpSession():
 
 RtpSession::~RtpSession() {
 	// TODO Auto-generated destructor stub
-    if (mpSps) {
-        delete[] mpSps;
-        mpSps = NULL;
-    }
-    mSpsSize = 0;
-
-    if (mpPps) {
-        delete[] mpPps;
-        mpPps = NULL;
-    }
-    mPpsSize = 0;
-
     if ( mpRecvPolicy ) {
     	delete mpRecvPolicy;
     	mpRecvPolicy = NULL;
@@ -197,25 +208,15 @@ RtpSession::~RtpSession() {
 
 void RtpSession::Reset() {
 	// Video
-	mVideoTimestamp = 0;
-	mVideoRtpTimestamp = 0;
-	mVideoRtpSeq = 0;
-	mNaluHeaderSize = 0;
-	mInputVideoTimestamp = 0;
-	mSendVideoFrameTimestamp = 0;
+	mVideoMaxTimestamp = 0;
+	mVideoMaxSeq = 0;
 	mVideoFrameCount = 0;
 	mVideoSSRC = 0;
 
 	// Audio
-	mAudioTimestamp = 0;
-	mAudioRtpTimestamp = 0;
-	mAudioRtpSeq = 0;
+	mAudioMaxTimestamp = 0;
+	mAudioMaxSeq = 0;
 	mAudioSSRC = 0;
-
-	mpSps = NULL;
-	mSpsSize = 0;
-	mpPps = NULL;
-	mPpsSize = 0;
 
 	mFirSeq = 0;
 	mVideoFrameCount = 0;
@@ -308,20 +309,6 @@ void RtpSession::Stop() {
 
 		StopRecv();
 		StopSend();
-
-	    if (mpSps) {
-	        delete[] mpSps;
-	        mpSps = NULL;
-	    }
-	    mSpsSize = 0;
-
-	    if (mpPps) {
-	        delete[] mpPps;
-	        mpPps = NULL;
-	    }
-	    mPpsSize = 0;
-
-		Reset();
 
 //		LogAync(
 //				LOG_MSG,
@@ -507,405 +494,6 @@ void RtpSession::StopRecv() {
 			);
 }
 
-void RtpSession::SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const char *pps, int ppsSize, int naluHeaderSize, u_int32_t timestamp) {
-	mNaluHeaderSize = naluHeaderSize;
-
-    bool bSpsChange = true;
-    if (mpSps != NULL) {
-        if (mSpsSize == spsSize) {
-            if (0 != memcmp(mpSps, sps, spsSize)) {
-                bSpsChange = true;
-
-            } else {
-                bSpsChange = false;
-            }
-        }
-    }
-
-    if (bSpsChange) {
-        if (mpSps) {
-            delete[] mpSps;
-            mpSps = NULL;
-        }
-
-        mSpsSize = spsSize;
-        mpSps = new char[mSpsSize];
-        memcpy(mpSps, sps, mSpsSize);
-    }
-
-    bool bPpsChange = true;
-    if (mpPps != NULL) {
-        if (mPpsSize == ppsSize) {
-            if (0 != memcmp(mpPps, pps, ppsSize)) {
-                bPpsChange = true;
-
-            } else {
-                bPpsChange = false;
-            }
-        }
-    }
-
-    if (bPpsChange) {
-        if (mpPps) {
-            delete[] mpPps;
-            mpPps = NULL;
-        }
-
-        mPpsSize = ppsSize;
-        mpPps = new char[mPpsSize];
-        memcpy(mpPps, pps, mPpsSize);
-    }
-
-    if( bSpsChange || bPpsChange ) {
-    	LogAync(
-    			LOG_STAT,
-    			"RtpSession::SetVideoKeyFrameInfoH264( "
-    			"this : %p, "
-    			"timestamp : %u, "
-				"mSpsSize : %d, "
-    			"mPpsSize : %d, "
-    			"mNaluHeaderSize : %d "
-    			")",
-    			this,
-    			timestamp,
-				mSpsSize,
-				mPpsSize,
-				mNaluHeaderSize
-    			);
-    }
-}
-
-bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsigned int timestamp) {
-	bool bFlag = true;
-
-	srtp_err_status_t status = srtp_err_status_ok;
-
-	mClientMutex.lock();
-	if( mRunning ) {
-        // 计算RTP时间戳
-        int sendTimestamp = 0;
-
-        // 第一帧
-        if (mInputVideoTimestamp == 0) {
-        	mInputVideoTimestamp = timestamp;
-        }
-
-        // 当前帧比上一帧时间戳大, 计算时间差
-        if (timestamp > mInputVideoTimestamp) {
-            sendTimestamp = timestamp - mInputVideoTimestamp;
-        }
-
-        mSendVideoFrameTimestamp += sendTimestamp * 90;
-        mInputVideoTimestamp = timestamp;
-
-        SendVideoKeyFrameH264();
-
-		RtpPacket pkt;
-		int lastSize = 0;
-		int bodySize = 0;
-		int pktSize = 0;
-
-	    Nalu naluArray[16];
-	    int naluArraySize = _countof(naluArray);
-	    bool bFlag = mVideoMuxer.GetNalus(frame, size, mNaluHeaderSize, naluArray, naluArraySize);
-	    if( bFlag && naluArraySize > 0 ) {
-	        int naluIndex = 0;
-	        while( naluIndex < naluArraySize ) {
-	            Nalu* nalu = naluArray + naluIndex;
-	            naluIndex++;
-
-	        	const char *body = nalu->GetNaluBody();
-	        	lastSize = nalu->GetNaluBodySize();
-	        	if( lastSize <= (int)sizeof(pkt.body) ) {
-	        		// Send single NALU with one RTP packet
-		        	LogAync(
-		        			LOG_STAT,
-		        			"RtpSession::SendVideoFrameH264( "
-		        			"this : %p, "
-							"[Send single NALU with single RTP packet], "
-		        			"timestamp : %u, "
-							"naluType : %d, "
-							"naluBodySize : %d, "
-							"[Mark] "
-		        			")",
-							this,
-							mSendVideoFrameTimestamp,
-							nalu->GetNaluType(),
-							nalu->GetNaluBodySize()
-		        			);
-
-	    			pkt.header.ssrc = htonl(0x12345678);
-	    			pkt.header.seq = htons(mVideoRtpSeq++);
-	    			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
-	    			pkt.header.m = 1;
-	    			pkt.header.pt = 96;
-	    			pkt.header.version = 2;
-	    			pkt.header.p = 0;
-	    			pkt.header.x = 0;
-	    			pkt.header.cc = 0;
-
-	    			bodySize = lastSize;
-	    			// NALU payload
-	    			memcpy(pkt.body, body, bodySize);
-
-	    			pktSize = RTP_HEADER_LEN + bodySize;
-	    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
-	    		    if (status == srtp_err_status_ok) {
-	    		    	if( mpRtpSender ) {
-	    		    		int sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
-							if (sendSize != pktSize) {
-								bFlag = false;
-							}
-	    		    	} else {
-	    		    		bFlag = false;
-	    		    	}
-	    		    } else {
-	    		    	bFlag = false;
-	    		    }
-
-	        	} else {
-	        		// Send single NALU with multiple RTP packets
-		        	LogAync(
-		        			LOG_STAT,
-		        			"RtpSession::SendVideoFrameH264( "
-		        			"this : %p, "
-							"[Send single NALU with multiple RTP packets], "
-		        			"timestamp : %u, "
-							"naluType : %d, "
-							"naluBodySize: %d "
-		        			")",
-							this,
-							mSendVideoFrameTimestamp,
-							nalu->GetNaluType(),
-							nalu->GetNaluBodySize()
-		        			);
-
-		        	// Wipe off original NALU header
-		        	char naluHeader = body[0];
-
-		            Slice* sliceArray = NULL;
-		            int sliceArraySize = 0;
-		            int sliceIndex = 0;
-
-					nalu->GetSlices(&sliceArray, sliceArraySize);
-					while( sliceIndex < sliceArraySize ) {
-						Slice* slice = sliceArray + sliceIndex;
-						sliceIndex++;
-
-			        	const char *body = slice->GetSlice();
-			        	lastSize = slice->GetSliceSize();
-			        	lastSize--;
-			        	body++;
-			        	int packetIndex = 0;
-			        	int sentSize = 0;
-
-			        	while( true ) {
-			        		// 2 bytes for FU indicator and FU header
-			        		bodySize = MIN(lastSize, (int)(sizeof(pkt.body) - 2));
-
-			    			pkt.header.ssrc = htonl(0x12345678);
-			    			pkt.header.seq = htons(mVideoRtpSeq++);
-			    			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
-			    			pkt.header.m = (lastSize <= bodySize)?1:0;
-			    			pkt.header.pt = 96;
-			    			pkt.header.version = 2;
-			    			pkt.header.p = 0;
-			    			pkt.header.x = 0;
-			    			pkt.header.cc = 0;
-
-		    		    	// Hard code here, cause 0x7C means important, 0x5C means not
-		    		    	/**
-		    		    	 * FU indicator
-		    		    	 * Hard code here, cause 0x7C means important, 0x5C means not
-		    		    	 * [F].[NRI].[  TYPE   ]
-		    		    	 * [7].[6.5].[4.3.2.1.0]
-		    		    	 * 28 : FU-A
-		    		    	 */
-		    		    	pkt.body[0] = 0x60 | 28;
-		    		    	/**
-		    		    	 * FU header
-		    		    	 * [S].[E].[R].[  TYPE   ]
-		    		    	 * [7].[6].[5].[4.3.2.1.0]
-		    		    	 */
-							pkt.body[1] = nalu->GetNaluType();
-		    		    	if( packetIndex == 0 && !pkt.header.m ) {
-		    		    		// Start packet
-		    		    		pkt.body[1] |= 0x80;
-		    		    	} else if( pkt.header.m ) {
-		    		    		// Last packet
-		    		    		pkt.body[1] |= 0x40;
-		    		    	} else {
-		    		    		// Middle packet
-		    		    	}
-
-		    		    	// FU payload
-							memcpy(pkt.body + 2, body + sentSize, bodySize);
-
-			    			// Whole size
-			    			pktSize = RTP_HEADER_LEN + 2 + bodySize;
-			    			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
-			    		    if (status == srtp_err_status_ok) {
-			    		    	int sendSize = 0;
-			    		    	if( mpRtpSender ) {
-			    		    		sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
-			    		    	}
-
-								unsigned char t = nalu->GetNaluType();
-								unsigned char d = pkt.body[0];
-								unsigned char h = pkt.body[1];
-
-					        	LogAync(
-					        			LOG_STAT,
-										"RtpSession::SendVideoFrameH264( "
-										"this : %p, "
-										"[Send FUs packet], "
-										"timestamp : %u, "
-										"NALU-T : 0x%02x, "
-										"FU-D : 0x%02x, "
-										"FU-H : 0x%02x, "
-										"pktSize : %d "
-										"%s"
-										")",
-										this,
-										mSendVideoFrameTimestamp,
-										t,
-										d,
-										h,
-										pktSize,
-										pkt.header.m?", [Mark] ":""
-										);
-
-								if (sendSize == pktSize) {
-									sentSize += bodySize;
-									lastSize -= bodySize;
-									packetIndex++;
-
-									if( lastSize == 0 ) {
-										// All data has been sent
-										break;
-									}
-								} else {
-									bFlag = false;
-									break;
-								}
-
-			    		    } else {
-			    		    	bFlag = false;
-			    		    }
-			        	}
-					}
-	        	}
-	        }
-	    } else {
-	    	bFlag = false;
-	    }
-	} else {
-		bFlag = false;
-	}
-	mClientMutex.unlock();
-
-	return bFlag;
-}
-
-bool RtpSession::SendVideoKeyFrameH264() {
-	bool bFlag = true;
-
-	srtp_err_status_t status = srtp_err_status_ok;
-	RtpPacket pkt;
-	int lastSize = 0;
-	int bodySize = 0;
-	int pktSize = 0;
-
-	mClientMutex.lock();
-	if( mRunning ) {
-		if( mpSps && mPpsSize && mVideoFrameCount++ % 10 == 0 ) {
-	    	LogAync(
-	    			LOG_STAT,
-	    			"RtpSession::SendVideoKeyFrameH264( "
-	    			"this : %p, "
-					"[Send SPS/PPS RTP packet], "
-	    			"timestamp : %u "
-	    			")",
-					this,
-					mSendVideoFrameTimestamp
-	    			);
-
-			pkt.header.ssrc = htonl(0x12345678);
-			pkt.header.seq = htons(mVideoRtpSeq++);
-			pkt.header.ts = htonl(mSendVideoFrameTimestamp);
-			pkt.header.m = 0;
-			pkt.header.pt = 96;
-			pkt.header.version = 2;
-			pkt.header.p = 0;
-			pkt.header.x = 0;
-			pkt.header.cc = 0;
-
-	    	// Hard code here, cause 0x7C means important, 0x5C means not
-	    	/**
-	    	 * RTP payload header
-	    	 * [F].[NRI].[  TYPE   ]
-	    	 * [7].[6.5].[4.3.2.1.0]
-	    	 * 24(0x18) : STAP-A
-	    	 */
-			bodySize = 0;
-			pkt.body[bodySize++] = 0x18;
-			// sps size 2 bytes
-			short spsLength = htons(mSpsSize);
-			memcpy(pkt.body + bodySize, (const void *)&spsLength, mSpsSize);
-			bodySize += sizeof(spsLength);
-			// sps data
-			memcpy(pkt.body + bodySize, mpSps, mSpsSize);
-			bodySize += mSpsSize;
-
-			// pps size 2 bytes
-			short ppsLength = htons(mPpsSize);
-			memcpy(pkt.body + bodySize, (const void *)&ppsLength, sizeof(ppsLength));
-			bodySize += sizeof(ppsLength);
-			// pps data
-			memcpy(pkt.body + bodySize, mpPps, mPpsSize);
-			bodySize += mPpsSize;
-
-			pktSize = RTP_HEADER_LEN + bodySize;
-			status = srtp_protect(mpSendSrtpCtx, &pkt.header, &pktSize);
-		    if (status == srtp_err_status_ok) {
-		    	if( mpRtpSender ) {
-		    		int sendSize = mpRtpSender->SendData((void *)&pkt, pktSize);
-					if (sendSize != pktSize) {
-						bFlag = false;
-					}
-		    	} else {
-		    		bFlag = false;
-		    	}
-		    } else {
-		    	bFlag = false;
-		    }
-		}
-
-	}
-	
-	mClientMutex.unlock();
-	return bFlag;
-}
-
-bool RtpSession::SendAudioFrame(const char* frame, unsigned int size, unsigned int timestamp) {
-	bool bFlag = false;
-
-	LogAync(
-			LOG_WARNING,
-			"RtpSession::SendAudioFrame( "
-			"this : %p, "
-			"timestamp : %d, "
-			"size : %u "
-			")",
-			this,
-			timestamp,
-			size
-			);
-
-	return bFlag;
-}
-
-
 bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 	int sendSize = 0;
@@ -973,18 +561,19 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 					LOG_STAT,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
-					"ssrc : %u, "
+					"mediaSSRC : 0x%x(%u), "
 					"seq : %u, "
 					"timestamp : %u, "
-					"pktSize : %d "
+					"pktSize : %d"
 					"%s"
 					")",
 					this,
 					ssrc,
+					ssrc,
 					seq,
 					ts,
 					pktSize,
-					((RtpPacket *)pkt)->header.m?", [Mark] ":""
+					((RtpPacket *)pkt)->header.m?", [Mark] ":" "
 					);
 
 			if ( mpRecvSrtpCtx ) {
@@ -992,63 +581,8 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 				bFlag = (status == srtp_err_status_ok);
 
 				if( bFlag ) {
-					if ( mVideoSSRC == ssrc ) {
-						if( ((RtpPacket *)pkt)->header.m ) {
-							++mVideoFrameCount;
-							if( mVideoFrameCount % 30 == 0 ) {
-								mVideoFrameCount = 0;
-//								LogAync(
-//										LOG_MSG,
-//										"RtpSession::RecvRtpPacket( "
-//										"this : %p, "
-//										"[Video Key Frame Request], "
-//										"ssrc : %u, "
-//										"seq : %u, "
-//										"timestamp : %lu, "
-//										"mVideoRtpTimestamp : %lu "
-//										")",
-//										this,
-//										ssrc,
-//										seq,
-//										ts,
-//										mVideoRtpTimestamp
-//										);
-								// 强制刷新一次视频信息
-//								SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
-								SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
-							}
-						}
-//						/**
-//						 * 丢包逻辑
-//						 * 暂时只做简单处理
-//						 * 1.收到第一帧时候强制刷新一次FIR
-//						 * 2.<当前包>和<上次包>的时间间隔大于3s
-//						 */
-//						if ( mVideoRtpTimestamp == 0 || (ts - mVideoRtpTimestamp) / 90 > 3000 ) {
-//							mVideoFrameCount = 0;
-//							LogAync(
-//									LOG_MSG,
-//									"RtpSession::RecvRtpPacket( "
-//									"this : %p, "
-//									"[Video Loss], "
-//									"ssrc : %u, "
-//									"seq : %u, "
-//									"timestamp : %lu, "
-//									"mVideoRtpTimestamp : %lu "
-//									")",
-//									this,
-//									ssrc,
-//									seq,
-//									ts,
-//									mVideoRtpTimestamp
-//									);
-//							// 强制刷新一次视频信息(包含关键帧)
-//							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
-//							// 强制刷新一次关键帧
-//							SendRtcpPLI(((RtpPacket *)pkt)->header.ssrc);
-//						}
-//						mVideoRtpTimestamp = ts;
-					}
+					// 更新媒体流信息
+					UpdateStreamInfo(pkt, pktSize);
 				}
 			}
 		} else {
@@ -1124,7 +658,7 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 	return bFlag;
 }
 
-bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
+bool RtpSession::SendRtcpPLI(unsigned int mediaSSRC) {
 	bool bFlag = false;
 
 	srtp_err_status_t status = srtp_err_status_fail;
@@ -1139,11 +673,11 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 		pkt.header.version = 2;
 		pkt.header.p = 0;
 		pkt.header.rc = 1;
-		pkt.header.pt = 206;
+		pkt.header.pt = RtcpPayloadTypePSFB;
 		pkt.header.length = 2;
 		pkt.header.length = htons(pkt.header.length);
-		pkt.ssrc = htonl(0x12345678);
-		pkt.media_ssrc = remoteSSRC;
+		pkt.ssrc = htonl(RTCP_SSRC);
+		pkt.media_ssrc = htonl(mediaSSRC);
 
 		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
 		pktSize += sizeof(RtcpPacketPLI);
@@ -1168,12 +702,15 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 //			"RtpSession::SendRtcpPLI( "
 //			"this : %p, "
 //			"[%s], "
+//			"mediaSSRC : 0x%x(%u), "
 //			"status : %d, "
 //			"pktSize : %d, "
 //			"sendSize : %d "
 //			")",
 //			this,
 //			FLAG_2_STRING(bFlag),
+//			mediaSSRC,
+//			mediaSSRC,
 //			status,
 //			pktSize,
 //			sendSize
@@ -1182,7 +719,7 @@ bool RtpSession::SendRtcpPLI(unsigned int remoteSSRC) {
 	return bFlag;
 }
 
-bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
+bool RtpSession::SendRtcpFIR(unsigned int mediaSSRC) {
 	bool bFlag = false;
 
 	srtp_err_status_t status = srtp_err_status_fail;
@@ -1196,14 +733,14 @@ bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 		pkt.header.version = 2;
 		pkt.header.p = 0;
 		pkt.header.rc = 4;
-		pkt.header.pt = 206;
+		pkt.header.pt = RtcpPayloadTypePSFB;
 		pkt.header.length = 2 + 2;
 		pkt.header.length = htons(pkt.header.length);
-		pkt.ssrc = htonl(0x12345678);
-		pkt.media_ssrc = remoteSSRC;
+		pkt.ssrc = htonl(RTCP_SSRC);
+		pkt.media_ssrc = htonl(mediaSSRC);
 
 		RtcpPacketFIRItem item = {0};
-		item.media_ssrc = remoteSSRC;
+		item.media_ssrc = htonl(mediaSSRC);
 		item.seq = ++mFirSeq;
 
 		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
@@ -1239,6 +776,206 @@ bool RtpSession::SendRtcpFIR(unsigned int remoteSSRC) {
 //			pktSize,
 //			sendSize
 //			);
+
+	return bFlag;
+}
+
+bool RtpSession::SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_fail;
+	char tmp[MTU];
+	int pktSize = 0;
+	int sendSize = 0;
+
+	mClientMutex.lock();
+	if( mRunning ) {
+		RtcpPacketPLI pkt = {0};
+		pkt.header.version = 2;
+		pkt.header.p = 0;
+		pkt.header.rc = 1;
+		pkt.header.pt = RtcpPayloadTypeRTPFB;
+		pkt.header.length = 2 + size;
+		pkt.header.length = htons(pkt.header.length);
+		pkt.ssrc = htonl(RTCP_SSRC);
+		pkt.media_ssrc = htonl(mediaSSRC);
+
+		memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
+		pktSize += sizeof(RtcpPacketPLI);
+
+		RtcpPacketNackItem* items = (RtcpPacketNackItem *)nacks;
+		for (int i = 0; i < size; i++) {
+			RtcpPacketNackItem *item = (items + i);
+
+//			LogAync(
+//					LOG_WARNING,
+//					"RtpSession::SendRtcpNack( "
+//					"this : %p, "
+//					"mediaSSRC : 0x%x(%u), "
+//					"seq : %d, "
+//					"bitmap : 0x%x "
+//					")",
+//					this,
+//					mediaSSRC,
+//					mediaSSRC,
+//					item->seq,
+//					item->bitmap
+//					);
+
+			item->seq = htons(item->seq);
+			item->bitmap = htons(item->bitmap);
+
+			memcpy(tmp + pktSize, (void *)item, sizeof(RtcpPacketNackItem));
+			pktSize += sizeof(RtcpPacketNackItem);
+		}
+
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
+	}
+	mClientMutex.unlock();
+
+    if (status == srtp_err_status_ok) {
+		if( mpRtcpSender ) {
+			sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
+			if (sendSize == pktSize) {
+				bFlag = true;
+			}
+		}
+    }
+
+//	LogAync(
+//			LOG_WARNING,
+//			"RtpSession::SendRtcpNack( "
+//			"this : %p, "
+//			"[%s], "
+//			"status : %d, "
+//			"pktSize : %d, "
+//			"sendSize : %d "
+//			")",
+//			this,
+//			FLAG_2_STRING(bFlag),
+//			status,
+//			pktSize,
+//			sendSize
+//			);
+
+	return bFlag;
+}
+
+void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
+	unsigned short seq = ntohs(((RtpPacket *)pkt)->header.seq);
+	unsigned long ts = ntohl(((RtpPacket *)pkt)->header.ts);
+	unsigned int ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
+
+	if ( ssrc == mAudioSSRC ) {
+		if ( mAudioMaxSeq == 0 ) {
+			mAudioMaxSeq = seq;
+		}
+		if ( mAudioMaxTimestamp == 0 ) {
+			mAudioMaxTimestamp = ts;
+		}
+
+		// 更新丢包信息
+		UpdateLossPacket(ssrc, seq, mAudioMaxSeq, ts, mAudioMaxTimestamp);
+		// 更新音频时间戳和帧号
+		mAudioMaxSeq = MAX(mAudioMaxSeq, seq);
+		mAudioMaxTimestamp = MAX(mAudioMaxTimestamp, seq);
+
+	} else {
+		if ( mVideoMaxSeq == 0 ) {
+			mVideoMaxSeq = seq;
+		}
+		if ( mVideoMaxTimestamp == 0 ) {
+			mVideoMaxTimestamp = ts;
+		}
+
+		/**
+		 * 临时方案刷新关键帧, 正常应该根据[丢包/延迟/解码情况]判断是否请求关键帧
+		 */
+		if( ((RtpPacket *)pkt)->header.m ) {
+			++mVideoFrameCount;
+			if( mVideoFrameCount % 30 == 0 ) {
+				mVideoFrameCount = 0;
+				// 强制刷新一次视频信息(包含视频[宽高/关键帧])
+//				SendRtcpFIR(ssrc);
+				// 强制刷新一次关键帧
+				SendRtcpPLI(ssrc);
+//				// 模拟一次丢包
+//				mVideoMaxSeq -= 2;
+			}
+		}
+
+		// 更新丢包信息
+		UpdateLossPacket(ssrc, seq, mVideoMaxSeq, ts, mVideoMaxTimestamp);
+		// 更新视频时间戳和帧号
+		mVideoMaxSeq = MAX(mVideoMaxSeq, seq);
+		mVideoMaxTimestamp = MAX(mVideoMaxTimestamp, ts);
+	}
+}
+
+bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs) {
+	/**
+	 * 暂时只做简单处理, 直接发送Nack
+	 *
+	 * 正常算法
+	 * 	1.判断丢包队列数量是否过大, 过大则清空丢包队列, 不进行Nack, 直接请求关键帧(PLI)
+	 * 	2.判断丢包队列最大时长(根据RTT计算)是否过大, 过大则清空丢包队列, 不进行Nack, 直接请求关键帧(PLI)
+	 *	3.从(seq) - ((last seq) + 1)的序号开始到seq - 1, 放进Nack队列, 等待重传, 等待时间(根据RTT计算)
+	 *	4.在独立的处理线程处理丢包队, 发送Nack
+	 */
+	bool bFlag = false;
+
+	// 开始产生重传队列
+	int size = seq - (lastMaxSeq + 1);
+	if ( size > 0 ) {
+		bFlag = true;
+
+		// 每个int可以支持最多17个seq
+		int quotient = size / 17;
+		int remainder = (size % 17);
+		int total = (remainder == 0)?quotient:(quotient + 1);
+
+		// 开始帧号
+		int start = lastMaxSeq + 1;
+		// 剩余长度
+		int len = size;
+
+		RtcpPacketNackItem *items = new RtcpPacketNackItem[total];
+		for (int i = 0; i < total; i++) {
+			// 开始序号
+			items[i].seq = start;
+			// 有多少个连续的丢包
+			int seqLen = (len - 1) % 16;
+			items[i].bitmap = 0xFFFF >> (16 - seqLen);
+
+			LogAync(
+					LOG_MSG,
+					"RtpSession::UpdateLossPacket( "
+					"this : %p, "
+					"[Packet Loss], "
+					"ssrc : 0x%x(%u), "
+					"total : %d, "
+					"len : %d, "
+					"start : %d, "
+					"seqLen : %d, "
+					"bitmap : 0x%x "
+					")",
+					this,
+					ssrc,
+					ssrc,
+					total,
+					len,
+					start,
+					seqLen,
+					items[i].bitmap
+					);
+
+			start += 17;
+			len -= 17;
+		}
+
+		SendRtcpNack(ssrc, (void *)items, total);
+		delete[] items;
+	}
 
 	return bFlag;
 }

@@ -32,7 +32,6 @@ export OPENSSL_LIB = $(BUILD_PATH)/lib
 LIBS = \
 	-L. \
 	-Wl,-Bstatic -Lwebrtc -lwebrtc \
-	-Wl,-Bstatic -Lrtmp -lrtmp \
 	-Wl,-Bstatic -Lrtp -lrtp \
 	-Wl,-Bstatic -Lsocket -lsocket \
 	-Wl,-Bstatic -Lmedia -lmedia \
@@ -61,7 +60,7 @@ LIBS = \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
 	-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
-	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre -luuid
+	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre -luuid -lz
 	
 OBJS = main.o MediaServer.o
 		
@@ -72,7 +71,7 @@ MODULEDIRS = \
 	parser server \
 	request respond \
 	websocket \
-	webrtc rtp rtmp socket \
+	webrtc rtp socket \
 	media 
 			
 CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))

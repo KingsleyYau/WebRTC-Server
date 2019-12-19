@@ -18,7 +18,7 @@ CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-va
 CXXFLAGS +=	-I. -I.. -I../include -I../third_party/json 
 
 OBJS 		=	LogFile.o md5.o KThread.o ConfFile.o Arithmetic.o aes.o\
-				IAutoLock.o CommonFunc.o LogManager.o CmdHandler.o
+				IAutoLock.o CommonFunc.o LogManager.o 
 		
 TARGET =	libcommon.a
 

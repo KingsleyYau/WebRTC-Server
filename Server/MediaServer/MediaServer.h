@@ -31,8 +31,6 @@
 #include <parser/HttpParser.h>
 #include <request/IRequest.h>
 #include <respond/IRespond.h>
-// RtmpStreamPool
-#include <rtmp/RtmpStreamPool.h>
 // WebRTC
 #include <webrtc/WebRTC.h>
 // ErrorCode
@@ -393,9 +391,6 @@ private:
 
 	// 内部服务(HTTP)
 	AsyncIOServer mAsyncIOServer;
-
-	// 内部Rtmp流管理
-	RtmpStreamPool mRtmpStreamPool;
 
 	// Websocket服务
 	WSServer mWSServer;

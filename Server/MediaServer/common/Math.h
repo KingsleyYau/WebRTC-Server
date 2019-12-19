@@ -9,5 +9,6 @@
 #define COMMON_MATH_H_
 
 #define MIN(A, B) A<B?A:B
+#define MAX(A, B) A>B?A:B
 
 #endif /* COMMON_MATH_H_ */
