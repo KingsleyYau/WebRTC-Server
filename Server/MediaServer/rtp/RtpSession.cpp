@@ -14,6 +14,8 @@
 #include <common/Arithmetic.h>
 #include <common/Math.h>
 
+#include "RealTimeClock.h"
+
 // libsrtp
 #include <srtp.h>
 #include <srtp_priv.h>
@@ -72,11 +74,37 @@ typedef struct {
     unsigned char pt : 8;      /* payload					 			 */
     uint16_t length;           /* count of media ssrc, each one is 32bit */
 } RtcpHeader; /* BIG END */
-
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P|   FMT   |       PT      |          length               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of packet sender                        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                  SSRC of media source                         |
 typedef struct {
 	RtcpHeader header;
 	uint32_t ssrc;
 } RtcpPacketCommon; /* BIG END */
+
+typedef struct {
+	RtcpPacketCommon common;
+	uint32_t ntp_ts_most;
+	uint32_t ntp_ts_least;
+    uint32_t rtp_ts;
+    uint32_t sender_packet_count;
+    uint32_t sender_octet_count;
+} RtcpPacketSR; /* BIG END */
+
+typedef struct {
+	uint32_t media_ssrc;
+    unsigned char fraction;     /* fraction lost	 							*/
+    uint32_t packet_lost : 24;	/* cumulative packet lost 						*/
+    uint32_t max_seq;			/* extended highest sequence number received	*/
+    uint32_t jitter;			/* jitter		 								*/
+    uint32_t lsr;				/* last SR		 								*/
+    uint32_t dlsr;				/* delay last SR		 						*/
+} RtcpPacketRR; /* BIG END */
 
 // RFC 4585: Feedback format.
 //
@@ -210,16 +238,23 @@ void RtpSession::Reset() {
 	// Video
 	mVideoMaxTimestamp = 0;
 	mVideoMaxSeq = 0;
-	mVideoFrameCount = 0;
 	mVideoSSRC = 0;
+
+	mVideoTotalRecvPacket = 0;
+	mVideoLastMaxSeq = 0;
+	mVideoLastTotalRecvPacket = 0;
+
+	mFirSeq = 0;
+	mVideoFrameCount = 0;
 
 	// Audio
 	mAudioMaxTimestamp = 0;
 	mAudioMaxSeq = 0;
 	mAudioSSRC = 0;
 
-	mFirSeq = 0;
-	mVideoFrameCount = 0;
+	mAudioTotalRecvPacket = 0;
+	mAudioLastMaxSeq = 0;
+	mAudioLastTotalRecvPacket = 0;
 }
 
 void RtpSession::SetRtpSender(SocketSender *sender) {
@@ -554,14 +589,15 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			pktSize = size;
 
 			unsigned short seq = ntohs(((RtpPacket *)pkt)->header.seq);
-			unsigned long ts = ntohl(((RtpPacket *)pkt)->header.ts);
-			unsigned int ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
+			uint32_t ts = ntohl(((RtpPacket *)pkt)->header.ts);
+			uint32_t ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
 
 			LogAync(
 					LOG_STAT,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"mediaSSRC : 0x%x(%u), "
+					"x : %u, "
 					"seq : %u, "
 					"timestamp : %u, "
 					"pktSize : %d"
@@ -570,6 +606,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 					this,
 					ssrc,
 					ssrc,
+					((RtpPacket *)pkt)->header.x,
 					seq,
 					ts,
 					pktSize,
@@ -640,6 +677,11 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 			if ( mpRecvSrtpCtx ) {
 				srtp_err_status_t status = srtp_unprotect_rtcp(mpRecvSrtpCtx, pkt, (int *)&pktSize);
 				bFlag = (status == srtp_err_status_ok);
+
+				if( bFlag ) {
+					// 更新媒体流信息
+					UpdateStreamInfoWithRtcp(pkt, pktSize);
+				}
 			}
 
 		} else {
@@ -861,10 +903,37 @@ bool RtpSession::SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size) {
 	return bFlag;
 }
 
+bool RtpSession::SendRtcpRR(unsigned int mediaSSRC, uint32_t lsr, uint32_t dlsr) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_fail;
+	char tmp[MTU];
+	int pktSize = 0;
+	int sendSize = 0;
+
+	mClientMutex.lock();
+	if( mRunning ) {
+		status = srtp_protect_rtcp(mpSendSrtpCtx, (void *)tmp, &pktSize);
+	}
+
+    if (status == srtp_err_status_ok) {
+		if( mpRtcpSender ) {
+			sendSize = mpRtcpSender->SendData((void *)tmp, pktSize);
+			if (sendSize == pktSize) {
+				bFlag = true;
+			}
+		}
+    }
+
+	mClientMutex.unlock();
+
+	return bFlag;
+}
+
 void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 	unsigned short seq = ntohs(((RtpPacket *)pkt)->header.seq);
-	unsigned long ts = ntohl(((RtpPacket *)pkt)->header.ts);
-	unsigned int ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
+	uint32_t ts = ntohl(((RtpPacket *)pkt)->header.ts);
+	uint32_t ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
 
 	if ( ssrc == mAudioSSRC ) {
 		if ( mAudioMaxSeq == 0 ) {
@@ -874,11 +943,35 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 			mAudioMaxTimestamp = ts;
 		}
 
+		LogAync(
+				LOG_STAT,
+				"RtpSession::UpdateStreamInfo( "
+				"this : %p, "
+				"[Audio], "
+				"mediaSSRC : 0x%x(%u), "
+				"seq : %u, "
+				"timestamp : %u, "
+				"mAudioMaxSeq : %u, "
+				"mAudioMaxTimestamp : %u, "
+				"mAudioTotalRecvPacket : %u "
+				")",
+				this,
+				ssrc,
+				ssrc,
+				seq,
+				ts,
+				mAudioMaxSeq,
+				mAudioMaxTimestamp,
+				mAudioTotalRecvPacket
+				);
+
 		// 更新丢包信息
 		UpdateLossPacket(ssrc, seq, mAudioMaxSeq, ts, mAudioMaxTimestamp);
 		// 更新音频时间戳和帧号
 		mAudioMaxSeq = MAX(mAudioMaxSeq, seq);
 		mAudioMaxTimestamp = MAX(mAudioMaxTimestamp, seq);
+		// 更新收到的数据包
+		mAudioTotalRecvPacket++;
 
 	} else {
 		if ( mVideoMaxSeq == 0 ) {
@@ -887,6 +980,28 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 		if ( mVideoMaxTimestamp == 0 ) {
 			mVideoMaxTimestamp = ts;
 		}
+
+		LogAync(
+				LOG_STAT,
+				"RtpSession::UpdateStreamInfo( "
+				"this : %p, "
+				"[Video], "
+				"mediaSSRC : 0x%x(%u), "
+				"seq : %u, "
+				"timestamp : %u, "
+				"mVideoMaxSeq : %u, "
+				"mVideoMaxTimestamp : %u, "
+				"mVideoTotalRecvPacket : %u "
+				")",
+				this,
+				ssrc,
+				ssrc,
+				seq,
+				ts,
+				mVideoMaxSeq,
+				mVideoMaxTimestamp,
+				mVideoTotalRecvPacket
+				);
 
 		/**
 		 * 临时方案刷新关键帧, 正常应该根据[丢包/延迟/解码情况]判断是否请求关键帧
@@ -909,6 +1024,8 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 		// 更新视频时间戳和帧号
 		mVideoMaxSeq = MAX(mVideoMaxSeq, seq);
 		mVideoMaxTimestamp = MAX(mVideoMaxTimestamp, ts);
+		// 更新收到的数据包
+		mVideoTotalRecvPacket++;
 	}
 }
 
@@ -925,59 +1042,142 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 	bool bFlag = false;
 
 	// 开始产生重传队列
-	int size = seq - (lastMaxSeq + 1);
+	int size = (int)(seq - (lastMaxSeq + 1));
 	if ( size > 0 ) {
 		bFlag = true;
 
-		// 每个int可以支持最多17个seq
-		int quotient = size / 17;
-		int remainder = (size % 17);
-		int total = (remainder == 0)?quotient:(quotient + 1);
+		if ( size < 300 ) {
+			// 每个int可以支持最多17个seq
+			int quotient = size / 17;
+			int remainder = (size % 17);
+			int total = (remainder == 0)?quotient:(quotient + 1);
 
-		// 开始帧号
-		int start = lastMaxSeq + 1;
-		// 剩余长度
-		int len = size;
+			// 开始帧号
+			int start = lastMaxSeq + 1;
+			// 剩余长度
+			int len = size;
 
-		RtcpPacketNackItem *items = new RtcpPacketNackItem[total];
-		for (int i = 0; i < total; i++) {
-			// 开始序号
-			items[i].seq = start;
-			// 有多少个连续的丢包
-			int seqLen = (len - 1) % 16;
-			items[i].bitmap = 0xFFFF >> (16 - seqLen);
+			RtcpPacketNackItem *items = new RtcpPacketNackItem[total];
+			for (int i = 0; i < total; i++) {
+				// 开始序号
+				items[i].seq = start;
+				// 有多少个连续的丢包
+				int seqLen = (len - 1) % 16;
+				items[i].bitmap = 0xFFFF >> (16 - seqLen);
 
+				LogAync(
+						LOG_MSG,
+						"RtpSession::UpdateLossPacket( "
+						"this : %p, "
+						"[Packet Loss], "
+						"ssrc : 0x%x(%u), "
+						"total : %d, "
+						"len : %d, "
+						"start : %d, "
+						"seqLen : %d, "
+						"bitmap : 0x%x "
+						")",
+						this,
+						ssrc,
+						ssrc,
+						total,
+						len,
+						start,
+						seqLen,
+						items[i].bitmap
+						);
+
+				start += 17;
+				len -= 17;
+			}
+
+			SendRtcpNack(ssrc, (void *)items, total);
+			delete[] items;
+		} else {
+			// 丢包太多, 强刷关键帧
 			LogAync(
-					LOG_MSG,
+					LOG_WARNING,
 					"RtpSession::UpdateLossPacket( "
 					"this : %p, "
-					"[Packet Loss], "
+					"[Packet Loss Too Many], "
 					"ssrc : 0x%x(%u), "
-					"total : %d, "
-					"len : %d, "
-					"start : %d, "
-					"seqLen : %d, "
-					"bitmap : 0x%x "
+					"size : %u "
 					")",
 					this,
 					ssrc,
 					ssrc,
-					total,
-					len,
-					start,
-					seqLen,
-					items[i].bitmap
+					size
 					);
 
-			start += 17;
-			len -= 17;
+			SendRtcpPLI(ssrc);
 		}
-
-		SendRtcpNack(ssrc, (void *)items, total);
-		delete[] items;
 	}
 
 	return bFlag;
+}
+
+void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize) {
+	RtcpPayloadType type = (RtcpPayloadType)((RtcpPacketCommon *)pkt)->header.pt;
+	uint32_t ssrc = ntohl(((RtcpPacketCommon *)pkt)->ssrc);
+
+	switch (type) {
+	case RtcpPayloadTypeSR:{
+		RtcpPacketSR *sr = (RtcpPacketSR *)pkt;
+		uint32_t ntp_ts_most = ntohl(sr->ntp_ts_most);
+		uint32_t ntp_ts_least = ntohl(sr->ntp_ts_least);
+		uint32_t rtp_ts = ntohl(sr->rtp_ts);
+		uint32_t sender_packet_count = ntohl(sr->sender_packet_count);
+		uint32_t sender_octet_count = ntohl(sr->sender_octet_count);
+
+		LogAync(
+				LOG_MSG,
+				"RtpSession::UpdateStreamInfoWithRtcp( "
+				"this : %p, "
+				"[Recv SR], "
+				"ssrc : 0x%x(%u), "
+				"ntp_ts_most : %u, "
+				"ntp_ts_least : %u, "
+				"rtp_ts : %u, "
+				"sender_packet_count : %u, "
+				"sender_octet_count : %u "
+				")",
+				this,
+				ssrc,
+				ssrc,
+				ntp_ts_most,
+				ntp_ts_least,
+				rtp_ts,
+				sender_packet_count,
+				sender_octet_count
+				);
+
+		mRtcpLSR = NtpTime(ntp_ts_most, ntp_ts_least);
+		NtpTime now = RealTimeClock::CurrentNtpTime();
+		NtpTime dlsr = NtpTime(now.seconds() - mRtcpLSR.seconds(), now.fractions() - mRtcpLSR.fractions());
+		// 计算RR中的LSR
+		uint32_t rr_lsr = ((mRtcpLSR.seconds() & 0x0000FFFF) << 16) + ((mRtcpLSR.fractions() & 0xFFFF0000) >> 16);
+		// 计算RR中的DLSR
+		uint32_t rr_dlsr = ((dlsr.seconds() & 0x0000FFFF) << 16) + ((dlsr.fractions() & 0xFFFF0000) >> 16);
+
+		LogAync(
+				LOG_MSG,
+				"RtpSession::UpdateStreamInfoWithRtcp( "
+				"this : %p, "
+				"[Recv SR], "
+				"ssrc : 0x%x(%u), "
+				"rr_lsr : %u, "
+				"rr_dlsr : %u "
+				")",
+				this,
+				ssrc,
+				ssrc,
+				rr_lsr,
+				rr_dlsr
+				);
+
+	}break;
+	default:break;
+	}
 }
 
 unsigned int RtpSession::GetRtpSSRC(void *pkt, unsigned int& pktSize) {

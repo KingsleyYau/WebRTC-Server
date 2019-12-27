@@ -45,13 +45,15 @@
 
 <script>
 
-var client;
-var reqId = 0;
-var callAlready = false;
+let client;
+let reqId = 0;
+let callAlready = false;
+let rtc;
+let callType;
 
-var img;
-var canvasStream;
-var imageFilter;
+let img;
+let canvasStream;
+let imageFilter;
 
 function reset() {
     reqId = 0;
@@ -73,15 +75,42 @@ function reset() {
     $("[id=rtmpUrlLabel]").html('');
 }
 
+function handleGetIceToken (iceServers) {
+    let config = {
+        iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
+        iceTransportPolicy: "all",
+        iceCandidatePoolSize: 0
+    };
+    console.log('Global::handleGetIceToken(), config:', config);
+
+    // let pc = new RTCPeerConnection(config);
+    rtc.config = config;
+
+    const videoSource = $("[id=videoSelector]").val();
+    rtc.call(videoSource).then( () => {
+        callType = 'call';
+        // Set local display
+        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+        // Start stat
+        rtc.stat();
+        // Send sdp call to media server
+        call();
+
+    }).catch( (e) => {
+        console.log("Global::handleGetIceToken(), [Fail], e: ", e);
+    });
+}
+
 async function connect() {
     return new Promise( (resolve, reject) => {
         let host = '';
         if ( window.location.protocol == 'https:') {
-            host = 'wss://' + window.location.hostname + ':9081';
+            host = 'wss://' + window.location.hostname + ':9082';
         } else {
-            host = 'ws://' + window.location.hostname + ':9881';
+            host = 'ws://' + window.location.hostname + ':9981';
         }
-        host = 'wss://' + '127.0.0.1' + ':9081';
+        // host = 'wss://' + '127.0.0.1' + ':9081';
+        // host = 'wss://' + '192.168.88.133' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
         // host = 'wss://' + '52.196.96.7' + ':9081';
 
@@ -126,7 +155,7 @@ async function connect() {
                     if( typeof(obj.data.rtmpUrl) != "undefined" ) {
                         // demo
                         const rtmpUrl = 'rtmp://' + window.location.hostname + ':4000/cdn_standard/' + $("#stream").val();
-                        const flvUrl = 'http://' + window.location.hostname + ':8889/flv?app=cdn_standard&stream=' + $("#stream").val();
+                        const flvUrl = 'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + $("#stream").val();
                         // const rtmpUrl = obj.data.rtmpUrl;
                         if( rtmpUrl.length > 0 ) {
                             $("[id=rtmpUrl]").attr("style", 'display: block');
@@ -140,7 +169,8 @@ async function connect() {
                 } else if(obj.route == 'imRTC/sendSdpAnswerNotice') {
                     $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
                     $("[id=acceptBtn]").click();
-                } else {
+                } else if(obj.route == 'imRTC/sendGetToken') {
+                    handleGetIceToken(obj.data.iceServers);
                 }
 
                 if( obj.errmsg.length > 0 ) {
@@ -156,7 +186,7 @@ function send(obj) {
     obj.id = reqId;
     data = JSON.stringify(obj);
 
-    console.log('Client.send(), ' + data);
+    // console.log('Client.send(), ' + data);
     if( client.readyState == client.OPEN ) {
         if( obj.route != "imRTC/heartbeat" ) {
             $("[id=jsonSend]").html(data);
@@ -212,6 +242,19 @@ function heartBeat() {
     // }, 30000);
 }
 
+async function sendGetToken() {
+    await connect();
+
+    obj = {
+        route:'imRTC/sendGetToken',
+        req_data:{
+        }
+    }
+
+    console.log('Client.sendGetToken(), ', JSON.stringify(obj));
+    send(obj);
+}
+
 async function sendCmd() {
     await connect();
 
@@ -243,7 +286,7 @@ async function sendCmd() {
 }
 
 async function call() {
-    await connect();
+    // await connect();
 
     setTimeout( () => {
         sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
@@ -588,13 +631,13 @@ function onload() {
         // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
         // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"]}]')
         // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]'),
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]'),
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7"],"username":"MaxClient","credential":"123"}]'),
         iceTransportPolicy: "all",
         iceCandidatePoolSize: 0
     };
     const configChromeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'),
-        iceTransportPolicy: "all",
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133?transport=tcp"],"username":"MaxClient","credential":"123"}]'),
+        iceTransportPolicy: "relay",
         iceCandidatePoolSize: 0
     }
 
@@ -607,38 +650,35 @@ function onload() {
      * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
      */
     const configEdgeDemo = {
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=udp"],"username":"MaxClient","credential":"123"},{"urls":["stun:52.196.96.7:3478"]}]'),
+        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7?transport=udp"],"username":"MaxClient","credential":"123"}]'),
         iceTransportPolicy: "all",
         iceCandidatePoolSize: 0
     }
 
     const configEdgeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=udp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.134:3478"]}]'),
+        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133?transport=udp"],"username":"MaxClient","credential":"123"}]'),
         iceTransportPolicy: "all",
         iceCandidatePoolSize: 0
     }
 
-    var config = {};
-
-    if ( window.location.hostname == '52.196.96.7' ) {
-        if ( isEdge() ) {
-            config = configEdgeDemo;
-        } else {
-            config = configChromeDemo;
-        }
-    } else {
-        if ( isEdge() ) {
-            config = configEdgeLocal;
-        } else {
-            config = configChromeLocal;
-        }
-    }
-
-    console.log(JSON.stringify(config));
-    let type;
-    let rtc = new RTCClient(config);
+    let config = {};
+    // if ( window.location.hostname == '52.196.96.7' ) {
+    //     if ( isEdge() ) {
+    //         config = configEdgeDemo;
+    //     } else {
+    //         config = configChromeDemo;
+    //     }
+    // } else {
+    //     if ( isEdge() ) {
+    //         config = configEdgeLocal;
+    //     } else {
+    //         config = configChromeLocal;
+    //     }
+    // }
+    // console.log(JSON.stringify(config));
+    rtc = new RTCClient(config);
     rtc.onicecandidate = () => {
-        if( type == 'call' ) {
+        if( callType == 'call' ) {
             $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             if ( callAlready ) {
                 // Update sdp to media server
@@ -648,7 +688,7 @@ function onload() {
     };
 
     rtc.onicecomplete = () => {
-        if( type == 'call' ) {
+        if( callType == 'call' ) {
             // Get Whole sdp with ice candidate, but it maybe cost time
             // $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
             // // Send sdp to media server
@@ -664,18 +704,20 @@ function onload() {
             client.close();
         }
 
-        rtc.call(videoSource).then( () => {
-            type = 'call';
-            // Set local display
-            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-            // Start stat
-            rtc.stat();
-            // Send sdp call to media server
-            call();
-
-        }).catch( (e) => {
-            console.log("RTC Call, [Fail], e: ", e);
-        });
+        sendGetToken();
+        //
+        // rtc.call(videoSource).then( () => {
+        //     callType = 'call';
+        //     // Set local display
+        //     $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+        //     // Start stat
+        //     rtc.stat();
+        //     // Send sdp call to media server
+        //     call();
+        //
+        // }).catch( (e) => {
+        //     console.log("RTC Call, [Fail], e: ", e);
+        // });
     });
 
     $("[id=acceptBtn]").click(function accept() {
@@ -692,7 +734,9 @@ function onload() {
     });
 
     $("[id=hangupBtn]").click(function() {
-        client.close();
+        if( typeof(client) != "undefined" ) {
+            client.close();
+        }
         rtc.hangup();
     });
 
@@ -703,12 +747,15 @@ function onload() {
 
     });
 
+    $("[id=iceBtn]").click(function() {
+        sendGetToken();
+    });
+
     $("[id=cmdBtn]").click(function() {
         sendCmd().then(() => {
             // client.close();
         });
     });
-
 }
 
 function handleError(e) {

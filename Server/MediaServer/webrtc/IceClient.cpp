@@ -16,6 +16,9 @@
 #include <common/CommonFunc.h>
 #include <common/Arithmetic.h>
 
+// Crypto
+#include <crypto/Crypto.h>
+
 // libnice
 #include <agent.h>
 #include <debug.h>
@@ -51,15 +54,19 @@ void* niceLogFunc(const char *logBuffer) {
 
 static string gStunServerIp = "";
 static string gLocalIp = "";
+static bool gbUseSecret = false;
 static string gTurnUserName = "";
 static string gTurnPassword = "";
-bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, const string& turnUserName, const string& turnPassword) {
+static string gTurnShareSecret = "";
+bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, bool useShareSecret, const string& turnUserName, const string& turnPassword, const string& turnShareSecret) {
 	bool bFlag = true;
 
 	gStunServerIp = stunServerIp;
 	gLocalIp = localIp;
+	gbUseSecret = useShareSecret;
 	gTurnUserName = turnUserName;
 	gTurnPassword = turnPassword;
+	gTurnShareSecret = turnShareSecret;
 
 	g_networking_init();
 //	g_thread_init(NULL);
@@ -208,13 +215,32 @@ bool IceClient::Start() {
     g_signal_connect(mpAgent, "new-selected-pair-full", G_CALLBACK(cb_new_selected_pair_full), this);
     g_signal_connect(mpAgent, "stream-removed-actually", G_CALLBACK(cb_stream_removed_actually), this);
 
+	string username;
+	string password;
+
     guint componentId = 1;
 	guint streamId = nice_agent_add_stream(mpAgent, componentId);
 	if ( streamId != 0 ) {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, gTurnUserName.c_str(), gTurnPassword.c_str(), NICE_RELAY_TYPE_TURN_TCP);
+		if ( gbUseSecret ) {
+			// 这里只需要精确到秒
+			char user[256] = {0};
+			time_t timer = time(NULL);
+			snprintf(user, sizeof(user) - 1, "%lu:mediaserver", timer + 3600);
+			password = Crypto::Sha1(gTurnShareSecret, user);
+			Arithmetic art;
+			string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
+
+			username = user;
+			password = base64;
+		} else {
+			username = gTurnUserName;
+			password = gTurnPassword;
+		}
+
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
@@ -229,13 +255,17 @@ bool IceClient::Start() {
 			"[%s], "
 			"agent : %p, "
 			"streamId : %u, "
-			"componentId : %u "
+			"componentId : %u, "
+			"username : %s, "
+			"password : %s "
 			")",
 			this,
 			FLAG_2_STRING(bFlag),
 			mpAgent,
 			streamId,
-			componentId
+			componentId,
+			username.c_str(),
+			password.c_str()
 			);
 
 	mClientMutex.unlock();

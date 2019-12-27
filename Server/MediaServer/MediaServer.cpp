@@ -15,6 +15,7 @@
 // Common
 #include <common/CommonFunc.h>
 #include <httpclient/HttpClient.h>
+#include <crypto/Crypto.h>
 #include <simulatorchecker/SimulatorProtocolTool.h>
 // Request
 // Respond
@@ -105,8 +106,11 @@ MediaServer::MediaServer()
 	mWebRTCPortStart = 10000;
 	mWebRTCMaxClient = 10;
 	mWebRTCRtp2RtmpShellFilePath = "/root/Max/webrtc/bin/rtp2rtmp.sh";
+	mbTurnUseSecret = false;
 	mTurnUserName = "";
 	mTurnPassword = "";
+	mTurnShareSecret = "";
+	mTurnClientTTL = 600;
 
 	// 日志参数
 	miStateTime = 0;
@@ -243,8 +247,12 @@ bool MediaServer::Start() {
 			"mWebRTCDtlsKeyPath : %s, "
 			"mWebRTCLocalIp : %s, "
 			"mStunServerIp : %s, "
+			"mStunServerExtIp : %s, "
+			"mbTurnUseSecret : %u, "
 			"mTurnUserName : %s, "
-			"mTurnPassword : %s "
+			"mTurnPassword : %s, "
+			"mTurnShareSecret : %s, "
+			"mTurnClientTTL : %u "
 			")",
 			mWebRTCPortStart,
 			mWebRTCMaxClient,
@@ -254,8 +262,12 @@ bool MediaServer::Start() {
 			mWebRTCDtlsKeyPath.c_str(),
 			mWebRTCLocalIp.c_str(),
 			mStunServerIp.c_str(),
+			mStunServerExtIp.c_str(),
+			mbTurnUseSecret,
 			mTurnUserName.c_str(),
-			mTurnPassword.c_str()
+			mTurnPassword.c_str(),
+			mTurnShareSecret.c_str(),
+			mTurnClientTTL
 			);
 
 	// 信令服务(Websocket)
@@ -286,7 +298,7 @@ bool MediaServer::Start() {
 
 	// 初始化全局属性
 	HttpClient::Init();
-	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp, mTurnUserName, mTurnPassword) ) {
+	if( !WebRTC::GobalInit(mWebRTCDtlsCertPath, mWebRTCDtlsKeyPath, mStunServerIp, mWebRTCLocalIp, mbTurnUseSecret, mTurnUserName, mTurnPassword, mTurnShareSecret) ) {
 		printf("# MediaServer(WebRTC) start Fail. \n");
 		return false;
 	}
@@ -478,8 +490,13 @@ bool MediaServer::LoadConfig() {
 			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
 			mWebRTCLocalIp = conf.GetPrivate("WEBRTC", "ICELOCALIP", "");
 			mStunServerIp = conf.GetPrivate("WEBRTC", "STUNSERVERIP", "127.0.0.1");
+			mStunServerExtIp = conf.GetPrivate("WEBRTC", "STUNSERVEREXTIP", "127.0.0.1");
+			mStunServerExtIp = (mStunServerExtIp.length()==0)?mStunServerIp:mStunServerExtIp;
+			mbTurnUseSecret = atoi(conf.GetPrivate("WEBRTC", "TURNSTATIC", "0").c_str());
 			mTurnUserName = conf.GetPrivate("WEBRTC", "TURNUSERNAME", "MaxServer");
 			mTurnPassword = conf.GetPrivate("WEBRTC", "TURNPASSWORD", "123");
+			mTurnShareSecret = conf.GetPrivate("WEBRTC", "TURNSHARESECRET", "");
+			mTurnClientTTL = atoi(conf.GetPrivate("WEBRTC", "TURNCLIENTTTL", "600").c_str());
 
 			// Websocket参数
 			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());
@@ -1418,6 +1435,43 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
 					}
 					mWebRTCMap.Unlock();
+				} else if ( route == "imRTC/sendGetToken" ) {
+					// 这里只需要精确到秒
+					char user[256] = {0};
+					time_t timer = time(NULL);
+					snprintf(user, sizeof(user) - 1, "%lu:client", timer + mTurnClientTTL);
+					string password = Crypto::Sha1("mediaserver12345", user);
+					Arithmetic art;
+					string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
+
+					LogAync(
+							LOG_WARNING,
+							"MediaServer::OnWSMessage( "
+							"event : [Websocket-请求-获取ICE配置], "
+							"user : %s, "
+							"base64 : %s "
+							")",
+							user,
+							base64.c_str()
+							);
+
+					bFlag = true;
+
+					Json::Value iceServers = Json::Value::null;
+					Json::Value urls = Json::Value::null;
+
+					char url[1024];
+					snprintf(url, sizeof(url) - 1, "turn:%s?transport=tcp", mStunServerExtIp.c_str());
+					urls.append(url);
+					snprintf(url, sizeof(url) - 1, "turn:%s?transport=udp", mStunServerExtIp.c_str());
+					urls.append(url);
+
+					iceServers["urls"] = urls;
+					iceServers["username"] = user;
+					iceServers["credential"] = base64;
+
+					resData["iceServers"].append(iceServers);
+
 				} else {
 					GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}

@@ -34,6 +34,6 @@ mkdir -p $DEST_PATH/run/
 
 # Create Log Dir
 mkdir -p $DEST_PATH/log/
-mkdir -p $DEST_PATH/log/turn
+mkdir -p $DEST_PATH/log/turnserver/
 
 echo "############## Finish installing mediaserver ##############"

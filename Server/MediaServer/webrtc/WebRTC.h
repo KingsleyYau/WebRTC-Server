@@ -85,8 +85,10 @@ public:
 			const string& keyPath,
 			const string& stunServerIp,
 			const string& localIp,
+			bool useShareSecret,
 			const string& turnUserName,
-			const string& turnPassword
+			const string& turnPassword,
+			const string& turnShareSecret
 			);
 
 public:
@@ -156,6 +158,14 @@ private:
 	 * 创建音频SDP
 	 */
 	string CreateAudioOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
+	/**
+	 * 创建视频RTCP-FB
+	 */
+	string CreateVideoRtcpFb();
+	/**
+	 * 创建音频RTCP-FB
+	 */
+	string CreateAudioRtcpFb();
 
 private:
 	// Status

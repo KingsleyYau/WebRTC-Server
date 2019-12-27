@@ -16,6 +16,8 @@
 
 #include <socket/ISocketSender.h>
 
+#include <rtp/NtpTime.h>
+
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -104,11 +106,15 @@ private:
 	 * 重置
 	 */
 	void Reset();
-
 	/**
-	 *发送丢包数据
+	 * 发送丢包重传请求
 	 */
 	bool SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size);
+	/**
+	 * Send RTCP Receiver Report
+	 * 发送接收者报告
+	 */
+	bool SendRtcpRR(unsigned int mediaSSRC, uint32_t lsr, uint32_t dlsr);
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
 	 */
@@ -117,6 +123,10 @@ private:
 	 * 更新丢包统计
 	 */
 	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
+	/**
+	 * 更新媒体信息(RTT)
+	 */
+	void UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize);
 
 protected:
 	// Status
@@ -129,26 +139,43 @@ private:
 	SocketSender *mpRtcpSender;
 
 	// Video
-	// Max video timestamp
+	// Max Video Timestamp
 	unsigned int mVideoMaxTimestamp;
-	// Max video sequence
+	// Max Video Sequence
 	uint16_t mVideoMaxSeq;
-	// Video frame count
+	// Video Frame Count
 	uint16_t mVideoFrameCount;
 	// Video SSRC
 	unsigned int mVideoSSRC;
-	// Lost packet map
+	// Lost Video Packet Map
 	LostPacketMap mVideoLostPacketMap;
 
+	// Total Receive Video Packet
+	unsigned int mVideoTotalRecvPacket;
+	// Last Max Video Sequence
+	unsigned int mVideoLastMaxSeq;
+	// Last Total Receive Video Packet
+	unsigned int mVideoLastTotalRecvPacket;
+
 	// Audio
-	// Max audio timestamp
+	// Max Audio timestamp
 	unsigned int mAudioMaxTimestamp;
-	// Max audio sequence
+	// Max Audio sequence
 	uint16_t mAudioMaxSeq;
 	// Audio SSRC
 	unsigned int mAudioSSRC;
-	// Lost packet map
+	// Lost Audio Packet map
 	LostPacketMap mAudioLostPacketMap;
+
+	// Total Receive Audio Packet
+	unsigned int mAudioTotalRecvPacket;
+	// Last Max Audio Sequence
+	unsigned int mAudioLastMaxSeq;
+	// Last Total Receive Audio Packet
+	unsigned int mAudioLastTotalRecvPacket;
+
+	// Last Rtcp Sender Report Timestamp
+	NtpTime mRtcpLSR;
 
 	// libsrtp
 	srtp_ctx_t *mpSendSrtpCtx;

@@ -61,12 +61,14 @@ bool WebRTC::GobalInit(
 		const string& keyPath,
 		const string& stunServerIp,
 		const string& localIp,
+		bool useShareSecret,
 		const string& turnUserName,
-		const string& turnPassword
+		const string& turnPassword,
+		const string& turnShareSecret
 		) {
 	bool bFlag = true;
 
-	bFlag &= IceClient::GobalInit(stunServerIp, localIp, turnUserName, turnPassword);
+	bFlag &= IceClient::GobalInit(stunServerIp, localIp, useShareSecret, turnUserName, turnPassword, turnShareSecret);
 	bFlag &= DtlsSession::GobalInit(certPath, keyPath);
 	bFlag &= RtpSession::GobalInit();
 
@@ -861,29 +863,8 @@ void WebRTC::StopRtpTransform() {
 string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string result;
 
-	string audioRtcpFb = "";
-	while( !mAudioRtcpFbList.empty() ) {
-		string rtcpFb = mAudioRtcpFbList.front();
-		mAudioRtcpFbList.pop_front();
-
-		if( rtcpFb.length() > 0 ) {
-			audioRtcpFb += "a=";
-			audioRtcpFb += rtcpFb;
-			audioRtcpFb += "\n";
-		}
-	}
-
-	string videoRtcpFb = "";
-	while( !mVideoRtcpFbList.empty() ) {
-		string rtcpFb = mVideoRtcpFbList.front();
-		mVideoRtcpFbList.pop_front();
-
-		if( rtcpFb.length() > 0 ) {
-			videoRtcpFb += "a=";
-			videoRtcpFb += rtcpFb;
-			videoRtcpFb += "\n";
-		}
-	}
+	string audioRtcpFb = CreateAudioRtcpFb();
+	string videoRtcpFb = CreateVideoRtcpFb();
 
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
@@ -903,6 +884,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 			"a=fingerprint:sha-256 %s\n"
 			"a=setup:active\n"
 			"a=mid:%s\n"
+//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
 			"a=recvonly\n"
 			"a=rtcp-mux\n"
 			"a=rtpmap:%u %s/%u%s\n"
@@ -967,17 +949,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string result;
 
-	string videoRtcpFb = "";
-	while( !mVideoRtcpFbList.empty() ) {
-		string rtcpFb = mVideoRtcpFbList.front();
-		mVideoRtcpFbList.pop_front();
-
-		if( rtcpFb.length() > 0 ) {
-			videoRtcpFb += "a=";
-			videoRtcpFb += rtcpFb;
-			videoRtcpFb += "\n";
-		}
-	}
+	string videoRtcpFb = CreateVideoRtcpFb();
 
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
@@ -1032,6 +1004,46 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 string WebRTC::CreateAudioOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string result;
 	return result;
+}
+
+string WebRTC::CreateVideoRtcpFb() {
+	string videoRtcpFb = "";
+//	while( !mVideoRtcpFbList.empty() ) {
+//		string rtcpFb = mVideoRtcpFbList.front();
+//		mVideoRtcpFbList.pop_front();
+//
+//		if( rtcpFb.length() > 0 ) {
+//			videoRtcpFb += "a=";
+//			videoRtcpFb += rtcpFb;
+//			videoRtcpFb += "\n";
+//		}
+//	}
+	char tmp[1024];
+//	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u goog-remb\n", mVideoSdpPayload.payload_type);
+//	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u fir\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u nack\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u nack pli\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+
+	return videoRtcpFb;
+}
+
+string WebRTC::CreateAudioRtcpFb() {
+	string audioRtcpFb = "";
+	while( !mAudioRtcpFbList.empty() ) {
+		string rtcpFb = mAudioRtcpFbList.front();
+		mAudioRtcpFbList.pop_front();
+
+		if( rtcpFb.length() > 0 ) {
+			audioRtcpFb += "a=";
+			audioRtcpFb += rtcpFb;
+			audioRtcpFb += "\n";
+		}
+	}
+	return audioRtcpFb;
 }
 
 int WebRTC::SendData(const void *data, unsigned int len) {
@@ -1289,6 +1301,8 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 					mDtlsSession.GetServerKey(remoteKey, remoteSize);
 
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
+					mRtpSession.SetAudioSSRC(mAudioSSRC);
+					mRtpSession.SetVideoSSRC(mVideoSSRC);
 				}
 
 				if ( bStart ) {

@@ -1,5 +1,5 @@
 # Mediaserver
-break MediaServer.cpp:573
+#break MediaServer.cpp:573
 
 # RTMP
 #break srs_librtmp.cpp:22886

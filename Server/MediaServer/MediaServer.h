@@ -316,10 +316,18 @@ private:
 	string mWebRTCLocalIp;
 	// STUN服务器IP
 	string mStunServerIp;
+	// STUN服务器外网IP
+	string mStunServerExtIp;
+	// 是否使用共享密钥
+	bool mbTurnUseSecret;
 	// TURN用户名
 	string mTurnUserName;
 	// TURN密码
 	string mTurnPassword;
+	// TURN共享密钥
+	string mTurnShareSecret;
+	// TURN共享密钥客户端有效时间(秒)
+	unsigned int mTurnClientTTL;
 	/***************************** 媒体流服务(WebRTC)参数 **************************************/
 
 
