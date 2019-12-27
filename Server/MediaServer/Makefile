@@ -43,6 +43,7 @@ LIBS = \
 	-Wl,-Bstatic -Lwebsocket -lwebsocket \
 	-Wl,-Bstatic -Lserver -lserver \
 	-Wl,-Bstatic -Lcommon -lcommon \
+	-Wl,-Bstatic -Lcrypto -lmediacrypto \
 	-Wl,-Bstatic -Lthird_party/libsrtp -lsrtp2 \
 	-Wl,-Bstatic -Lthird_party/libsdp -lsdp \
 	-Wl,-Bstatic -Lthird_party/amf -lamf \
@@ -67,7 +68,7 @@ OBJS = main.o MediaServer.o
 TARGET = mediaserver
 
 MODULEDIRS = \
-	common httpclient simulatorchecker \
+	common crypto httpclient simulatorchecker \
 	parser server \
 	request respond \
 	websocket \
