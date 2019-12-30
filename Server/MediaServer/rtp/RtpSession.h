@@ -62,6 +62,21 @@ public:
 public:
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
 	void Stop();
+	/**
+	 * 设置模拟丢包
+	 * @param bSimLost 是否启动模拟丢包
+	 * @param audioLostSeed 音频丢包随机数, 满足 ( rand() % 随机数 == 0) 则开始丢包
+	 * @param audioLostSize 音频开始连续丢包的个数
+	 * @param videoLostSeed 视频丢包随机数, 满足 ( rand() % 随机数 == 0) 则开始丢包
+	 * @param videoLostSize 视频开始连续丢包的个数
+	 */
+	 void SetSimLostParam(
+			 bool bSimLost,
+			 unsigned int audioLostSeed,
+			 unsigned int audioLostSize,
+			 unsigned int videoLostSeed,
+			 unsigned int videoLostSize
+			 );
 
 public:
 	bool StartSend(char *localKey, int size);
@@ -127,6 +142,18 @@ private:
 	 * 更新媒体信息(RTT)
 	 */
 	void UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize);
+	/**
+	 * 模拟丢包(测试用)
+	 */
+	bool SimPktLost(unsigned int ssrc, unsigned int seq);
+	/**
+	 * 判断是否音频数据包
+	 */
+	bool IsAudioPkt(unsigned int ssrc);
+	/**
+	 * 根据媒体流包SSRC获取描述
+	 */
+	string PktTypeDesc(unsigned int ssrc);
 
 protected:
 	// Status
@@ -187,6 +214,30 @@ private:
     unsigned int mFirSeq;
     // 收到的完整视频帧数量
     unsigned int mVideoRecvFrameCount;
+
+    //////////////////////////////////////////////////////////////////////////
+    /**
+     * 模拟丢包
+     */
+    bool mbSimLost;
+	unsigned int mAudioLostSeed;
+	unsigned int mAudioLostSize;
+	unsigned int mVideoLostSeed;
+	unsigned int mVideoLostSize;
+    // 模拟丢包状态
+    bool mbAudioAbandonning;
+    // 连续丢包数量
+    int mAudioAbandonTotal;
+    // 当前已丢包数量
+    int mAudioAbandonCount;
+
+    // 模拟丢包状态
+    bool mbVideoAbandonning;
+    // 连续丢包数量
+    int mVideoAbandonTotal;
+    // 当前已丢包数量
+    int mVideoAbandonCount;
+    //////////////////////////////////////////////////////////////////////////
 };
 
 } /* namespace mediaserver */
