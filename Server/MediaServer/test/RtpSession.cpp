@@ -134,7 +134,7 @@ bool RtpSession::GobalInit() {
 	bFlag = (status == srtp_err_status_ok);
 
 	LogAync(
-			LOG_ERR_USER,
+			LOG_ERR,
 			"RtpSession::GobalInit( "
 			"[%s] "
 			")",
@@ -225,7 +225,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 	Arithmetic art;
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Start( "
 			"this : %p, "
 			"localKey : %s, "
@@ -250,7 +250,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"RtpSession::Start( "
 				"this : %p, "
 				"[OK] "
@@ -259,7 +259,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::Start( "
 				"this : %p, "
 				"[Fail], "
@@ -278,7 +278,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 void RtpSession::Stop() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Stop( "
 			"this : %p "
 			")",
@@ -307,7 +307,7 @@ void RtpSession::Stop() {
 		Reset();
 
 //		LogAync(
-//				LOG_MSG,
+//				LOG_INFO,
 //				"RtpSession::Stop( "
 //				"this : %p, "
 //				"[OK] "
@@ -318,7 +318,7 @@ void RtpSession::Stop() {
 	mClientMutex.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Stop( "
 			"this : %p "
 			"[OK] "
@@ -332,7 +332,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StartSend( "
 			"this : %p, "
 			"size : %d, "
@@ -369,7 +369,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::StartSend( "
 				"this : %p, "
 				"[OK] "
@@ -378,7 +378,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::StartSend( "
 				"this : %p, "
 				"[Fail], "
@@ -399,7 +399,7 @@ void RtpSession::StopSend() {
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StopSend( "
 			"this : %p, "
 			"[OK] "
@@ -413,7 +413,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StartRecv( "
 			"this : %p, "
 			"size : %d, "
@@ -451,7 +451,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::StartRecv( "
 				"this : %p, "
 				"[OK] "
@@ -460,7 +460,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::StartRecv( "
 				"this : %p, "
 				"[Fail], "
@@ -481,7 +481,7 @@ void RtpSession::StopRecv() {
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StopRecv( "
 			"this : %p, "
 			"[OK] "
@@ -541,7 +541,7 @@ void RtpSession::SetVideoKeyFrameInfoH264(const char *sps, int spsSize, const ch
 
     if( bSpsChange || bPpsChange ) {
     	LogAync(
-    			LOG_STAT,
+    			LOG_DEBUG,
     			"RtpSession::SetVideoKeyFrameInfoH264( "
     			"this : %p, "
     			"timestamp : %u, "
@@ -602,7 +602,7 @@ bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsign
 	        	if( lastSize <= (int)sizeof(pkt.body) ) {
 	        		// Send single NALU with one RTP packet
 		        	LogAync(
-		        			LOG_STAT,
+		        			LOG_DEBUG,
 		        			"RtpSession::SendVideoFrameH264( "
 		        			"this : %p, "
 							"[Send single NALU with single RTP packet], "
@@ -649,7 +649,7 @@ bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsign
 	        	} else {
 	        		// Send single NALU with multiple RTP packets
 		        	LogAync(
-		        			LOG_STAT,
+		        			LOG_DEBUG,
 		        			"RtpSession::SendVideoFrameH264( "
 		        			"this : %p, "
 							"[Send single NALU with multiple RTP packets], "
@@ -738,7 +738,7 @@ bool RtpSession::SendVideoFrameH264(const char* frame, unsigned int size, unsign
 								unsigned char h = pkt.body[1];
 
 					        	LogAync(
-					        			LOG_STAT,
+					        			LOG_DEBUG,
 										"RtpSession::SendVideoFrameH264( "
 										"this : %p, "
 										"[Send FUs packet], "
@@ -803,7 +803,7 @@ bool RtpSession::SendVideoKeyFrameH264() {
 	if( mRunning ) {
 		if( mpSps && mPpsSize && mVideoFrameCount++ % 10 == 0 ) {
 	    	LogAync(
-	    			LOG_STAT,
+	    			LOG_DEBUG,
 	    			"RtpSession::SendVideoKeyFrameH264( "
 	    			"this : %p, "
 					"[Send SPS/PPS RTP packet], "
@@ -913,7 +913,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
     }
 
 //	LogAync(
-//			LOG_MSG,
+//			LOG_INFO,
 //			"RtpSession::SendRtpPacket( "
 //			"this : %p, "
 //			"status : %d, "
@@ -955,7 +955,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 				}
 			}
 	//		LogAync(
-	//				LOG_MSG,
+	//				LOG_INFO,
 	//				"RtpSession::RecvRtpPacket( "
 	//				"this : %p, "
 	//				"status : %d, "
@@ -973,7 +973,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 	//				);
 		} else {
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
@@ -1030,7 +1030,7 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 
 		} else {
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"RtpSession::RecvRtcpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "

@@ -179,14 +179,14 @@ bool MediaServer::Start() {
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
 	LogAync(
-			LOG_ERR_SYS,
+			LOG_ALERT,
 			"MediaServer::Start( "
 			"############## MediaServer ############## "
 			")"
 			);
 
 	LogAync(
-			LOG_ERR_SYS,
+			LOG_ALERT,
 			"MediaServer::Start( "
 			"Version : %s, "
 			"Build date : %s %s "
@@ -197,7 +197,7 @@ bool MediaServer::Start() {
 			);
 
 	LogAync(
-			LOG_ERR_SYS,
+			LOG_ALERT,
 			"MediaServer::Start( "
 			"[运行参数], "
 			"pid : %d, "
@@ -314,12 +314,12 @@ bool MediaServer::Start() {
 		bFlag = MainLoop::GetMainLoop()->Start();
 		if( bFlag ) {
 			LogAync(
-					LOG_WARNING, "MediaServer::Start( event : [启动监听子进程循环-OK] )"
+					LOG_NOTICE, "MediaServer::Start( event : [启动监听子进程循环-OK] )"
 					);
 
 		} else {
 			LogAync(
-					LOG_ERR_SYS, "MediaServer::Start( event : [启动监听子进程循环-Fail] )"
+					LOG_ALERT, "MediaServer::Start( event : [启动监听子进程循环-Fail] )"
 					);
 			printf("# MediaServer(Loop) start Fail. \n");
 		}
@@ -330,12 +330,12 @@ bool MediaServer::Start() {
 		bFlag = mAsyncIOServer.Start(miPort, miMaxClient, miMaxHandleThread);
 		if( bFlag ) {
 			LogAync(
-					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(HTTP)-OK] )"
+					LOG_NOTICE, "MediaServer::Start( event : [创建内部服务(HTTP)-OK] )"
 					);
 
 		} else {
 			LogAync(
-					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(HTTP)-Fail] )"
+					LOG_ALERT, "MediaServer::Start( event : [创建内部服务(HTTP)-Fail] )"
 					);
 			printf("# MediaServer(HTTP) start Fail. \n");
 		}
@@ -346,12 +346,12 @@ bool MediaServer::Start() {
 		bFlag = mWSServer.Start(miWebsocketPort);
 		if( bFlag ) {
 			LogAync(
-					LOG_WARNING, "MediaServer::Start( event : [创建内部服务(Websocket)-OK] )"
+					LOG_NOTICE, "MediaServer::Start( event : [创建内部服务(Websocket)-OK] )"
 					);
 
 		} else {
 			LogAync(
-					LOG_ERR_SYS, "MediaServer::Start( event : [创建内部服务(Websocket)-Fail] )"
+					LOG_ALERT, "MediaServer::Start( event : [创建内部服务(Websocket)-Fail] )"
 					);
 			printf("# MediaServer(Websocket) start Fail. \n");
 		}
@@ -378,14 +378,14 @@ bool MediaServer::Start() {
 	if( bFlag ) {
 		if( mTimeoutCheckThread.Start(mpTimeoutCheckRunnable, "Timeout") != 0 ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"MediaServer::Start( "
 					"event : [启动超时处理线程-OK] "
 					")");
 		} else {
 			bFlag = false;
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"MediaServer::Start( "
 					"event : [启动超时处理线程-Fail] "
 					")"
@@ -398,14 +398,14 @@ bool MediaServer::Start() {
 	if( bFlag ) {
 		if( mExtRequestThread.Start(mpExtRequestRunnable, "ExtRequest") != 0 ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"MediaServer::Start( "
 					"event : [启动外部请求线程-OK] "
 					")");
 		} else {
 			bFlag = false;
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"MediaServer::Start( "
 					"event : [启动外部请求线程-Fail] "
 					")"
@@ -418,14 +418,14 @@ bool MediaServer::Start() {
 	if( bFlag ) {
 		if( mStateThread.Start(mpStateRunnable, "State") != 0 ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"MediaServer::Start( "
 					"event : [启动状态监视线程-OK] "
 					")");
 		} else {
 			bFlag = false;
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"MediaServer::Start( "
 					"event : [启动状态监视线程-Fail] "
 					")"
@@ -437,7 +437,7 @@ bool MediaServer::Start() {
 	if( bFlag ) {
 		// 服务启动成功
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"MediaServer::Start( "
 				"event : [OK] "
 				")"
@@ -447,7 +447,7 @@ bool MediaServer::Start() {
 	} else {
 		// 服务启动失败
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"MediaServer::Start( "
 				"event : [Fail] "
 				")"
@@ -576,7 +576,7 @@ bool MediaServer::Stop() {
 	mServerMutex.unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::Stop( "
 			"event : [OK] "
 			")"
@@ -592,7 +592,7 @@ void MediaServer::Exit() {
 	pid_t pid = getpid();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_ALERT,
 			"MediaServer::Exit( "
 			"pid : %d, "
 			"mPidFilePath : %s "
@@ -630,7 +630,7 @@ void MediaServer::StateHandle() {
 			mCountMutex.unlock();
 
 			LogAync(
-					LOG_ERR_USER,
+					LOG_ERR,
 					"MediaServer::StateHandle( "
 					"event : [状态服务], "
 					"过去%u秒共收到请求(Websocket) : %u个 "
@@ -717,7 +717,7 @@ bool MediaServer::OnAccept(Client *client) {
 	client->parser = parser;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MediaServer::OnAccept( "
 			"parser : %p, "
 			"client : %p "
@@ -733,7 +733,7 @@ void MediaServer::OnDisconnect(Client* client) {
 	HttpParser* parser = (HttpParser *)client->parser;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MediaServer::OnDisconnect( "
 			"parser : %p, "
 			"client : %p "
@@ -752,7 +752,7 @@ void MediaServer::OnHttpParserHeader(HttpParser* parser) {
 	Client* client = (Client *)parser->custom;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MediaServer::OnHttpParserHeader( "
 			"parser : %p, "
 			"client : %p, "
@@ -835,7 +835,7 @@ bool MediaServer::HttpSendRespond(
 	Client* client = (Client *)parser->custom;
 
 //	LogAync(
-//			LOG_MSG,
+//			LOG_INFO,
 //			"MediaServer::HttpSendRespond( "
 //			"event : [内部服务(HTTP)-返回请求到客户端], "
 //			"parser : %p, "
@@ -911,7 +911,7 @@ bool MediaServer::HttpSendRespond(
 /***************************** 内部服务(HTTP) 回调处理 **************************************/
 void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnRequestReloadLogConfig( "
 			"event : [内部服务(HTTP)-收到命令:重新加载日志配置], "
 			"parser : %p "
@@ -976,7 +976,7 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaT
 	mWebRTCMap.Unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnWebRTCServerSdp( "
 			"event : [WebRTC-返回SDP], "
 			"hdl : %p, "
@@ -1021,7 +1021,7 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 	mWebRTCMap.Unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnWebRTCStartMedia( "
 			"event : [WebRTC-开始媒体传输], "
 			"hdl : %p, "
@@ -1104,7 +1104,7 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	mWebRTCMap.Unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnWebRTCClose( "
 			"event : [WebRTC-断开], "
 			"hdl : %p, "
@@ -1126,7 +1126,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 	mServerMutex.lock();
 	if( !mRunning ) {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_WARNING,
 				"MediaServer::OnWSOpen( "
 				"event : [Websocket-新连接, 服务器启动中...], "
 				"hdl : %p, "
@@ -1150,7 +1150,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 	uuid_unparse_upper(uuid, uuid_str);
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnWSOpen( "
 			"event : [Websocket-新连接], "
 			"hdl : %p, "
@@ -1181,7 +1181,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_WARNING,
 				"MediaServer::OnWSOpen( "
 				"event : [超过最大连接数, 断开连接], "
 				"hdl : %p, "
@@ -1252,7 +1252,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	mWebRTCMap.Unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::OnWSClose( "
 			"event : [Websocket-断开], "
 			"hdl : %p, "
@@ -1294,7 +1294,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	mCountMutex.unlock();
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"MediaServer::OnWSMessage( "
 			"event : [Websocket-请求], "
 			"hdl : %p, "
@@ -1339,7 +1339,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						rtmpUrl += stream;
 
 						LogAync(
-								LOG_WARNING,
+								LOG_NOTICE,
 								"MediaServer::OnWSMessage( "
 								"event : [Websocket-请求-拨号], "
 								"hdl : %p, "
@@ -1445,14 +1445,16 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
 
 					LogAync(
-							LOG_WARNING,
+							LOG_NOTICE,
 							"MediaServer::OnWSMessage( "
 							"event : [Websocket-请求-获取ICE配置], "
 							"user : %s, "
-							"base64 : %s "
+							"base64 : %s, "
+							"ttl : %u "
 							")",
 							user,
-							base64.c_str()
+							base64.c_str(),
+							mTurnClientTTL
 							);
 
 					bFlag = true;
@@ -1492,7 +1494,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 	if ( !bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"MediaServer::OnWSMessage( "
 				"event : [Websocket-请求出错], "
 				"hdl : %p, "
@@ -1578,7 +1580,7 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 		}
 
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"MediaServer::HandleExtForceSync( "
 				"event : [外部同步在线状态-%s], "
 				"url : %s, "
@@ -1647,7 +1649,7 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 		}
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"MediaServer::HandleExtLogin( "
 				"event : [外部登录, 客户端连接已经断开], "
 				"uuid : %s, "
@@ -1713,7 +1715,7 @@ bool MediaServer::SendExtSetStatusRequest(
 	}
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"MediaServer::SendExtSetStatusRequest( "
 			"event : [外部%s-%s], "
 			"url : %s, "

@@ -125,13 +125,13 @@ void SignalFunc(int sign_no) {
 		int status;
 		int pid = waitpid(-1, &status, WNOHANG);
 		LogAync(
-				LOG_MSG, "main( waitpid : %d )", pid
+				LOG_INFO, "main( waitpid : %d )", pid
 				);
 		MainLoop::GetMainLoop()->Call(pid);
 	}break;
 	default:{
 		LogAync(
-				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
+				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		signal(sign_no, SIG_DFL);

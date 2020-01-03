@@ -38,7 +38,7 @@ bool RtpRawClient::Init(const string sendIp, int rtpSendPort, int rtpRecvPort) {
 
 		if( bFlag ) {
 			LogAync(
-					LOG_STAT,
+					LOG_DEBUG,
 					"RtpRawClient::Init( "
 					"this : %p, "
 					"[OK], "
@@ -53,7 +53,7 @@ bool RtpRawClient::Init(const string sendIp, int rtpSendPort, int rtpRecvPort) {
 					);
 		} else {
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"RtpRawClient::Init( "
 					"this : %p, "
 					"[Fail], "
@@ -92,7 +92,7 @@ void RtpRawClient::Stop() {
 
 void RtpRawClient::Shutdown() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpRawClient::Shutdown( "
 			"this : %p "
 			")",

@@ -10,7 +10,7 @@ VERSION=`cat version.json | jq -c '.version' `
 VERSION=`echo $VERSION | sed s/\"//g`
 echo "VERSION:$VERSION"
 
-ENVS=(local demo demo_eu)
+ENVS=(local demo_jp demo_eu)
 for ENV in ${ENVS[@]};do
 	echo "############## Start packaging [$ENV] ##############"
 	# Copy Install/Update Script Files

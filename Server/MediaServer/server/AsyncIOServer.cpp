@@ -69,7 +69,7 @@ bool AsyncIOServer::Start(
 	bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"AsyncIOServer::Start( "
 			"port : %u, "
 			"maxConnection : %d, "
@@ -109,7 +109,7 @@ bool AsyncIOServer::Start(
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"AsyncIOServer::Start( "
 				"[OK], "
 				"port : %d, "
@@ -124,7 +124,7 @@ bool AsyncIOServer::Start(
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"AsyncIOServer::Start( "
 				"[Fail], "
 				"port : %d, "
@@ -146,7 +146,7 @@ bool AsyncIOServer::Start(
 
 void AsyncIOServer::Stop() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"AsyncIOServer::Stop( "
 			")"
 			);
@@ -186,7 +186,7 @@ void AsyncIOServer::Stop() {
 	mServerMutex.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"AsyncIOServer::Stop( "
 			"[OK] "
 			")"
@@ -199,7 +199,7 @@ bool AsyncIOServer::IsRunning() {
 
 bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"AsyncIOServer::Send( "
 			"client : %p, "
 			"len : %d, "
@@ -229,7 +229,7 @@ bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 void AsyncIOServer::Disconnect(Client* client) {
 	Socket *socket = (Socket *)client->socket;
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"AsyncIOServer::Disconnect( "
 			"client : %p, "
 			"ip : %s, "
@@ -278,7 +278,7 @@ bool AsyncIOServer::OnAccept(Socket* socket) {
 
 	} else {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::OnAccept( "
 				"[Get client from idle list], "
 				"client : %p, "
@@ -296,7 +296,7 @@ bool AsyncIOServer::OnAccept(Socket* socket) {
 		socket->data = client;
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"AsyncIOServer::OnAccept( "
 				"client : %p, "
 				"socket : %p, "
@@ -329,7 +329,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 	Client* client = (Client *)(socket->data);
 	if( client != NULL ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::OnRecvEvent( "
 				"[Start], "
 				"client : %p, "
@@ -352,7 +352,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 				// 读取数据成功, 缓存到客户端
 				buf[len] = '\0';
 				LogAync(
-						LOG_MSG,
+						LOG_INFO,
 						"AsyncIOServer::OnRecvEvent( "
 						"[Read OK], "
 						"client : %p, "
@@ -372,7 +372,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 
 				if( client->Write(buf, len) ) {
 					LogAync(
-							LOG_STAT,
+							LOG_DEBUG,
 							"AsyncIOServer::OnRecvEvent( "
 							"[Write buffer OK], "
 							"client : %p, "
@@ -391,7 +391,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 				} else {
 					// 没有足够的缓存空间
 					LogAync(
-							LOG_ERR_USER,
+							LOG_ERR,
 							"AsyncIOServer::OnRecvEvent( "
 							"[Write error, buffer is not enough], "
 							"client : %p, "
@@ -410,7 +410,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 			} else if( status == SocketStatusTimeout ) {
 				// 没有数据可读超时返回, 不处理
 				LogAync(
-						LOG_STAT,
+						LOG_DEBUG,
 						"AsyncIOServer::OnRecvEvent( "
 						"[Nothing to read], "
 						"client : %p, "
@@ -424,7 +424,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 			} else {
 				// 读取数据出错, 断开
 				LogAync(
-						LOG_STAT,
+						LOG_DEBUG,
 						"AsyncIOServer::OnRecvEvent( "
 						"[Read error], "
 						"client : %p, "
@@ -459,7 +459,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 		}
 
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::OnRecvEvent( "
 				"[Exit], "
 				"client : %p, "
@@ -478,7 +478,7 @@ void AsyncIOServer::OnDisconnect(Socket* socket) {
 		client->disconnected = true;
 
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::OnDisconnect( "
 				"client : %p, "
 				"socket : %p, "
@@ -506,7 +506,7 @@ void AsyncIOServer::OnDisconnect(Socket* socket) {
 
 void AsyncIOServer::RecvHandleThread() {
 	LogAync(
-			LOG_STAT, "AsyncIOServer::RecvHandleThread( [Start] )"
+			LOG_DEBUG, "AsyncIOServer::RecvHandleThread( [Start] )"
 			);
 
 	Client* client = NULL;
@@ -515,7 +515,7 @@ void AsyncIOServer::RecvHandleThread() {
 	while( mRunning ) {
 		if ( (client = mClientHandleList.PopFront()) ) {
 			LogAync(
-					LOG_STAT,
+					LOG_DEBUG,
 					"AsyncIOServer::RecvHandleThread( "
 					"[Parse, Start], "
 					"client : %p "
@@ -531,7 +531,7 @@ void AsyncIOServer::RecvHandleThread() {
 			client->recvHandleCount--;
 
 			LogAync(
-					LOG_STAT,
+					LOG_DEBUG,
 					"AsyncIOServer::RecvHandleThread( "
 					"[Parse, Exit], "
 					"client : %p "
@@ -554,7 +554,7 @@ void AsyncIOServer::RecvHandleThread() {
 	}
 
 	LogAync(
-			LOG_STAT, "AsyncIOServer::RecvHandleThread( [Exit] )"
+			LOG_DEBUG, "AsyncIOServer::RecvHandleThread( [Exit] )"
 			);
 }
 
@@ -575,7 +575,7 @@ bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 	if( client->recvHandleCount == 0 && client->disconnected ) {
 		Socket *socket = (Socket *)client->socket;
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::ClientCloseIfNeed( "
 				"client : %p, "
 				"ip : %s, "
@@ -609,7 +609,7 @@ void AsyncIOServer::DestroyClient(Client* client) {
 	if( mClientIdleList.Size() <= (size_t)miMaxConnection ) {
 		// 空闲的缓存小于设定值
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"AsyncIOServer::DestroyClient( "
 				"[Return client to idle list], "
 				"client : %p "

@@ -70,7 +70,7 @@ bool MainLoop::Start() {
 	if( bFlag ) {
 		// 服务启动成功
 		LogAync(
-				LOG_WARNING,
+				LOG_INFO,
 				"MainLoop::Start( "
 				"[OK] "
 				")"
@@ -79,7 +79,7 @@ bool MainLoop::Start() {
 	} else {
 		// 服务启动失败
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"MainLoop::Start( "
 				"[Fail] "
 				")"
@@ -93,7 +93,7 @@ bool MainLoop::Start() {
 
 void MainLoop::Stop() {
 	LogAync(
-			LOG_WARNING,
+			LOG_INFO,
 			"MainLoop::Stop("
 			")"
 			);
@@ -117,7 +117,7 @@ void MainLoop::Stop() {
 	mRunningMutex.unlock();
 
 	LogAync(
-			LOG_WARNING,
+			LOG_INFO,
 			"MainLoop::Stop( "
 			"[OK] "
 			")"
@@ -157,7 +157,7 @@ void MainLoop::StopWatchChild(int pid) {
 
 void MainLoop::MainLoopHandle() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MainLoop::MainLoopHandle( [Start] )"
 			);
 
@@ -179,7 +179,7 @@ void MainLoop::MainLoopHandle() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MainLoop::MainLoopHandle( [Exit] )"
 			);
 }

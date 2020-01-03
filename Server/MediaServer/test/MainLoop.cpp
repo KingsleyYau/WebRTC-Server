@@ -79,7 +79,7 @@ bool MainLoop::Start() {
 	} else {
 		// 服务启动失败
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"MainLoop::Start( "
 				"[Fail] "
 				")"
@@ -157,7 +157,7 @@ void MainLoop::StopWatchChild(int pid) {
 
 void MainLoop::MainLoopHandle() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MainLoop::MainLoopHandle( [Start] )"
 			);
 
@@ -179,7 +179,7 @@ void MainLoop::MainLoopHandle() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"MainLoop::MainLoopHandle( [Exit] )"
 			);
 }

@@ -37,12 +37,12 @@ public:
 	LogManager();
 	virtual ~LogManager();
 
-	bool Start(LOG_LEVEL nLevel = LOG_STAT, const string& dir = "log");
+	bool Start(LOG_LEVEL nLevel = LOG_DEBUG, const string& dir = "log");
 	bool Stop();
 	bool IsRunning();
 	bool Log(const char *file, int line, LOG_LEVEL nLevel, const char *format, ...);
 	int MkDir(const char* pDir);
-	void SetLogLevel(LOG_LEVEL nLevel = LOG_STAT);
+	void SetLogLevel(LOG_LEVEL nLevel = LOG_DEBUG);
 
 	void LogSetFlushBuffer(unsigned int iLen);
 	void LogFlushMem2File();

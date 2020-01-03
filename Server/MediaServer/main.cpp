@@ -40,6 +40,9 @@ int main(int argc, char *argv[]) {
 	sa.sa_handler = SIG_IGN;
 	sigemptyset(&sa.sa_mask);
 	sigaction(SIGPIPE, &sa, 0);
+	// 忽略在后台时候进行标准输入输出
+//	signal(SIGTTIN, SIG_IGN);
+//	signal(SIGTTOU, SIG_IGN);
 
 	// 不需要重新执行
 	memset(&sa, 0, sizeof(sa));
@@ -74,8 +77,8 @@ int main(int argc, char *argv[]) {
 	if( gConfFilePath.length() > 0 ) {
 		bFlag = gMediaServer.Start(gConfFilePath);
 	} else {
-		printf("# Usage : ./rtp2rtmp-server [ -f <config file> ] \n");
-		bFlag = gMediaServer.Start("/etc/rtp2rtmp-server.config");
+		printf("# Usage : ./mediaserver [ -f <config file> ] \n");
+		bFlag = gMediaServer.Start("/etc/mediaserver.config");
 	}
 
 	LogManager::GetLogManager()->LogFlushMem2File();
@@ -113,13 +116,13 @@ void SignalFunc(int sign_no) {
 		int status;
 		int pid = waitpid(-1, &status, WNOHANG);
 		LogAync(
-				LOG_MSG, "main( waitpid : %d )", pid
+				LOG_INFO, "main( waitpid : %d )", pid
 				);
 		MainLoop::GetMainLoop()->Call(pid);
 	}break;
 	default:{
 		LogAync(
-				LOG_ERR_SYS, "main( Get signal : %d )", sign_no
+				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
 		gMediaServer.Exit();
 		LogManager::GetLogManager()->LogFlushMem2File();

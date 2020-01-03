@@ -67,7 +67,7 @@ public:
 
 		} else if( ret == 0 ) {
 //			LogAync(
-//					LOG_STAT,
+//					LOG_DEBUG,
 //					"Socket::Read( "
 //					"[Normal Closed], "
 //					"fd : '%d' "
@@ -79,7 +79,7 @@ public:
 		} else {
 			if(errno == EAGAIN || errno == EWOULDBLOCK) {
 //				LogAync(
-//						LOG_STAT,
+//						LOG_DEBUG,
 //						"Socket::Read( "
 //						"[errno == EAGAIN || errno == EWOULDBLOCK continue], "
 //						"fd : '%d' "
@@ -90,7 +90,7 @@ public:
 
 			} else {
 //				LogAync(
-//						LOG_STAT,
+//						LOG_DEBUG,
 //						"Socket::Read( "
 //						"[Error Closed], "
 //						"fd : '%d' "
@@ -119,7 +119,7 @@ public:
 				index += ret;
 				if( index == len ) {
 //					LogAync(
-//							LOG_STAT,
+//							LOG_DEBUG,
 //							"Socket::Send( "
 //							"[Send Finish], "
 //							"fd : '%d' "
@@ -131,7 +131,7 @@ public:
 			} else {
 				if(errno == EAGAIN || errno == EWOULDBLOCK) {
 //					LogAync(
-//							LOG_STAT,
+//							LOG_DEBUG,
 //							"Socket::Send( "
 //							"[errno == EAGAIN || errno == EWOULDBLOCK continue], "
 //							"fd : % '%d' "
@@ -141,7 +141,7 @@ public:
 					continue;
 				} else {
 //					LogAync(
-//							LOG_STAT,
+//							LOG_DEBUG,
 //							"Socket::Send( "
 //							"[Error Closed], "
 //							"fd : '%d' "
@@ -161,7 +161,7 @@ public:
 
 	void Disconnect() {
 //		LogAync(
-//				LOG_STAT,
+//				LOG_DEBUG,
 //				"Socket::Disconnect( "
 //				"fd : '%d' "
 //				")",
@@ -172,7 +172,7 @@ public:
 
 	void Close() {
 //		LogAync(
-//				LOG_STAT,
+//				LOG_DEBUG,
 //				"Socket::Close( "
 //				"fd : '%d' "
 //				")",

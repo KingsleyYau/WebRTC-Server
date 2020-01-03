@@ -40,17 +40,17 @@ unsigned long DBSpool::EscapeString(char* pTo, char* pFrom, unsigned long ulFrom
 {
     /*
     if (!m_pSQLConn){
-        gvLog(LOG_ERR_SYS, "mysql(DBSpool): call Connect() at first!");
+        gvLog(LOG_ALERT, "mysql(DBSpool): call Connect() at first!");
         return 0;
     }
     int iTimes = DB_RECONNECT_TIMES;
     bool bTest = true;
     while (mysql_ping(m_pSQLConn)!=0 && iTimes>0){
         bTest = false;
-        gvLog(LOG_ERR_SYS, "mysql(DBSpool): connection to database lost, try to connect remain %d times.", iTimes--);
+        gvLog(LOG_ALERT, "mysql(DBSpool): connection to database lost, try to connect remain %d times.", iTimes--);
         if (mysql_real_connect(m_pSQLConn, m_strHost.c_str(), m_strUser.c_str(), m_strPasswd.c_str(),
                                 m_strDBname.c_str(), m_shPort, NULL, 0) == NULL){
-            gvLog(LOG_ERR_SYS, "mysql(DBSpool): connection to database [%s:%d(%s)] failed: %s", m_strHost.c_str(),
+            gvLog(LOG_ALERT, "mysql(DBSpool): connection to database [%s:%d(%s)] failed: %s", m_strHost.c_str(),
                     m_shPort, m_strDBname.c_str(), mysql_error(m_pSQLConn));
         }else{
            bTest = true;
@@ -105,12 +105,12 @@ bool DBSpool::Connect()
     /*
     m_pSQLConn = mysql_init((MYSQL*)NULL);
     if(m_pSQLConn == NULL){
-        gvLog(LOG_ERR_SYS, "mysql(DBSpool): unable to allocate database connection state!");
+        gvLog(LOG_ALERT, "mysql(DBSpool): unable to allocate database connection state!");
         return false;
     }
     if (mysql_real_connect(m_pSQLConn, m_strHost.c_str(), m_strUser.c_str(), m_strPasswd.c_str(),
                             m_strDBname.c_str(), m_shPort, NULL, 0) == NULL){
-        gvLog(LOG_ERR_SYS, "mysql(DBSpool): connection to database [%s:%d(%s)] failed: %s", m_strHost.c_str(),
+        gvLog(LOG_ALERT, "mysql(DBSpool): connection to database [%s:%d(%s)] failed: %s", m_strHost.c_str(),
                 m_shPort, m_strDBname.c_str(), mysql_error(m_pSQLConn));
         mysql_close(m_pSQLConn);
         m_pSQLConn = NULL;
@@ -461,7 +461,7 @@ int DBConnection::ExecuteSQL(const string& strSQL, MYSQL_RES** res, int& iRelt, 
     	// print error
     	const char* error = mysql_error(m_pSQLConn);
 		LogAync(
-				LOG_ERR_USER,
+				LOG_ERR,
 				"DBConnection::ExecuteSQL( "
 				"[执行SQL语句失败], "
 				"error : %s, "

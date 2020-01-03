@@ -26,7 +26,7 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 	bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RPCServer::Start( "
 			"port : %u, "
 			"maxConnection : %d "
@@ -40,7 +40,7 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"RPCServer::Start( "
 				"[OK], "
 				"port : %d, "
@@ -51,7 +51,7 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RPCServer::Start( "
 				"[Fail], "
 				"port : %d, "
@@ -68,7 +68,7 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 
 void RPCServer::Stop() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RPCServer::Stop( "
 			")"
 			);
@@ -76,7 +76,7 @@ void RPCServer::Stop() {
 	mWSServer.Stop();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RPCServer::Stop( "
 			")"
 			);
@@ -86,7 +86,7 @@ bool RPCServer::SendRespond(IRequest *req, IRespond *res) {
 	bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RPCServer::SendRespond( "
 			"req : %p, "
 			"res : %p "

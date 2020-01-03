@@ -19,6 +19,16 @@
 
 #define MAX_LOG_BUFFER_LEN 8192
 
+const char* LOG_LEVEL_DESC[] = {
+		"OFF",
+		"ALERT",
+		"ERR",
+		"WARN",
+		"NOTICE",
+		"INFO",
+		"DEBUG",
+};
+
 /* log thread */
 class LogRunnable : public KRunnable {
 public:
@@ -60,7 +70,7 @@ LogManager::LogManager()
 	// TODO Auto-generated constructor stub
 	mIsRunning = false;
 	mpFileCtrl = NULL;
-	mLogLevel = LOG_STAT;
+	mLogLevel = LOG_DEBUG;
 	mpFileCtrlDebug = NULL;
 	mDebugMode = false;
 	mpLogRunnable = new LogRunnable(this);
@@ -92,7 +102,7 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
 
     if( bNeedLog ) {
         char logBuffer[MAX_LOG_BUFFER_LEN];
-		char bitBuffer[64];
+		char bitBuffer[128];
 
 	    struct timeval tv;
 	    gettimeofday(&tv, NULL);
@@ -101,9 +111,10 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
 	    time_t stm = time(NULL);
         struct tm tTime;
         localtime_r(&stm,&tTime);
-        snprintf(bitBuffer, 64, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] %s:%d ",
+        snprintf(bitBuffer, sizeof(bitBuffer) - 1, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] [%s] %s:%d ",
         		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
 				(int)syscall(SYS_gettid),
+				LOG_LEVEL_DESC[nLevel],
 				file,
 				line
 				);

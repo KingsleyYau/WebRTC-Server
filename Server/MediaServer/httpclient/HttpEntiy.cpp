@@ -90,3 +90,29 @@ void HttpEntiy::Reset() {
 	mIsGetMethod = false;
 	mbSaveCookie = false;
 }
+
+string HttpEntiy::GetContentDesc() {
+    string desc = "";
+    string item = "";
+    string key = "";
+    string value = "";
+    for(HttpMap::iterator itr = mContentMap.begin(); itr != mContentMap.end(); itr++) {
+        item = itr->first + "=" + itr->second;
+        desc += item;
+        desc += "&";
+    }
+
+    if(desc.length() > 0) {
+        desc = desc.substr(0, desc.length() - 1);
+    }
+
+    if(mRawData.length() > 0) {
+        if(desc.length() > 0) {
+            desc += " ";
+        }
+        desc += "rawData:";
+        desc += mRawData;
+    }
+
+    return desc;
+}

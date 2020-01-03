@@ -34,7 +34,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 	bool bFlag = true;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"DtlsSession::SSL_Generate_Keys("
 			")"
 			);
@@ -48,7 +48,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
     bne = BN_new();
     if ( !bne ) {
     	LogAync(
-    			LOG_MSG,
+    			LOG_INFO,
     			"DtlsSession::SSL_Generate_Keys( "
 				"[BN_new() Fail] "
     			")"
@@ -60,7 +60,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
         if (!BN_set_word(bne, RSA_F4)) {
         	/* RSA_F4 == 65537 */
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[BN_set_word() Fail] "
         			")"
@@ -74,7 +74,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
         rsa_key = RSA_new();
         if ( !bFlag || !rsa_key) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[RSA_new() Fail] "
         			")"
@@ -87,7 +87,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		/* This takes some time. */
 		if (!RSA_generate_key_ex(rsa_key, num_bits, bne, NULL)) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[RSA_generate_key_ex() Fail] "
         			")"
@@ -101,7 +101,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		*privateKey = EVP_PKEY_new();
 		if (!*privateKey) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[EVP_PKEY_new() Fail] "
         			")"
@@ -113,7 +113,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
     if( bFlag ) {
 		if (!EVP_PKEY_assign_RSA(*privateKey, rsa_key)) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[EVP_PKEY_assign_RSA() Fail] "
         			")"
@@ -130,7 +130,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		*certificate = X509_new();
 		if (!*certificate) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_new() Fail] "
         			")"
@@ -156,7 +156,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		/* Set the public key for the certificate using the key. */
 		if (!X509_set_pubkey(*certificate, *privateKey)) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_set_pubkey() Fail] "
         			")"
@@ -170,7 +170,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		cert_name = X509_get_subject_name(*certificate);
 		if (!cert_name) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_get_subject_name() Fail] "
         			")"
@@ -186,7 +186,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		/* It is self-signed so set the issuer name to be the same as the subject. */
 		if (!X509_set_issuer_name(*certificate, cert_name)) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_set_issuer_name() Fail] "
         			")"
@@ -199,7 +199,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 		/* Sign the certificate with the private key. */
 		if (!X509_sign(*certificate, *privateKey, EVP_sha1())) {
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
     				"[X509_sign() Fail] "
         			")"
@@ -222,7 +222,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
 //    }
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"DtlsSession::SSL_Generate_Keys( "
 			"[%s] "
 			")",
@@ -293,7 +293,7 @@ void DtlsSession::SSL_Info_Callback(const SSL* s, int where, int ret) {
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"DtlsSession::SSL_Info_Callback( "
 			"this : %p, "
 			"[%s], "
@@ -361,23 +361,26 @@ bool DtlsSession::GobalInit(const string& certPath, const string& keyPath) {
 	    }
 	}
 
-	LogAync(
-			LOG_ERR_USER,
-			"DtlsSession::GobalInit( "
-			"[%s], "
-			"SSL-Version : %s, "
-			"SSL-Error : %s, "
-			"gFingerPrint : %s, "
-			"certPath : %s, "
-			"keyPath : %s "
-			")",
-			FLAG_2_STRING(bFlag),
-			OpenSSL_version(OPENSSL_VERSION),
-			ERR_reason_error_string(ERR_get_error()),
-			gFingerprint,
-			certPath.c_str(),
-			keyPath.c_str()
-			);
+	if ( !bFlag ) {
+		LogAync(
+				LOG_ALERT,
+				"DtlsSession::GobalInit( "
+				"[%s], "
+				"SSL-Version : %s, "
+				"SSL-Error : %s, "
+				"gFingerPrint : %s, "
+				"certPath : %s, "
+				"keyPath : %s "
+				")",
+				FLAG_2_STRING(bFlag),
+				OpenSSL_version(OPENSSL_VERSION),
+				ERR_reason_error_string(ERR_get_error()),
+				gFingerprint,
+				certPath.c_str(),
+				keyPath.c_str()
+				);
+	}
+
 
 	return bFlag;
 }
@@ -413,7 +416,7 @@ bool DtlsSession::Start() {
 	bool bFlag = true;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"DtlsSession::Start( "
 			"this : %p, "
 			")",
@@ -453,7 +456,7 @@ bool DtlsSession::Start() {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"DtlsSession::Start( "
 				"this : %p, "
 				"[OK] "
@@ -462,7 +465,7 @@ bool DtlsSession::Start() {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"DtlsSession::Start( "
 				"this : %p, "
 				"[Fail] "
@@ -483,7 +486,7 @@ void DtlsSession::Stop() {
 		mRunning = false;
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"DtlsSession::Stop( "
 				"this : %p "
 				")",
@@ -514,7 +517,7 @@ void DtlsSession::Stop() {
 		mDtlsSessionStatus = DtlsSessionStatus_None;
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"DtlsSession::Stop( "
 				"this : %p, "
 				"[OK] "
@@ -553,7 +556,7 @@ bool DtlsSession::Handshake() {
 	bool bFlag = true;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"DtlsSession::Handshake( "
 			"this : %p "
 			")",
@@ -574,7 +577,7 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 	if( IsDTLS(frame, size) && (mDtlsSessionStatus != DtlsSessionStatus_HandshakeDone) ) {
 		int written = BIO_write(mpReadBIO, frame, size);
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"DtlsSession::RecvFrame( "
 				"this : %p, "
 				"written : %d "
@@ -619,7 +622,7 @@ bool DtlsSession::FlushSSL() {
 
 	int pending = BIO_ctrl_pending(mpWriteBIO);
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"DtlsSession::FlushSSL( "
 			"this : %p, "
 			"pending : %d "
@@ -634,7 +637,7 @@ bool DtlsSession::FlushSSL() {
 		dataSize = MIN(pending, 1500);
 		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"DtlsSession::FlushSSL( "
 				"this : %p, "
 				"sent : %d "
@@ -711,7 +714,7 @@ void DtlsSession::CheckHandshake() {
             memcpy(&mServerKey[SRTP_MASTER_KEY_LENGTH], serverSalt, SRTP_MASTER_SALT_LENGTH);
 
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"DtlsSession::CheckHandshake( "
 					"this : %p, "
 					"[DTLS Handshake OK], "

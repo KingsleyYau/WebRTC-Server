@@ -1,9 +1,9 @@
 #!/bin/sh
 # RTP Stream to RTMP Stream script
 # Author: Max.Chiu
-# Date: 2019/08/09
+# Date: 2019/08/13
 
-APP_DIR=/root/Max/mediaserver
+APP_DIR=$(dirname $(readlink -f "$0"))/..
 FFMPEG=$APP_DIR/bin/ffmpeg
 
 function Usage {
@@ -47,14 +47,13 @@ if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
 then
 	$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 -i $SDP_FILE \
-				-vcodec libx264 -preset superfast -profile:v baseline -level 3.0 \
-				-acodec libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
+				-vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -g 12 \
+				-acodec:a libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
 else
 	$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 -i $SDP_FILE \
 				-vcodec copy \
 				-acodec libfdk_aac -strict -2 -ar 44100 -ac 1 -f flv $RTMP_URL >$SDP_FILE.log 2>&1 &
 fi
-
 
 while true;do
 	sleep 2

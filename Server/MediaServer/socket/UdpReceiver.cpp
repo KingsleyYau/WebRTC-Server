@@ -63,7 +63,7 @@ bool UdpReceiver::Init(const string& recvIp, int recvPort) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"UdpReceiver::Init( "
 				"this : %p, "
 				"[OK], "
@@ -78,7 +78,7 @@ bool UdpReceiver::Init(const string& recvIp, int recvPort) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"UdpReceiver::Init( "
 				"this : %p, "
 				"[Fail], "
@@ -98,7 +98,7 @@ bool UdpReceiver::Init(const string& recvIp, int recvPort) {
 void UdpReceiver::Shutdown() {
 	if( mFd != -1 ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"UdpReceiver::Shutdown( "
 				"this : %p, "
 				"fd : %d "
@@ -113,7 +113,7 @@ void UdpReceiver::Shutdown() {
 void UdpReceiver::Close() {
 	if( mFd != -1 ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"UdpReceiver::Close( "
 				"this : %p, "
 				"fd : %d "
@@ -132,7 +132,7 @@ int UdpReceiver::RecvData(void *buffer, unsigned int size) {
 	int recvSize = recvfrom(mFd, buffer, size, 0, (struct sockaddr *)&addr, &addr_len);
 
 //	LogAync(
-//			LOG_STAT,
+//			LOG_DEBUG,
 //			"UdpReceiver::RecvData( "
 //			"this : %p, "
 //			"fd : %d, "

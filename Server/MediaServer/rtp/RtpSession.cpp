@@ -191,13 +191,15 @@ bool RtpSession::GobalInit() {
 	srtp_err_status_t status = srtp_init();
 	bFlag = (status == srtp_err_status_ok);
 
-	LogAync(
-			LOG_ERR_USER,
-			"RtpSession::GobalInit( "
-			"[%s] "
-			")",
-			FLAG_2_STRING(bFlag)
-			);
+	if ( !bFlag ) {
+		LogAync(
+				LOG_ALERT,
+				"RtpSession::GobalInit( "
+				"[%s] "
+				")",
+				FLAG_2_STRING(bFlag)
+				);
+	}
 
 	return bFlag;
 }
@@ -301,7 +303,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 	Arithmetic art;
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Start( "
 			"this : %p, "
 			"localKey : %s, "
@@ -326,7 +328,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"RtpSession::Start( "
 				"this : %p, "
 				"[OK] "
@@ -335,7 +337,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::Start( "
 				"this : %p, "
 				"[Fail], "
@@ -354,7 +356,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey, int remot
 
 void RtpSession::Stop() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Stop( "
 			"this : %p "
 			")",
@@ -369,7 +371,7 @@ void RtpSession::Stop() {
 		StopSend();
 
 //		LogAync(
-//				LOG_MSG,
+//				LOG_INFO,
 //				"RtpSession::Stop( "
 //				"this : %p, "
 //				"[OK] "
@@ -380,7 +382,7 @@ void RtpSession::Stop() {
 	mClientMutex.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"RtpSession::Stop( "
 			"this : %p "
 			"[OK] "
@@ -408,7 +410,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StartSend( "
 			"this : %p, "
 			"size : %d, "
@@ -445,7 +447,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::StartSend( "
 				"this : %p, "
 				"[OK] "
@@ -454,7 +456,7 @@ bool RtpSession::StartSend(char *localKey, int size) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::StartSend( "
 				"this : %p, "
 				"[Fail], "
@@ -475,7 +477,7 @@ void RtpSession::StopSend() {
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StopSend( "
 			"this : %p, "
 			"[OK] "
@@ -489,7 +491,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	Arithmetic art;
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StartRecv( "
 			"this : %p, "
 			"size : %d, "
@@ -527,7 +529,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::StartRecv( "
 				"this : %p, "
 				"[OK] "
@@ -536,7 +538,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"RtpSession::StartRecv( "
 				"this : %p, "
 				"[Fail], "
@@ -557,7 +559,7 @@ void RtpSession::StopRecv() {
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"RtpSession::StopRecv( "
 			"this : %p, "
 			"[OK] "
@@ -581,7 +583,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			uint32_t ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
 
 			LogAync(
-					LOG_STAT,
+					LOG_DEBUG,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"ssrc : 0x%08x(%u), "
@@ -661,7 +663,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 //    	RtpHeader *header = (RtpHeader *)pkt;
 //
 //		LogAync(
-//				LOG_STAT,
+//				LOG_DEBUG,
 //				"RtpSession::SendRtpPacket( "
 //				"this : %p, "
 //				"status : %d, "
@@ -692,27 +694,20 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 			memcpy((void *)pkt, (void *)frame, size);
 			pktSize = size;
 
-			uint32_t ssrc = ntohl(((RtcpHeader *)pkt)->header.ssrc);
+			RtcpPayloadType type = (RtcpPayloadType)((RtcpPacketCommon *)pkt)->header.pt;
+			uint32_t ssrc = ntohl(((RtcpPacketCommon *)pkt)->ssrc);
 
 			LogAync(
-					LOG_STAT,
-					"RtpSession::RecvRtpPacket( "
+					LOG_DEBUG,
+					"RtpSession::RecvRtcpPacket( "
 					"this : %p, "
 					"ssrc : 0x%08x(%u), "
-					"x : %u, "
-					"seq : %u, "
-					"timestamp : %u, "
-					"pktSize : %d"
-					"%s"
+					"type : %u "
 					")",
 					this,
 					ssrc,
 					ssrc,
-					((RtpPacket *)pkt)->header.x,
-					seq,
-					ts,
-					pktSize,
-					((RtpPacket *)pkt)->header.m?", [Mark] ":" "
+					type
 					);
 
 			if ( mpRecvSrtpCtx ) {
@@ -938,7 +933,7 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 		}
 
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::UpdateStreamInfo( "
 				"this : %p, "
 				"[Audio], "
@@ -976,7 +971,7 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 		}
 
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"RtpSession::UpdateStreamInfo( "
 				"this : %p, "
 				"[Video], "
@@ -1052,7 +1047,7 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 			int rtpLastCount = rtpLostSize;
 
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"RtpSession::UpdateLossPacket( "
 					"this : %p, "
 					"[%s], "
@@ -1084,7 +1079,7 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 				}
 
 				LogAync(
-						LOG_MSG,
+						LOG_INFO,
 						"RtpSession::UpdateLossPacket( "
 						"this : %p, "
 						"[%s], "
@@ -1176,7 +1171,7 @@ void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize)
 		}
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"RtpSession::UpdateStreamInfoWithRtcp( "
 				"this : %p, "
 				"[%s], "

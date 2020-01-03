@@ -72,13 +72,15 @@ bool WebRTC::GobalInit(
 	bFlag &= DtlsSession::GobalInit(certPath, keyPath);
 	bFlag &= RtpSession::GobalInit();
 
-	LogAync(
-			LOG_ERR_USER,
-			"WebRTC::GobalInit( "
-			"[%s] "
-			")",
-			FLAG_2_STRING(bFlag)
-			);
+	if ( !bFlag ) {
+		LogAync(
+				LOG_ALERT,
+				"WebRTC::GobalInit( "
+				"[%s] "
+				")",
+				FLAG_2_STRING(bFlag)
+				);
+	}
 
 	return bFlag;
 }
@@ -107,7 +109,7 @@ bool WebRTC::Init(
 	}
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WebRTC::Init( "
 			"this : %p, "
 			"[%s], "
@@ -161,7 +163,7 @@ bool WebRTC::Start(
 	mRtmpUrl = rtmpUrl;
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::Start( "
 			"this : %p, "
 			"[%s], "
@@ -185,7 +187,7 @@ void WebRTC::Stop() {
 	mClientMutex.lock();
 	if( mRunning ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"WebRTC::Stop( "
 				"this : %p "
 				")",
@@ -209,7 +211,7 @@ void WebRTC::Stop() {
 		mRunning = false;
 
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"WebRTC::Stop( "
 				"this : %p, "
 				"[OK], "
@@ -224,7 +226,7 @@ void WebRTC::Stop() {
 
 void WebRTC::UpdateCandidate(const string& sdp) {
 //	LogAync(
-//			LOG_STAT,
+//			LOG_DEBUG,
 //			"WebRTC::UpdateCandidate( "
 //			"this : %p, "
 //			"sdp : %s "
@@ -242,7 +244,7 @@ string WebRTC::GetRtmpUrl() {
 
 bool WebRTC::ParseRemoteSdp(const string& sdp) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTC::ParseRemoteSdp( "
 			"this : %p, "
 			"sdp : \n%s"
@@ -268,7 +270,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 				if( key == "group" ) {
 					LogAync(
-							LOG_MSG,
+							LOG_INFO,
 							"WebRTC::ParseRemoteSdp( "
 							"this : %p, "
 							"[Found Remote Group Bundle], "
@@ -292,7 +294,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 		}
 
 		LogAync(
-				LOG_STAT,
+				LOG_DEBUG,
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
 				"media_count : %d "
@@ -304,7 +306,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 		list_walk_entry_forward(&session->medias, media, node) {
 			if ( media ) {
 				LogAync(
-						LOG_MSG,
+						LOG_INFO,
 						"WebRTC::ParseRemoteSdp( "
 						"this : %p, "
 						"[Found Remote Media], "
@@ -329,7 +331,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				for(int i = 0; i < (int)media->payload_type_array_count; i++) {
 					sdp_payload payload = media->payload_type_array[i];
 					LogAync(
-							LOG_STAT,
+							LOG_DEBUG,
 							"WebRTC::ParseRemoteSdp( "
 							"this : %p, "
 							"media_type : %s, "
@@ -347,7 +349,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
-								LOG_WARNING,
+								LOG_NOTICE,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media H264 Codec], "
@@ -381,7 +383,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								string profileLevelId = fmtp.substr(start + len, end - start - len);
 
 								LogAync(
-										LOG_STAT,
+										LOG_DEBUG,
 										"WebRTC::ParseRemoteSdp( "
 										"this : %p, "
 										"[Found Remote Media H264 Codec, Check Level Id], "
@@ -394,7 +396,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								if ( profileLevelId.length() == 6 ) {
 									string profileIdc = profileLevelId.substr(0, 2);
 									LogAync(
-											LOG_STAT,
+											LOG_DEBUG,
 											"WebRTC::ParseRemoteSdp( "
 											"this : %p, "
 											"[Found Remote Media H264 Codec, Check Idc], "
@@ -425,7 +427,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 										mNeedTranscodeVideo = false;
 
 										LogAync(
-												LOG_WARNING,
+												LOG_NOTICE,
 												"WebRTC::ParseRemoteSdp( "
 												"this : %p, "
 												"[Found Remote Media H264 Codec, Relay Without Transcode], "
@@ -448,7 +450,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						}
 					} else if ( 0 == strcmp(payload.encoding_name, "opus") ) {
 						LogAync(
-								LOG_WARNING,
+								LOG_NOTICE,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media OPUS Codec], "
@@ -480,7 +482,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						string value(attr->value);
 
 						LogAync(
-								LOG_STAT,
+								LOG_DEBUG,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"media_type : %s, "
@@ -518,7 +520,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 //										string rtcpFb = key + ":" + value;
 //
 //										LogAync(
-//												LOG_MSG,
+//												LOG_INFO,
 //												"WebRTC::ParseRemoteSdp( "
 //												"this : %p, "
 //												"[Found Remote Audio RTCP Feedback], "
@@ -537,7 +539,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 										string rtcpFb = key + ":" + value;
 
 										LogAync(
-												LOG_MSG,
+												LOG_INFO,
 												"WebRTC::ParseRemoteSdp( "
 												"this : %p, "
 												"[Found Remote Video RTCP Feedback], "
@@ -560,7 +562,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 		}
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
 				"[Parse Remote SDP OK], "
@@ -725,7 +727,7 @@ string WebRTC::CreateLocalSdp() {
 //			);
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTC::CreateLocalSdp( "
 			"this : %p, "
 			"sdp :\n%s"
@@ -784,7 +786,7 @@ bool WebRTC::StartRtpTransform() {
 		pid_t pid = fork();
 		if ( pid < 0 ) {
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"WebRTC::StartRtpTransform( "
 					"this : %p, "
 					"[Can't Fork New Process Error] "
@@ -794,7 +796,7 @@ bool WebRTC::StartRtpTransform() {
 			bFlag = false;
 		} else if ( pid > 0 ) {
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"WebRTC::StartRtpTransform( "
 					"this : %p, "
 					"[Fork New Process OK], "
@@ -818,7 +820,7 @@ bool WebRTC::StartRtpTransform() {
 
 void WebRTC::StopRtpTransform() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTC::StopRtpTransform( "
 			"this : %p, "
 			"pid : %d "
@@ -833,7 +835,7 @@ void WebRTC::StopRtpTransform() {
 	mRtpTransformPidMutex.lock();
 	if ( mRtpTransformPid != 0 ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"WebRTC::StopRtpTransform( "
 				"this : %p, "
 				"pid : %d "
@@ -849,7 +851,7 @@ void WebRTC::StopRtpTransform() {
 	RemoveLocalSdpFile();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTC::StopRtpTransform( "
 			"this : %p, "
 			"[OK], "
@@ -1058,7 +1060,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 	}
 
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::OnIceCandidateGatheringDone( "
 			"this : %p, "
 			"ice : %p, "
@@ -1197,7 +1199,7 @@ void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsig
 
 void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::OnIceNewSelectedPairFull( "
 			"this : %p, "
 			"ice : %p, "
@@ -1215,7 +1217,7 @@ void WebRTC::OnIceNewSelectedPairFull(IceClient *ice) {
 
 void WebRTC::OnIceConnected(IceClient *ice) {
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::OnIceConnected( "
 			"this : %p, "
 			"ice : %p, "
@@ -1230,7 +1232,7 @@ void WebRTC::OnIceConnected(IceClient *ice) {
 
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
 //	LogAync(
-//			LOG_STAT,
+//			LOG_DEBUG,
 //			"WebRTC::OnIceRecvData( "
 //			"this : %p, "
 //			"ice : %p, "
@@ -1254,7 +1256,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 	if ( size > RTP_MAX_LEN ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"WebRTC::OnIceRecvData( "
 				"this : %p, "
 				"[Unknow Data Format], "
@@ -1281,7 +1283,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 			DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
 			if( status == DtlsSessionStatus_HandshakeDone ) {
 				LogAync(
-						LOG_WARNING,
+						LOG_NOTICE,
 						"WebRTC::OnIceRecvData( "
 						"this : %p, "
 						"[DTLS Handshake OK], "
@@ -1317,7 +1319,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 			} else if ( status == DtlsSessionStatus_Alert ) {
 				LogAync(
-						LOG_WARNING,
+						LOG_NOTICE,
 						"WebRTC::OnIceRecvData( "
 						"this : %p, "
 						"[DTLS Alert], "
@@ -1340,7 +1342,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		if( bFlag ) {
 			unsigned int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
 //			LogAync(
-//					LOG_STAT,
+//					LOG_DEBUG,
 //					"WebRTC::OnIceRecvData( "
 //					"this : %p, "
 //					"[Relay RTP], "
@@ -1365,7 +1367,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		if( bFlag ) {
 			unsigned int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
 //			LogAync(
-//					LOG_STAT,
+//					LOG_DEBUG,
 //					"WebRTC::OnIceRecvData( "
 //					"this : %p, "
 //					"[Relay RTCP], "
@@ -1387,7 +1389,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 		}
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_NOTICE,
 				"WebRTC::OnIceRecvData( "
 				"this : %p, "
 				"[Unknow Data Format], "
@@ -1409,7 +1411,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 void WebRTC::OnIceClose(IceClient *ice) {
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::OnIceClose( "
 			"this : %p, "
 			"ice : %p, "
@@ -1429,7 +1431,7 @@ void WebRTC::OnIceClose(IceClient *ice) {
 
 void WebRTC::OnChildExit(int pid) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTC::OnChildExit( "
 			"this : %p, "
 			"pid : %d "

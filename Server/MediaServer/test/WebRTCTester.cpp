@@ -23,7 +23,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
     switch (ev) {
 		case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST:{
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Handshake_Request], "
@@ -51,7 +51,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
             // Receive Data
         	string str((const char*)wm->data, wm->size);
         	LogAync(
-        			LOG_MSG,
+        			LOG_INFO,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Recv_Data], "
@@ -113,7 +113,7 @@ bool Tester::Start() {
     bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"Tester::Start( "
 			"this : %p, "
 			"url : %s, "
@@ -336,7 +336,7 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	bool bFlag = true;
 
 	LogAync(
-			LOG_ERR_SYS,
+			LOG_ALERT,
 			"WebRTCTester::Start( "
 			"iMaxCount : %d, "
 			"iReconnect : %d "
@@ -367,7 +367,7 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 	if( bFlag ) {
 		if( 0 == mThread.Start(mpRunnable, "TestMainThread") ) {
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"WebRTCTester::Start( "
 					"this : %p, "
 					"[Create Main Thread Fail] "
@@ -383,7 +383,7 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 
 void WebRTCTester::Stop() {
 	LogAync(
-			LOG_ERR_SYS,
+			LOG_ALERT,
 			"WebRTCTester::Stop("
 			")"
 			);
@@ -399,7 +399,7 @@ bool WebRTCTester::IsRunning() {
 
 void WebRTCTester::MainThread() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTCTester::MainThread( [Start] )"
 			);
 
@@ -441,7 +441,7 @@ void WebRTCTester::MainThread() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WebRTCTester::MainThread( [Exit] )"
 			);
 }

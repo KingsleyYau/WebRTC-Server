@@ -42,7 +42,7 @@ void* loop_thread(void *data) {
 
 void* niceLogFunc(const char *logBuffer) {
 //	LogAync(
-//			LOG_STAT,
+//			LOG_DEBUG,
 //			"IceClient::niceLogFunc( "
 //			"[libnice], "
 //			"%s "
@@ -85,7 +85,7 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 
 void cb_closed(void *src, void *res, void *data) {
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"IceClient::cb_closed( "
 			"this : %p, "
 			"agent : %p"
@@ -149,7 +149,7 @@ bool IceClient::Start() {
 	bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::Start( "
 			"this : %p "
 			")",
@@ -249,7 +249,7 @@ bool IceClient::Start() {
 	}
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::Start( "
 			"this : %p, "
 			"[%s], "
@@ -279,7 +279,7 @@ void IceClient::Stop() {
 		::NiceAgent *agent = mpAgent;
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"IceClient::Stop( "
 				"this : %p, "
 				"agent : %p "
@@ -290,7 +290,7 @@ void IceClient::Stop() {
 
 		if (mpAgent) {
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"IceClient::Stop( "
 					"[Close Turn Port], "
 					"this : %p, "
@@ -334,7 +334,7 @@ void IceClient::Stop() {
 
 			// Remove Stream
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"IceClient::Stop( "
 					"[Remove Stream], "
 					"this : %p, "
@@ -350,7 +350,7 @@ void IceClient::Stop() {
 
 			// Release Agent
 			LogAync(
-					LOG_MSG,
+					LOG_INFO,
 					"IceClient::Stop( "
 					"[Release Agent], "
 					"this : %p, "
@@ -374,7 +374,7 @@ void IceClient::Stop() {
 		mIceGatheringDone = false;
 
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"IceClient::Stop( "
 				"this : %p, "
 				"[OK], "
@@ -427,7 +427,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	mClientMutex.lock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::ParseRemoteSdp( "
 			"this : %p, "
 			"sdp :\n%s"
@@ -441,7 +441,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     GSList *plist = nice_agent_parse_remote_stream_sdp(mpAgent, streamId, mSdp.c_str(), &ufrag, &pwd);
     if ( ufrag && pwd && g_slist_length(plist) > 0 ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"IceClient::ParseRemoteSdp( "
 				"this : %p, "
 				"plist_count : %d, "
@@ -536,7 +536,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     mClientMutex.unlock();
 
 //	LogAync(
-//			LOG_STAT,
+//			LOG_DEBUG,
 //			"IceClient::ParseRemoteSdp( "
 //			"this : %p, "
 //			"ufrag : %s, "
@@ -565,7 +565,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 
 void IceClient::OnClose(::NiceAgent *agent) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnClose( "
 			"this : %p, "
 			"agent : %p "
@@ -584,7 +584,7 @@ void IceClient::OnClose(::NiceAgent *agent) {
 	mCloseCond.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnClose( "
 			"this : %p, "
 			"[Exit], "
@@ -597,7 +597,7 @@ void IceClient::OnClose(::NiceAgent *agent) {
 
 void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int len, char *buf) {
 //	LogAync(
-//			LOG_MSG,
+//			LOG_INFO,
 //			"IceClient::OnNiceRecv( "
 //			"this : %p, "
 //			"streamId : %u, "
@@ -618,7 +618,7 @@ void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned i
 void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int streamId) {
 	gchar *localCandidate = nice_agent_generate_local_sdp(agent);
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnCandidateGatheringDone( "
 			"this : %p, "
 			"streamId : %u, "
@@ -725,7 +725,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 
 void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnComponentStateChanged( "
 			"this : %p, "
 			"streamId : %u, "
@@ -765,7 +765,7 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 
 	char *localSdp = nice_agent_generate_local_sdp(mpAgent);
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnNewSelectedPairFull( "
 			"this : %p, "
 			"streamId : %u, "
@@ -787,7 +787,7 @@ void IceClient::OnNewSelectedPairFull(::NiceAgent* agent, unsigned int streamId,
 
 void IceClient::OnStreamRemovedActually(::NiceAgent *agent, unsigned int streamId) {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnStreamRemovedActually( "
 			"this : %p, "
 			"agent : %p, "
@@ -803,7 +803,7 @@ void IceClient::OnStreamRemovedActually(::NiceAgent *agent, unsigned int streamI
 	mStreamRemoveCond.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"IceClient::OnStreamRemovedActually( "
 			"this : %p, "
 			"[Exit], "

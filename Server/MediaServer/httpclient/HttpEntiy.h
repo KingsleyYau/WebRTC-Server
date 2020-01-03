@@ -34,12 +34,17 @@ public:
 	void SetAuthorization(string user, string password);
 	void SetGetMethod(bool isGetMethod);
 	void SetSaveCookie(bool isSaveCookie);
-
 	void SetRawData(string data);
 	void AddContent(string key, string value);
 	void AddFile(string key, string fileName, string mimeType = "image/jpeg");
 
 	void Reset();
+
+	/**
+	 * 获取请求参数
+	 * @return 请求参数文本输出
+	 */
+    string GetContentDesc();
 
 private:
 	HttpMap mHeaderMap;

@@ -56,7 +56,7 @@ bool WSServer::Start(int port, int maxConnection) {
 	bool bFlag = false;
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WSServer::Start( "
 			"port : %u, "
 			"maxConnection : %d "
@@ -121,7 +121,7 @@ bool WSServer::Start(int port, int maxConnection) {
 		// 启动IO监听线程
 		if( 0 == mIOThread.Start(mpIORunnable, "WSServer") ) {
 			LogAync(
-					LOG_ERR_SYS,
+					LOG_ALERT,
 					"WSServer::Start( "
 					"[Create IO Thread Fail], "
 					"port : %u, "
@@ -136,7 +136,7 @@ bool WSServer::Start(int port, int maxConnection) {
 
 	if( bFlag ) {
 		LogAync(
-				LOG_MSG,
+				LOG_INFO,
 				"WSServer::Start( "
 				"[OK], "
 				"port : %d, "
@@ -147,7 +147,7 @@ bool WSServer::Start(int port, int maxConnection) {
 				);
 	} else {
 		LogAync(
-				LOG_ERR_SYS,
+				LOG_ALERT,
 				"WSServer::Start( "
 				"[Fail], "
 				"port : %d, "
@@ -166,7 +166,7 @@ bool WSServer::Start(int port, int maxConnection) {
 
 void WSServer::Stop() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WSServer::Stop("
 			")"
 			);
@@ -188,7 +188,7 @@ void WSServer::Stop() {
 	mServerMutex.unlock();
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WSServer::Stop( "
 			"[OK] "
 			")"
@@ -198,7 +198,7 @@ void WSServer::Stop() {
 bool WSServer::SendText(connection_hdl hdl, const string& str) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::SendText( "
 			"hdl : %p, "
 			"ip : %s, "
@@ -216,7 +216,7 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
         bFlag = true;
     } catch (websocketpp::exception const & e) {
     	LogAync(
-    			LOG_MSG,
+    			LOG_INFO,
     			"WSServer::SendText( "
 				"hdl : %p, "
     			"[Exception], "
@@ -237,7 +237,7 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
 void WSServer::Disconnect(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::Disconnect( "
 			"hdl : %p, "
 			"ip : %s "
@@ -249,7 +249,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 	mServer.close(hdl, 0, "Disconnect");
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::Disconnect( "
 			"[Finish], "
 			"hdl : %p, "
@@ -291,7 +291,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 //
 //        if (SSL_CTX_set_cipher_list(ctx->native_handle() , ciphers.c_str()) != 1) {
 //        	LogAync(
-//        			LOG_ERR_SYS,
+//        			LOG_ALERT,
 //        			"WSServer::OnTlsInit( "
 //        			"[Error setting cipher list], "
 //        			"hdl : %p, "
@@ -303,7 +303,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 //        }
 //    } catch (std::exception& e) {
 //    	LogAync(
-//    			LOG_MSG,
+//    			LOG_INFO,
 //    			"WSServer::OnTlsInit( "
 //				"hdl : %p, "
 //    			"[Exception], "
@@ -321,7 +321,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 bool WSServer::OnValid(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::OnValid( "
 			"hdl : %p, "
 			"addr : %s "
@@ -337,7 +337,7 @@ void WSServer::OnOpen(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	string userAgent = conn->get_request_header("User-Agent");
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::OnOpen( "
 			"hdl : %p, "
 			"addr : %s, "
@@ -355,7 +355,7 @@ void WSServer::OnOpen(connection_hdl hdl) {
 
 void WSServer::OnClose(connection_hdl hdl) {
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::OnClose( "
 			"hdl : %p "
 			")",
@@ -371,7 +371,7 @@ void WSServer::OnMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 
 	LogAync(
-			LOG_STAT,
+			LOG_DEBUG,
 			"WSServer::OnMessage( "
 			"hdl : %p, "
 			"ip : %s, "
@@ -391,7 +391,7 @@ void WSServer::OnMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
 
 void WSServer::IOHandleThread() {
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WSServer::IOHandleThread( [Start] )"
 			);
 
@@ -417,7 +417,7 @@ void WSServer::IOHandleThread() {
     }
 
 	LogAync(
-			LOG_MSG,
+			LOG_INFO,
 			"WSServer::IOHandleThread( [Exit] )"
 			);
 }
