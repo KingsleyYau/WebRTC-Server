@@ -8,6 +8,10 @@
 
 #include "NtpTime.h"
 
+/**
+ * https://tools.ietf.org/html/rfc3550#section-4
+ * 一个UINT64表示一个NTP时间戳, 前32位表示整数部分, 后32位表示小数部分, 单位为秒
+ */
 namespace mediaserver {
 static uint64_t kFractionsPerSecond = 0x100000000;
 NtpTime::NtpTime() : value_(0) {

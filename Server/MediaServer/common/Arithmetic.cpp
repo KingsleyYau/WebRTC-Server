@@ -174,6 +174,20 @@ int Arithmetic::Base64Encode(const char* data, int length, char** code)
 	return n;
 }
 
+string Arithmetic::Base64Encode(const char* data, int length) {
+	string result;
+	char* code = NULL;
+	int strLen = Base64Encode(data, length, &code);
+	if ( strLen > 0 ) {
+		result = code;
+	}
+	if ( code ) {
+		delete code;
+		code = NULL;
+	}
+	return result;
+}
+
 int Arithmetic::Base64Decode(const char* data, int length, char* code)
 {
     int i = 0;
@@ -564,7 +578,7 @@ size_t Arithmetic::ChangeCharset(char* outbuf, size_t outbytes, const char* inbu
     return (outbytes - 2 - outlen);
 }
 
-string Arithmetic::AsciiToHexWithSep(char* data, int i_in_len, string sep) {
+string Arithmetic::AsciiToHexWithSep(const char* data, int i_in_len, string sep) {
     string result = "";
     unsigned char c;
     for (int i = 0; i < i_in_len; i++){

@@ -22,6 +22,7 @@ public:
     int TeaDecode(char* p_in, int i_in_len, char* p_key, char* p_out);
 
     int Base64Encode(const char* data, int length, char** code);
+    string Base64Encode(const char* data, int length);
     int Base64Decode(const char* data, int length, char* code);
 
     static int AsciiToHex(const char* data, int i_in_len, char* code);
@@ -43,7 +44,7 @@ public:
 
     size_t ChangeCharset(char* outbuf, size_t outbytes, const char* inbuf, const char* fromcode, const char* tocode, bool conv_begin = true);
 
-    string AsciiToHexWithSep(char* data, int i_in_len, string sep = ":");
+    string AsciiToHexWithSep(const char* data, int i_in_len, string sep = ":");
 
 protected:
     void encipher(void* aData, const void* aKey);

@@ -45,7 +45,7 @@ public:
 	}
 
 	// Retrieve an NTP absolute timestamp in milliseconds.
-	static int64_t CurrentNtpInMilliseconds()  {
+	static int64_t CurrentNtpInMilliseconds() {
 		timeval tv = CurrentTimeVal();
 		uint32_t seconds;
 		double microseconds_in_seconds;

@@ -86,22 +86,21 @@ public:
 
 public:
 	/**
+	 * 接收原始RTP包(网络字节序)
+	 */
+	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
+	/**
 	 * 发送原始RTP包(网络字节序)
 	 */
 	bool SendRtpPacket(void *pkt, unsigned int& pktSize);
 	/**
-	 * 接收原始RTP包(网络字节序)
+	 * 接收原始RTCP包(网络字节序)
 	 */
-	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
-
+	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
 	/**
 	 * 发送原始RTCP包(网络字节序)
 	 */
 	bool SendRtcpPacket(void *pkt, unsigned int& pktSize);
-	/**
-	 * 接收原始RTCP包(网络字节序)
-	 */
-	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
 
 public:
 	/**
@@ -129,7 +128,7 @@ private:
 	 * Send RTCP Receiver Report
 	 * 发送接收者报告
 	 */
-	bool SendRtcpRR(unsigned int mediaSSRC, uint32_t lsr, uint32_t dlsr);
+	bool SendRtcpRR();
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
 	 */
@@ -165,6 +164,7 @@ private:
 	SocketSender *mpRtpSender;
 	SocketSender *mpRtcpSender;
 
+	/////////////////////////////////////////////////////////////////////////////
 	// Video
 	// Max Video Timestamp
 	unsigned int mVideoMaxTimestamp;
@@ -184,6 +184,12 @@ private:
 	// Last Total Receive Video Packet
 	unsigned int mVideoLastTotalRecvPacket;
 
+	// Video LSR & DLSR
+	uint32_t mVideoLSR;
+	uint32_t mVideoDLSR;
+	/////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////////////////////////////
 	// Audio
 	// Max Audio timestamp
 	unsigned int mAudioMaxTimestamp;
@@ -201,8 +207,10 @@ private:
 	// Last Total Receive Audio Packet
 	unsigned int mAudioLastTotalRecvPacket;
 
-	// Last Rtcp Sender Report Timestamp
-	NtpTime mRtcpLSR;
+	// Audio LSR & DLSR
+	uint32_t mAudioLSR;
+	uint32_t mAudioDLSR;
+	/////////////////////////////////////////////////////////////////////////////
 
 	// libsrtp
 	srtp_ctx_t *mpSendSrtpCtx;
