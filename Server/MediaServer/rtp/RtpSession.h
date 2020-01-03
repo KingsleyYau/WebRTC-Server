@@ -170,6 +170,7 @@ private:
 	unsigned int mVideoMaxTimestamp;
 	// Max Video Sequence
 	uint16_t mVideoMaxSeq;
+	uint16_t mVideoMaxSeqLast;
 	// Video Frame Count
 	uint16_t mVideoFrameCount;
 	// Video SSRC
@@ -179,6 +180,7 @@ private:
 
 	// Total Receive Video Packet
 	unsigned int mVideoTotalRecvPacket;
+	unsigned int mVideoTotalRecvPacketLast;
 	// Last Max Video Sequence
 	unsigned int mVideoLastMaxSeq;
 	// Last Total Receive Video Packet
@@ -195,6 +197,7 @@ private:
 	unsigned int mAudioMaxTimestamp;
 	// Max Audio sequence
 	uint16_t mAudioMaxSeq;
+	uint16_t mAudioMaxSeqLast;
 	// Audio SSRC
 	unsigned int mAudioSSRC;
 	// Lost Audio Packet map
@@ -202,6 +205,7 @@ private:
 
 	// Total Receive Audio Packet
 	unsigned int mAudioTotalRecvPacket;
+	unsigned int mAudioTotalRecvPacketLast;
 	// Last Max Audio Sequence
 	unsigned int mAudioLastMaxSeq;
 	// Last Total Receive Audio Packet
