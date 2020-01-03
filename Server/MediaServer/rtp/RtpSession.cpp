@@ -893,10 +893,29 @@ bool RtpSession::SendRtcpRR() {
 	// Audio RR
 	RtcpPacketRR rr_audio = {0};
 	rr_audio.media_ssrc = htonl(mAudioSSRC);
-	rr_audio.fraction = 0;
+	/**
+	 * 丢包率: RTP包丢失个数 / 期望接收的RTP包个数
+	 * RTP包丢失个数 = 期望接收的RTP包个数 - 实际收到的RTP包个数
+	 * 期望接收的RTP包个数 = 当前最大sequence - 上次最大sequence
+	 * 实际收到的RTP包个数 = 正常有序RTP包 + 重传包
+	 */
+	unsigned int expected = mAudioMaxSeq - mAudioMaxSeqLast;
+	unsigned int actual = mAudioTotalRecvPacket - mAudioTotalRecvPacketLast;
+	mAudioTotalRecvPacketLast = mAudioTotalRecvPacket;
+	rr_audio.fraction = 256 * 1.0f * (expected - actual) / expected;
 	rr_audio.packet_lost = 0;
 	rr_audio.max_seq = htons(mAudioMaxSeq);
+	/**
+	 * 抖动: 一对数据包在接收端与发送端的数据包时间间距之差
+	 * R: RTP包接收的时间戳
+	 * S: RTP包发送的时间戳
+	 * 抖动(i, j) = D(i, j) = |(Rj - Ri) - (Sj - Si)| = |(Rj - Sj) - (Ri - Si)|
+	 * 抖动函数 J(i) = J(i - 1) + (|D(i - 1, i)| - J(i - 1)) / 16
+	 *
+	 * 暂时先不计算, 需要用到RTP扩展头 jitter_q4_transmission_time_offset_
+	 */
 	rr_audio.jitter = 0;
+
 	rr_audio.lsr = mAudioLSR;
 	rr_audio.dlsr = mAudioDLSR;
 	memcpy(tmp + pktSize, (void *)&rr_audio, sizeof(RtcpPacketRR));
@@ -905,7 +924,10 @@ bool RtpSession::SendRtcpRR() {
 	// Video RR
 	RtcpPacketRR rr_video = {0};
 	rr_video.media_ssrc = htonl(mVideoSSRC);
-	rr_video.fraction = 0;
+	expected = mVideoMaxSeq - mVideoMaxSeqLast;
+	actual = mVideoTotalRecvPacket - mVideoTotalRecvPacketLast;
+	mVideoTotalRecvPacketLast = mVideoTotalRecvPacket;
+	rr_video.fraction = 256 * 1.0f * (expected - actual) / expected;
 	rr_video.packet_lost = 0;
 	rr_video.max_seq = htons(mVideoMaxSeq);
 	rr_video.jitter = 0;
