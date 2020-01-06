@@ -52,6 +52,42 @@ typedef struct {
     char body[RTP_MAX_PAYLOAD_LEN];
 } RtpPacket;
 
+/**
+ * profile = 0xBEDE, One byte header
+	0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  ID   | len=2 |              data				              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+ * profile = 0x1x00, Two byte header
+ 	0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  ID   		 | 		len=2    |             data		          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+ */
+typedef struct {
+	uint16_t profile;          /* extension header profile  */
+    uint16_t length;           /* extension header length   */
+} RtpExtHeader; /* BIG END */
+
+/**
+ * Transmission Time Offsets in RTP Streams
+ * https://tools.ietf.org/html/rfc5450
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  ID   | len=2 |              transmission offset              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+typedef struct {
+	unsigned char id : 4;       /* id  */
+	unsigned char len : 4;      /* len = 2  */
+    uint32_t trans_offset : 24;	/* transmission offset */
+} RtpExtTransOffset; /* BIG END */
+
 enum RtcpPayloadType {
 	RtcpPayloadTypeSR = 200,
 	RtcpPayloadTypeRR = 201,
@@ -586,22 +622,51 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 					LOG_DEBUG,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
+					"[%s], "
 					"ssrc : 0x%08x(%u), "
 					"x : %u, "
+					"cc : %u, "
 					"seq : %u, "
 					"timestamp : %u, "
 					"pktSize : %d"
 					"%s"
 					")",
 					this,
+					PktTypeDesc(ssrc).c_str(),
 					ssrc,
 					ssrc,
 					((RtpPacket *)pkt)->header.x,
+					((RtpPacket *)pkt)->header.cc,
 					seq,
 					ts,
 					pktSize,
 					((RtpPacket *)pkt)->header.m?", [Mark] ":" "
 					);
+
+			if ( ((RtpPacket *)pkt)->header.x ) {
+				unsigned int payloadOffset = sizeof(RtpHeader) + (((RtpHeader *)pkt)->cc * 4);
+				RtpExtHeader *ext = (RtpExtHeader *)(pkt + payloadOffset);
+				uint16_t extProfile = ntohl(ext->profile);
+				uint16_t extLength = ntohl(ext->length);
+
+				LogAync(
+						LOG_DEBUG,
+						"RtpSession::RecvRtpPacket( "
+						"this : %p, "
+						"[%s], "
+						"ssrc : 0x%08x(%u), "
+						"[Extension], "
+						"profile : 0x%04x, "
+						"extLength : %u "
+						")",
+						this,
+						PktTypeDesc(ssrc).c_str(),
+						ssrc,
+						ssrc,
+						extProfile,
+						extLength
+						);
+			}
 
 			if ( mpRecvSrtpCtx ) {
 				srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
@@ -618,7 +683,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			}
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
@@ -722,7 +787,7 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"RtpSession::RecvRtcpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
@@ -903,7 +968,7 @@ bool RtpSession::SendRtcpRR() {
 	unsigned int actual = mAudioTotalRecvPacket - mAudioTotalRecvPacketLast;
 	mAudioTotalRecvPacketLast = mAudioTotalRecvPacket;
 	rr_audio.fraction = 256 * 1.0f * (expected - actual) / expected;
-	rr_audio.packet_lost = 0;
+	rr_audio.packet_lost = actual;
 	rr_audio.max_seq = htons(mAudioMaxSeq);
 	/**
 	 * 抖动: 一对数据包在接收端与发送端的数据包时间间距之差
@@ -928,7 +993,7 @@ bool RtpSession::SendRtcpRR() {
 	actual = mVideoTotalRecvPacket - mVideoTotalRecvPacketLast;
 	mVideoTotalRecvPacketLast = mVideoTotalRecvPacket;
 	rr_video.fraction = 256 * 1.0f * (expected - actual) / expected;
-	rr_video.packet_lost = 0;
+	rr_video.packet_lost = actual;
 	rr_video.max_seq = htons(mVideoMaxSeq);
 	rr_video.jitter = 0;
 	rr_video.lsr = mVideoLSR;
@@ -1131,7 +1196,7 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 		} else {
 			// 丢包太多, 强刷关键帧
 			LogAync(
-					LOG_WARNING,
+					LOG_NOTICE,
 					"RtpSession::UpdateLossPacket( "
 					"this : %p, "
 					"[%s], "
@@ -1140,6 +1205,7 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 					"rtpLostSize : %u "
 					")",
 					this,
+					PktTypeDesc(ssrc).c_str(),
 					ssrc,
 					ssrc,
 					rtpLostSize
@@ -1256,7 +1322,7 @@ bool RtpSession::SimPktLost(unsigned int ssrc, unsigned int seq) {
 					bFlag = false;
 
 					LogAync(
-							LOG_WARNING,
+							LOG_NOTICE,
 							"RtpSession::SimPktLost( "
 							"this : %p, "
 							"[%s], "
@@ -1292,7 +1358,7 @@ bool RtpSession::SimPktLost(unsigned int ssrc, unsigned int seq) {
 					bFlag = false;
 
 					LogAync(
-							LOG_WARNING,
+							LOG_NOTICE,
 							"RtpSession::SimPktLost( "
 							"this : %p, "
 							"[%s], "
