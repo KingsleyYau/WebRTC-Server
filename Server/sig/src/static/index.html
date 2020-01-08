@@ -76,29 +76,66 @@ function reset() {
 }
 
 function handleGetIceToken (iceServers) {
+    if ( !isEdge() ) {
+        for(i = 0; i < iceServers.length; i++) {
+            let obj = iceServers[i];
+            for(j = 0; j < obj.urls.length; j++) {
+                let index = obj.urls[j].indexOf("udp", 0);
+                if (index != -1) {
+                    obj.urls.splice(j, 1);
+                    break;
+                }
+            }
+        }
+    } else {
+        for(i = 0; i < iceServers.length; i++) {
+            let obj = iceServers[i];
+            for(j = 0; j < obj.urls.length; j++) {
+                let index = obj.urls[j].indexOf("tcp", 0);
+                if (index != -1) {
+                    obj.urls.splice(j, 1);
+                    break;
+                }
+            }
+        }
+    }
+
     let config = {
         iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
-        iceTransportPolicy: "all",
-        iceCandidatePoolSize: 0
+        // iceTransportPolicy: "all",
+        iceTransportPolicy: "relay",
+        iceCandidatePoolSize: 0,
     };
+
+    if ( isEdge() ) {
+        config.iceTransportPolicy = "all";
+    }
+
     console.log('Global::handleGetIceToken(), config:', config);
 
     // let pc = new RTCPeerConnection(config);
     rtc.config = config;
 
-    const videoSource = $("[id=videoSelector]").val();
-    rtc.call(videoSource).then( () => {
-        callType = 'call';
-        // Set local display
-        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-        // Start stat
-        rtc.stat();
-        // Send sdp call to media server
-        call();
+    if ( callType == 'push' ) {
+        const videoSource = $("[id=videoSelector]").val();
+        rtc.push(videoSource).then( () => {
+            // Set local display
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            // Start stat
+            rtc.stat();
+            // Send sdp call to media server
+            push();
 
-    }).catch( (e) => {
-        console.log("Global::handleGetIceToken(), [Fail], e: ", e);
-    });
+        }).catch( (e) => {
+            console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
+        });
+    } else if ( callType == 'pull' ) {
+        rtc.pull().then( () => {
+            pull();
+        }).catch( (e) => {
+            console.log("Global::handleGetIceToken(), [Pull Fail], e: ", e);
+        })
+    }
 }
 
 async function connect() {
@@ -109,7 +146,7 @@ async function connect() {
         } else {
             host = 'ws://' + window.location.hostname + ':9981';
         }
-        // host = 'wss://' + '127.0.0.1' + ':9081';
+        host = 'wss://' + '127.0.0.1' + ':9082';
         // host = 'wss://' + '192.168.88.133' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
         // host = 'wss://' + '52.196.96.7' + ':9081';
@@ -166,6 +203,17 @@ async function connect() {
                         }
                     }
 
+                }  else if(obj.route == 'imRTC/sendSdpPull') {
+                    // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                    if( typeof(obj.data.rtmpUrl) != "undefined" ) {
+                        // demo
+                        const rtmpUrl = obj.data.rtmpUrl;
+                        if( rtmpUrl.length > 0 ) {
+                            $("[id=rtmpUrl]").attr("style", 'display: block');
+                            $("[id=rtmpUrlLabel]").html(rtmpUrl);
+                        }
+                    }
+
                 } else if(obj.route == 'imRTC/sendSdpAnswerNotice') {
                     $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
                     $("[id=acceptBtn]").click();
@@ -217,7 +265,22 @@ function sendSdpCall(stream, sdp) {
         }
     }
 
-    console.log('Client.sendSdpCall(), ', JSON.stringify(obj));
+    // console.log('Client.sendSdpCall(), ', JSON.stringify(obj));
+    console.log('Client.sendSdpCall()');
+    send(obj);
+}
+
+function sendSdpPull(stream, sdp) {
+    obj = {
+        route:'imRTC/sendSdpPull',
+        req_data:{
+            stream:stream,
+            sdp:sdp
+        }
+    }
+
+    // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
+    console.log('Client.sendSdpPull()');
     send(obj);
 }
 
@@ -285,7 +348,7 @@ async function sendCmd() {
     }
 }
 
-async function call() {
+async function push() {
     // await connect();
 
     setTimeout( () => {
@@ -294,8 +357,17 @@ async function call() {
     }, 1000);
 }
 
+async function pull() {
+    // await connect();
+
+    setTimeout( () => {
+        sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
+        callAlready = true;
+    }, 1000);
+}
+
 class RTCClient {
-    constructor (config) {
+    constructor(config) {
         this.mediaStream = null;
         this.pc = null;
         this.config = config;
@@ -303,7 +375,7 @@ class RTCClient {
         this.onicecomplete = null;
     }
 
-    init () {
+    init() {
         this.pc = new RTCPeerConnection(this.config);
 
         this.pc.onicecandidate = event => {
@@ -323,11 +395,13 @@ class RTCClient {
         this.pc.onaddstream = event => {
             console.log('RTCClient::onaddstream(), remoteStream:', event.stream);
 
-            if (window.URL) {
-                $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
-            } else {
-                $("[id=remoteVideo]").attr("srcObject", event.stream);
-            }
+            // if (window.URL) {
+            //     $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
+            // } else {
+            //     $("[id=remoteVideo]").attr("srcObject", event.stream);
+            // }
+            $("[id=localVideo]").attr("style", 'display: block');
+            $("[id=localVideo]").attr("srcObject", event.stream);
         };
 
         // ICE握手状态
@@ -346,7 +420,7 @@ class RTCClient {
         };
     }
 
-    async hangup () {
+    async hangup() {
         this.close();
 
         $("[id=localSdpTextarea]").attr("disabled", true);
@@ -356,7 +430,28 @@ class RTCClient {
         $("[id=stats]").html("");
     }
 
-    async call (videoSource) {
+    async pull(videoSource) {
+        reset();
+
+        this.init();
+
+        let offer = await this.pc.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+        });
+        offer.sdp = this.createLocalSdp(offer.sdp);
+
+        await this.pc.setLocalDescription(offer);
+
+        // let localDescription = JSON.stringify(this.pc.localDescription);
+        console.log('RTCClient::pull(), offer :', offer);
+
+        $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+        $("[id=localSdpTextarea]").attr("disabled", false);
+        $("[id=acceptButton]").attr("disabled", false);
+    }
+
+    async push(videoSource) {
         reset();
 
         this.init();
@@ -372,7 +467,7 @@ class RTCClient {
         await this.pc.setLocalDescription(offer);
 
         // let localDescription = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::call(), offer :', offer);
+        console.log('RTCClient::push(), offer :', offer);
 
         $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
         $("[id=localSdpTextarea]").attr("disabled", false);
@@ -385,7 +480,7 @@ class RTCClient {
         await this.pc.setRemoteDescription(answer);
     }
 
-    close () {
+    close() {
         if ( this.pc != null ) {
             this.pc.close();
             this.pc = null;
@@ -393,7 +488,7 @@ class RTCClient {
         this.stopLocalVideo();
     }
 
-    async showLocalVideo (videoSource) {
+    async showLocalVideo(videoSource) {
         $("[id=localVideo]").attr("style", 'display: block');
         /**
          * Edge does not support custom video size
@@ -442,7 +537,7 @@ class RTCClient {
         });
     }
 
-    async stopLocalVideo () {
+    async stopLocalVideo() {
         $("[id=localVideo]").attr("style", 'display: none');
         if (this.mediaStream) {
             this.mediaStream.getTracks().forEach(
@@ -678,7 +773,7 @@ function onload() {
     // console.log(JSON.stringify(config));
     rtc = new RTCClient(config);
     rtc.onicecandidate = () => {
-        if( callType == 'call' ) {
+        if( callType == 'push' || callType == 'pull' ) {
             $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             if ( callAlready ) {
                 // Update sdp to media server
@@ -688,15 +783,14 @@ function onload() {
     };
 
     rtc.onicecomplete = () => {
-        if( callType == 'call' ) {
+        if( callType == 'push' ) {
             // Get Whole sdp with ice candidate, but it maybe cost time
-            // $("[id=localSdpTextarea]").html(rtc.forceNat(rtc.pc.localDescription.sdp));
-            // // Send sdp to media server
-            // call();
         }
     }
 
-    $("[id=callBtn]").click(function() {
+    $("[id=pushBtn]").click(function() {
+        callType = 'push';
+
         // Start capture and ice
         const videoSource = $("[id=videoSelector]").val();
 
@@ -705,19 +799,17 @@ function onload() {
         }
 
         sendGetToken();
-        //
-        // rtc.call(videoSource).then( () => {
-        //     callType = 'call';
-        //     // Set local display
-        //     $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-        //     // Start stat
-        //     rtc.stat();
-        //     // Send sdp call to media server
-        //     call();
-        //
-        // }).catch( (e) => {
-        //     console.log("RTC Call, [Fail], e: ", e);
-        // });
+    });
+
+    $("[id=pullBtn]").click(function() {
+        callType = 'pull';
+
+        // Start capture and ice
+        if( typeof(client) != "undefined" ) {
+            client.close();
+        }
+
+        sendGetToken();
     });
 
     $("[id=acceptBtn]").click(function accept() {
@@ -744,7 +836,7 @@ function onload() {
     });
 
     $("[id=videoSource]").change( function () {
-
+        $("[id=pushBtn]").click();
     });
 
     $("[id=iceBtn]").click(function() {
@@ -808,7 +900,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
-                <button id="callBtn">Call</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button><button id="imgBtn">Img</button><button id="cmdBtn">Cmd</button>
+                <button id="pushBtn">Push</button><button id="pullBtn">Pull</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button><button id="imgBtn">Img</button><button id="cmdBtn">Cmd</button>
             </div>
             <p>
             <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
