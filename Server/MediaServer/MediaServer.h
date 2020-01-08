@@ -307,6 +307,8 @@ private:
 	string mWebRTCRtp2RtmpShellFilePath;
 	// 执行转发RTMP的地址
 	string mWebRTCRtp2RtmpBaseUrl;
+	// 执行转发RTP的脚本
+	string mWebRTCRtmp2RtpShellFilePath;
 
 	// DTLS证书路径
 	string mWebRTCDtlsCertPath;

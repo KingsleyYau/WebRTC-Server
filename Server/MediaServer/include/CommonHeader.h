@@ -9,4 +9,5 @@
 #define INCLUDE_COMMONHEADER_H_
 
 #define FLAG_2_STRING(bFlag) bFlag?"OK":"Fail"
+#define TRUE_2_STRING(bFlag) bFlag?"True":"False"
 #endif /* INCLUDE_COMMONHEADER_H_ */

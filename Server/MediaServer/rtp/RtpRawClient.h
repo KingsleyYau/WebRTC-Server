@@ -11,8 +11,10 @@
 
 #include <string.h>
 
-#include <socket/UdpSender.h>
 #include "RtpSession.h"
+
+#include <socket/UdpSender.h>
+#include <socket/UdpReceiver.h>
 
 using namespace std;
 
@@ -24,16 +26,24 @@ public:
 	virtual ~RtpRawClient();
 
 public:
-	bool Init(const string& sendIp, int rtpSendPort, int rtpRecvPort);
+	bool Init(const string& sendIp, int rtpSendPort, const string& recvIp, int rtpRecvPort);
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
 	void Stop();
+	void Shutdown();
+	/**
+	 * 接收原始RTP包(网络字节序)
+	 */
+	bool RecvRtpPacket(void *pkt, unsigned int& pktSize);
 
 private:
 	UdpSender mRtpSender;
 	UdpSender mRtcpSender;
+	UdpReceiver mRtpReceiver;
 
 	string mSendIp;
 	int mRtpSendPort;
+	string mRecvIp;
+	int mRtpRecvPort;
 };
 
 } /* namespace mediaserver */

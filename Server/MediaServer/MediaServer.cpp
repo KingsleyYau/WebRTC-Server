@@ -105,7 +105,7 @@ MediaServer::MediaServer()
 	// 媒体流服务(WebRTC)参数
 	mWebRTCPortStart = 10000;
 	mWebRTCMaxClient = 10;
-	mWebRTCRtp2RtmpShellFilePath = "/root/Max/webrtc/bin/rtp2rtmp.sh";
+	mWebRTCRtp2RtmpShellFilePath = "";
 	mbTurnUseSecret = false;
 	mTurnUserName = "";
 	mTurnPassword = "";
@@ -363,7 +363,13 @@ bool MediaServer::Start() {
 		for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
 			WebRTC *rtc = new WebRTC();
 			rtc->SetCallback(this);
-			rtc->Init(mWebRTCRtp2RtmpShellFilePath, "127.0.0.1", port, "127.0.0.1", port + 2);
+			rtc->Init(
+					mWebRTCRtp2RtmpShellFilePath,
+					mWebRTCRtmp2RtpShellFilePath,
+					"127.0.0.1", port,
+					"127.0.0.1", port + 2,
+					"127.0.0.1", port
+					);
 			mWebRTCList.PushBack(rtc);
 		}
 
@@ -486,6 +492,7 @@ bool MediaServer::LoadConfig() {
 			mWebRTCMaxClient = atoi(conf.GetPrivate("WEBRTC", "WEBRTCMAXCLIENT", "10").c_str());
 			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
 			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
+			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
 			mWebRTCDtlsCertPath = conf.GetPrivate("WEBRTC", "DTLSCER", "etc/webrtc_dtls.crt");
 			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
 			mWebRTCLocalIp = conf.GetPrivate("WEBRTC", "ICELOCALIP", "");
@@ -630,7 +637,7 @@ void MediaServer::StateHandle() {
 			mCountMutex.unlock();
 
 			LogAync(
-					LOG_ERR,
+					LOG_WARNING,
 					"MediaServer::StateHandle( "
 					"event : [状态服务], "
 					"过去%u秒共收到请求(Websocket) : %u个 "
@@ -1413,6 +1420,71 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
 							}
 							mWebRTCMap.Unlock();
+
+						} else {
+							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);
+						}
+					}
+				} else if ( route == "imRTC/sendSdpPull" ) {
+					if ( reqRoot["req_data"].isObject() ) {
+						Json::Value reqData = reqRoot["req_data"];
+
+						string stream = "";
+						if( reqData["stream"].isString() ) {
+							stream = reqData["stream"].asString();
+						}
+
+						string sdp = "";
+						if( reqData["sdp"].isString() ) {
+							sdp = reqData["sdp"].asString();
+						}
+
+						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
+						rtmpUrl += stream;
+
+						LogAync(
+								LOG_NOTICE,
+								"MediaServer::OnWSMessage( "
+								"event : [Websocket-请求-拉流], "
+								"hdl : %p, "
+								"stream : %s "
+								")",
+								hdl.lock().get(),
+								stream.c_str()
+								);
+
+						if( stream.length() > 0 && sdp.length() > 0 ) {
+							WebRTC *rtc = NULL;
+
+							mWebRTCMap.Lock();
+							WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
+							if ( itr != mWebsocketMap.End() ) {
+								MediaClient *client = itr->second;
+								client->callTime = getCurrentTime();
+
+								if ( client->rtc ) {
+									rtc = client->rtc;
+								} else {
+									rtc = mWebRTCList.PopFront();
+									if ( rtc ) {
+										client->rtc = rtc;
+										mWebRTCMap.Insert(rtc, client);
+									}
+								}
+							}
+							mWebRTCMap.Unlock();
+
+							if ( rtc ) {
+								bFlag = rtc->Start(sdp, rtmpUrl, true);
+								if ( bFlag ) {
+									resData["rtmpUrl"] = rtmpUrl;
+								} else {
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail);
+								}
+
+							} else {
+								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
+							}
 
 						} else {
 							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);

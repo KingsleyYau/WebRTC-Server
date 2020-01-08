@@ -246,7 +246,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 			conn->get_remote_endpoint().c_str()
 			);
 
-	mServer.close(hdl, 0, "Disconnect");
+	mServer.close(hdl, 0, "Disconnect by server");
 
 	LogAync(
 			LOG_DEBUG,

@@ -3,7 +3,7 @@
 # Author: Max.Chiu
 # Date: 2019/08/13
 
-watch -n 1 -c "ps -efww | grep -v tail | grep -v grep | grep -v js | grep -v ffmpeg | grep 'mediaserver';\
+watch -n 1 -c "ps -efww | grep -v tail | grep -v grep | grep -v 'js\|ffmpeg\|start_' | grep 'mediaserver\|rtmp2rtp\|rtp2rtmp';\
 echo "-------------------- 		top		 --------------------";\
 top -b -n 1 | head -n 6;\
 top -b -n 1 | grep 'mediaserver\|turnserver\|ffmpeg' | grep -v 0.0;\

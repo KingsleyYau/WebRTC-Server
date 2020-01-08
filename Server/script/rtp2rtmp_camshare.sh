@@ -1,5 +1,5 @@
 #!/bin/sh
-# RTP Stream to RTMP Stream script
+# RTP stream to RTMP stream script
 # Author: Max.Chiu
 # Date: 2019/08/13
 

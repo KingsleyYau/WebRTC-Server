@@ -64,6 +64,7 @@ const string WebRTCMediaTypeString[] = {
 	"N",
 };
 
+class RtpRecvRunnable;
 class WebRTC;
 class WebRTCCallback {
 public:
@@ -75,6 +76,8 @@ public:
 };
 
 class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
+	friend class RtpRecvRunnable;
+
 public:
 	WebRTC();
 	virtual ~WebRTC();
@@ -95,14 +98,18 @@ public:
 	void SetCallback(WebRTCCallback *callback);
 	bool Init(
 			const string& rtp2RtmpShellFilePath,
+			const string& rtmp2RtpShellFilePath,
 			const string& rtpDstAudioIp = "127.0.0.1",
 			unsigned int rtpDstAudioPort = 10000,
 			const string& rtpDstVideoIp = "127.0.0.1",
-			unsigned int rtpDstVideoPort = 10002
+			unsigned int rtpDstVideoPort = 10002,
+			const string& rtpRecvIp = "127.0.0.1",
+			unsigned int rtpRecvPort = 10000
 			);
 	bool Start(
 			const string& sdp,
-			const string& rtmpUrl
+			const string& rtmpUrl,
+			bool isPull = false
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
@@ -119,6 +126,8 @@ private:
 	void OnIceClose(IceClient *ice);
 	// MainLoopCallback
 	void OnChildExit(int pid);
+	// Recv Rtp Thread Proc
+	void RecvRtpThread();
 
 	/**
 	 * 解析远程SDP
@@ -178,13 +187,20 @@ private:
 	DtlsSession mDtlsSession;
 	RtpSession mRtpSession;
 
+	// 用于转发SRTP->RTP
 	RtpRawClient mRtpDstAudioClient;
 	RtpRawClient mRtpDstVideoClient;
+	// 用于转发RTP->SRTP
+	RtpRawClient mRtpRecvClient;
+	RtpRecvRunnable* mpRtpRecvRunnable;
+	KThread mRtpRecvThread;
 
 	string mRtpDstAudioIp;
 	unsigned int mRtpDstAudioPort;
 	string mRtpDstVideoIp;
 	unsigned int mRtpDstVideoPort;
+	string mRtpRecvIp;
+	unsigned int mRtpRecvPort;
 
 	unsigned int mVideoSSRC;
 	unsigned int mAudioSSRC;
@@ -198,9 +214,14 @@ private:
 
 	// 执行转发RTMP的脚本
 	string mRtp2RtmpShellFilePath;
+	// 是否转码
 	bool mNeedTranscodeVideo;
+	// 执行转发RTP的脚本
+	string mRtmp2RtpShellFilePath;
 	// 转发RTMP的链接
 	string mRtmpUrl;
+	// 是否拉流
+	bool mIsPull;
 	// 转发RTMP脚本的进程ID
 	int mRtpTransformPid;
 	KMutex mRtpTransformPidMutex;
