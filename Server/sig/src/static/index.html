@@ -206,12 +206,6 @@ async function connect() {
                 }  else if(obj.route == 'imRTC/sendSdpPull') {
                     // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
                     if( typeof(obj.data.rtmpUrl) != "undefined" ) {
-                        // demo
-                        const rtmpUrl = obj.data.rtmpUrl;
-                        if( rtmpUrl.length > 0 ) {
-                            $("[id=rtmpUrl]").attr("style", 'display: block');
-                            $("[id=rtmpUrlLabel]").html(rtmpUrl);
-                        }
                     }
 
                 } else if(obj.route == 'imRTC/sendSdpAnswerNotice') {
