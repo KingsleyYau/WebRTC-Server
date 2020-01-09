@@ -1348,7 +1348,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						LogAync(
 								LOG_NOTICE,
 								"MediaServer::OnWSMessage( "
-								"event : [Websocket-请求-拨号], "
+								"event : [Websocket-请求-推流], "
 								"hdl : %p, "
 								"stream : %s "
 								")",

@@ -972,6 +972,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 //			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
 //			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
 			"a=%s\n"
+			"a=ssrc:305419897 cname:audio\n"
 			"a=rtcp-mux\n"
 			"a=rtpmap:%u %s/%u%s\n"
 //			"a=rtcp-fb:%u transport-cc\n"
@@ -990,6 +991,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 //			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
 //			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
 			"a=%s\n"
+			"a=ssrc:305419896 cname:video\n"
 			"a=rtcp-mux\n"
 			"a=rtcp-rsize\n"
 			"a=rtpmap:%u %s/%u\n"
@@ -1004,7 +1006,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 			pwd.c_str(),
 			DtlsSession::GetFingerprint(),
 			mAudioMid.c_str(),
-			mIsPull?"sendolny":"recvonly",
+			mIsPull?"sendonly":"recvonly",
 			mAudioSdpPayload.payload_type,
 			mAudioSdpPayload.encoding_name.c_str(),
 			mAudioSdpPayload.clock_rate,
@@ -1017,7 +1019,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 			pwd.c_str(),
 			DtlsSession::GetFingerprint(),
 			mVideoMid.c_str(),
-			mIsPull?"sendolny":"recvonly",
+			mIsPull?"sendonly":"recvonly",
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.encoding_name.c_str(),
 			mVideoSdpPayload.clock_rate,
