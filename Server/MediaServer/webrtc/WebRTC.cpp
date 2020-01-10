@@ -273,11 +273,6 @@ void WebRTC::Stop() {
 			mRtpRecvClient.Stop();
 		}
 
-		// 还原参数
-		mAudioSSRC = 0;
-		mVideoSSRC = 0;
-		mIsPull = false;
-
 		LogAync(
 				LOG_NOTICE,
 				"WebRTC::Stop( "
@@ -289,6 +284,11 @@ void WebRTC::Stop() {
 				PULL_OR_PUSH_2_STRING(mIsPull),
 				mRtmpUrl.c_str()
 				);
+
+		// 还原参数
+		mAudioSSRC = 0;
+		mVideoSSRC = 0;
+		mIsPull = false;
 	}
 	mClientMutex.unlock();
 }
