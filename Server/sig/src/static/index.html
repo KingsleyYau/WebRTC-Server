@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<title>WebRTC Upload Media Stream Test Page</title>
+<title>WebRTC Media Stream Test Page</title>
 
 <head>
     <style id="compiled-css" type="text/css">
@@ -146,7 +146,7 @@ async function connect() {
         } else {
             host = 'ws://' + window.location.hostname + ':9981';
         }
-        host = 'wss://' + '127.0.0.1' + ':9082';
+        // host = 'wss://' + '127.0.0.1' + ':9082';
         // host = 'wss://' + '192.168.88.133' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
         // host = 'wss://' + '52.196.96.7' + ':9081';
@@ -386,16 +386,23 @@ class RTCClient {
         };
 
         // 收到对方的视频流
-        this.pc.onaddstream = event => {
-            console.log('RTCClient::onaddstream(), remoteStream:', event.stream);
-
-            // if (window.URL) {
-            //     $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
-            // } else {
-            //     $("[id=remoteVideo]").attr("srcObject", event.stream);
-            // }
+        // this.pc.onaddstream = event => {
+        //     console.log('RTCClient::onaddstream(), stream:', event.stream);
+        //     $("[id=localVideo]").attr("style", 'display: block');
+        //     if (window.URL.createObjectURL) {
+        //         $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
+        //     } else {
+        //         $("[id=remoteVideo]").attr("srcObject", event.stream);
+        //     }
+        //     $("[id=localVideo]").attr("srcObject", event.stream);
+        // };
+        this.pc.ontrack = event => {
+            console.log('RTCClient::ontrack(), stream:', event.streams[0]);
             $("[id=localVideo]").attr("style", 'display: block');
-            $("[id=localVideo]").attr("srcObject", event.stream);
+            let video = $("[id=localVideo]")[0];
+            if ( $("[id=localVideo]")[0].srcObject !== event.streams[0] ) {
+                $("[id=localVideo]").attr("srcObject", event.streams[0]);
+            }
         };
 
         // ICE握手状态
@@ -424,7 +431,7 @@ class RTCClient {
         $("[id=stats]").html("");
     }
 
-    async pull(videoSource) {
+    async pull() {
         reset();
 
         this.init();
@@ -438,9 +445,10 @@ class RTCClient {
         await this.pc.setLocalDescription(offer);
 
         // let localDescription = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::pull(), offer :', offer);
+        console.log('RTCClient::pull(), offer :', offer.sdp);
 
-        $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+        // $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+        $("[id=localSdpTextarea]").html(offer.sdp);
         $("[id=localSdpTextarea]").attr("disabled", false);
         $("[id=acceptButton]").attr("disabled", false);
     }
@@ -461,9 +469,9 @@ class RTCClient {
         await this.pc.setLocalDescription(offer);
 
         // let localDescription = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::push(), offer :', offer);
+        console.log('RTCClient::push(), offer :', offer.sdp);
 
-        $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+        $("[id=localSdpTextarea]").html(offer.sdp);
         $("[id=localSdpTextarea]").attr("disabled", false);
         $("[id=acceptButton]").attr("disabled", false);
     }
@@ -901,7 +909,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <div class="">
                 <p># Video</p>
                 <video id="localVideo" width="640" height="480" autoplay style="display:none"></video>
-                <canvas id="localCanvas" width="640" height="480" style="display:block"></canvas>
+                <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
                 <img id="localImg" src="img/1.jpg" style="display: none">
             </div>
             <label id="stats"></label>

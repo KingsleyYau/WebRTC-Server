@@ -222,14 +222,13 @@ bool WebRTC::Start(
 			LOG_NOTICE,
 			"WebRTC::Start( "
 			"this : %p, "
-			"[%s], "
-			"rtmpUrl : %s, "
-			"isPull : %s "
+			"[%s], [%s], "
+			"rtmpUrl : %s "
 			")",
 			this,
 			FLAG_2_STRING(bFlag),
-			rtmpUrl.c_str(),
-			TRUE_2_STRING(isPull)
+			PULL_OR_PUSH_2_STRING(mIsPull),
+			rtmpUrl.c_str()
 			);
 
 	if( !bFlag ) {
@@ -283,10 +282,11 @@ void WebRTC::Stop() {
 				LOG_NOTICE,
 				"WebRTC::Stop( "
 				"this : %p, "
-				"[OK], "
+				"[OK], [%s], "
 				"rtmpUrl : %s "
 				")",
 				this,
+				PULL_OR_PUSH_2_STRING(mIsPull),
 				mRtmpUrl.c_str()
 				);
 	}
@@ -418,7 +418,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
-								LOG_NOTICE,
+								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media H264 Codec], "
@@ -499,7 +499,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 												LOG_NOTICE,
 												"WebRTC::ParseRemoteSdp( "
 												"this : %p, "
-												"[Found Remote Media H264 Codec, Relay Without Transcode], "
+												"[Found Remote Media H264 Codec, Relay Only], "
 												"media_type : %s, "
 												"payload : %d %s/%u/%s, "
 												"profileLevelId : %s "
@@ -519,7 +519,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						}
 					} else if ( 0 == strcmp(payload.encoding_name, "opus") ) {
 						LogAync(
-								LOG_NOTICE,
+								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
 								"this : %p, "
 								"[Found Remote Media OPUS Codec], "
@@ -634,19 +634,34 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				LOG_NOTICE,
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
-				"[Parse Remote SDP OK], "
-				"mAudioSSRC : 0x%08x(%u), "
+				"[Parse Remote SDP OK, %s], "
 				"mAudioMid : %s, "
+				"mAudioSSRC : 0x%08x(%u), "
+				"mAudioSdpPayload : %d %s/%u/%s, "
+				"mAudioSdpFmtp : %s, "
+				"mVideoMid : %s, "
 				"mVideoSSRC : 0x%08x(%u), "
-				"mVideoMid : %s "
+				"mVideoSdpPayload : %d %s/%u/%s, "
+				"mVideoSdpFmtp : %s "
 				")",
 				this,
-				mAudioSSRC,
-				mAudioSSRC,
+				mNeedTranscodeVideo?"Video Transcode":"Video Relay",
 				mAudioMid.c_str(),
+				mAudioSSRC,
+				mAudioSSRC,
+				mAudioSdpPayload.payload_type,
+				mAudioSdpPayload.encoding_name.c_str(),
+				mAudioSdpPayload.clock_rate,
+				mAudioSdpPayload.encoding_params.c_str(),
+				mAudioSdpPayload.fmtp.c_str(),
+				mVideoMid.c_str(),
 				mVideoSSRC,
 				mVideoSSRC,
-				mVideoMid.c_str()
+				mVideoSdpPayload.payload_type,
+				mVideoSdpPayload.encoding_name.c_str(),
+				mVideoSdpPayload.clock_rate,
+				mVideoSdpPayload.encoding_params.c_str(),
+				mVideoSdpPayload.fmtp.c_str()
 				);
 	}
 
@@ -848,6 +863,15 @@ bool WebRTC::StartRtpTransform() {
 	bool bFlag = true;//CreateLocalSdpFile();
 
 	if ( bFlag ) {
+		char transcode[2] = {'\0'};
+		sprintf(transcode, "%d", mNeedTranscodeVideo);
+		char rtpUrl[1024] = {'\0'};
+		sprintf(rtpUrl, "rtp://127.0.0.1:%u", mRtpRecvPort);
+		char videoPayload[16] = {'\0'};
+		sprintf(videoPayload, "%u", mVideoSdpPayload.payload_type);
+		char audioPayload[16] = {'\0'};
+		sprintf(audioPayload, "%u", mAudioSdpPayload.payload_type);
+
 		pid_t pid = fork();
 		if ( pid < 0 ) {
 			LogAync(
@@ -860,37 +884,59 @@ bool WebRTC::StartRtpTransform() {
 					);
 			bFlag = false;
 		} else if ( pid > 0 ) {
-			LogAync(
-					LOG_INFO,
-					"WebRTC::StartRtpTransform( "
-					"this : %p, "
-					"[Fork New Process OK], "
-					"pid : %u, "
-					"mRtp2RtmpShellFilePath : %s, "
-					"mSdpFilePath : %s, "
-					"mRtmpUrl : %s "
-					")",
-					this,
-					pid,
-					mRtp2RtmpShellFilePath.c_str(),
-					mSdpFilePath.c_str(),
-					mRtmpUrl.c_str()
-					);
+			if ( mIsPull ) {
+				LogAync(
+						LOG_INFO,
+						"WebRTC::StartRtpTransform( "
+						"this : %p, "
+						"[Fork New Process OK], "
+						"pid : %u, "
+						"mRtmp2RtpShellFilePath : %s, "
+						"mRtmpUrl : %s, "
+						"rtpUrl : %s, "
+						"videoPayload : %s, "
+						"audioPayload : %s, "
+						"transcode : %s "
+						")",
+						this,
+						pid,
+						mRtmp2RtpShellFilePath.c_str(),
+						mRtmpUrl.c_str(),
+						rtpUrl,
+						videoPayload,
+						audioPayload,
+						TRUE_2_STRING(mNeedTranscodeVideo)
+						);
+			} else {
+				LogAync(
+						LOG_INFO,
+						"WebRTC::StartRtpTransform( "
+						"this : %p, "
+						"[Fork New Process OK], "
+						"pid : %u, "
+						"mRtp2RtmpShellFilePath : %s, "
+						"mSdpFilePath : %s, "
+						"mRtmpUrl : %s, "
+						"transcode : %s "
+						")",
+						this,
+						pid,
+						mRtp2RtmpShellFilePath.c_str(),
+						mSdpFilePath.c_str(),
+						mRtmpUrl.c_str(),
+						TRUE_2_STRING(mNeedTranscodeVideo)
+						);
+			}
+
 			mRtpTransformPid = pid;
 			MainLoop::GetMainLoop()->StartWatchChild(mRtpTransformPid, this);
 		} else {
 			if ( mIsPull ) {
-				char transcode[2] = {'\0'};
-				sprintf(transcode, "%d", mNeedTranscodeVideo);
-				char rtpUrl[1024] = {'\0'};
-				sprintf(rtpUrl, "rtp://127.0.0.1:%u", mRtpRecvPort);
-				int ret = execle("/bin/sh", "sh", mRtmp2RtpShellFilePath.c_str(), mRtmpUrl.c_str(), rtpUrl, transcode, NULL, NULL);
+				int ret = execle("/bin/sh", "sh", mRtmp2RtpShellFilePath.c_str(), mRtmpUrl.c_str(), rtpUrl, videoPayload, audioPayload, transcode, NULL, NULL);
 				exit(EXIT_SUCCESS);
 			} else {
 				bool bFlag = CreateLocalSdpFile();
 				if ( bFlag ) {
-					char transcode[2] = {'\0'};
-					sprintf(transcode, "%d", mNeedTranscodeVideo);
 					int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), transcode, NULL, NULL);
 					exit(EXIT_SUCCESS);
 				}
