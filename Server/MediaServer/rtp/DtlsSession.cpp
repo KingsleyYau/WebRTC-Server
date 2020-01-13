@@ -293,7 +293,7 @@ void DtlsSession::SSL_Info_Callback(const SSL* s, int where, int ret) {
 	}
 
 	LogAync(
-			LOG_DEBUG,
+			LOG_INFO,
 			"DtlsSession::SSL_Info_Callback( "
 			"this : %p, "
 			"[%s], "
@@ -389,7 +389,8 @@ const unsigned char *DtlsSession::GetFingerprint() {
 	return gFingerprint;
 }
 
-DtlsSession::DtlsSession() {
+DtlsSession::DtlsSession()
+:mClientMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
 	mRunning = false;
 	mpSocketSender = NULL;
@@ -563,10 +564,14 @@ bool DtlsSession::Handshake() {
 			this
 			);
 
+	int ret;
+	mClientMutex.lock();
 	if ( mpSSL ) {
-		int ret = SSL_do_handshake(mpSSL);
-		bFlag = FlushSSL();
+		ret = SSL_do_handshake(mpSSL);
 	}
+	mClientMutex.unlock();
+
+	bFlag = FlushSSL();
 
 	return bFlag;
 }
@@ -575,7 +580,9 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 	bool bFlag = false;
 
 	if( IsDTLS(frame, size) && (mDtlsSessionStatus != DtlsSessionStatus_HandshakeDone) ) {
+		mClientMutex.lock();
 		int written = BIO_write(mpReadBIO, frame, size);
+
 		LogAync(
 				LOG_DEBUG,
 				"DtlsSession::RecvFrame( "
@@ -607,9 +614,9 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 		    			);
 		    }
 		}
+		mClientMutex.unlock();
 
 		bFlag = FlushSSL();
-
 	} else {
 		bFlag = false;
 	}
@@ -620,7 +627,10 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 bool DtlsSession::FlushSSL() {
 	bool bFlag = true;
 
+	mClientMutex.lock();
 	int pending = BIO_ctrl_pending(mpWriteBIO);
+	mClientMutex.unlock();
+
 	LogAync(
 			LOG_DEBUG,
 			"DtlsSession::FlushSSL( "
@@ -635,7 +645,9 @@ bool DtlsSession::FlushSSL() {
 	int dataSize = 0;
 	while (pending > 0) {
 		dataSize = MIN(pending, 1500);
+		mClientMutex.lock();
 		int pktSize = BIO_read(mpWriteBIO, dataBuffer, dataSize);
+		mClientMutex.unlock();
 		LogAync(
 				LOG_DEBUG,
 				"DtlsSession::FlushSSL( "
@@ -655,8 +667,10 @@ bool DtlsSession::FlushSSL() {
     		bFlag = false;
     	}
 
+    	mClientMutex.lock();
 		/* Check if there's anything left to send (e.g., fragmented packets) */
 		pending = BIO_ctrl_pending(mpWriteBIO);
+		mClientMutex.unlock();
 	}
 
 	if( bFlag ) {
@@ -667,6 +681,7 @@ bool DtlsSession::FlushSSL() {
 }
 
 void DtlsSession::CheckHandshake() {
+	mClientMutex.lock();
 	if ( (mDtlsSessionStatus == DtlsSessionStatus_HandshakeDone) && SSL_is_init_finished(mpSSL) ) {
 		// Check if peer send certificate
 		X509 *cert = SSL_get_peer_certificate(mpSSL);
@@ -746,6 +761,7 @@ void DtlsSession::CheckHandshake() {
 					);
         }
 	}
+	mClientMutex.unlock();
 }
 
 bool DtlsSession::IsDTLS(const char *frame, unsigned len) {

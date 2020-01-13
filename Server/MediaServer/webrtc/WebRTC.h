@@ -64,6 +64,7 @@ const string WebRTCMediaTypeString[] = {
 	"N",
 };
 
+class DtlsRunnable;
 class RtpRecvRunnable;
 class WebRTC;
 class WebRTCCallback {
@@ -76,6 +77,7 @@ public:
 };
 
 class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
+	friend class DtlsRunnable;
 	friend class RtpRecvRunnable;
 
 public:
@@ -126,6 +128,8 @@ private:
 	void OnIceClose(IceClient *ice);
 	// MainLoopCallback
 	void OnChildExit(int pid);
+	// Dtls Handshake Thread Proc
+	void DtlsThread();
 	// Recv Rtp Thread Proc
 	void RecvRtpThread();
 
@@ -187,11 +191,16 @@ private:
 	DtlsSession mDtlsSession;
 	RtpSession mRtpSession;
 
+	// DTLS协商线程
+	DtlsRunnable* mpDtlsRunnable;
+	KThread mDtlsThread;
+
 	// 用于转发SRTP->RTP
 	RtpRawClient mRtpDstAudioClient;
 	RtpRawClient mRtpDstVideoClient;
 	// 用于转发RTP->SRTP
 	RtpRawClient mRtpRecvClient;
+	// 转发RTP线程
 	RtpRecvRunnable* mpRtpRecvRunnable;
 	KThread mRtpRecvThread;
 

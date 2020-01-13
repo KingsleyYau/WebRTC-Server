@@ -22,6 +22,22 @@
 #include <libsdp.h>
 
 namespace mediaserver {
+class DtlsRunnable : public KRunnable {
+public:
+	DtlsRunnable(WebRTC *container) {
+		mContainer = container;
+	}
+	virtual ~DtlsRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->DtlsThread();
+	}
+private:
+	WebRTC *mContainer;
+};
+
 class RtpRecvRunnable : public KRunnable {
 public:
 	RtpRecvRunnable(WebRTC *container) {
@@ -42,6 +58,7 @@ WebRTC::WebRTC()
 :mClientMutex(KMutex::MutexType_Recursive),
  mRtpTransformPidMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
+	mpDtlsRunnable = new DtlsRunnable(this);
 	mpRtpRecvRunnable = new RtpRecvRunnable(this);
 
 	mIceClient.SetCallback(this);
@@ -73,7 +90,12 @@ WebRTC::WebRTC()
 
 WebRTC::~WebRTC() {
 	// TODO Auto-generated destructor stub
-	if( mpRtpRecvRunnable ) {
+	if ( mpDtlsRunnable ) {
+		delete mpDtlsRunnable;
+		mpDtlsRunnable = NULL;
+	}
+
+	if ( mpRtpRecvRunnable ) {
 		delete mpRtpRecvRunnable;
 		mpRtpRecvRunnable = NULL;
 	}
@@ -191,6 +213,21 @@ bool WebRTC::Start(
 	bFlag &= mIceClient.Start();
 	bFlag &= mDtlsSession.Start();
 
+	if( bFlag ) {
+		// 启动DTLS协商线程
+		if( 0 ==  mDtlsThread.Start(mpDtlsRunnable, "DtlsRunnable") ) {
+			LogAync(
+					LOG_ALERT,
+					"WebRTC::Start( "
+					"this : %p, "
+					"[Create Dtls Thread Fail] "
+					")",
+					this
+					);
+			bFlag = false;
+		}
+	}
+
 	if ( mIsPull ) {
 		bFlag &= mRtpRecvClient.Start(NULL, 0, NULL, 0);
 		if( bFlag ) {
@@ -257,6 +294,7 @@ void WebRTC::Stop() {
 		mIceClient.Stop();
 		mDtlsSession.Stop();
 		mRtpSession.Stop();
+		mDtlsThread.Stop();
 
 		if ( mIsPull ) {
 			mRtpRecvClient.Shutdown();
@@ -1018,7 +1056,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 //			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
 //			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
 			"a=%s\n"
-			"a=ssrc:305419897 cname:audio\n"
+			"%s"
 			"a=rtcp-mux\n"
 			"a=rtpmap:%u %s/%u%s\n"
 //			"a=rtcp-fb:%u transport-cc\n"
@@ -1037,7 +1075,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 //			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
 //			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
 			"a=%s\n"
-			"a=ssrc:305419896 cname:video\n"
+			"%s"
 			"a=rtcp-mux\n"
 			"a=rtcp-rsize\n"
 			"a=rtpmap:%u %s/%u\n"
@@ -1053,6 +1091,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 			DtlsSession::GetFingerprint(),
 			mAudioMid.c_str(),
 			mIsPull?"sendonly":"recvonly",
+			mIsPull?"a=ssrc:305419897 cname:audio\n":"",
 			mAudioSdpPayload.payload_type,
 			mAudioSdpPayload.encoding_name.c_str(),
 			mAudioSdpPayload.clock_rate,
@@ -1066,6 +1105,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 			DtlsSession::GetFingerprint(),
 			mVideoMid.c_str(),
 			mIsPull?"sendonly":"recvonly",
+			mIsPull?"a=ssrc:305419896 cname:video\n":"",
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.encoding_name.c_str(),
 			mVideoSdpPayload.clock_rate,
@@ -1364,7 +1404,7 @@ void WebRTC::OnIceConnected(IceClient *ice) {
 			ice,
 			mRtmpUrl.c_str()
 			);
-	mDtlsSession.Handshake();
+//	mDtlsSession.Handshake();
 }
 
 void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) {
@@ -1585,10 +1625,63 @@ void WebRTC::OnChildExit(int pid) {
 	}
 }
 
+void WebRTC::DtlsThread() {
+	LogAync(
+			LOG_INFO,
+			"WebRTC::DtlsThread( "
+			"this : %p, "
+			"[Start] "
+			")",
+			this
+			);
+
+	unsigned int times = 0;
+	unsigned int interval = 1;
+
+	while ( mRunning ) {
+		if ( mIceClient.IsConnected() ) {
+			DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
+			if ( times < 5 && (status < DtlsSessionStatus_HandshakeDone) ) {
+				LogAync(
+						LOG_NOTICE,
+						"WebRTC::DtlsThread( "
+						"this : %p, "
+						"[Try DTLS Handshake], "
+						"times : %u, "
+						"rtmpUrl : %s "
+						")",
+						this,
+						times,
+						mRtmpUrl.c_str()
+						);
+				mDtlsSession.Handshake();
+				times++;
+				interval++;
+			} else {
+				break;
+			}
+		}
+		sleep(interval);
+	}
+
+	LogAync(
+			LOG_INFO,
+			"WebRTC::DtlsThread( "
+			"this : %p, "
+			"[Exit] "
+			")",
+			this
+			);
+}
+
 void WebRTC::RecvRtpThread() {
 	LogAync(
 			LOG_INFO,
-			"WebRTC::RecvRtpThread( [Start] )"
+			"WebRTC::RecvRtpThread( "
+			"this : %p, "
+			"[Start] "
+			")",
+			this
 			);
 
 	while ( mRunning ) {
@@ -1604,7 +1697,11 @@ void WebRTC::RecvRtpThread() {
 
 	LogAync(
 			LOG_INFO,
-			"WebRTC::RecvRtpThread( [Exit] )"
+			"WebRTC::RecvRtpThread( "
+			"this : %p, "
+			"[Exit] "
+			")",
+			this
 			);
 }
 } /* namespace mediaserver */

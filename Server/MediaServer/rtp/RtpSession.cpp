@@ -1259,7 +1259,7 @@ void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize)
 		}
 
 		LogAync(
-				LOG_INFO,
+				LOG_DEBUG,
 				"RtpSession::UpdateStreamInfoWithRtcp( "
 				"this : %p, "
 				"[%s], "

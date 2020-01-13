@@ -64,6 +64,7 @@ public:
 public:
 	const string& GetLocalAddress();
 	const string& GetRemoteAddress();
+	bool IsConnected();
 
 private:
 	void OnClose(::NiceAgent *agent);

@@ -88,7 +88,7 @@ void cb_closed(void *src, void *res, void *data) {
 			LOG_DEBUG,
 			"IceClient::cb_closed( "
 			"this : %p, "
-			"agent : %p"
+			"agent : %p "
 			")",
 			data,
 			src
@@ -419,6 +419,17 @@ const string& IceClient::GetLocalAddress() {
 
 const string& IceClient::GetRemoteAddress() {
 	return mRemoteAddress;
+}
+
+bool IceClient::IsConnected() {
+	bool bFlag = false;
+	if ( mpAgent ) {
+		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
+		if ( state == NICE_COMPONENT_STATE_CONNECTED || state == NICE_COMPONENT_STATE_READY ) {
+			bFlag = true;
+		}
+	}
+	return bFlag;
 }
 
 bool IceClient::ParseRemoteSdp(unsigned int streamId) {
