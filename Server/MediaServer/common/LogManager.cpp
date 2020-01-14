@@ -17,7 +17,7 @@
 
 #include <common/Buffer.h>
 
-#define MAX_LOG_BUFFER_LEN 8192
+#define MAX_LOG_BUFFER_LEN 10 * 1024
 
 const char* LOG_LEVEL_DESC[] = {
 		"OFF",
@@ -101,8 +101,8 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
 	}
 
     if( bNeedLog ) {
-        char logBuffer[MAX_LOG_BUFFER_LEN];
-		char bitBuffer[128];
+        char logBuffer[MAX_LOG_BUFFER_LEN] = {0};
+		char bitBuffer[128] = {0};
 
 	    struct timeval tv;
 	    gettimeofday(&tv, NULL);

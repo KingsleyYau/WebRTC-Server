@@ -1328,7 +1328,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			bParse = false;
 			if ( reqRoot["route"].isString() ) {
 				string route = reqRoot["route"].asString();
-				if ( route == "imRTC/sendSdpCall" ) {
+				if ( route == "imRTC/sendPing" ) {
+					bFlag = true;
+				} else if ( route == "imRTC/sendSdpCall" ) {
 					if ( reqRoot["req_data"].isObject() ) {
 						Json::Value reqData = reqRoot["req_data"];
 

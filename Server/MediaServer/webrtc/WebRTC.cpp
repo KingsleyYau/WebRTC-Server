@@ -454,7 +454,33 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 							payload.fmtp
 							);
 
-					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
+					if ( 0 == strcmp(payload.encoding_name, "VP8") ) {
+						LogAync(
+								LOG_INFO,
+								"WebRTC::ParseRemoteSdp( "
+								"this : %p, "
+								"[Found Remote Media VP8 Codec], "
+								"media_type : %s, "
+								"payload : %d %s/%u/%s, "
+								"fmtp : %s "
+								")",
+								this,
+								sdp_media_type_str(media->type),
+								payload.payload_type,
+								payload.encoding_name,
+								payload.clock_rate,
+								payload.encoding_params,
+								payload.fmtp
+								);
+						if ( mVideoSdpPayload.encoding_name != "H264" ) {
+							mVideoSdpPayload.payload_type = payload.payload_type;
+							mVideoSdpPayload.encoding_name = payload.encoding_name?payload.encoding_name:"";
+							mVideoSdpPayload.clock_rate = payload.clock_rate;
+							mVideoSdpPayload.encoding_params = payload.encoding_params?payload.encoding_params:"";
+							mVideoSdpPayload.fmtp = payload.fmtp?payload.fmtp:"";
+						}
+
+					} else if ( 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
 								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
@@ -1658,6 +1684,21 @@ void WebRTC::DtlsThread() {
 				times++;
 				interval++;
 			} else {
+				if ( status < DtlsSessionStatus_HandshakeDone ) {
+					LogAync(
+							LOG_NOTICE,
+							"WebRTC::DtlsThread( "
+							"this : %p, "
+							"[DTLS Handshake Timeout], "
+							"rtmpUrl : %s "
+							")",
+							this,
+							mRtmpUrl.c_str()
+							);
+					if( mpWebRTCCallback ) {
+						mpWebRTCCallback->OnWebRTCClose(this);
+					}
+				}
 				break;
 			}
 		}

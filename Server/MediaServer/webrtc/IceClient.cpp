@@ -398,6 +398,18 @@ void IceClient::SetRemoteSdp(const string& sdp) {
 
 	if ( mpAgent ) {
 		NiceComponentState state = nice_agent_get_component_state(mpAgent, mStreamId, mComponentId);
+		LogAync(
+				LOG_INFO,
+				"IceClient::SetRemoteSdp( "
+				"this : %p, "
+				"mIceGatheringDone : %s, "
+				"state : %s "
+				")",
+				this,
+				FLAG_2_STRING(mIceGatheringDone),
+				nice_component_state_to_string((NiceComponentState)state)
+				);
+
 //		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
 		if ( mIceGatheringDone && state < NICE_COMPONENT_STATE_CONNECTED ) {
 			ParseRemoteSdp(mStreamId);
@@ -645,6 +657,10 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
     gchar ip[INET6_ADDRSTRLEN] = {0};
     gchar baseip[INET6_ADDRSTRLEN] = {0};
 
+	mClientMutex.lock();
+	mIceGatheringDone = true;
+	mClientMutex.unlock();
+
     bool bFlag = true;
 	if ( bFlag ) {
 	    bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);
@@ -726,10 +742,6 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 	if ( localCandidate ) {
 		g_free(localCandidate);
 	}
-
-	mClientMutex.lock();
-	mIceGatheringDone = true;
-	mClientMutex.unlock();
 
 	bFlag = ParseRemoteSdp(streamId);
 }
