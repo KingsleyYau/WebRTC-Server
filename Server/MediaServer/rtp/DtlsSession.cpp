@@ -419,7 +419,7 @@ bool DtlsSession::Start() {
 	LogAync(
 			LOG_INFO,
 			"DtlsSession::Start( "
-			"this : %p, "
+			"this : %p "
 			")",
 			this
 			);

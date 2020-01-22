@@ -326,6 +326,10 @@ void WebRTC::Stop() {
 		// 还原参数
 		mAudioSSRC = 0;
 		mVideoSSRC = 0;
+		mSdpFilePath = "";
+		mAudioSdpPayload.Reset();
+		mVideoSdpPayload.Reset();
+
 		mIsPull = false;
 	}
 	mClientMutex.unlock();
@@ -472,7 +476,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								payload.encoding_params,
 								payload.fmtp
 								);
-						if ( mVideoSdpPayload.encoding_name != "H264" ) {
+						if ( mVideoSdpPayload.encoding_name.length() == 0 ) {
 							mVideoSdpPayload.payload_type = payload.payload_type;
 							mVideoSdpPayload.encoding_name = payload.encoding_name?payload.encoding_name:"";
 							mVideoSdpPayload.clock_rate = payload.clock_rate;
@@ -560,7 +564,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 										mNeedTranscodeVideo = false;
 
 										LogAync(
-												LOG_NOTICE,
+												LOG_INFO,
 												"WebRTC::ParseRemoteSdp( "
 												"this : %p, "
 												"[Found Remote Media H264 Codec, Relay Only], "
@@ -1467,14 +1471,16 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				"streamId : %u, "
 				"componentId : %u, "
 				"size : %d, "
-				"data[0] : 0x%X "
+				"data[0] : 0x%X, "
+				"rtmpUrl : %s "
 				")",
 				this,
 				ice,
 				streamId,
 				componentId,
 				size,
-				(unsigned char)data[0]
+				(unsigned char)data[0],
+				mRtmpUrl.c_str()
 				);
 		return;
 	}
@@ -1600,14 +1606,16 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				"streamId : %u, "
 				"componentId : %u, "
 				"size : %d, "
-				"data[0] : 0x%X "
+				"data[0] : 0x%X, "
+				"rtmpUrl : %s "
 				")",
 				this,
 				ice,
 				streamId,
 				componentId,
 				size,
-				(unsigned char)data[0]
+				(unsigned char)data[0],
+				mRtmpUrl.c_str()
 				);
 	}
 }

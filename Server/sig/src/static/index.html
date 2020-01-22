@@ -76,11 +76,14 @@ function reset() {
 }
 
 function handleGetIceToken (iceServers) {
-    if ( !isEdge() ) {
+    /**
+     * Safari 利用TCP/TURN的话, 如果网络抖动, 很容易就会在应用层主动丢包, 所以如果推流不就不能用TCP/TURN
+     */
+    if ( isEdge() || (isSafari() && callType == 'push') ) {
         for(i = 0; i < iceServers.length; i++) {
             let obj = iceServers[i];
             for(j = 0; j < obj.urls.length; j++) {
-                let index = obj.urls[j].indexOf("udp", 0);
+                let index = obj.urls[j].indexOf("tcp", 0);
                 if (index != -1) {
                     obj.urls.splice(j, 1);
                     break;
@@ -91,7 +94,7 @@ function handleGetIceToken (iceServers) {
         for(i = 0; i < iceServers.length; i++) {
             let obj = iceServers[i];
             for(j = 0; j < obj.urls.length; j++) {
-                let index = obj.urls[j].indexOf("tcp", 0);
+                let index = obj.urls[j].indexOf("udp", 0);
                 if (index != -1) {
                     obj.urls.splice(j, 1);
                     break;
@@ -107,13 +110,11 @@ function handleGetIceToken (iceServers) {
         iceCandidatePoolSize: 0,
     };
 
-    if ( isEdge() ) {
+    if ( isEdge() || isFirefox() ) {
         config.iceTransportPolicy = "all";
     }
 
     console.log('Global::handleGetIceToken(), config:', config);
-
-    // let pc = new RTCPeerConnection(config);
     rtc.config = config;
 
     if ( callType == 'push' ) {
@@ -123,15 +124,14 @@ function handleGetIceToken (iceServers) {
             $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             // Start stat
             rtc.stat();
-            // Send sdp call to media server
-            push();
+            // Waiting for ICE complete and call sendSdpCall
 
         }).catch( (e) => {
             console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
         });
     } else if ( callType == 'pull' ) {
         rtc.pull().then( () => {
-            pull();
+            // Waiting for ICE complete and call sendSdpPull
         }).catch( (e) => {
             console.log("Global::handleGetIceToken(), [Pull Fail], e: ", e);
         })
@@ -149,6 +149,7 @@ async function connect() {
         // host = 'wss://' + '127.0.0.1' + ':9082';
         // host = 'wss://' + '192.168.88.133' + ':9081';
         // host = 'ws://' + '192.168.88.133' + ':9881';
+        // host = 'ws://' + '192.168.88.133' + ':9981';
         // host = 'wss://' + '52.196.96.7' + ':9081';
 
         client = new WebSocket(host);
@@ -168,6 +169,10 @@ async function connect() {
         client.onclose = function(ev) {
             console.log('Client.onclose(), host:', host);
             $("[id=status]").html('Not Connected');
+
+            if ( rtc != null ) {
+                rtc.hangup();
+            }
         }
 
         client.onmessage = function(ev) {
@@ -198,6 +203,9 @@ async function connect() {
                             $("[id=rtmpUrl]").attr("style", 'display: block');
                             $("[id=rtmpUrlLabel]").html(rtmpUrl);
                             $("[id=flvUrlLabel]").html(flvUrl);
+
+                            const rtmpHerf = 'https://' + window.location.hostname + ':9877/live_test.html';
+                            $("[id=rtmpUrlHerf]").attr("href", rtmpHerf);
                             const flvHerf = 'http://' + window.location.hostname + ':9876/flvjs/demo.html';
                             $("[id=flvUrlHerf]").attr("href", flvHerf);
                         }
@@ -259,8 +267,8 @@ function sendSdpCall(stream, sdp) {
         }
     }
 
-    // console.log('Client.sendSdpCall(), ', JSON.stringify(obj));
-    console.log('Client.sendSdpCall()');
+    console.log('Client.sendSdpCall(), ', sdp);
+    // console.log('Client.sendSdpCall()');
     send(obj);
 }
 
@@ -286,6 +294,7 @@ function sendSdpUpdate(stream, sdp) {
             sdp:sdp
         }
     }
+    console.log('Client.sendSdpUpdate(), ', sdp);
     send(obj);
 }
 
@@ -348,16 +357,16 @@ async function push() {
     setTimeout( () => {
         sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
         callAlready = true;
-    }, 1000);
+    }, 1);
 }
 
 async function pull() {
     // await connect();
 
-    setTimeout( () => {
-        sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
-        callAlready = true;
-    }, 1000);
+    // setTimeout( () => {
+    //     sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
+    //     callAlready = true;
+    // }, 1000);
 }
 
 class RTCClient {
@@ -382,7 +391,7 @@ class RTCClient {
 
             // 通过ICE服务获取到NAT的类型和外网的IP端口
             let sdp = this.pc.localDescription.sdp;
-            this.onicecandidate(sdp);
+            this.onicecandidate(sdp, event.candidate);
         };
 
         // 收到对方的视频流
@@ -500,7 +509,19 @@ class RTCClient {
         config = {
             video: {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
+                // width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
+                // QVGA
+                // width: 320, height: 240,
+                // VGA
+                width: 640, height: 480,
+                // HD
+                // width: 1280, height: 720,
+                // FULL HD
+                // width: 1920, height: 1080,
+                // 4K
+                // width: 4096, height: 2160,
+                // 8K
+                // width: 7680, height: 4320,
                 frameRate: 15/*{min: 10, max: 15}*/
             },
             audio: true
@@ -635,13 +656,13 @@ class RTCClient {
             if( this.pc != null ) {
                 this.pc.getStats(null).then(
                     results => {
+                        let statsString = "";
                         results.forEach(res => {
                             // console.log("RTCClient::stat( " + res.type + " )");
-                            if ( res.type == 'media-source') {
-                                let statsString = "";
-                                statsString += '<h3>Report type=';
-                                statsString += res.type;
-                                statsString += '</h3>\n';
+                            statsString += '<h3>Report type=';
+                            statsString += res.type;
+                            statsString += '</h3>\n';
+                            if ( res.type == 'media-source' ) {
                                 statsString += `id ${res.id}<br>`;
                                 statsString += `time ${res.timestamp}<br>`;
                                 Object.keys(res).forEach(k => {
@@ -650,8 +671,17 @@ class RTCClient {
                                     }
                                 });
                                 $("[id=stats]").html(statsString);
+                            } else if ( res.type == 'outbound-rtp' ) {
+                                Object.keys(res).forEach(k => {
+                                    statsString += `${k}: ${res[k]}<br>`;
+                                });
+                            } else if ( res.type == 'transport' ) {
+                                Object.keys(res).forEach(k => {
+                                    statsString += `${k}: ${res[k]}<br>`;
+                                });
                             }
                         });
+                        $("[id=stats]").html(statsString);
                     }
                 );
 
@@ -677,6 +707,14 @@ function isIE() {
 function isEdge() {
     // return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
     return ( adapter.browserDetails.browser == 'edge' );
+}
+
+function isSafari() {
+    return ( adapter.browserDetails.browser == 'safari' );
+}
+
+function isFirefox() {
+    return ( adapter.browserDetails.browser == 'firefox' );
 }
 
 function draw() {
@@ -774,19 +812,26 @@ function onload() {
     // }
     // console.log(JSON.stringify(config));
     rtc = new RTCClient(config);
-    rtc.onicecandidate = () => {
+    rtc.onicecandidate = (sdp, candidate) => {
+        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
         if( callType == 'push' || callType == 'pull' ) {
-            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
             if ( callAlready ) {
                 // Update sdp to media server
-                sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
+                // let json = JSON.stringify(event.candidate);
+                // console.log("Rtc onicecandidate, candidate: ", json);
+                // sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
             }
         }
     };
 
     rtc.onicecomplete = () => {
+        // Get Whole sdp with ice candidate, but it maybe cost time
+        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+        // Send sdp call to media server
         if( callType == 'push' ) {
-            // Get Whole sdp with ice candidate, but it maybe cost time
+            sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
+        } else if ( callType == 'pull' ) {
+            sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
         }
     }
 
@@ -800,6 +845,8 @@ function onload() {
             client.close();
         }
 
+        rtc.hangup();
+
         sendGetToken();
     });
 
@@ -810,6 +857,8 @@ function onload() {
         if( typeof(client) != "undefined" ) {
             client.close();
         }
+
+        rtc.hangup();
 
         sendGetToken();
     });
@@ -892,7 +941,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 Error Msg : <font color="#FF0000"><lable id="errMsgLabel"></lable></font>
             </div>
             <div id="rtmpUrl" style="display: none">
-                RTMP Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="http://192.168.88.133:9876/live_test.html" target="blank" name="play">Flash播放</a><p>
+                RTMP Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank" name="play">Flash播放</a><p>
                 FLV Url : <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a><p>
                 <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
             </div>

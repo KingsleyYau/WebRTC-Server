@@ -850,6 +850,19 @@ bool RtpSession::SendRtcpPLI(unsigned int mediaSSRC) {
 	memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
 	pktSize += sizeof(RtcpPacketPLI);
 
+	LogAync(
+			LOG_DEBUG,
+			"RtpSession::SendRtcpPLI( "
+			"this : %p, "
+			"[%s], "
+			"ssrc : 0x%08x(%u) "
+			")",
+			this,
+			PktTypeDesc(mediaSSRC).c_str(),
+			mediaSSRC,
+			mediaSSRC
+			);
+
 	bFlag = SendRtcpPacket((void *)tmp, pktSize);
 
 	return bFlag;
@@ -874,12 +887,27 @@ bool RtpSession::SendRtcpFIR(unsigned int mediaSSRC) {
 
 	RtcpPacketFIRItem item = {0};
 	item.media_ssrc = htonl(mediaSSRC);
-	item.seq = ++mFirSeq;
+	item.seq = htonl(++mFirSeq);
 
 	memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketPLI));
 	pktSize += sizeof(RtcpPacketPLI);
 	memcpy(tmp + pktSize, (void *)&item, sizeof(RtcpPacketFIRItem));
 	pktSize += sizeof(RtcpPacketFIRItem);
+
+	LogAync(
+			LOG_DEBUG,
+			"RtpSession::SendRtcpFIR( "
+			"this : %p, "
+			"[%s], "
+			"ssrc : 0x%08x(%u), "
+			"seq : %u "
+			")",
+			this,
+			PktTypeDesc(mediaSSRC).c_str(),
+			mediaSSRC,
+			mediaSSRC,
+			mFirSeq
+			);
 
 	bFlag = SendRtcpPacket((void *)tmp, pktSize);
 
@@ -1086,12 +1114,10 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 			++mVideoFrameCount;
 			if( mVideoFrameCount % 30 == 0 ) {
 				mVideoFrameCount = 0;
-				// 强制刷新一次视频信息(包含视频[宽高/关键帧])
+//				// 强制刷新一次视频信息(包含视频[宽高/关键帧])
 //				SendRtcpFIR(ssrc);
 				// 强制刷新一次关键帧
 				SendRtcpPLI(ssrc);
-//				// 模拟一次丢包
-//				SimPktLost();
 			}
 		}
 

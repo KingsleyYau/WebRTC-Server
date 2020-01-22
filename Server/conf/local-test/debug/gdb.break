@@ -1,0 +1,32 @@
+# Mediaserver
+#break MediaServer.cpp:573
+
+# RTMP
+#break srs_librtmp.cpp:22886
+#break srs_librtmp.cpp:29258
+#break srs_librtmp.cpp:35902
+#break srs_librtmp.cpp:35881
+#break srs_librtmp.cpp:36001
+
+# SRTP
+#break srtp.c:866
+#break srtp.c:2850
+#break srtp.c:2843
+#break srtp.c:323
+#break crypto_kernel.c:77
+
+# HTTP
+#break HttpParser.cpp:113
+#break HttpParser.cpp:76
+
+# RTP
+#break RtpClient.cpp:88
+#break RtpClient.cpp:108
+
+# MediaServer
+#break MediaServer.cpp:673
+
+# Websocket
+#break WSServer.cpp:342
+#break connection_impl.hpp:528
+#break connection_impl.hpp:1263

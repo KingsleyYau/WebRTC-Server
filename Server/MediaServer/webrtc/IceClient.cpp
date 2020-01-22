@@ -41,14 +41,14 @@ void* loop_thread(void *data) {
 }
 
 void* niceLogFunc(const char *logBuffer) {
-//	LogAync(
-//			LOG_DEBUG,
-//			"IceClient::niceLogFunc( "
-//			"[libnice], "
-//			"%s "
-//			")",
-//			logBuffer
-//			);
+	LogAync(
+			LOG_DEBUG,
+			"IceClient::niceLogFunc( "
+			"[libnice], "
+			"%s "
+			")",
+			logBuffer
+			);
 	return 0;
 }
 
@@ -74,7 +74,7 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 	gLoop = g_main_loop_new(gContext, FALSE);
 	gLoopThread = g_thread_new("IceClient", &loop_thread, gLoop);
 
-	nice_debug_enable(FALSE);
+	nice_debug_enable(TRUE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
 
 	return bFlag;
@@ -189,7 +189,7 @@ bool IceClient::Start() {
     // 允许使用turn
     g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
-    g_object_set(mpAgent, "force-relay", FALSE, NULL);
+    g_object_set(mpAgent, "force-relay", TRUE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
 //    g_object_set(mpAgent, "stun-max-retransmissions", 7, NULL);

@@ -29,6 +29,14 @@
 namespace mediaserver {
 typedef list<string> RtcpFbList;
 typedef struct SdpPayload {
+	void Reset() {
+		payload_type = 0;
+		encoding_name = "";
+		clock_rate = 0;
+		encoding_params = "";
+		fmtp = "";
+	}
+
 	unsigned int payload_type;
 	string encoding_name;
 	unsigned int clock_rate;
@@ -240,6 +248,7 @@ private:
 
 	// 需要传输的媒体流类型
 	WebRTCMediaType mWebRTCMediaType;
+
 };
 
 } /* namespace mediaserver */

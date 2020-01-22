@@ -1,0 +1,6 @@
+file ./bin/mediaserver
+set args -f ./etc/mediaserver_test.config
+set print elements 0
+handle SIGPIPE noprint
+source ./debug/gdb.break
+run
