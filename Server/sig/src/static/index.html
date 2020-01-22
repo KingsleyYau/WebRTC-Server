@@ -54,6 +54,7 @@ let callType;
 let img;
 let canvasStream;
 let imageFilter;
+let pushVideo = false;
 
 function reset() {
     reqId = 0;
@@ -119,6 +120,7 @@ function handleGetIceToken (iceServers) {
 
     if ( callType == 'push' ) {
         const videoSource = $("[id=videoSelector]").val();
+
         rtc.push(videoSource).then( () => {
             // Set local display
             $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
@@ -129,6 +131,7 @@ function handleGetIceToken (iceServers) {
         }).catch( (e) => {
             console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
         });
+
     } else if ( callType == 'pull' ) {
         rtc.pull().then( () => {
             // Waiting for ICE complete and call sendSdpPull
@@ -442,7 +445,6 @@ class RTCClient {
 
     async pull() {
         reset();
-
         this.init();
 
         let offer = await this.pc.createOffer({
@@ -464,10 +466,13 @@ class RTCClient {
 
     async push(videoSource) {
         reset();
-
         this.init();
 
-        await this.showLocalVideo(videoSource);
+        if ( pushVideo ) {
+            await this.showStaticVideo();
+        } else {
+            await this.showLocalVideo(videoSource);
+        }
 
         let offer = await this.pc.createOffer({
             offerToReceiveAudio: false,
@@ -497,6 +502,30 @@ class RTCClient {
             this.pc = null;
         }
         this.stopLocalVideo();
+    }
+
+    async showStaticVideo() {
+        return new Promise( (resolve, reject) => {
+            // Video tag capture must be set up after video tracks are enumerated.
+            let leftVideo = $("[id=localVideo]")[0];
+            $("[id=localVideo]").attr("style", 'display: block');
+            leftVideo.src = './video/jzq_feph.mp4';
+            leftVideo.oncanplay = () => {
+                this.mediaStream = leftVideo.captureStream();
+                console.log('Captured stream from leftVideo with captureStream',
+                    this.mediaStream);
+                let video = this.mediaStream.getVideoTracks()[0];
+                this.pc.addStream(this.mediaStream);
+                resolve();
+            };
+            if (leftVideo.readyState >= 3) {
+                this.mediaStream = leftVideo.captureStream();
+                this.mediaStream = this.mediaStream;
+                this.pc.addStream(this.mediaStream);
+                resolve();
+            }
+            leftVideo.play();
+        });
     }
 
     async showLocalVideo(videoSource) {
@@ -837,6 +866,7 @@ function onload() {
 
     $("[id=pushBtn]").click(function() {
         callType = 'push';
+        pushVideo = false;
 
         // Start capture and ice
         const videoSource = $("[id=videoSelector]").val();
@@ -891,6 +921,20 @@ function onload() {
     });
 
     $("[id=iceBtn]").click(function() {
+        sendGetToken();
+    });
+
+    $("[id=pushVideoBtn]").click(function() {
+        callType = 'push';
+        pushVideo = true;
+
+        // Start capture and ice
+        if( typeof(client) != "undefined" ) {
+            client.close();
+        }
+
+        rtc.hangup();
+
         sendGetToken();
     });
 
@@ -951,13 +995,16 @@ document.addEventListener("DOMContentLoaded", function() {
             <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>
-                <button id="pushBtn">Push</button><button id="pullBtn">Pull</button><button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button><button id="imgBtn">Img</button><button id="cmdBtn">Cmd</button>
+                <button id="pushBtn">Push</button><button id="pullBtn">Pull</button>
+                <button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
+                <button id="imgBtn">Img</button><button id="pushVideoBtn">PushVideo</button>
+                <button id="cmdBtn">Cmd</button>
             </div>
             <p>
             <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
             <div class="">
                 <p># Video</p>
-                <video id="localVideo" width="640" height="480" autoplay style="display:none"></video>
+                <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
                 <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
                 <img id="localImg" src="img/1.jpg" style="display: none">
             </div>
