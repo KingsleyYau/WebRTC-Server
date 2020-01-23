@@ -511,18 +511,22 @@ class RTCClient {
             $("[id=localVideo]").attr("style", 'display: block');
             leftVideo.src = './video/jzq_feph.mp4';
             leftVideo.oncanplay = () => {
-                this.mediaStream = leftVideo.captureStream();
-                console.log('Captured stream from leftVideo with captureStream',
-                    this.mediaStream);
-                let video = this.mediaStream.getVideoTracks()[0];
-                this.pc.addStream(this.mediaStream);
-                resolve();
+                if ( this.mediaStream == null ) {
+                    this.mediaStream = leftVideo.captureStream();
+                    console.log('Captured stream from leftVideo with captureStream',
+                        this.mediaStream);
+                    let video = this.mediaStream.getVideoTracks()[0];
+                    this.pc.addStream(this.mediaStream);
+                    resolve();
+                }
             };
             if (leftVideo.readyState >= 3) {
-                this.mediaStream = leftVideo.captureStream();
-                this.mediaStream = this.mediaStream;
-                this.pc.addStream(this.mediaStream);
-                resolve();
+                if ( this.mediaStream == null ) {
+                    this.mediaStream = leftVideo.captureStream();
+                    this.mediaStream = this.mediaStream;
+                    this.pc.addStream(this.mediaStream);
+                    resolve();
+                }
             }
             leftVideo.play();
         });
