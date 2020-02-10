@@ -147,6 +147,7 @@ function build_ffmpeg {
 							--disable-shared \
 							--enable-static \
 							--enable-gpl \
+							--enable-openssl \
 							--enable-libopus \
 							--enable-libx264 \
 							--enable-nonfree \
