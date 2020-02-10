@@ -510,6 +510,8 @@ class RTCClient {
             let leftVideo = $("[id=localVideo]")[0];
             $("[id=localVideo]").attr("style", 'display: block');
             leftVideo.src = './video/jzq_feph.mp4';
+            leftVideo.srcObject = null;
+
             leftVideo.oncanplay = () => {
                 if ( this.mediaStream == null ) {
                     this.mediaStream = leftVideo.captureStream();
