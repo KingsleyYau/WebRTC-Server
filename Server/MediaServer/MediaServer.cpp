@@ -243,6 +243,8 @@ bool MediaServer::Start() {
 			"mWebRTCMaxClient : %u, "
 			"mWebRTCRtp2RtmpShellFilePath : %s, "
 			"mWebRTCRtp2RtmpBaseUrl : %s, "
+			"mWebRTCRtmp2RtpShellFilePath : %s, "
+			"mWebRTCRtmp2RtpBaseUrl : %s, "
 			"mWebRTCDtlsCertPath : %s, "
 			"mWebRTCDtlsKeyPath : %s, "
 			"mWebRTCLocalIp : %s, "
@@ -258,6 +260,8 @@ bool MediaServer::Start() {
 			mWebRTCMaxClient,
 			mWebRTCRtp2RtmpShellFilePath.c_str(),
 			mWebRTCRtp2RtmpBaseUrl.c_str(),
+			mWebRTCRtmp2RtpShellFilePath.c_str(),
+			mWebRTCRtmp2RtpBaseUrl.c_str(),
 			mWebRTCDtlsCertPath.c_str(),
 			mWebRTCDtlsKeyPath.c_str(),
 			mWebRTCLocalIp.c_str(),
@@ -491,8 +495,9 @@ bool MediaServer::LoadConfig() {
 			mWebRTCPortStart = atoi(conf.GetPrivate("WEBRTC", "WEBRTCPORTSTART", "10000").c_str());
 			mWebRTCMaxClient = atoi(conf.GetPrivate("WEBRTC", "WEBRTCMAXCLIENT", "10").c_str());
 			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
-			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
+			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "");
 			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
+			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
 			mWebRTCDtlsCertPath = conf.GetPrivate("WEBRTC", "DTLSCER", "etc/webrtc_dtls.crt");
 			mWebRTCDtlsKeyPath = conf.GetPrivate("WEBRTC", "DTLSKEY", "etc/webrtc_dtls.key");
 			mWebRTCLocalIp = conf.GetPrivate("WEBRTC", "ICELOCALIP", "");
@@ -534,7 +539,9 @@ bool MediaServer::ReloadLogConfig() {
 
 			// WebRTC参数
 			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
-			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "rtmp://127.0.0.1:4000/cdn_flash/");
+			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "");
+			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
+			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
 
 			LogManager::GetLogManager()->SetLogLevel(miLogLevel);
 			LogManager::GetLogManager()->SetDebugMode(miDebugMode);
@@ -1358,7 +1365,8 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								stream.c_str()
 								);
 
-						if( stream.length() > 0 && sdp.length() > 0 ) {
+						if( mWebRTCRtp2RtmpShellFilePath.length() > 0 &&
+								mWebRTCRtp2RtmpBaseUrl.length() > 0 && stream.length() > 0 && sdp.length() > 0 ) {
 							WebRTC *rtc = NULL;
 
 							mWebRTCMap.Lock();
@@ -1441,7 +1449,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							sdp = reqData["sdp"].asString();
 						}
 
-						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
+						string rtmpUrl = mWebRTCRtmp2RtpBaseUrl;
 						rtmpUrl += stream;
 
 						LogAync(
@@ -1455,7 +1463,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								stream.c_str()
 								);
 
-						if( stream.length() > 0 && sdp.length() > 0 ) {
+						if( mWebRTCRtmp2RtpShellFilePath.length() > 0 &&
+								mWebRTCRtmp2RtpBaseUrl.length() > 0 && stream.length() > 0 && sdp.length() > 0
+								) {
 							WebRTC *rtc = NULL;
 
 							mWebRTCMap.Lock();

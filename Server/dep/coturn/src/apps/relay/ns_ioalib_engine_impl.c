@@ -2478,7 +2478,7 @@ static int socket_input_worker(ioa_socket_handle s)
 				nd.recv_ttl = ttl;
 				nd.recv_tos = tos;
 
-				if ( s->e->verbose ) {
+				if ( eve(s->e->verbose) ) {
 					if(s->bev) {
 						s08bits local[INET6_ADDRSTRLEN];
 						addr_to_string(get_local_addr_from_ioa_socket(s), local);
@@ -3128,7 +3128,7 @@ int send_data_from_ioa_socket_nbh(ioa_socket_handle s, ioa_addr* dest_addr,
 					/**
 					 * Add by Max 2020/01/21
 					 */
-					if (s->e->verbose) {
+					if ( eve(s->e->verbose) ) {
 						s08bits local[INET6_ADDRSTRLEN] = {0};
 						addr_to_string(get_local_addr_from_ioa_socket(s), local);
 						stun_buffer_list_elem *buf_elem = (stun_buffer_list_elem *)nbh;
@@ -3181,7 +3181,7 @@ int send_data_from_ioa_socket_nbh(ioa_socket_handle s, ioa_addr* dest_addr,
 								/**
 								 * Add by Max 2020/01/22
 								 */
-								if (eve(s->e->verbose)) {
+								if ( eve(s->e->verbose) ) {
 									s08bits local[INET6_ADDRSTRLEN] = {0};
 									addr_to_string(get_local_addr_from_ioa_socket(s), local);
 									s08bits remote[INET6_ADDRSTRLEN] = {0};
@@ -3264,7 +3264,7 @@ int send_data_from_ioa_socket_nbh(ioa_socket_handle s, ioa_addr* dest_addr,
 						/**
 						 * Add by Max 2020/01/22
 						 */
-						if(eve(s->e->verbose)) {
+						if ( eve(s->e->verbose) ) {
 							s08bits local[INET6_ADDRSTRLEN] = {0};
 							addr_to_string(get_local_addr_from_ioa_socket(s), local);
 							s08bits remote[INET6_ADDRSTRLEN] = {0};

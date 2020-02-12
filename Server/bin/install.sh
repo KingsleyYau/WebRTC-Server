@@ -3,8 +3,12 @@
 # Author: Max.Chiu
 # Date: 2019/11/11
 
+DEMO="$1"
+
 echo "############## Start installing mediaserver ##############"
-sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 
+if [ $DEMO == "demo" ]; then
+  sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64
+fi
 
 DEST_PATH="/app/live/mediaserver"
 mkdir -p $DEST_PATH

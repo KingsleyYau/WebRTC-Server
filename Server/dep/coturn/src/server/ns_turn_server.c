@@ -1887,26 +1887,28 @@ static void tcp_peer_input_handler(ioa_socket_handle s, int event_type, ioa_net_
 {
 	stun_buffer_list_elem *buf_elem = (stun_buffer_list_elem *)in_buffer->nbh;
 	u08bits *buf = ioa_network_buffer_data(in_buffer->nbh);
-	TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "[Max], "
-			"tcp_peer_input_handler, "
-			"buf_elem : %p, "
-			"len : %u, "
-			"offset : %u, "
-			"coffset : %u, "
-			"buf[0] : 0x%02x, "
-			"buf[1] : 0x%02x, "
-			"buf[2] : 0x%02x, "
-			"buf[3] : 0x%02x "
-			"\n ",
-			buf_elem,
-			buf_elem->buf.len,
-			buf_elem->buf.offset,
-			buf_elem->buf.coffset,
-			*(buf + 0),
-			*(buf + 1),
-			*(buf + 2),
-			*(buf + 3)
-			);
+	if ( eve(s->e->verbose) ) {
+		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "[Max], "
+				"tcp_peer_input_handler, "
+				"buf_elem : %p, "
+				"len : %u, "
+				"offset : %u, "
+				"coffset : %u, "
+				"buf[0] : 0x%02x, "
+				"buf[1] : 0x%02x, "
+				"buf[2] : 0x%02x, "
+				"buf[3] : 0x%02x "
+				"\n ",
+				buf_elem,
+				buf_elem->buf.len,
+				buf_elem->buf.offset,
+				buf_elem->buf.coffset,
+				*(buf + 0),
+				*(buf + 1),
+				*(buf + 2),
+				*(buf + 3)
+				);
+	}
 	if (!(event_type & IOA_EV_READ) || !arg)
 		return;
 
@@ -4114,7 +4116,7 @@ static int write_to_peerchannel(ts_ur_super_session* ss, u16bits chnum, ioa_net_
 			/**
 			 * Add by Max 2020/01/22
 			 */
-			if(eve(ss->client_socket->e->verbose)) {
+			if ( eve(ss->client_socket->e->verbose) ) {
 				stun_buffer_list_elem *buf_elem = (stun_buffer_list_elem *)nbh;
 				u08bits *buf = ioa_network_buffer_data(nbh);
 				TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "[Max], "
@@ -4896,32 +4898,34 @@ static void client_input_handler(ioa_socket_handle s, int event_type,
 
 	stun_buffer_list_elem *buf_elem = (stun_buffer_list_elem *)data->nbh;
 	u08bits *buf = ioa_network_buffer_data(data->nbh);
-	TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "[Max], "
-			"client_input_handler, "
-			"buf_elem : %p, "
-			"len : %u, "
-			"offset : %u, "
-			"coffset : %u, "
-			"buf[0] : 0x%02x, "
-			"buf[1] : 0x%02x, "
-			"buf[2] : 0x%02x, "
-			"buf[3] : 0x%02x, "
-			"type : %u, "
-			"local : %s, "
-			"remote : %s "
-			"\n ",
-			buf_elem,
-			buf_elem->buf.len,
-			buf_elem->buf.offset,
-			buf_elem->buf.coffset,
-			*(buf + 0),
-			*(buf + 1),
-			*(buf + 2),
-			*(buf + 3),
-			get_ioa_socket_app_type(s),
-			local,
-			remote
-			);
+	if ( eve(s->e->verbose) ) {
+		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "[Max], "
+				"client_input_handler, "
+				"buf_elem : %p, "
+				"len : %u, "
+				"offset : %u, "
+				"coffset : %u, "
+				"buf[0] : 0x%02x, "
+				"buf[1] : 0x%02x, "
+				"buf[2] : 0x%02x, "
+				"buf[3] : 0x%02x, "
+				"type : %u, "
+				"local : %s, "
+				"remote : %s "
+				"\n ",
+				buf_elem,
+				buf_elem->buf.len,
+				buf_elem->buf.offset,
+				buf_elem->buf.coffset,
+				*(buf + 0),
+				*(buf + 1),
+				*(buf + 2),
+				*(buf + 3),
+				get_ioa_socket_app_type(s),
+				local,
+				remote
+				);
+	}
 
 	if (!arg)
 		return;

@@ -284,7 +284,7 @@ private:
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/
 	// 监听端口
-	short miPort;
+	int miPort;
 	// 最大连接数
 	int miMaxClient;
 	// 处理线程数目
@@ -299,7 +299,7 @@ private:
 
 	/***************************** 媒体流服务(WebRTC)参数 **************************************/
 	// 媒体流转发起始端口
-	unsigned short mWebRTCPortStart;
+	int mWebRTCPortStart;
 	// 最大媒体流转发数
 	unsigned int mWebRTCMaxClient;
 
@@ -309,6 +309,8 @@ private:
 	string mWebRTCRtp2RtmpBaseUrl;
 	// 执行转发RTP的脚本
 	string mWebRTCRtmp2RtpShellFilePath;
+	// 执行转发RTP的地址
+	string mWebRTCRtmp2RtpBaseUrl;
 
 	// DTLS证书路径
 	string mWebRTCDtlsCertPath;
@@ -336,7 +338,7 @@ private:
 
 	/***************************** 信令服务(Websocket)参数 **************************************/
 	// 监听端口
-	short miWebsocketPort;
+	int miWebsocketPort;
 	// 最大连接数
 	unsigned int miWebsocketMaxClient;
 	// 外部上下线校验接口路径(空则不开启)

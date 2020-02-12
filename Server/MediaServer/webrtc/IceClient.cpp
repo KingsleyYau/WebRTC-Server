@@ -193,7 +193,7 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "force-relay", TRUE, NULL);
     // 设置超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
-//    g_object_set(mpAgent, "stun-max-retransmissions", 7, NULL);
+    g_object_set(mpAgent, "stun-max-retransmissions", 8, NULL);
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
     // 保持心跳
