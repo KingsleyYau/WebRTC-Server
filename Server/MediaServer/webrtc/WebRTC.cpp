@@ -1089,6 +1089,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"m=video %u UDP/TLS/RTP/SAVPF %u\n"
 				"c=IN IP4 0.0.0.0\n"
 				"a=rtcp:9 IN IP4 0.0.0.0\n"
+				"%s"
 				"a=ice-ufrag:%s\n"
 				"a=ice-pwd:%s\n"
 				"a=ice-options:trickle\n"
@@ -1104,10 +1105,10 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=rtcp-rsize\n"
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
+				"a=fmtp:%u %s\n"
 				"m=audio 9 UDP/TLS/RTP/SAVPF %u\n"
 				"c=IN IP4 0.0.0.0\n"
 				"a=rtcp:9 IN IP4 0.0.0.0\n"
-				"%s"
 				"a=ice-ufrag:%s\n"
 				"a=ice-pwd:%s\n"
 				"a=ice-options:trickle\n"
@@ -1124,10 +1125,11 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=fmtp:%u minptime=10;useinbandfec=1\n"
 				,
-				mAudioMid.c_str(),
 				mVideoMid.c_str(),
+				mAudioMid.c_str(),
 				port,
 				mVideoSdpPayload.payload_type,
+				candidate.c_str(),
 				ufrag.c_str(),
 				pwd.c_str(),
 				DtlsSession::GetFingerprint(),
@@ -1138,8 +1140,9 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				mVideoSdpPayload.encoding_name.c_str(),
 				mVideoSdpPayload.clock_rate,
 				videoRtcpFb.c_str(),
+				mVideoSdpPayload.payload_type,
+				mVideoSdpPayload.fmtp.c_str(),
 				mAudioSdpPayload.payload_type,
-				candidate.c_str(),
 				ufrag.c_str(),
 				pwd.c_str(),
 				DtlsSession::GetFingerprint(),
@@ -1198,7 +1201,8 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=rtcp-mux\n"
 				"a=rtcp-rsize\n"
 				"a=rtpmap:%u %s/%u\n"
-				"%s",
+				"%s"
+				"a=fmtp:%u %s\n",
 				mAudioMid.c_str(),
 				mVideoMid.c_str(),
 				port,
@@ -1228,17 +1232,19 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				mVideoSdpPayload.payload_type,
 				mVideoSdpPayload.encoding_name.c_str(),
 				mVideoSdpPayload.clock_rate,
-				videoRtcpFb.c_str()
+				videoRtcpFb.c_str(),
+				mVideoSdpPayload.payload_type,
+				mVideoSdpPayload.fmtp.c_str()
 				);
 	}
 	result = sdp;
-	char fmtp[256] = {'0'};
-	snprintf(fmtp, sizeof(fmtp) - 1,
-			"a=fmtp:%u %s\n",
-			mVideoSdpPayload.payload_type,
-			mVideoSdpPayload.fmtp.c_str()
-			);
-	result += fmtp;
+//	char fmtp[256] = {'0'};
+//	snprintf(fmtp, sizeof(fmtp) - 1,
+//			"a=fmtp:%u %s\n",
+//			mVideoSdpPayload.payload_type,
+//			mVideoSdpPayload.fmtp.c_str()
+//			);
+//	result += fmtp;
 
 	return result;
 }
@@ -1301,6 +1307,57 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 
 string WebRTC::CreateAudioOnlySdp(const string& candidate, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string result;
+
+	string audioRtcpFb = CreateAudioRtcpFb();
+
+	char sdp[4096] = {'0'};
+	snprintf(sdp, sizeof(sdp) - 1,
+			"v=0\n"
+			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+			"s=MediaServer\n"
+			"t=0 0\n"
+			"a=group:BUNDLE %s\n"
+			"a=msid-semantic: WMS\n"
+			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
+			"c=IN IP4 0.0.0.0\n"
+			"a=rtcp:9 IN IP4 0.0.0.0\n"
+			"%s"
+			"a=ice-ufrag:%s\n"
+			"a=ice-pwd:%s\n"
+			"a=ice-options:trickle\n"
+			"a=fingerprint:sha-256 %s\n"
+			"a=setup:active\n"
+			"a=mid:%s\n"
+//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
+//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+			"a=%s\n"
+			"%s"
+			"a=rtcp-mux\n"
+			"a=rtpmap:%u %s/%u%s\n"
+//			"a=rtcp-fb:%u transport-cc\n"
+			"%s"
+			"a=fmtp:%u minptime=10;useinbandfec=1\n"
+			,
+			mAudioMid.c_str(),
+			port,
+			mAudioSdpPayload.payload_type,
+			candidate.c_str(),
+			ufrag.c_str(),
+			pwd.c_str(),
+			DtlsSession::GetFingerprint(),
+			mAudioMid.c_str(),
+			mIsPull?"sendonly":"recvonly",
+			mIsPull?"a=ssrc:305419897 cname:audio\n":"",
+			mAudioSdpPayload.payload_type,
+			mAudioSdpPayload.encoding_name.c_str(),
+			mAudioSdpPayload.clock_rate,
+			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+//			mAudioSdpPayload.payload_type,
+			audioRtcpFb.c_str(),
+			mAudioSdpPayload.payload_type
+			);
+	result = sdp;
+
 	return result;
 }
 
