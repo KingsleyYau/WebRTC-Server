@@ -50,7 +50,6 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/json -ljson \
 	-Wl,-Bstatic -Lthird_party/xml -lxml \
 	-Wl,-Bstatic -Lthird_party/libev/.libs -lev \
-	-Wl,-Bstatic -Lthird_party/esl/libs -lesl \
 	-Wl,-Bstatic -Lthird_party/curl/lib/.libs -lcurl \
 	-Wl,-Bstatic -Lthird_party/sqlite/.libs -lsqlite3 \
 	-Wl,-Bstatic -Lthird_party/libnice/nice/.libs -lnice \

@@ -248,7 +248,7 @@ private:
 
 	// 需要传输的媒体流类型
 	WebRTCMediaType mWebRTCMediaType;
-
+	bool mWebRTCMediaVideoFirst;
 };
 
 } /* namespace mediaserver */

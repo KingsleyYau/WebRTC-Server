@@ -170,6 +170,7 @@ bool IceClient::Start() {
      * https://nice.freedesktop.org/libnice/NiceAgent.html
      *
      * stun-max-retransmissions:
+     * 尝试发送Bind Request的次数
      * 发送CREATE_PERMISSION后, 尝试发送Send Indication的次数, 默认为7次, 大概为25s, (2^7*200/1000)=25s
      * 每次发送Send Indication的时间间隔会翻倍, 默认初始为200ms
      *
@@ -182,7 +183,11 @@ bool IceClient::Start() {
      * and on the time needed to complete the GATHERING state.
      *
      * stun-initial-timeout:
-     * 每次发送Send Indication的初始值, 默认为200ms
+     * The initial timeout (msecs) of the STUN binding requests used in the gathering stage,
+     * to find our local candidates. This property is described as 'RTO' in the RFC 5389 and RFC 5245.
+     * This timeout is doubled for each retransmission, until “stun-max-retransmissions” have been done,
+     * with an exception for the last restransmission,
+     * where the timeout is divided by two instead (RFC 5389 indicates that a customisable multiplier 'Rm' to 'RTO' should be used).
      *
      */
 	// 被动呼叫, controlling-mode为0
@@ -191,7 +196,7 @@ bool IceClient::Start() {
     g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
     g_object_set(mpAgent, "force-relay", TRUE, NULL);
-    // 设置超时
+    // TCP的Bind Request超时
 //    g_object_set(mpAgent, "stun-reliable-timeout", 20000, NULL);
     g_object_set(mpAgent, "stun-max-retransmissions", 8, NULL);
     // NAT网关不支持UPNP, 禁用

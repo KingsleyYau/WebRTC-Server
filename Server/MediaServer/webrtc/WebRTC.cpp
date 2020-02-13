@@ -85,6 +85,7 @@ WebRTC::WebRTC()
 	mRtpTransformPid = 0;
 
 	mWebRTCMediaType = WebRTCMediaType_BothVideoAudio;
+	mWebRTCMediaVideoFirst = false;
 	mRunning = false;
 }
 
@@ -374,35 +375,35 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 		list_node node;
 		sdp_attr *attr = NULL;
 
-		list_walk_entry_forward(&session->attrs, attr, node) {
-			if( attr->key && attr->value ) {
-				string key(attr->key);
-				string value(attr->value);
-
-				if( key == "group" ) {
-					LogAync(
-							LOG_INFO,
-							"WebRTC::ParseRemoteSdp( "
-							"this : %p, "
-							"[Found Remote Group Bundle], "
-							"%s:%s "
-							")",
-							this,
-							key.c_str(),
-							value.c_str()
-							);
-
-					vector<string> group = StringHandle::splitWithVector(value, " ");
-					if( group.size() > 2 ) {
-						mAudioMid = group[1];
-						mVideoMid = group[2];
-					} else if ( group.size() == 2 ) {
-						mAudioMid = mVideoMid = group[1];
-					}
-				}
-
-			}
-		}
+//		list_walk_entry_forward(&session->attrs, attr, node) {
+//			if( attr->key && attr->value ) {
+//				string key(attr->key);
+//				string value(attr->value);
+//
+//				if( key == "group" ) {
+//					LogAync(
+//							LOG_INFO,
+//							"WebRTC::ParseRemoteSdp( "
+//							"this : %p, "
+//							"[Found Remote Group Bundle], "
+//							"%s:%s "
+//							")",
+//							this,
+//							key.c_str(),
+//							value.c_str()
+//							);
+//
+//					vector<string> group = StringHandle::splitWithVector(value, " ");
+//					if( group.size() > 2 ) {
+//						mAudioMid = group[1];
+//						mVideoMid = group[2];
+//					} else if ( group.size() == 2 ) {
+//						mAudioMid = mVideoMid = group[1];
+//					}
+//				}
+//
+//			}
+//		}
 
 		LogAync(
 				LOG_DEBUG,
@@ -414,6 +415,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				session->media_count
 				);
 		sdp_media *media = NULL;
+		int i = 0;
 		list_walk_entry_forward(&session->medias, media, node) {
 			if ( media ) {
 				LogAync(
@@ -428,6 +430,10 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 						sdp_media_type_str(media->type),
 						media->attr_count
 						);
+
+				if ( i++ == 0 && media->type == SDP_MEDIA_TYPE_VIDEO ) {
+					mWebRTCMediaVideoFirst = true;
+				}
 
 				if ( session->media_count == 2 ) {
 					mWebRTCMediaType = WebRTCMediaType_BothVideoAudio;
@@ -631,7 +637,13 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								value.c_str()
 								);
 
-						if ( key == "ssrc" ) {
+						if ( key == "mid" ) {
+							if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
+								mAudioMid = value;
+							} else if ( media->type == SDP_MEDIA_TYPE_VIDEO ) {
+								mVideoMid = value;
+							}
+						} else if ( key == "ssrc" ) {
 							string::size_type pos = value.find(" ", 0);
 							if( pos != string::npos ) {
 								string ssrc = value.substr(0, pos);
@@ -1066,82 +1078,159 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 	string videoRtcpFb = CreateVideoRtcpFb();
 
 	char sdp[4096] = {'0'};
-	snprintf(sdp, sizeof(sdp) - 1,
-			"v=0\n"
-			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
-			"s=MediaServer\n"
-			"t=0 0\n"
-			"a=group:BUNDLE %s %s\n"
-			"a=msid-semantic: WMS\n"
-			"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 %s\n"
-			"a=rtcp:9 IN IP4 0.0.0.0\n"
-			"%s"
-			"a=ice-ufrag:%s\n"
-			"a=ice-pwd:%s\n"
-			"a=ice-options:trickle\n"
-			"a=fingerprint:sha-256 %s\n"
-			"a=setup:active\n"
-			"a=mid:%s\n"
-//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
-			"a=%s\n"
-			"%s"
-			"a=rtcp-mux\n"
-			"a=rtpmap:%u %s/%u%s\n"
-//			"a=rtcp-fb:%u transport-cc\n"
-			"%s"
-			"a=fmtp:%u minptime=10;useinbandfec=1\n"
-			"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
-			"c=IN IP4 0.0.0.0\n"
-			"a=rtcp:9 IN IP4 0.0.0.0\n"
-			"a=ice-ufrag:%s\n"
-			"a=ice-pwd:%s\n"
-			"a=ice-options:trickle\n"
-			"a=fingerprint:sha-256 %s\n"
-			"a=setup:active\n"
-			"a=mid:%s\n"
-//			"b=AS:800\n"
-//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
-			"a=%s\n"
-			"%s"
-			"a=rtcp-mux\n"
-			"a=rtcp-rsize\n"
-			"a=rtpmap:%u %s/%u\n"
-			"%s",
-			mAudioMid.c_str(),
-			mVideoMid.c_str(),
-			port,
-			mAudioSdpPayload.payload_type,
-			ip.c_str(),
-			candidate.c_str(),
-			ufrag.c_str(),
-			pwd.c_str(),
-			DtlsSession::GetFingerprint(),
-			mAudioMid.c_str(),
-			mIsPull?"sendonly":"recvonly",
-			mIsPull?"a=ssrc:305419897 cname:audio\n":"",
-			mAudioSdpPayload.payload_type,
-			mAudioSdpPayload.encoding_name.c_str(),
-			mAudioSdpPayload.clock_rate,
-			(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
-//			mAudioSdpPayload.payload_type,
-			audioRtcpFb.c_str(),
-			mAudioSdpPayload.payload_type,
-			mVideoSdpPayload.payload_type,
-			ufrag.c_str(),
-			pwd.c_str(),
-			DtlsSession::GetFingerprint(),
-			mVideoMid.c_str(),
-			mIsPull?"sendonly":"recvonly",
-			mIsPull?"a=ssrc:305419896 cname:video\n":"",
-			mVideoSdpPayload.payload_type,
-			mVideoSdpPayload.encoding_name.c_str(),
-			mVideoSdpPayload.clock_rate,
-			videoRtcpFb.c_str()
-			);
-
+	if ( mWebRTCMediaVideoFirst ) {
+		snprintf(sdp, sizeof(sdp) - 1,
+				"v=0\n"
+				"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+				"s=MediaServer\n"
+				"t=0 0\n"
+				"a=group:BUNDLE %s %s\n"
+				"a=msid-semantic: WMS\n"
+				"m=video %u UDP/TLS/RTP/SAVPF %u\n"
+				"c=IN IP4 0.0.0.0\n"
+				"a=rtcp:9 IN IP4 0.0.0.0\n"
+				"a=ice-ufrag:%s\n"
+				"a=ice-pwd:%s\n"
+				"a=ice-options:trickle\n"
+				"a=fingerprint:sha-256 %s\n"
+				"a=setup:active\n"
+				"a=mid:%s\n"
+	//			"b=AS:800\n"
+	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
+	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+				"a=%s\n"
+				"%s"
+				"a=rtcp-mux\n"
+				"a=rtcp-rsize\n"
+				"a=rtpmap:%u %s/%u\n"
+				"%s"
+				"m=audio 9 UDP/TLS/RTP/SAVPF %u\n"
+				"c=IN IP4 0.0.0.0\n"
+				"a=rtcp:9 IN IP4 0.0.0.0\n"
+				"%s"
+				"a=ice-ufrag:%s\n"
+				"a=ice-pwd:%s\n"
+				"a=ice-options:trickle\n"
+				"a=fingerprint:sha-256 %s\n"
+				"a=setup:active\n"
+				"a=mid:%s\n"
+	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
+	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+				"a=%s\n"
+				"%s"
+				"a=rtcp-mux\n"
+				"a=rtpmap:%u %s/%u%s\n"
+	//			"a=rtcp-fb:%u transport-cc\n"
+				"%s"
+				"a=fmtp:%u minptime=10;useinbandfec=1\n"
+				,
+				mAudioMid.c_str(),
+				mVideoMid.c_str(),
+				port,
+				mVideoSdpPayload.payload_type,
+				ufrag.c_str(),
+				pwd.c_str(),
+				DtlsSession::GetFingerprint(),
+				mVideoMid.c_str(),
+				mIsPull?"sendonly":"recvonly",
+				mIsPull?"a=ssrc:305419896 cname:video\n":"",
+				mVideoSdpPayload.payload_type,
+				mVideoSdpPayload.encoding_name.c_str(),
+				mVideoSdpPayload.clock_rate,
+				videoRtcpFb.c_str(),
+				mAudioSdpPayload.payload_type,
+				candidate.c_str(),
+				ufrag.c_str(),
+				pwd.c_str(),
+				DtlsSession::GetFingerprint(),
+				mAudioMid.c_str(),
+				mIsPull?"sendonly":"recvonly",
+				mIsPull?"a=ssrc:305419897 cname:audio\n":"",
+				mAudioSdpPayload.payload_type,
+				mAudioSdpPayload.encoding_name.c_str(),
+				mAudioSdpPayload.clock_rate,
+				(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+	//			mAudioSdpPayload.payload_type,
+				audioRtcpFb.c_str(),
+				mAudioSdpPayload.payload_type
+				);
+	} else {
+		snprintf(sdp, sizeof(sdp) - 1,
+				"v=0\n"
+				"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
+				"s=MediaServer\n"
+				"t=0 0\n"
+				"a=group:BUNDLE %s %s\n"
+				"a=msid-semantic: WMS\n"
+				"m=audio %u UDP/TLS/RTP/SAVPF %u\n"
+				"c=IN IP4 0.0.0.0\n"
+				"a=rtcp:9 IN IP4 0.0.0.0\n"
+				"%s"
+				"a=ice-ufrag:%s\n"
+				"a=ice-pwd:%s\n"
+				"a=ice-options:trickle\n"
+				"a=fingerprint:sha-256 %s\n"
+				"a=setup:active\n"
+				"a=mid:%s\n"
+	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
+	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+				"a=%s\n"
+				"%s"
+				"a=rtcp-mux\n"
+				"a=rtpmap:%u %s/%u%s\n"
+	//			"a=rtcp-fb:%u transport-cc\n"
+				"%s"
+				"a=fmtp:%u minptime=10;useinbandfec=1\n"
+				"m=video 9 UDP/TLS/RTP/SAVPF %u\n"
+				"c=IN IP4 0.0.0.0\n"
+				"a=rtcp:9 IN IP4 0.0.0.0\n"
+				"a=ice-ufrag:%s\n"
+				"a=ice-pwd:%s\n"
+				"a=ice-options:trickle\n"
+				"a=fingerprint:sha-256 %s\n"
+				"a=setup:active\n"
+				"a=mid:%s\n"
+	//			"b=AS:800\n"
+	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
+	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+				"a=%s\n"
+				"%s"
+				"a=rtcp-mux\n"
+				"a=rtcp-rsize\n"
+				"a=rtpmap:%u %s/%u\n"
+				"%s",
+				mAudioMid.c_str(),
+				mVideoMid.c_str(),
+				port,
+				mAudioSdpPayload.payload_type,
+//				ip.c_str(),
+				candidate.c_str(),
+				ufrag.c_str(),
+				pwd.c_str(),
+				DtlsSession::GetFingerprint(),
+				mAudioMid.c_str(),
+				mIsPull?"sendonly":"recvonly",
+				mIsPull?"a=ssrc:305419897 cname:audio\n":"",
+				mAudioSdpPayload.payload_type,
+				mAudioSdpPayload.encoding_name.c_str(),
+				mAudioSdpPayload.clock_rate,
+				(mAudioSdpPayload.encoding_params.length() > 0)?("/" + mAudioSdpPayload.encoding_params).c_str():"",
+	//			mAudioSdpPayload.payload_type,
+				audioRtcpFb.c_str(),
+				mAudioSdpPayload.payload_type,
+				mVideoSdpPayload.payload_type,
+				ufrag.c_str(),
+				pwd.c_str(),
+				DtlsSession::GetFingerprint(),
+				mVideoMid.c_str(),
+				mIsPull?"sendonly":"recvonly",
+				mIsPull?"a=ssrc:305419896 cname:video\n":"",
+				mVideoSdpPayload.payload_type,
+				mVideoSdpPayload.encoding_name.c_str(),
+				mVideoSdpPayload.clock_rate,
+				videoRtcpFb.c_str()
+				);
+	}
 	result = sdp;
 	char fmtp[256] = {'0'};
 	snprintf(fmtp, sizeof(fmtp) - 1,

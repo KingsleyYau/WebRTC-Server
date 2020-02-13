@@ -6,7 +6,7 @@
 DEMO="$1"
 
 echo "############## Start installing mediaserver ##############"
-if [ $DEMO == "demo" ]; then
+if [ $DEMO != "demo" ]; then
   sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64
 fi
 
