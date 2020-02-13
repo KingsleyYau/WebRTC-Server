@@ -78,15 +78,17 @@ class ProxyService {
                 ctx.websocket.on('message', async (message) => {
                     Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message, ' + message);
                     if (proxy.readyState == proxy.OPEN) {
+                        Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], messageLen:' + message.length);
                         proxy.send(message);
                     } else {
+                        Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy, [等待代理连接], [' + ctx.socketId + ']->[' + this.proxyHost + ']');
                         await new Promise(function (resolve) {
                             proxy.on('open', () => {
-                                Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message, [等待代理连接]');
+                                Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], messageLen:' + message.length);
                                 proxy.send(message);
                                 resolve();
                             });
-                        });
+                        }.bind(this));
                     }
                 });
             } catch (e) {
@@ -142,6 +144,8 @@ if( process.argv.length > 2 ) {
 
 // 启动
 proxy = new ProxyService();
-// proxy.start({number:9081, host:"ws://192.168.88.133:9881"});
-proxy.start({number:9081, host:"ws://192.168.88.133:9981"});
-// proxy.start({number:9081, host:"ws://52.196.96.7:9981"});
+proxy.start({number:9082, host:"ws://192.168.88.133:9981"});
+// proxy.start({number:9081, host:"ws://127.0.0.1:9881"});
+// proxy2 = new ProxyService();
+// proxy2.start({number:9082, host:"ws://18.194.23.38:9981"});
+// proxy2.start({number:9082, host:"ws://127.0.0.1:9981"});
