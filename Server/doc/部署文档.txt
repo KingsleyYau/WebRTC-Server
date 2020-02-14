@@ -1,0 +1,36 @@
+# 部署步骤
+
+# 端口配置
+## 信令服务(mediaserver -f mediaserver.config)
+TCP:9881(对应的wss代理端口)
+ICE服务(turnserver)
+UDP/TCP:3478(STUN/TURN) 
+
+# ACL:
+## 信令服务测试版(mediaserver -f mediaserver_test.config)
+TCP:9981(对应的wss代理端口)
+PS:信令服务测试版不会进行鉴权,可用于排障
+
+# DTSL证书(有需要可以重生生成, 用于SRTP加密)
+/app/live/mediaserver/etc/webrtc_dtls.crt
+/app/live/mediaserver/etc/webrtc_dtls.key
+
+# 信令服务配置
+/app/live/mediaserver/etc/mediaserver.config
+## TURNSHARESECRET=TURN密钥
+# ICE服务配置
+/app/live/mediaserver/etc/turnserver.conf
+## 关键配置
+### external-ip
+#### 服务器有公网IP external-ip=公网IP或者域名
+#### 服务器在NAT网络 external-ip=公网IP或者域名/内网IP(只针对本机转发可以配置为127.0.0.1)
+#### 服务器在内网络 external-ip=内网IP
+### static-auth-secret=TURN密钥
+### realm=公网IP或者域名
+
+安装步骤
+1.上传安装包(Ex:product_sg-1.0.0.tar.gz)到和Nginx(RTMP)服务所在的同一台服务器
+2.解压 tar xvf product_sg-1.0.0.tar.gz
+3.安装 cd product_sg && ./install.sh (程序会安装到目录 /app/live/mediaserver/)
+3.运行 /app/live/mediaserver/restart_all_service.sh
+4.检查状态 /app/live/mediaserver/check_status.sh
