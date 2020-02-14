@@ -666,16 +666,16 @@ void MediaServer::TimeoutCheckHandle() {
 		for (WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
 			MediaClient *client = itr->second;
 			if ( client->IsTimeout() ) {
-				LogAync(
-						LOG_WARNING,
-						"MediaServer::TimeoutCheckHandle( "
-						"event : [超时处理服务:断开超时连接], "
-						"hdl : %p "
-						")",
-						client->hdl.lock().get()
-						);
-
 				if ( client->connected ) {
+					LogAync(
+							LOG_WARNING,
+							"MediaServer::TimeoutCheckHandle( "
+							"event : [超时处理服务:断开超时连接], "
+							"hdl : %p "
+							")",
+							client->hdl.lock().get()
+							);
+
 					mWSServer.Disconnect(client->hdl);
 					client->connected = false;
 				}
@@ -1532,10 +1532,12 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							LOG_NOTICE,
 							"MediaServer::OnWSMessage( "
 							"event : [Websocket-请求-获取ICE配置], "
+							"hdl : %p, "
 							"user : %s, "
 							"base64 : %s, "
 							"ttl : %u "
 							")",
+							hdl.lock().get(),
 							user,
 							base64.c_str(),
 							mTurnClientTTL

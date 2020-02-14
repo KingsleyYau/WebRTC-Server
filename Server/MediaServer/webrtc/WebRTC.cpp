@@ -251,6 +251,9 @@ bool WebRTC::Start(
 		char sdpFilePathTmp[MAX_PATH] = {'0'};
 		snprintf(sdpFilePathTmp, sizeof(sdpFilePathTmp) - 1, "%s/%d_%d.sdp", tmpDir.c_str(), mRtpDstAudioPort, mRtpDstVideoPort);
 		mSdpFilePath = sdpFilePathTmp;
+		char sdpLogFilePathTmp[MAX_PATH] = {'0'};
+		snprintf(sdpLogFilePathTmp, sizeof(sdpLogFilePathTmp) - 1, "%s.log", mSdpFilePath.c_str());
+		mSdpLogFilePath = sdpLogFilePathTmp;
 
 		bFlag &= mRtpDstAudioClient.Start(NULL, 0, NULL, 0);
 		bFlag &= mRtpDstVideoClient.Start(NULL, 0, NULL, 0);
@@ -915,7 +918,18 @@ bool WebRTC::CreateLocalSdpFile() {
         mpSdpFile = NULL;
 	}
 
-	if ( !bFlag ) {
+	if ( bFlag ) {
+		LogAync(
+				LOG_NOTICE,
+				"WebRTC::CreateLocalSdp( "
+				"this : %p, "
+				"[OK], "
+				"mSdpFilePath : %s "
+				")",
+				this,
+				mSdpFilePath.c_str()
+				);
+	} else {
 		LogAync(
 				LOG_WARNING,
 				"WebRTC::CreateLocalSdp( "
@@ -1017,7 +1031,7 @@ bool WebRTC::StartRtpTransform() {
 			} else {
 				bool bFlag = CreateLocalSdpFile();
 				if ( bFlag ) {
-					int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), transcode, NULL, NULL);
+					int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), transcode, mSdpLogFilePath.c_str(), NULL, NULL);
 					exit(EXIT_SUCCESS);
 				}
 			}
@@ -1800,8 +1814,32 @@ void WebRTC::OnChildExit(int pid) {
 	mRtpTransformPid = 0;
 	mRtpTransformPidMutex.unlock();
 
+	string msg = "";
+	FILE *sdpLogFile = fopen(mSdpLogFilePath.c_str(), "r");
+	if ( sdpLogFile ) {
+		char *line = NULL;
+		size_t len = 0;
+		size_t readSize = 0;
+		while ( (readSize = getline(&line, &len, sdpLogFile)) != -1 ) {
+			if ( readSize > 0 ) {
+				msg += line;
+			}
+		}
+
+		if ( line ) {
+			free(line);
+		}
+
+        fclose(sdpLogFile);
+        sdpLogFile = NULL;
+	}
+
+	if ( msg.length() == 0 ) {
+		msg = WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Exit];
+	}
+
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Exit, WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Exit]);
+		mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Exit, msg);
 	}
 }
 

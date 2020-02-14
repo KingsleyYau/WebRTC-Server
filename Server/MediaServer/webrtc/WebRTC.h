@@ -245,6 +245,7 @@ private:
 	// 本地SDP文件
 	FILE *mpSdpFile;
 	string mSdpFilePath;
+	string mSdpLogFilePath;
 
 	// 需要传输的媒体流类型
 	WebRTCMediaType mWebRTCMediaType;
