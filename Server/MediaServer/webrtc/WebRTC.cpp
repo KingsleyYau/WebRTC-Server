@@ -1836,6 +1836,11 @@ void WebRTC::OnChildExit(int pid) {
 
 	if ( msg.length() == 0 ) {
 		msg = WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Exit];
+	} else {
+		msg = StringHandle::replace(msg, "\n", ",");
+		if ( msg.length() > 1 ) {
+			msg = msg.substr(0, msg.length() - 1);
+		}
 	}
 
 	if( mpWebRTCCallback ) {
