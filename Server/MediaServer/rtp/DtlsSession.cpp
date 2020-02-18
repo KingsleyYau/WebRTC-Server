@@ -72,7 +72,7 @@ int DtlsSession::SSL_Generate_Keys(X509** certificate, EVP_PKEY** privateKey) {
     if( bFlag ) {
         /* Generate a RSA key. */
         rsa_key = RSA_new();
-        if ( !bFlag || !rsa_key) {
+        if ( !bFlag || !rsa_key ) {
         	LogAync(
         			LOG_INFO,
         			"DtlsSession::SSL_Generate_Keys( "
@@ -361,7 +361,23 @@ bool DtlsSession::GobalInit(const string& certPath, const string& keyPath) {
 	    }
 	}
 
-	if ( !bFlag ) {
+	if ( bFlag ) {
+		LogAync(
+				LOG_NOTICE,
+				"DtlsSession::GobalInit( "
+				"[%s], "
+				"SSL-Version : %s, "
+				"gFingerPrint : %s, "
+				"certPath : %s, "
+				"keyPath : %s "
+				")",
+				FLAG_2_STRING(bFlag),
+				OpenSSL_version(OPENSSL_VERSION),
+				gFingerprint,
+				certPath.c_str(),
+				keyPath.c_str()
+				);
+	} else {
 		LogAync(
 				LOG_ALERT,
 				"DtlsSession::GobalInit( "
