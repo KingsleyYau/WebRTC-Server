@@ -34,7 +34,11 @@ WEBRTCMAXCLIENT=100
 # 执行转发RTMP的脚本
 RTP2RTMPSHELL=/app/live/mediaserver/script/rtp2rtmp.sh
 # 执行转发RTMP的地址
-RTP2RTMPBASEURL=rtmp://127.0.0.1:4000/cdn_standard/
+RTP2RTMPBASEURL=rtmp://127.0.0.1:4000/cdn_standard
+# 执行转发RTP的脚本
+RTMP2RTPSHELL=/app/live/mediaserver/script/rtmp2rtp.sh
+# 执行转发RTP的地址
+RTMP2RTPBASEURL=rtmp://127.0.0.1:4000/cdn_standard
 # 证书路径
 DTLSCER=/app/live/mediaserver/etc/webrtc_dtls.crt
 DTLSKEY=/app/live/mediaserver/etc/webrtc_dtls.key

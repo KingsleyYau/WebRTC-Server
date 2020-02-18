@@ -1352,6 +1352,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						}
 
 						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
+						rtmpUrl += "/";
 						rtmpUrl += stream;
 
 						LogAync(
@@ -1359,10 +1360,12 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								"MediaServer::OnWSMessage( "
 								"event : [Websocket-请求-推流], "
 								"hdl : %p, "
-								"stream : %s "
+								"stream : %s, "
+								"rtmpUrl : %s "
 								")",
 								hdl.lock().get(),
-								stream.c_str()
+								stream.c_str(),
+								rtmpUrl.c_str()
 								);
 
 						if( mWebRTCRtp2RtmpShellFilePath.length() > 0 &&
@@ -1444,12 +1447,22 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							stream = reqData["stream"].asString();
 						}
 
+						string serverId = "";
+						if( reqData["server_id"].isString() ) {
+							serverId = reqData["server_id"].asString();
+							if ( serverId.length() > 0 ) {
+								serverId = "_" + serverId;
+							}
+						}
+
 						string sdp = "";
 						if( reqData["sdp"].isString() ) {
 							sdp = reqData["sdp"].asString();
 						}
 
 						string rtmpUrl = mWebRTCRtmp2RtpBaseUrl;
+						rtmpUrl += serverId;
+						rtmpUrl += "/";
 						rtmpUrl += stream;
 
 						LogAync(
@@ -1457,10 +1470,14 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								"MediaServer::OnWSMessage( "
 								"event : [Websocket-请求-拉流], "
 								"hdl : %p, "
-								"stream : %s "
+								"stream : %s, "
+								"serverId : %s, "
+								"rtmpUrl : %s "
 								")",
 								hdl.lock().get(),
-								stream.c_str()
+								stream.c_str(),
+								serverId.c_str(),
+								rtmpUrl.c_str()
 								);
 
 						if( mWebRTCRtmp2RtpShellFilePath.length() > 0 &&
