@@ -5,13 +5,18 @@
 
 DEMO="$1"
 
-echo "############## Start installing mediaserver ##############"
+echo "############## Installing mediaserver ##############"
 if [ $DEMO != "demo" ]; then
-  sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64
+  sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat
 fi
 
 DEST_PATH="/app/live/mediaserver"
 mkdir -p $DEST_PATH
+
+# Copy Version File
+echo "# Copy Version Files......"
+cp -rf version.json $DEST_PATH
+chmod -R 744 $DEST_PATH/version.json
 
 # Copy Executable Files
 echo "# Copy Executable Files......"
@@ -31,7 +36,7 @@ chmod -R 755 $DEST_PATH/script/*
 # Copy Var Files
 echo "# Copy Var Files......"
 cp -rf var $DEST_PATH
-chmod -R 744 $DEST_PATH/var/*
+#chmod -R 744 $DEST_PATH/var/*
 
 # Create Run Dir
 mkdir -p $DEST_PATH/run/
@@ -40,4 +45,4 @@ mkdir -p $DEST_PATH/run/
 mkdir -p $DEST_PATH/log/
 mkdir -p $DEST_PATH/log/turnserver/
 
-echo "############## Finish installing mediaserver ##############"
+echo "############## Installing mediaserver [\033[32mOK\033[0m] ##############"

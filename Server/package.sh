@@ -8,7 +8,7 @@ rm -rf package/*
 
 VERSION=`cat version.json | jq -c '.version' `
 VERSION=`echo $VERSION | sed s/\"//g`
-echo "VERSION:$VERSION"
+echo -e "VERSION:[\033[32m$VERSION\033[0m]"
 
 ENVS=( \
 local demo_jp demo_eu \
@@ -18,6 +18,9 @@ product_sg product_au product_eu product_us product_th product_vn product_br \
 function packet_tar {
  	# Copy Install/Update Script Files
 	cp -rf bin/ tmp/$ENV/ || return 1
+	
+	# Copy Version File
+	cp -rf version.json tmp/$ENV/version.json || return 1
 	
 	# Copy Executable Files
 	mkdir -p tmp/$ENV/bin/ || return 1
