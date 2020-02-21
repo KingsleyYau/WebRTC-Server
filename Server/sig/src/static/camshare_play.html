@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>h264 Live Video Stream Example</title>
+    <title>h264 Live Video Stream Example</title>
 </head>
 
 <script src="jquery.min.js"></script>
@@ -9,131 +9,135 @@
 <script src="Player/Player.js"></script>
 <script>
 
-var info = ""
-function showInfo() {
-    if (info.length > 0) {
-      $('#logtxt').html(info);
+    var info = ""
+
+    function showInfo() {
+        if (info.length > 0) {
+            $('#logtxt').html(info);
+        }
     }
-}
-var statistics = {
-  videoStartTime: 0,
-  videoPictureCounter: 0,
-  windowStartTime: 0,
-  windowPictureCounter: 0,
-  fps: 0,
-  fpsMin: 1000,
-  fpsMax: -1000,
-  webGLTextureUploadTime: 0
-};
 
-function play() {
-	$('#video').html('');
-	
-	/* 下载到本地播放mpg */
-	/*
-	var player = new MP4Player(new Stream('test.mpg'), false, '', 'auto');
-	player.play();
-	$('#video').append(player.canvas);
-	*/
-	
-	/* 流播放mpg */
-	/*
-	var canvas = document.createElement('canvas');
-	$('#video').html('');
-	$('#video').append(canvas);
-	var client = new WebSocket('ws://192.168.88.152:9092/');
-	var player = new jsmpeg(client, {canvas:canvas, autoplay: true});
-	*/
-		
-	/* 流播放mp4(h264) */
-	var player = new Player({
-		useWorker: false,
-		reuseMemory: true,
-		webgl: "auto",
-		size: {
-			width: 640,
-			height: 480
-		}
-	});
-	$('#video').append(player.canvas);
-    player.onPictureDecoded = function updateStatistics() {
-        var s = statistics;
-        s.videoPictureCounter += 1;
-        s.windowPictureCounter += 1;
-        var now = Date.now();
-        if (!s.videoStartTime) {
-          s.videoStartTime = now;
-        }
-        var videoElapsedTime = now - s.videoStartTime;
-        s.elapsed = videoElapsedTime / 1000;
-        if (videoElapsedTime < 1000) {
-          return;
-        }
+    var statistics = {
+        videoStartTime: 0,
+        videoPictureCounter: 0,
+        windowStartTime: 0,
+        windowPictureCounter: 0,
+        fps: 0,
+        fpsMin: 1000,
+        fpsMax: -1000,
+        webGLTextureUploadTime: 0
+    };
 
-        if (!s.windowStartTime) {
-          s.windowStartTime = now;
-          return;
-        } else if ((now - s.windowStartTime) > 1000) {
-          var windowElapsedTime = now - s.windowStartTime;
-          var fps = (s.windowPictureCounter / windowElapsedTime) * 1000;
-          s.windowStartTime = now;
-          s.windowPictureCounter = 0;
+    function play() {
+        $('#video').html('');
 
-          if (fps < s.fpsMin) s.fpsMin = fps;
-          if (fps > s.fpsMax) s.fpsMax = fps;
-          s.fps = fps;
-        }
+        /* 下载到本地播放mpg */
+        /*
+        var player = new MP4Player(new Stream('test.mpg'), false, '', 'auto');
+        player.play();
+        $('#video').append(player.canvas);
+        */
 
-        var fps = (s.videoPictureCounter / videoElapsedTime) * 1000;
-        s.fpsSinceStart = fps;
+        /* 流播放mpg */
+        /*
+        var canvas = document.createElement('canvas');
+        $('#video').html('');
+        $('#video').append(canvas);
+        var client = new WebSocket('ws://192.168.88.152:9092/');
+        var player = new jsmpeg(client, {canvas:canvas, autoplay: true});
+        */
 
-        info = "";
-        if (s.fps) {
-          info += " fps: " + s.fps.toFixed(2);
+        /* 流播放mp4(h264) */
+        var player = new Player({
+            useWorker: false,
+            reuseMemory: true,
+            webgl: "auto",
+            size: {
+                width: 640,
+                height: 480
+            }
+        });
+        $('#video').append(player.canvas);
+        player.onPictureDecoded = function updateStatistics(buffer, width, height, infos) {
+            var s = statistics;
+            s.videoPictureCounter += 1;
+            s.windowPictureCounter += 1;
+            var now = Date.now();
+            if (!s.videoStartTime) {
+                s.videoStartTime = now;
+            }
+            var videoElapsedTime = now - s.videoStartTime;
+            s.elapsed = videoElapsedTime / 1000;
+            if (videoElapsedTime < 1000) {
+                return;
+            }
+
+            if (!s.windowStartTime) {
+                s.windowStartTime = now;
+                return;
+            } else if ((now - s.windowStartTime) > 1000) {
+                var windowElapsedTime = now - s.windowStartTime;
+                var fps = (s.windowPictureCounter / windowElapsedTime) * 1000;
+                s.windowStartTime = now;
+                s.windowPictureCounter = 0;
+
+                if (fps < s.fpsMin) s.fpsMin = fps;
+                if (fps > s.fpsMax) s.fpsMax = fps;
+                s.fps = fps;
+            }
+
+            var fps = (s.videoPictureCounter / videoElapsedTime) * 1000;
+            s.fpsSinceStart = fps;
+
+            info = "";
+            if (s.fps) {
+                info += " fps: " + s.fps.toFixed(2);
+            }
+            if (statistics.fpsSinceStart) {
+                info += " avg: " + s.fpsSinceStart.toFixed(2);
+            }
+
+            return;
         }
-        if (statistics.fpsSinceStart) {
-          info += " avg: " + s.fpsSinceStart.toFixed(2);
-        }
-        
-        return;
-    }
-    setInterval(showInfo, 1000);
-  
-  var host = document.location.hostname;
-  var url = 'ws://' + host + ':8080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';  
-	var client = new WebSocket(url);
-	client.binaryType = 'arraybuffer';
-	client.onopen = function(e) {
-		console.log(url + " connected : " + e);
+        setInterval(showInfo, 1000);
+
+        var host = document.location.hostname;
+        var url = 'ws://' + host + ':8080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
+        var client = new WebSocket(url);
+        client.binaryType = 'arraybuffer';
+        client.onopen = function (e) {
+            console.log(url + " connected : " + e);
 //		var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]);
 //		client.send(bytes.buffer);
-		client.send("make call");
-    };
-	client.onmessage = function(e) {
-		// ArrayBuffer object if binary
-		var messageData = new Uint8Array(e.data);
-		console.log(messageData.byteLength);
-        console.log(messageData.toString(16));
-		player.decode(messageData);
+            client.send("make call");
+        };
+        client.onmessage = function (e) {
+            // ArrayBuffer object if binary
+            var messageData = new Uint8Array(e.data);
+            // console.log(messageData.byteLength);
+            // console.log(messageData.toString(16));
+            player.decode(messageData);
 //		setTimeout(
 //				function() {
 //					player.decode(messageData);
 //				},
 //				10000
 //		)
-	};
-	client.onerror = function(e) {  
-		console.log(url + " error : " + e);  
-	}
-	client.onclose = function(e) {  
-		console.log(url + " closed : " + e);  
-	}
+        };
+        client.onerror = function (e) {
+            console.log(url + " error : " + e);
+        }
+        client.onclose = function (e) {
+            console.log(url + " closed : " + e);
+        }
 
-};
+    };
 </script>
 
 <body onload="play()">
-<p><div id="video"></div></p>
+<p>
+<div id="video"></div>
+</p>
 
 <div id="logtxt" style="margin:50px 0 0;height:300px; width:500px;overflow:scroll;">
 

