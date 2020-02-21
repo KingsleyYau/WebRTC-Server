@@ -53,22 +53,22 @@ if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
 then
 	$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
-				-v error \
-				-thread_queue_size 1024 
-				-i $SDP_FILE \
-				-vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -map 0 -flags:v +global_header -bsf:v dump_extra \
-				-an -f flv $RTMP_URL \
-				>$LOG_FILE 2>&1 &
+          -v error \
+          -thread_queue_size 1024 \
+				  -i $SDP_FILE \
+				  -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -map 0 -flags:v +global_header -bsf:v dump_extra \
+				  -an -f flv $RTMP_URL \
+				  >$LOG_FILE 2>&1 &
 				
 else
 	$FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
-				-v error \
-				-thread_queue_size 1024 
-				-i $SDP_FILE \
-				-vcodec copy \
-				-an -f flv $RTMP_URL \
-				-f flv $RTMP_URL \
-				>$LOG_FILE 2>&1 &
+          -v error \
+				  -thread_queue_size 1024 \
+				  -i $SDP_FILE \
+				  -vcodec copy \
+				  -an -f flv $RTMP_URL \
+				  -f flv $RTMP_URL \
+				  >$LOG_FILE 2>&1 &
 fi
 
 
