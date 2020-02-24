@@ -143,9 +143,11 @@ if( process.argv.length > 2 ) {
 }
 
 // 启动
+// proxy = new ProxyService();
+// proxy.start({number:9082, host:"ws://192.168.88.133:9981"});
 proxy = new ProxyService();
-proxy.start({number:9082, host:"ws://192.168.88.133:9981"});
-// proxy.start({number:9081, host:"ws://127.0.0.1:9881"});
-// proxy2 = new ProxyService();
-// proxy2.start({number:9082, host:"ws://18.194.23.38:9981"});
-// proxy2.start({number:9082, host:"ws://127.0.0.1:9981"});
+proxy.start({number:9082, host:"ws://127.0.0.1:9981"});
+proxy2 = new ProxyService();
+proxy2.start({number:9083, host:"ws://127.0.0.1:9883"});
+// proxy3 = new ProxyService();
+// proxy3.start({number:9081, host:"ws://127.0.0.1:9881"});

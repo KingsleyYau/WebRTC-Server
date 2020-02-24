@@ -184,11 +184,16 @@
 
             client.onclose = function (ev) {
                 console.log('Client.onclose(), host:', host);
-                $("[id=status]").html('Not Connected');
 
                 if (rtc != null) {
                     rtc.hangup();
                 }
+
+                $("[id=status]").html('Not Connected');
+                $("[id=pushBtn]").removeAttr("disabled");
+                $("[id=pullBtn]").removeAttr("disabled");
+                $("[id=pushVideoBtn]").removeAttr("disabled");
+                $("[id=hangupBtn]").attr("disabled", 'true');
             }
 
             client.onmessage = function (ev) {
@@ -298,7 +303,7 @@
         }
 
         // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
-        console.log('Client.sendSdpPull( stream: ', stream, 'serverId: ', serverId, ')');
+        console.log('Client.sendSdpPull( stream: ', stream, ', serverId: ', serverId, ')');
         send(obj);
     }
 
@@ -426,7 +431,6 @@
         }
 
         async pull() {
-            reset();
             this.init();
 
             let offer = await this.pc.createOffer({
@@ -447,7 +451,6 @@
         }
 
         async push(videoSource) {
-            reset();
             this.init();
 
             if (pushVideo) {
@@ -529,6 +532,8 @@
 
         async showLocalVideo(videoSource) {
             $("[id=localVideo]").attr("style", 'display: block');
+            $("[id=localVideo]").attr('src', null);
+
             /**
              * Edge does not support custom video size
              * only support original video capture size, example: 320x240, 640x480
@@ -598,6 +603,7 @@
                     track => track.stop()
                 );
                 $("[id=localVideo]").attr('srcObject', null);
+                $("[id=localVideo]").attr('src', null);
             }
         }
 
@@ -772,6 +778,28 @@
         }, 100);
     }
 
+    async function call(isPull, isLocalVideo) {
+        if (typeof (client) != "undefined") {
+            client.close();
+        }
+        rtc.hangup();
+
+        reset();
+        pushVideo = isLocalVideo;
+        if ( isPull ) {
+            callType = 'pull';
+        } else {
+            callType = 'push';
+        }
+
+        sendGetToken();
+
+        $("[id=pushBtn]").attr("disabled", 'true');
+        $("[id=pullBtn]").attr("disabled", 'true');
+        $("[id=pushVideoBtn]").attr("disabled", 'true');
+        $("[id=hangupBtn]").removeAttr("disabled");
+    }
+
     function onload() {
         if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert('WebRTC.mediaDevices is not supported.');
@@ -831,32 +859,11 @@
         }
 
         $("[id=pushBtn]").click(function () {
-            callType = 'push';
-            pushVideo = false;
-
-            // Start capture and ice
-            const videoSource = $("[id=videoSelector]").val();
-
-            if (typeof (client) != "undefined") {
-                client.close();
-            }
-
-            rtc.hangup();
-
-            sendGetToken();
+            call(false, false);
         });
 
         $("[id=pullBtn]").click(function () {
-            callType = 'pull';
-
-            // Start capture and ice
-            if (typeof (client) != "undefined") {
-                client.close();
-            }
-
-            rtc.hangup();
-
-            sendGetToken();
+            call(true);
         });
 
         $("[id=acceptBtn]").click(function accept() {
@@ -878,6 +885,7 @@
             }
             rtc.hangup();
         });
+        $("[id=hangupBtn]").attr("disabled", 'true');
 
         $("[id=imgBtn]").click(function () {
         });
@@ -886,22 +894,8 @@
             $("[id=pushBtn]").click();
         });
 
-        $("[id=iceBtn]").click(function () {
-            sendGetToken();
-        });
-
         $("[id=pushVideoBtn]").click(function () {
-            callType = 'push';
-            pushVideo = true;
-
-            // Start capture and ice
-            if (typeof (client) != "undefined") {
-                client.close();
-            }
-
-            rtc.hangup();
-
-            sendGetToken();
+            call(false, true);
         });
 
         $("[id=cmdBtn]").click(function () {
@@ -976,10 +970,10 @@
 <div>
     <button id="pushBtn">Push</button>
     <button id="pullBtn">Pull</button>
+    <button id="pushVideoBtn">PushVideo</button>
+    <button id="imgBtn" style="display: none;">Img</button>
     <button id="acceptBtn" style="display: none;">Accept</button>
     <button id="hangupBtn">Hangup</button>
-    <button id="imgBtn">Img</button>
-    <button id="pushVideoBtn">PushVideo</button>
     <button id="cmdBtn">Cmd</button>
 </div>
 <p>

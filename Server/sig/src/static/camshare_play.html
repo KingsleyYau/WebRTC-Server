@@ -129,6 +129,9 @@
         }
         client.onclose = function (e) {
             console.log(url + " closed : " + e);
+            setTimeout(function () {
+                play();
+            }, 5000);
         }
 
     };
