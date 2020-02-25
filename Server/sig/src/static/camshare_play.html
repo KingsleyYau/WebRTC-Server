@@ -102,14 +102,14 @@
         setInterval(showInfo, 1000);
 
         var host = document.location.hostname;
-        var url = 'ws://' + host + ':8080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
+        var url = 'wss://' + host + ':9080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
         var client = new WebSocket(url);
         client.binaryType = 'arraybuffer';
         client.onopen = function (e) {
             console.log(url + " connected : " + e);
 //		var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]);
 //		client.send(bytes.buffer);
-            client.send("make call");
+//             client.send("make call");
         };
         client.onmessage = function (e) {
             // ArrayBuffer object if binary

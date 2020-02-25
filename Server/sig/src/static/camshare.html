@@ -173,6 +173,8 @@
                 }
 
                 $("[id=status]").html('Not Connected');
+
+                $("[id=loginBtn]").removeAttr("disabled");
                 $("[id=pushBtn]").attr("disabled", 'true');
                 $("[id=hangupBtn]").attr("disabled", 'true');
                 $("[id=pushVideoBtn]").attr("disabled", 'true');
@@ -205,7 +207,7 @@
                     handleLogin(obj);
                 } else if (obj.route == 'imRTC/sendStartMediaNotice') {
                     $("[id=h264js]").attr("style", 'display: bolck');
-                    const h264jsHerf = 'http://' + window.location.hostname + ':9876/camshare_play.html';
+                    const h264jsHerf = 'https://' + window.location.hostname + ':9877/camshare_play.html';
                     $("[id=h264jsHerf]").attr("href", h264jsHerf);
                 } else {
 
@@ -298,6 +300,9 @@
         callType = 'push';
         rtc.hangup();
         sendGetToken();
+
+        $("[id=pushBtn]").attr("disabled", 'true');
+        $("[id=pushVideoBtn]").attr("disabled", 'true');
     }
 
     async function login() {
@@ -306,8 +311,9 @@
         }
 
         reset();
+        $("[id=loginBtn]").attr("disabled", 'true');
         await connect();
-        sendLogin("userId=WW1&siteId=4&sid=ibtvg7ujn9i66925fg14nmouo7&userType=0");
+        sendLogin($("[id=user]").val());
     }
 
     class RTCClient {
@@ -826,8 +832,15 @@
         </div>
 
         <div>
-            # Stream : <input id="stream" type="text" name=""
-                              value="max0?uid=MM1&auth=5ad810f972a633cc4b82db6e8d7cf99e&room=MM1|||PC64|||4&site=4&custom="/><br>
+            # Login: <input id="user" type="text" name="" style="width:480px"
+                              value="userId=MM1&userType=0&sid=123456&siteId=4"/></br>
+
+            # Params</br>
+            # uid: Username, Example: MM1</br>
+            # room: Destination, RoomId|||LiveChat Server Id|||站点Id, Example: MM1|||PC64|||4</br>
+            # site: Site Id, Example: 4</br>
+            # Call: <input id="stream" type="text" name="" style="width:480px"
+                              value="camshare?uid=MM1&room=MM1|||PC64|||4&site=4"/><br>
         </div>
     </div>
     <p>### Local Video & Canvas ###</p>

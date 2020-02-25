@@ -1725,7 +1725,7 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 		if( param.length() > 0 ) {
 			bFlag = SendExtSetStatusRequest(httpClient, true, param);
 			if ( !bFlag ) {
-				resRoot["errno"] = RequestErrorType_Ext_Login_Error;
+				GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Ext_Login_Error);
 			}
 		} else {
 			GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Missing_Param);

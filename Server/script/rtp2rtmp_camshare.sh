@@ -57,7 +57,8 @@ then
           -thread_queue_size 1024 \
 				  -i $SDP_FILE \
 				  -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -map 0 -flags:v +global_header -bsf:v dump_extra \
-				  -an -f flv $RTMP_URL \
+				  -an \
+				  -f flv $RTMP_URL \
 				  >$LOG_FILE 2>&1 &
 				
 else
@@ -66,7 +67,7 @@ else
 				  -thread_queue_size 1024 \
 				  -i $SDP_FILE \
 				  -vcodec copy \
-				  -an -f flv $RTMP_URL \
+				  -an \
 				  -f flv $RTMP_URL \
 				  >$LOG_FILE 2>&1 &
 fi

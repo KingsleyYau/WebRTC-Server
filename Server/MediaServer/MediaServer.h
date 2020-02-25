@@ -43,7 +43,7 @@ using namespace mediaserver;
 #include <list>
 using namespace std;
 
-#define VERSION_STRING "1.0.0"
+#define VERSION_STRING "1.0.1"
 #define REQUEST_TIME_OUT_MS 30000
 
 // 在线连接对象
