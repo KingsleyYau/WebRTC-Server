@@ -464,6 +464,7 @@
                 $("[id=localVideo]").attr("style", 'display: block');
                 leftVideo.src = './video/jzq_feph.mp4';
                 leftVideo.srcObject = null;
+                leftVideo.muted = true;
 
                 leftVideo.oncanplay = () => {
                     if (this.mediaStream == null) {
