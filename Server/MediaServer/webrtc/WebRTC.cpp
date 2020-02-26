@@ -11,6 +11,7 @@
 // System
 #include <signal.h>
 
+#include <Version.h>
 #include <include/CommonHeader.h>
 
 // Common
@@ -1096,7 +1097,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 		snprintf(sdp, sizeof(sdp) - 1,
 				"v=0\n"
 				"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
-				"s=MediaServer\n"
+				"s=MediaServer %s\n"
 				"t=0 0\n"
 				"a=group:BUNDLE %s %s\n"
 				"a=msid-semantic: WMS\n"
@@ -1139,6 +1140,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=fmtp:%u minptime=10;useinbandfec=1\n"
 				,
+				VERSION_STRING,
 				mVideoMid.c_str(),
 				mAudioMid.c_str(),
 				port,
@@ -1175,7 +1177,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 		snprintf(sdp, sizeof(sdp) - 1,
 				"v=0\n"
 				"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
-				"s=MediaServer\n"
+				"s=MediaServer %s\n"
 				"t=0 0\n"
 				"a=group:BUNDLE %s %s\n"
 				"a=msid-semantic: WMS\n"
@@ -1217,6 +1219,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
 				"a=fmtp:%u %s\n",
+				VERSION_STRING,
 				mAudioMid.c_str(),
 				mVideoMid.c_str(),
 				port,
@@ -1272,7 +1275,7 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 	snprintf(sdp, sizeof(sdp) - 1,
 			"v=0\n"
 			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
-			"s=MediaServer\n"
+			"s=MediaServer %s\n"
 			"t=0 0\n"
 			"a=group:BUNDLE %s\n"
 			"a=msid-semantic: WMS\n"
@@ -1291,6 +1294,7 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 			"a=rtcp-rsize\n"
 			"a=rtpmap:%u %s/%u\n"
 			"%s",
+			VERSION_STRING,
 			mVideoMid.c_str(),
 			port,
 			mVideoSdpPayload.payload_type,
@@ -1328,7 +1332,7 @@ string WebRTC::CreateAudioOnlySdp(const string& candidate, const string& ip, uns
 	snprintf(sdp, sizeof(sdp) - 1,
 			"v=0\n"
 			"o=MediaServer 8792925737725123967 2 IN IP4 127.0.0.1\n"
-			"s=MediaServer\n"
+			"s=MediaServer %s\n"
 			"t=0 0\n"
 			"a=group:BUNDLE %s\n"
 			"a=msid-semantic: WMS\n"
@@ -1352,6 +1356,7 @@ string WebRTC::CreateAudioOnlySdp(const string& candidate, const string& ip, uns
 			"%s"
 			"a=fmtp:%u minptime=10;useinbandfec=1\n"
 			,
+			VERSION_STRING,
 			mAudioMid.c_str(),
 			port,
 			mAudioSdpPayload.payload_type,

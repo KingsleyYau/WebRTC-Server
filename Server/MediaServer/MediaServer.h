@@ -11,6 +11,8 @@
 
 #include <uuid/uuid.h>
 
+#include <Version.h>
+
 // Common
 #include <common/LogManager.h>
 #include <common/ConfFile.hpp>
@@ -43,7 +45,6 @@ using namespace mediaserver;
 #include <list>
 using namespace std;
 
-#define VERSION_STRING "1.0.1"
 #define REQUEST_TIME_OUT_MS 30000
 
 // 在线连接对象

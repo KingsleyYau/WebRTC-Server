@@ -24,32 +24,33 @@ function package_tar {
 	ENV=$1
 	TMP=$2
 	
-	mkdir -p $TMP/$ENV/
+	DEST=$TMP/$ENV/file
+	mkdir -p $DEST
 	
  	# Copy Install/Update Script Files
 	cp -rf bin/install.sh $TMP/$ENV/ || return 1
 	
 	# Copy Version File
-	cp -rf version.json $TMP/$ENV/version.json || return 1
+	cp -rf version.json $DEST/version.json || return 1
 	
 	# Copy Executable Files
-	mkdir -p $TMP/$ENV/bin/ || return 1
-	cp -rf build/bin/ffmpeg $TMP/$ENV/bin/ || return 1
-	cp -rf build/bin/mediaserver $TMP/$ENV/bin/ || return 1
-	cp -rf build/bin/turnadmin $TMP/$ENV/bin/ || return 1
-	cp -rf build/bin/turnserver $TMP/$ENV/bin/ || return 1
+	mkdir -p $DEST/bin/ || return 1
+	cp -rf build/bin/ffmpeg $DEST/bin/ || return 1
+	cp -rf build/bin/mediaserver $DEST/bin/ || return 1
+	cp -rf build/bin/turnadmin $DEST/bin/ || return 1
+	cp -rf build/bin/turnserver $DEST/bin/ || return 1
 	
 	# Copy Config Files
-	mkdir -p $TMP/$ENV/etc/ || return 1
-	cp -rf conf/$ENV/etc $TMP/$ENV/ || return 1
+	mkdir -p $DEST/etc/ || return 1
+	cp -rf conf/$ENV/etc $DEST/ || return 1
 	
 	# Copy Script Files
-	mkdir -p $TMP/$ENV/script/ || return 1
-	cp -rf script $TMP/$ENV/ || return 1
+	mkdir -p $DEST/script/ || return 1
+	cp -rf script $DEST/ || return 1
 	
 	# Copy Var Files
-	mkdir -p $TMP/$ENV/var/ || return 1
-	#cp -rf conf/$ENV/var $TMP/$ENV/ || return 1
+	mkdir -p $DEST/var/ || return 1
+	#cp -rf conf/$ENV/var $DEST/ || return 1
 	
 	# Clean index files
 	find $TMP/$ENV -name ".DS_Store" | xargs rm -rf || return 1

@@ -8,27 +8,30 @@ function package_update_tar {
 	ENV=$1
 	TMP=$2
 
-  mkdir -p $TMP/$ENV/
+  DEST=$TMP/$ENV/file
+  mkdir -p $DEST
 
  	# Copy Install/Update Script Files
 	cp -rf bin/update.sh $TMP/$ENV/ || return 1
 	
 	# Copy Version File
-	cp -rf version.json $TMP/$ENV/ || return 1
+	cp -rf version.json $DEST || return 1
 	
 	# Copy Executable Files
-	mkdir -p $TMP/$ENV/bin/ || return 1
-	cp -rf build/bin/mediaserver $TMP/$ENV/bin/ || return 1
+	mkdir -p $DEST/bin/ || return 1
+	cp -rf build/bin/mediaserver $DEST/bin/ || return 1
 
 	# Copy Config Files
-	mkdir -p $TMP/$ENV/etc/ || return 1
-	cp -rf conf/$ENV/etc/mediaserver_camshare.config $TMP/$ENV/etc/ || return 1
+	mkdir -p $DEST/etc/ || return 1
+	cp -rf conf/$ENV/etc/mediaserver_camshare.config $DEST/etc/ || return 1
 	
-	mkdir -p $TMP/$ENV/script/ || return 1
-	cp -rf script/start_mediaserver_camshare.sh $TMP/$ENV/script || return 1
-	cp -rf script/stop_mediaserver_camshare.sh $TMP/$ENV/script || return 1
-	cp -rf script/restart_test_service.sh $TMP/$ENV/script || return 1
-	cp -rf script/stop_test_service.sh $TMP/$ENV/script || return 1
+	mkdir -p $DEST/script/ || return 1
+	cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
+	cp -rf script/start_mediaserver_camshare.sh $DEST/script/ || return 1
+	cp -rf script/stop_mediaserver_camshare.sh $DEST/script/ || return 1
+	cp -rf script/restart_test_service.sh $DEST/script/ || return 1
+	cp -rf script/stop_test_service.sh $DEST/script || return 1
+	cp -rf script/restart_all_service.sh $DEST/script/ || return 1
 	
 	# Clean index files
 	find tmp -name ".DS_Store" | xargs rm -rf || return 1
