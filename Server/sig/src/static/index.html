@@ -18,6 +18,17 @@
             -webkit-filter: sepia(1);
             filter: sepia(1);
         }
+
+        .button {
+            background-color: #d84a38;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.8em;
+            margin: 0 0 1em 0;
+            padding: 0.5em 0.7em 0.6em 0.7em;
+        }
     </style>
 </head>
 
@@ -46,6 +57,31 @@
 <!--<script src="socket.io.js"></script>-->
 
 <script>
+    const qvgaConstraints = {
+        video: {width: {exact: 320}, height: {exact: 240}}
+    };
+
+    const vgaConstraints = {
+        width: {exact: 640}, height: {exact: 480}
+    };
+
+    const hdConstraints = {
+        width: {exact: 1280}, height: {exact: 720}
+    };
+
+    const fullHdConstraints = {
+        width: {exact: 1920}, height: {exact: 1080}
+    };
+
+    const fourKConstraints = {
+        width: {exact: 4096}, height: {exact: 2160}
+    };
+
+    const eightKConstraints = {
+        width: {exact: 7680}, height: {exact: 4320}
+    };
+
+    let videoConstraints = vgaConstraints;
 
     let client;
     let reqId = 0;
@@ -539,23 +575,15 @@
              * only support original video capture size, example: 320x240, 640x480
              */
             let config = {};
+            let videoDevice = {
+                deviceId: videoSource ? {exact: videoSource} : undefined,
+                frameRate: 15/*{min: 10, max: 15}*/
+            }
+            let videoConfig = Object.assign(videoDevice, videoConstraints);
+
             config = {
                 video: {
-                    deviceId: videoSource ? {exact: videoSource} : undefined,
-                    // width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
-                    // QVGA
-                    // width: 320, height: 240,
-                    // VGA
-                    width: 640, height: 480,
-                    // HD
-                    // width: 1280, height: 720,
-                    // FULL HD
-                    // width: 1920, height: 1080,
-                    // 4K
-                    // width: 4096, height: 2160,
-                    // 8K
-                    // width: 7680, height: 4320,
-                    frameRate: 15/*{min: 10, max: 15}*/
+                    videoConfig
                 },
                 audio: true
             }
@@ -786,7 +814,7 @@
 
         reset();
         pushVideo = isLocalVideo;
-        if ( isPull ) {
+        if (isPull) {
             callType = 'pull';
         } else {
             callType = 'push';
@@ -903,6 +931,18 @@
                 // client.close();
             });
         });
+
+        // Choose video constraints
+        getVideoWithConstraints(vgaConstraints, 'VGA');
+        $("[id=qvgaBtn]").click(function () {
+            getVideoWithConstraints(qvgaConstraints, 'QVGA');
+        });
+        $("[id=vgaBtn]").click(function () {
+            getVideoWithConstraints(vgaConstraints, 'VGA');
+        });
+        $("[id=hdBtn]").click(function () {
+            getVideoWithConstraints(hdConstraints, 'HD');
+        });
     }
 
     function handleError(e) {
@@ -920,6 +960,14 @@
                 $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
             }
         }
+    }
+
+    function getVideoWithConstraints(constraints, name) {
+        let jsonConst = JSON.stringify(constraints);
+        $("[id=videoConstLabel]").html('Now is ' + name + ', ' + jsonConst);
+
+        let videoTestConfig = {video: constraints};
+        videoConstraints = constraints;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -975,6 +1023,13 @@
     <button id="acceptBtn" style="display: none;">Accept</button>
     <button id="hangupBtn">Hangup</button>
     <button id="cmdBtn">Cmd</button>
+    <p>################################################################</p>
+</div>
+<div class="button">
+    <button id="qvgaBtn">QVGA</button>
+    <button id="vgaBtn">VGA</button>
+    <button id="hdBtn">HD</button>
+    <lable id="videoConstLabel"></lable>
 </div>
 <p>
     <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>

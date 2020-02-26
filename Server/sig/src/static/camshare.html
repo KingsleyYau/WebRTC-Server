@@ -13,6 +13,17 @@
         #video {
             margin-left: -15px;
         }
+
+        .button {
+            background-color: #d84a38;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.8em;
+            margin: 0 0 1em 0;
+            padding: 0.5em 0.7em 0.6em 0.7em;
+        }
     </style>
 </head>
 
@@ -21,6 +32,31 @@
 <script src="adapter-latest.js"></script>
 <!--<script src="socket.io.js"></script>-->
 <script>
+    const qvgaConstraints = {
+        video: {width: {exact: 320}, height: {exact: 240}}
+    };
+
+    const vgaConstraints = {
+        width: {exact: 640}, height: {exact: 480}
+    };
+
+    const hdConstraints = {
+        width: {exact: 1280}, height: {exact: 720}
+    };
+
+    const fullHdConstraints = {
+        width: {exact: 1920}, height: {exact: 1080}
+    };
+
+    const fourKConstraints = {
+        width: {exact: 4096}, height: {exact: 2160}
+    };
+
+    const eightKConstraints = {
+        width: {exact: 7680}, height: {exact: 4320}
+    };
+
+    let videoConstraints = vgaConstraints;
 
     let client;
     let reqId = 0;
@@ -463,23 +499,15 @@
              * only support original video capture size, example: 320x240, 640x480
              */
             let config = {};
+            let videoDevice = {
+                deviceId: videoSource ? {exact: videoSource} : undefined,
+                frameRate: 15/*{min: 10, max: 15}*/
+            }
+            let videoConfig = Object.assign(videoDevice, videoConstraints);
+
             config = {
                 video: {
-                    deviceId: videoSource ? {exact: videoSource} : undefined,
-                    // width: {exact: 640}/*{min: 320, max: 640}*/, height: {exact: 480}/*{min: 240, max: 480}*/,
-                    // QVGA
-                    // width: 320, height: 240,
-                    // VGA
-                    width: 640, height: 480,
-                    // HD
-                    // width: 1280, height: 720,
-                    // FULL HD
-                    // width: 1920, height: 1080,
-                    // 4K
-                    // width: 4096, height: 2160,
-                    // 8K
-                    // width: 7680, height: 4320,
-                    frameRate: 15/*{min: 10, max: 15}*/
+                    videoConfig
                 },
                 audio: true
             }
@@ -596,8 +624,8 @@
             tracks.forEach(track => {
                 // Get old constraints
                 let constraints = track.getConstraints();
-                constraints.width = 640;
-                constraints.height = 368;
+                // constraints.width = 640;
+                // constraints.height = 480;
                 // It is always success, unless you set some parameter with exact value
                 track.applyConstraints(constraints).then(() => {
                     console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
@@ -773,6 +801,18 @@
             call(true);
         });
         $("[id=pushVideoBtn]").attr("disabled", 'true');
+
+        // Choose video constraints
+        getVideoWithConstraints(vgaConstraints, 'VGA');
+        $("[id=qvgaBtn]").click(function () {
+            getVideoWithConstraints(qvgaConstraints, 'QVGA');
+        });
+        $("[id=vgaBtn]").click(function () {
+            getVideoWithConstraints(vgaConstraints, 'VGA');
+        });
+        $("[id=hdBtn]").click(function () {
+            getVideoWithConstraints(hdConstraints, 'HD');
+        });
     }
 
     function handleError(e) {
@@ -790,6 +830,14 @@
                 $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
             }
         }
+    }
+
+    function getVideoWithConstraints(constraints, name) {
+        let jsonConst = JSON.stringify(constraints);
+        $("[id=videoConstLabel]").html('Now is ' + name + ', ' + jsonConst);
+
+        let videoTestConfig = {video:constraints};
+        videoConstraints = constraints;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -833,14 +881,14 @@
 
         <div>
             # Login: <input id="user" type="text" name="" style="width:480px"
-                              value="userId=MM1&userType=0&sid=123456&siteId=4"/></br>
+                            value="userId=MM1&userType=0&sid=123456&siteId=4"/></br>
 
             # Params</br>
             # uid: Username, Example: MM1</br>
             # room: Destination, RoomId|||LiveChat Server Id|||站点Id, Example: MM1|||PC64|||4</br>
             # site: Site Id, Example: 4</br>
             # Call: <input id="stream" type="text" name="" style="width:480px"
-                              value="camshare?uid=MM1&room=MM1|||PC64|||4&site=4"/><br>
+                           value="camshare?uid=MM1&room=MM1|||PC64|||4&site=4"/><br>
         </div>
     </div>
     <p>### Local Video & Canvas ###</p>
@@ -852,10 +900,15 @@
         <button id="pushVideoBtn">PushVideo</button>
         <button id="acceptBtn" style="display: none;">Accept</button>
         <button id="hangupBtn">Hangup</button>
+        <p>################################################################</p>
     </div>
-    <p>
-        <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
-        <div class="">
+    <div class="button">
+        <button id="qvgaBtn">QVGA</button>
+        <button id="vgaBtn">VGA</button>
+        <button id="hdBtn">HD</button>
+        <lable id="videoConstLabel"></lable>
+    </div>
+    <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
     <p># Video</p>
     <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
     <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
