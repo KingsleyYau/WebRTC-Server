@@ -544,6 +544,13 @@
                         console.log('Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
+                        let capabilities = video.getCapabilities();
+                        console.log('# Captured stream capabilities', capabilities);
+                        let constraints = video.getConstraints();
+                        constraints.frameRate = 15;
+                        video.applyConstraints(constraints);
+                        console.log('# Captured stream constraints', constraints);
+
                         this.pc.addStream(this.mediaStream);
                         resolve();
                     }
@@ -557,6 +564,14 @@
                         }
                         console.log('Captured stream from leftVideo with captureStream',
                             this.mediaStream);
+                        let video = this.mediaStream.getVideoTracks()[0];
+                        let capabilities = video.getCapabilities();
+                        console.log('# Captured stream capabilities', capabilities);
+                        let constraints = video.getConstraints();
+                        constraints.frameRate = 15;
+                        video.applyConstraints(constraints);
+                        console.log('# Captured stream constraints', constraints);
+
                         this.pc.addStream(this.mediaStream);
                         resolve();
                     }
