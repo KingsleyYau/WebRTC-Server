@@ -49,6 +49,8 @@ function Clean() {
 	fi
 }
 
+RTMP_STREAM=`echo $RTMP_URL | sed 's/rtmp:\/\/.*:[0-9]*\/\(.*\)/\1/g' | sed 's/\//_/g'`
+
 if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
 then
