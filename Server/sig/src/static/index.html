@@ -112,6 +112,9 @@
         $("[id=errMsgLabel]").html('');
         $("[id=rtmpUrl]").attr("style", 'display: none');
         $("[id=rtmpUrlLabel]").html('');
+
+        $("[id=videoConfigDiv]").attr("style", 'display: block');
+        $("[id=videoDescLabel]").html("");
     }
 
     function handleGetIceToken(iceServers) {
@@ -490,6 +493,7 @@
             this.init();
 
             if (pushVideo) {
+                // await this.showWebGL();
                 await this.showStaticVideo();
             } else {
                 await this.showLocalVideo(videoSource);
@@ -523,6 +527,30 @@
                 this.pc = null;
             }
             this.stopLocalVideo();
+        }
+
+        async showWebGL() {
+            return new Promise((resolve, reject) => {
+                // Video tag capture must be set up after video tracks are enumerated.
+                var canvas = $("[id=localCanvas]")[0];
+                draw();
+
+                $("[id=localVideo]").attr("style", 'display: block');
+                let leftVideo = $("[id=localVideo]")[0];
+                leftVideo.src = '';
+                leftVideo.srcObject = null;
+
+                if (this.mediaStream == null) {
+                    if (isFirefox()) {
+                        this.mediaStream = canvas.mozCaptureStream();
+                    } else {
+                        this.mediaStream = canvas.captureStream();
+                    }
+                    leftVideo.srcObject = this.mediaStream;
+                    this.pc.addStream(this.mediaStream);
+                }
+                resolve();
+            });
         }
 
         async showStaticVideo() {
@@ -575,7 +603,6 @@
                         this.pc.addStream(this.mediaStream);
                         resolve();
                     }
-                    ALERT
                 }
                 leftVideo.play();
             });
@@ -616,11 +643,6 @@
                 leftVideo.src = '';
                 leftVideo.srcObject = null;
                 $("[id=localVideo]").attr('srcObject', mediaStream);
-                // var canvas = $("[id=localCanvas]")[0];
-                // draw();
-                //
-                // canvasStream = canvas.captureStream();
-                // console.log("canvasStream: ", canvasStream);
 
                 this.pc.addStream(mediaStream);
 
@@ -813,12 +835,13 @@
     }
 
     function draw() {
-        var video = $("[id=localVideo]")[0];
-        imageFilter.drawImage(video);
+        // var video = $("[id=localVideo]")[0];
+        // var img = $("[id=localImg]")[0];
         imageFilter.draw();
+
         setTimeout(() => {
             draw();
-        }, 100);
+        }, 50);
     }
 
     async function call(isPull, isLocalVideo) {
@@ -831,8 +854,11 @@
         pushVideo = isLocalVideo;
         if (isPull) {
             callType = 'pull';
+            $("[id=videoConfigDiv]").attr("style", 'display: none');
+            $("[id=videoDescLabel]").html("############################ Remote Video ############################");
         } else {
             callType = 'push';
+            $("[id=videoDescLabel]").html("############################ Local Video ############################");
         }
 
         sendGetToken();
@@ -860,22 +886,11 @@
         imageFilter = new ImageFilter();
         imageFilter.init(canvas);
 
-        // // imageFilter.loadImage('img/1.jpg');
-        // draw();
-        // canvasStream = canvas.captureStream();
-        // console.log("canvasStream: ", canvasStream);
-
-        // $("[id=localVideo]")[0].className = 'sepia';
-        // img = $("[id=localVideo]")[0];
-        // var canvas = $("[id=localCanvas]")[0];
-        // ctx = canvas.getContext("2d");
-
-        // draw(canvas, ctx, img);
-        // var img = $("[id=localImg]")[0];
-        // img.onload = function() {
-        //     draw(canvas, ctx, img);
-        //     canvasStream = canvas.captureStream();
-        // }
+        var img = $("[id=localImg]")[0];
+        img.onload = function () {
+            imageFilter.drawImage(img);
+            imageFilter.draw();
+        }
 
         rtc = new RTCClient();
         rtc.onicecandidate = (sdp, candidate) => {
@@ -922,23 +937,27 @@
             })
         });
 
+        $("[id=pushVideoBtn]").click(function () {
+            call(false, true);
+        });
+
+        $("[id=pushWebGLBtn]").click(function () {
+            call(false, true);
+        });
+
         $("[id=hangupBtn]").click(function () {
             if (typeof (client) != "undefined") {
                 client.close();
             }
             rtc.hangup();
+
+            reset();
         });
         $("[id=hangupBtn]").attr("disabled", 'true');
 
-        $("[id=imgBtn]").click(function () {
-        });
 
         $("[id=videoSource]").change(function () {
             $("[id=pushBtn]").click();
-        });
-
-        $("[id=pushVideoBtn]").click(function () {
-            call(false, true);
         });
 
         $("[id=cmdBtn]").click(function () {
@@ -1007,76 +1026,79 @@
     Websocket Status :
     <lable id="status">Not Connected</lable>
     <br>
-    <p>################################################################
-        <div class="video-box">
-            <div id="local">
-                <div id="errMsg" style="display: none">
-                    Error Msg : <font color="#FF0000">
-                    <lable id="errMsgLabel"></lable>
-                </font>
+    <p>############################ Stream Config ############################</p>
+    <div class="video-box">
+        <div id="local">
+            <div id="errMsg" style="display: none">
+                Error Msg : <font color="#FF0000">
+                <lable id="errMsgLabel"></lable>
+            </font>
+            </div>
+            <div id="rtmpUrl" style="display: none">
+                RTMP Play Url :
+                <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank"
+                                                          name="play">Flash播放</a>
+                <br>
+                FLV Url :
+                <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank"
+                                                         name="play">Flvjs播放</a>
+                <br>
+                <br>
+                <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
+            </div>
+
+            # Stream : <input id="stream" type="text" name="" value="max0"/><br>
+            # ServerId : <input id="serverId" type="text" name="" value=""/><br>
+            <p># Local SDP</p>
+            <textarea id="localSdpTextarea" disabled="true"></textarea>
+            <div>
+                <button id="pushBtn">Push</button>
+                <button id="pullBtn">Pull</button>
+                <button id="pushVideoBtn">PushVideo</button>
+                <button id="pushWebGLBtn" style="display: inline">PushWebGL</button>
+                <button id="acceptBtn" style="display: none;">Accept</button>
+                <button id="hangupBtn">Hangup</button>
+                <button id="cmdBtn">Cmd</button>
+            </div>
+
+            <div id="videoConfigDiv">
+                <p>############################ Video Config ############################</p>
+                <div class="button">
+                    <button id="qvgaBtn">QVGA</button>
+                    <button id="vgaBtn">VGA</button>
+                    <button id="hdBtn">HD</button>
+                    <lable id="videoConstLabel"></lable>
                 </div>
-                <div id="rtmpUrl" style="display: none">
-                    RTMP Play Url :
-                    <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank" name="play">Flash播放</a>
-    <p>
-        FLV Url :
-        <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank" name="play">Flvjs播放</a>
-    <p>
-        <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
-</div>
+                <p></p>
+                <select id="videoSelector"></select>
+            </div>
+            <p></p>
+            <label id="videoDescLabel"></label>
+            <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
+            <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
+            <img id="localImg" src="img/1.jpg" style="display: none">
+        </div>
+        <label id="stats"></label>
+    </div>
 
-# Stream : <input id="stream" type="text" name="" value="max0"/><br>
-# ServerId : <input id="serverId" type="text" name="" value=""/><br>
-<p>### Local Video & Canvas ###</p>
-<p># Local SDP</p>
-<textarea id="localSdpTextarea" disabled="true"></textarea>
-<div>
-    <button id="pushBtn">Push</button>
-    <button id="pullBtn">Pull</button>
-    <button id="pushVideoBtn">PushVideo</button>
-    <button id="imgBtn" style="display: none;">Img</button>
-    <button id="acceptBtn" style="display: none;">Accept</button>
-    <button id="hangupBtn">Hangup</button>
-    <button id="cmdBtn">Cmd</button>
-    <p>################################################################</p>
-</div>
-<div class="button">
-    <button id="qvgaBtn">QVGA</button>
-    <button id="vgaBtn">VGA</button>
-    <button id="hdBtn">HD</button>
-    <lable id="videoConstLabel"></lable>
-</div>
-<p>
-    <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
-    <div class="">
-<p># Video</p>
-<video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
-<canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
-<img id="localImg" src="img/1.jpg" style="display: none">
-</div>
-<label id="stats"></label>
-</div>
+    <div id="remote">
+        <p># Remote SDP </p>
+        <textarea id="remoteSdpTextarea"></textarea>
+    </div>
 
-<p>### Remote Video ###</p>
-<div id="remote">
-    <p># Remote SDP #</p>
-    <textarea id="remoteSdpTextarea"></textarea>
-</div>
-</div>
-
-<p>################################################################
-<div style="color:#00F000">
-    json recv :
-    <lable id="jsonRecv"></lable>
-</div>
-<div style="color:#F00000">
-    json request :
-    <lable id="jsonSend"></lable>
-</div>
-<div style="color:#0000F0">
-    json respond :
-    <lable id="jsonRespond"></lable>
-</div>
+    <p>################################################################
+    <div style="color:#00F000">
+        json recv :
+        <lable id="jsonRecv"></lable>
+    </div>
+    <div style="color:#F00000">
+        json request :
+        <lable id="jsonSend"></lable>
+    </div>
+    <div style="color:#0000F0">
+        json respond :
+        <lable id="jsonRespond"></lable>
+    </div>
 
 </div>
 </body>
