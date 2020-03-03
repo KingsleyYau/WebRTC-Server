@@ -1,0 +1,23 @@
+{
+  "apps": [{
+    "name": "log-service",
+    "script": "src/log-service.js",
+    "exec_mode":"fork",
+    "cwd": "./",
+    "error_file": "./log-pm2/pm2-err.log",
+    "out_file": "./log-pm2/pm2.log",
+    "max_memory_restart": "1G",
+    "merge_logs": true,
+    "log_date_format": "YYYY-MM-DD HH:mm:ss",
+    "autorestart": false,
+    "cron_restart": "",
+    "restart_delay": "30",
+    "args": "",
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "env_dev": {
+      "NODE_ENV": "development"
+    }
+  }]
+}
