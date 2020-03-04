@@ -5,4 +5,8 @@
 
 CUR_DIR=$(dirname $(readlink -f "$0"))
 
-docker container run -d --rm -p 9877:9877 -p 9082:9082 mediaserver 
+docker container run -d --rm \
+  -p 9082:9082 \
+  --name mediaserver \
+  -v "$CUR_DIR/log":/app/live/mediaserver/log \
+  mediaserver:latest
