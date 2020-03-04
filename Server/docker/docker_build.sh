@@ -77,7 +77,7 @@ for ENV in ${ENVS[@]};do
 	echo ""
 done
 
-#rm -rf $TMP
+rm -rf $TMP
 
 result=$(docker images | grep "^<none>" | awk "{print $3}")
 if [ "$result" != "" ];then
