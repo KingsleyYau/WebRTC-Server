@@ -51,14 +51,12 @@ function build_mediaserver {
 	
 	# Copy Run Files
 	mkdir -p $DEST/run/ || return 1
-	
+
 	# Clean index files
 	find $TMP/$ENV -name ".DS_Store" | xargs rm -rf || return 1
 	
 	return 0
 }
-
-docker stop $(docker ps -aq) 
 
 for ENV in ${ENVS[@]};do
 	echo -e "############## Packaging [\033[33m$ENV\033[0m] ##############"
@@ -79,7 +77,13 @@ done
 
 rm -rf $TMP
 
+result=$(docker ps -aq)
+if [ "$result" != "" ];then
+  docker stop $result
+fi
+
 result=$(docker images | grep "^<none>" | awk "{print $3}")
 if [ "$result" != "" ];then
+	echo $result
   docker rmi $result
 fi
