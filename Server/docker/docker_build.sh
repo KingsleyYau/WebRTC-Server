@@ -77,13 +77,14 @@ done
 
 rm -rf $TMP
 
-result=$(docker ps -aq)
+result=$(docker ps -a | grep mediaserver | awk -F ' ' '{print $1}')
 if [ "$result" != "" ];then
+  echo "# Stop container"
   docker stop $result
 fi
 
-result=$(docker images | grep "^<none>" | awk "{print $3}")
+result=$(docker images | grep "<none>" | awk -F ' ' '{print $3}')
 if [ "$result" != "" ];then
-	echo $result
+  echo "# Remove old images $result"
   docker rmi $result
 fi

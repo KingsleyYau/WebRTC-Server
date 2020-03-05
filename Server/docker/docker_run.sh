@@ -5,8 +5,15 @@
 
 CUR_DIR=$(dirname $(readlink -f "$0"))
 
+result=$(docker ps -a | grep mediaserver)
+if [ "$result" != "" ];then
+  echo $result
+fi
+
 docker container run -d --rm \
   -p 9082:9082 \
+  -p 3478:3478 \
+  -p 3478:3478/udp \
   --name mediaserver \
   -v "$CUR_DIR/log":/app/live/mediaserver/log \
   mediaserver:latest
