@@ -4,6 +4,7 @@ metadata:
   name: mediaserver-svc
 spec:
   type: NodePort  # [ClusterIP|NodePort|LoadBalancer|ExternalName]
+  sessionAffinity: ClientIP
   selector:
     app: mediaserver
   externalIPs:
@@ -28,7 +29,7 @@ spec:
   selector:
     matchLabels:
       app: mediaserver
-  replicas: 2 # tells deployment to run 2 pods matching the template
+  replicas: 1 # tells deployment to run 2 pods matching the template
   template:
     metadata:
       labels:
