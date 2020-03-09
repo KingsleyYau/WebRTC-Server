@@ -1,2 +1,3 @@
 FROM centos:centos7
-RUN yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat net-tools
+RUN yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat net-tools vim
+RUN echo "set encoding=utf-8 fileencodings=ucs-bom,utf-8,cp936" >> ~/.vimrc

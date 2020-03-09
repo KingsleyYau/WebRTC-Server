@@ -20,7 +20,6 @@ local
 )
 
 function build_mediaserver {
-  echo -e "############## build_mediaserver ##############"
 	ENV=$1
 	TMP=$2
 	
@@ -79,12 +78,12 @@ rm -rf $TMP
 
 result=$(docker ps -a | grep mediaserver | awk -F ' ' '{print $1}')
 if [ "$result" != "" ];then
-  echo "# Stop container"
+  echo -e "# Stop container [\033[33m$result\033[0m]"
   docker stop $result
 fi
 
 result=$(docker images | grep "<none>" | awk -F ' ' '{print $3}')
 if [ "$result" != "" ];then
-  echo "# Remove old images $result"
-  docker rmi $result
+  echo -e "# Remove old images [\033[33m$result\033[0m]"
+  docker rmi $result --force
 fi
