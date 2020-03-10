@@ -9,9 +9,9 @@ jobs:
   build:
     runs-on: [linux]
     
-    #steps:
-    #- name: change directory
-    #  run: cd Server
+    steps:
+    - name: change directory
+      run: cd Server
     #- name: install dependence
     #  run: cd dep && ./extract.sh && cd -
     #- name: compile
