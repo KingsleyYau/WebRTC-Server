@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: mediaserver
-        image: 192.168.88.133:5000/mediaserver:latest
+        image: 192.168.88.133:5000/mediaserver:1.0.1
         ports:
         - name: ice
           containerPort: 3478
