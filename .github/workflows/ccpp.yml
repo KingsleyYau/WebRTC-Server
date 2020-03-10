@@ -8,8 +8,13 @@ jobs:
     runs-on: centos-latest
     
     steps:
-      name: change directory
+    - name: change directory
       run: cd Server
+    - name: install dependence
+      run: cd dep
+      run ./extract.sh
+      run -
     - name: compile
+      run: chmod +x MediaServer/compile.sh
       run: chmod +x compile.sh
       run: ./compile.sh
