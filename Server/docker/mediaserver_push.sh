@@ -11,10 +11,14 @@ VERSION=`echo $VERSION | sed s/\"//g`
 echo -e "VERSION:[\033[32m$VERSION\033[0m]"
 
 HOST=192.168.88.133:5000
-TAG=$HOST/mediaserver:$VERSION
 
-docker tag mediaserver $TAG
-docker push $TAG
+VERSION_TAG=$HOST/mediaserver:$VERSION
+docker tag mediaserver $VERSION_TAG
+docker push $VERSION_TAG
+
+LATEST_TAG=$HOST/mediaserver:latest
+docker tag mediaserver $LATEST_TAG
+docker push $LATEST_TAG
 
 result=$(docker images | grep "<none>" | awk -F ' ' '{print $3}')
 if [ "$result" != "" ];then

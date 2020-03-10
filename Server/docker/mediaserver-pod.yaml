@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
   - name: mediaserver
-    image: 192.168.88.133:5000/mediaserver
+    image: 192.168.88.133:5000/mediaserver:latest
     ports:
     - name: ice
       containerPort: 3478
@@ -16,6 +16,13 @@ spec:
     - name: ws
       containerPort: 9981
       protocol: TCP
+    volumeMounts:
+    - mountPath: /app/live/mediaserver/log
+      name: hostlog
     command: ["/app/live/mediaserver/script/docker_init.sh"]
     args: []
+  volumes:
+  - name: hostlog
+    hostPath:
+      path: /tmp/mediaserver/log/    
   restartPolicy: Always

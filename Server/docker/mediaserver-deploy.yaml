@@ -24,7 +24,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mediaserver-dp
+  name: mediaserver-deploy
 spec:
   selector:
     matchLabels:
@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: mediaserver
-        image: 192.168.88.133:5000/mediaserver
+        image: 192.168.88.133:5000/mediaserver:latest
         ports:
         - name: ice
           containerPort: 3478
@@ -56,4 +56,5 @@ spec:
       volumes:
       - name: hostlog
         hostPath:
-          path: /tmp/log/
+          path: /tmp/mediaserver/log/
+      restartPolicy: Always

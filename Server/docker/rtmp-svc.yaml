@@ -16,8 +16,8 @@ subsets:
     - port: 8899
       name: rtmp-8899
       protocol: TCP    
-
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,3 +30,4 @@ spec:
   - port: 8899
     name: rtmp-8899
     protocol: TCP
+---

@@ -16,7 +16,7 @@ VERSION=`echo $VERSION | sed s/\"//g`
 echo -e "VERSION:[\033[32m$VERSION\033[0m]"
 
 ENVS=( \
-local
+docker
 )
 
 function build_mediaserver {
