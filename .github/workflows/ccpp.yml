@@ -7,12 +7,12 @@ on:
 
 jobs:
   build:
-    runs-on: linux
+    runs-on: [linux]
     
-    steps:
-    - name: change directory
-      run: cd Server
-    - name: install dependence
-      run: cd dep && ./extract.sh && cd -
-    - name: compile
-      run: chmod +x MediaServer/compile.sh && chmod +x compile.sh && ./compile.sh
+    #steps:
+    #- name: change directory
+    #  run: cd Server
+    #- name: install dependence
+    #  run: cd dep && ./extract.sh && cd -
+    #- name: compile
+    #  run: chmod +x MediaServer/compile.sh && chmod +x compile.sh && ./compile.sh
