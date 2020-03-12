@@ -1,0 +1,18 @@
+# kubelet defualt config
+/etc/kubernetes/
+
+# kubelet environment file with flags to file
+/var/lib/kubelet/kubeadm-flags.env
+
+# kubelet configuration to file
+/var/lib/kubelet/config.yaml
+
+# command
+kubectl get nodes -o wide
+kubectl get pods --all-namespaces
+kubectl get pod
+kubectl get svc
+kubectl get deployment
+kubectl desribe [pod|svc|deployment]
+kubectl expose deployment/*
+kubectl delete [pod|svc|deployment]
