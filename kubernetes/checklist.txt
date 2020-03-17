@@ -1,16 +1,38 @@
 # kubelet defualt config
 /etc/kubernetes/
 
-# kubelet environment file with flags to file
-/var/lib/kubelet/kubeadm-flags.env
-
 # kubelet configuration to file
 /var/lib/kubelet/config.yaml
 
+# Allow http for docker
+/etc/docker/daemon.json
+{
+  "registry-mirror": [
+    "https://192.168.88.133:443"
+  ],
+  "insecure-registries": [
+    "192.168.88.133:5000"
+  ]
+}
+
+# Check Hostname
+hostnamectl
+
+# Check /usr/lib/systemd/system/docker.service
+--exec-opt native.cgroupdriver=systemd \
+
+# kubelet environment file with flags to file
+/var/lib/kubelet/kubeadm-flags.env
+
+# Check /etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS=--fail-swap-on=false
+
+# Check /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS="--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice --network-plugin=cni --pod-infra-container-image=k8s.gcr.io/pause:3.1"
+
 # command
-kubectl get nodes -o wide
-kubectl get pods --all-namespaces
-kubectl get pod
+kubectl get node -o wide
+kubectl get pod -A
 kubectl get svc
 kubectl get deployment
 kubectl desribe [pod|svc|deployment]

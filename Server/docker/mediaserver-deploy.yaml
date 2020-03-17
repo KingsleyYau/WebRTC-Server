@@ -3,8 +3,8 @@ kind: Service
 metadata:
   name: mediaserver-svc
 spec:
-  type: NodePort  # [ClusterIP|NodePort|LoadBalancer|ExternalName]
-  sessionAffinity: ClientIP
+  type: NodePort  #[ClusterIP|NodePort|LoadBalancer|ExternalName]
+  sessionAffinity: ClientIP  #[ClientIP|None]
   selector:
     app: mediaserver
   externalIPs:
@@ -29,7 +29,7 @@ spec:
   selector:
     matchLabels:
       app: mediaserver
-  replicas: 1 # tells deployment to run 2 pods matching the template
+  replicas: 2 # tells deployment to run 2 pods matching the template
   template:
     metadata:
       labels:
@@ -49,8 +49,8 @@ spec:
           containerPort: 9981
           protocol: TCP
         volumeMounts:
-        - mountPath: /app/live/mediaserver/log
-          name: hostlog
+        #- mountPath: /app/live/mediaserver/log
+        #  name: hostlog
         command: ["/app/live/mediaserver/script/docker_init.sh"]
         args: []
       volumes:
