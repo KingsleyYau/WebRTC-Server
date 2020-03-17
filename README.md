@@ -2,11 +2,11 @@ Catalog
 =================
 
    * [WebRTC流媒体网关服务器](#WebRTC流媒体网关服务器)
-   		* [How it works](#How it works)
-   		* [Compile & Installation](#Compile & Installation)
-   		* [Sequence Diagram](#Sequence Diagram)
-   		* [Test Page](#Test Page)
-      * [Third Party](#Third Party)
+   		* [How it works](#how-it-works)
+   		* [Compile & Installation](#compile-and-installation)
+   		* [Sequence diagram](#sequence-diagram)
+   		* [Test page](#test-page)
+      * [Third party](#third-party)
       
       
 # WebRTC流媒体网关服务器
@@ -18,7 +18,7 @@ Catalog
 - 视频只支持接收H264, 不是Baseline profile的会进行转码, 音频只支持Opus, 转码AAC
 - 支持外部HTTP接口[登录校验/上下线通知/在线列表(Websocket)同步]
 
-## Compile & Installation
+## Compile and Installation
 ### Compile
 ```bash
 cd $your_WebRTC-Server_path/Server/dep && ./extract.sh.sh
