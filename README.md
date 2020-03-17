@@ -24,14 +24,15 @@ Catalog
 cd $your_WebRTC-Server_path/Server/dep && ./extract.sh.sh
 cd $your_WebRTC-Server_path/Server && ./compile.sh
 ```
-
 ### Getting started on Linux
 Build tar package
 ```bash
 cd $your_WebRTC-Server_path/Server && ./package.sh
+```
+Install tar package to /app/live/mediaserver
+```bash
 cd $your_WebRTC-Server_path/Server/package && tar zxvf local-$version.tar.gz && cd local && ./install.sh
 ```
-
 ### Getting started on Docker
 Build docker image
 ```bash
