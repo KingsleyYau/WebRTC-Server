@@ -55,7 +55,7 @@ cd $your_WebRTC-Server_path/Server/docker
 kubectl apply -f mediaserver-deploy.yaml
 ```
 
-## 运行界面
+## Running in interactive model
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/demo.png?raw=true)
 
 ## Test Page
