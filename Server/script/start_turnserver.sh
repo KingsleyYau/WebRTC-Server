@@ -3,7 +3,7 @@
 # Author: Max.Chiu
 # Date: 2019/08/13
 
-# Start coturn
+# Start Turnserver
 APP_DIR=$(dirname $(readlink -f "$0"))/..
 APP_EXE=$APP_DIR/bin/turnserver
 APP_CONFIG=$APP_DIR/etc/turnserver.conf
