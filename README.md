@@ -36,16 +36,16 @@ cd $your_WebRTC-Server_path/Server/package && tar zxvf local-$version.tar.gz && 
 ### Getting started on Docker
 Build docker image
 ```bash
-cd $your_WebRTC-Server_path/Server/docker && ./mediaserver_build.sh
+cd $your_WebRTC-Server_path/Server/docker && mediaserver_build.sh
 ```
 Now you can run on local machine
 ```bash
-cd $your_WebRTC-Server_path/Server/docker && ./mediaserver_run.sh
+cd $your_WebRTC-Server_path/Server/docker && mediaserver_run.sh
 ```
 Or push it to your docker server
 ```bash
 cd $your_WebRTC-Server_path/Server/docker
-sed -i 's/^HOST=.*/HOST=$your_docker_server/g' ./mediaserver_push.sh
+sed -i 's/^HOST=.*/HOST=$your_docker_server/g' mediaserver_push.sh
 ./mediaserver_push.sh
 ```
 ### Getting started on Kubernetes
@@ -54,7 +54,12 @@ For Kubernetes v1.7+
 cd $your_WebRTC-Server_path/Server/docker
 kubectl apply -f mediaserver-deploy.yaml
 ```
-
+Deploy a service for mediaserver to communicate with nginx service. For example, I have already deployed a nginx outside k8s
+```bash
+cd $your_WebRTC-Server_path/Server/docker
+sed -i 's/^- ip: .*/- ip: $your_nginx_server/g' rtmp-svc.yaml
+kubectl apply -f rtmp-svc.yaml
+```
 ## Running in interactive model
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/demo.png?raw=true)
 
