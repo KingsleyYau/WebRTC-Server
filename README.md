@@ -41,15 +41,27 @@ Now you can run on local machine
 ```bash
 cd $your_WebRTC-Server_path/Server/docker && ./mediaserver_run.sh
 ```
-
-## Sequence Diagram
-![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
+Or push it to your docker server
+```bash
+cd $your_WebRTC-Server_path/Server/docker
+sed -i 's/^HOST=.*/HOST=$your_docker_server/g' ./mediaserver_push.sh
+./mediaserver_push.sh
+```
+### Getting started on Kubernetes
+For Kubernetes v1.7+
+```bash
+cd $your_WebRTC-Server_path/Server/docker
+kubectl apply -f mediaserver-deploy.yaml
+```
 
 ## 运行界面
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/demo.png?raw=true)
 
 ## Test Page
 https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/index.html
+
+## Sequence Diagram
+![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
 
 ## Third Party
 [coturn](https://github.com/coturn/coturn)</br>
