@@ -477,7 +477,6 @@
                         console.log('# Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
-
                         let capabilities = video.getCapabilities();
                         console.log('# Captured stream capabilities', capabilities);
                         let constraints = video.getConstraints();
@@ -501,6 +500,13 @@
                         console.log('# Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
+                        let capabilities = video.getCapabilities();
+                        console.log('# Captured stream capabilities', capabilities);
+                        let constraints = video.getConstraints();
+                        constraints.frameRate = 15;
+                        video.applyConstraints(constraints);
+                        console.log('# Captured stream constraints', constraints);
+
                         let audio = this.mediaStream.getAudioTracks()[0];
                         this.mediaStream.removeTrack(audio);
                         this.pc.addStream(this.mediaStream);
