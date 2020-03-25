@@ -12,15 +12,31 @@ spec:
   externalIPs:
   - 192.168.88.133
   ports:
-  - name: ice
-    port: 3478
-    protocol: TCP
-  - name: ice-udp
-    port: 3478
-    protocol: UDP 
   - name: ws
+    protocol: TCP  
     port: 9981
-    protocol: TCP     
+  - name: ice
+    protocol: TCP
+    port: 3478
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mediaserver-svc-udp
+  labels:
+    app: mediaserver
+spec:
+  type: NodePort  #[ClusterIP|NodePort|LoadBalancer|ExternalName]
+  sessionAffinity: ClientIP  #[ClientIP|None]
+  selector:
+    app: mediaserver
+  externalIPs:
+  - 192.168.88.133
+  ports:
+  - name: ice
+    protocol: UDP 
+    port: 3478
 ---
 
 apiVersion: apps/v1
