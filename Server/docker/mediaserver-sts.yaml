@@ -24,12 +24,13 @@ spec:
 ---
 
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: mediaserver-deploy
+  name: mediaserver-sts
   labels:
     app: mediaserver
 spec:
+  serviceName: "mediaserver-svc"
   selector:
     matchLabels:
       app: mediaserver

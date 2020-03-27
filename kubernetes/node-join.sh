@@ -1,0 +1,2 @@
+# !/bin/bash
+kubeadm join 192.168.88.133:6443 --token hmumxh.bfocfqdofxfzqnj7 --discovery-token-ca-cert-hash sha256:efccc0846c1db683968a9d18fddb7acc4321ac6baf8203a9396d149e82b1451b --ignore-preflight-errors=Swap
