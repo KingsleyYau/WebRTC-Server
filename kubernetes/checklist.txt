@@ -23,6 +23,7 @@ hostnamectl
 
 # kubelet environment file with flags to file
 /var/lib/kubelet/kubeadm-flags.env
+--cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
 
 # Check /etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--fail-swap-on=false
