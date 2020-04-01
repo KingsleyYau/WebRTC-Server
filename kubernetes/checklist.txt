@@ -23,7 +23,6 @@ hostnamectl
 
 # kubelet environment file with flags to file
 /var/lib/kubelet/kubeadm-flags.env
---cgroup-driver=systemd --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
 
 # Check /etc/sysconfig/kubelet
 KUBELET_EXTRA_ARGS=--fail-swap-on=false
@@ -39,3 +38,6 @@ kubectl get deployment
 kubectl desribe [pod|svc|deployment]
 kubectl expose deployment/*
 kubectl delete [pod|svc|deployment]
+
+# Update deploy
+kubectl patch deploy [Deploy Name] -n [Namespace] -p '{"spec":{"template":{"spec":{"containers":[{"name":"[Container Name]","env":[{"name":"RESTART_","value":"'$(date +%s)'"}]}]}}}}'
