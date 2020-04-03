@@ -30,6 +30,7 @@ namespace mediaserver {
 HttpParser::HttpParser() {
 	// TODO Auto-generated constructor stub
 	mHttpType = UNKNOW;
+	mRawFirstLine = "";
 	mPath = "";
 	miContentLength = -1;
 	mContentType = "";
@@ -88,6 +89,7 @@ int HttpParser::ParseData(char* buffer, int len) {
 
 							if( lineNumber == 0 ) {
 								// 暂时只获取第一行
+								mRawFirstLine = line;
 								bFlag = ParseFirstLine(line);
 							} else {
 								ParseHeader(line);
@@ -193,6 +195,10 @@ string HttpParser::GetParam(const string& key)  {
 		result = (itr->second);
 	}
 	return result;
+}
+
+string HttpParser::GetRawFirstLine() {
+	return mRawFirstLine;
 }
 
 string HttpParser::GetPath() {

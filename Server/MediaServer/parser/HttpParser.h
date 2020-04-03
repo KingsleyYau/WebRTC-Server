@@ -58,6 +58,7 @@ public:
 
 	int ParseData(char* buffer, int len);
 
+	string GetRawFirstLine();
 	string GetAuth();
 	string GetParam(const string& key);
 	string GetPath();
@@ -74,6 +75,7 @@ private:
 	int miCurContentIndex;
 	string mContentType = "";
 	string mAuth = "";
+	string mRawFirstLine = "";
 
 	KMutex mClientMutex;
 	HttpState mState;

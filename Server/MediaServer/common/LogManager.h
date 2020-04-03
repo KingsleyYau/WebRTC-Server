@@ -47,6 +47,7 @@ public:
 	void LogSetFlushBuffer(unsigned int iLen);
 	void LogFlushMem2File();
 	void SetDebugMode(bool debugMode);
+	void SetSTDMode(bool stdMode);
 
 private:
 	KThread mLogThread;
@@ -61,6 +62,7 @@ private:
 
 	CFileCtrl *mpFileCtrlDebug;
 	bool mDebugMode;
+	bool mSTDMode;
 };
 
 #endif /* LOGMANAGER_H_ */

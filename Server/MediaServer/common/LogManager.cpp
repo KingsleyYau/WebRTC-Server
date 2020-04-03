@@ -73,6 +73,7 @@ LogManager::LogManager()
 	mLogLevel = LOG_DEBUG;
 	mpFileCtrlDebug = NULL;
 	mDebugMode = false;
+	mSTDMode = false;
 	mpLogRunnable = new LogRunnable(this);
 }
 
@@ -133,6 +134,11 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
 
         if( mDebugMode ) {
         	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
+        }
+
+        if ( mSTDMode ) {
+        	printf(bitBuffer);
+        	printf(logBuffer);
         }
 
         bFlag = true;
@@ -275,4 +281,8 @@ void LogManager::LogFlushMem2File() {
 
 void LogManager::SetDebugMode(bool debugMode) {
 	mDebugMode = debugMode;
+}
+
+void LogManager::SetSTDMode(bool stdMode) {
+	mSTDMode = stdMode;
 }

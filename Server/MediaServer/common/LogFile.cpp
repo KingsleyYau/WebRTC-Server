@@ -118,7 +118,7 @@ FILE* CFileCtrl::CreateLog()
 		mode_t mod = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ;
 		int ret = Mkdirs(m_szLogPath, mod);
 		if( ret != 0 ) {
-			printf("mkdir \"%s\" fail(%d) \n", m_szLogPath, errno);
+			fprintf(stderr, "mkdir \"%s\" fail(%d) \n", m_szLogPath, errno);
 		}
 	} else {
 		closedir(dp);

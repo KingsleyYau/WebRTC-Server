@@ -32,6 +32,7 @@ export OPENSSL_LIB = $(BUILD_PATH)/lib
 
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS =		-L. \
+			-Wl,-Bstatic -L../crypto -lmediacrypto \
 			-Wl,-Bstatic -L../common -lcommon \
 			-Wl,-Bstatic -L../socket -lsocket \
 			-Wl,-Bstatic -L../media -lmedia \
@@ -62,7 +63,20 @@ TARGET_JSON_LIBS = -L. \
 TARGET_JSON_OBJS = json-tester.o
 TARGET_JSON = json-tester
 
-.PHONY: clean $(TARGET) ${TARGET_JSON}
+TARGET_HTTPD_LIBS = -L. \
+			-Wl,-Bstatic -L../server -lserver \
+			-Wl,-Bstatic -L../parser -lparser \
+			-Wl,-Bstatic -L../request -lrequest \
+            -Wl,-Bstatic -L../respond -lrespond \
+			-Wl,-Bstatic -L../common -lcommon \
+			-Wl,-Bstatic -L../third_party/libev/.libs -lev \
+			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bdynamic -ldl -pthread 
+			
+TARGET_HTTPD_OBJS = httpd.o
+TARGET_HTTPD = httpd
+
+.PHONY: clean $(TARGET) ${TARGET_JSON} $(TARGET_HTTPD)
 	
 $(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
@@ -71,7 +85,7 @@ $(TARGET): $(OBJS)
 	@echo '# Bulid webrtc-tester completed!'
 	@echo ''
 	@echo '################################################################'
-
+	
 $(TARGET_JSON): $(TARGET_JSON_OBJS)
 	$(CXX) -o $(TARGET_JSON) $(TARGET_JSON_OBJS) $(TARGET_JSON_LIBS)
 	@echo '################################################################'
@@ -79,8 +93,16 @@ $(TARGET_JSON): $(TARGET_JSON_OBJS)
 	@echo '# Bulid json-tester completed!'
 	@echo ''
 	@echo '################################################################'
+	
+$(TARGET_HTTPD): $(TARGET_HTTPD_OBJS)
+	$(CXX) -o $(TARGET_HTTPD) $(TARGET_HTTPD_OBJS) $(TARGET_HTTPD_LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid httpd completed!'
+	@echo ''
+	@echo '################################################################'
 				
-all: $(TARGET) $(TARGET_JSON)
+all: $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD)
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(TARGET_JSON)
+	rm -f $(OBJS) $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD)
