@@ -941,36 +941,46 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			memcpy((void *)pkt, (void *)frame, size);
 			pktSize = size;
 
+			unsigned short seq = ntohs(((RtpPacket *)pkt)->header.seq);
+			uint32_t ts = ntohl(((RtpPacket *)pkt)->header.ts);
+			uint32_t ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
+
+//			LogAync(
+//					LOG_DEBUG,
+//					"RtpSession::RecvRtpPacket( "
+//					"this : %p, "
+//					"ssrc : 0x%08x(%u), "
+//					"x : %u, "
+//					"cc : %u, "
+//					"seq : %u, "
+//					"timestamp : %u, "
+//					"pktSize : %d"
+//					"%s"
+//					")",
+//					this,
+//					ssrc,
+//					ssrc,
+//					((RtpPacket *)pkt)->header.x,
+//					((RtpPacket *)pkt)->header.cc,
+//					seq,
+//					ts,
+//					pktSize,
+//					((RtpPacket *)pkt)->header.m?", [Mark] ":" "
+//					);
+
 			if ( mpRecvSrtpCtx ) {
 				srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
 				bFlag = (status == srtp_err_status_ok);
 
-				if( bFlag ) {
-					if( ((RtpPacket *)pkt)->header.m ) {
-						// 每10个视频帧强制刷新一次视频信息
-						if( ++mVideoFrameCount % 15 == 0 ) {
-							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
-						}
-					}
-				}
+//				if( bFlag ) {
+//					if( ((RtpPacket *)pkt)->header.m ) {
+//						// 每10个视频帧强制刷新一次视频信息
+//						if( ++mVideoFrameCount % 15 == 0 ) {
+//							SendRtcpFIR(((RtpPacket *)pkt)->header.ssrc);
+//						}
+//					}
+//				}
 			}
-	//		LogAync(
-	//				LOG_INFO,
-	//				"RtpSession::RecvRtpPacket( "
-	//				"this : %p, "
-	//				"status : %d, "
-	//				"seq : %u, "
-	//				"timestamp : %u, "
-	//				"pktSize : %d "
-	//				"%s"
-	//				")",
-	//				this,
-	//				status,
-	//				ntohs(pkt->header.seq),
-	//				ntohl(pkt->header.ts),
-	//				pktSize,
-	//				pkt.header.m?", [Mark] ":""
-	//				);
 		} else {
 			LogAync(
 					LOG_INFO,

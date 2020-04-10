@@ -16,6 +16,9 @@
 #include <common/CommonFunc.h>
 #include <common/Arithmetic.h>
 
+// Crypto
+#include <crypto/Crypto.h>
+
 // libnice
 #include <agent.h>
 #include <debug.h>
@@ -167,9 +170,9 @@ bool IceClient::Start() {
 //    g_object_set(mpAgent, "keepalive-conncheck", TRUE, NULL);
 //    g_object_set(mpAgent, "max-connectivity-checks", 5, NULL);
 
-    // 设置STUN服务器地址
-    g_object_set(mpAgent, "stun-server", gStunServerIp.c_str(), NULL);
-    g_object_set(mpAgent, "stun-server-port", 3478, NULL);
+//    // 设置STUN服务器地址
+//    g_object_set(mpAgent, "stun-server", gStunServerIp.c_str(), NULL);
+//    g_object_set(mpAgent, "stun-server-port", 3478, NULL);
 
     if ( gLocalIp.length() > 0 ) {
 		// 绑定本地IP
@@ -190,7 +193,15 @@ bool IceClient::Start() {
 		mStreamId = streamId;
 		mComponentId = componentId;
 
-		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, "MaxClient", "123", NICE_RELAY_TYPE_TURN_TCP);
+		// 这里只需要精确到秒
+		char user[256] = {0};
+		time_t timer = time(NULL);
+		snprintf(user, sizeof(user) - 1, "%lu:client", timer + 3600);
+		string password = Crypto::Sha1("mediaserver12345", user);
+		Arithmetic art;
+		string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
+
+		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, user, password.c_str(), NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
@@ -198,19 +209,34 @@ bool IceClient::Start() {
 		bFlag = true;
 	}
 
-	LogAync(
-			LOG_INFO,
-			"IceClient::Start( "
-			"this : %p, "
-			"[%s], "
-			"streamId : %u, "
-			"componentId : %u "
-			")",
-			this,
-			FLAG_2_STRING(bFlag),
-			streamId,
-			componentId
-			);
+	if( bFlag ) {
+		LogAync(
+				LOG_INFO,
+				"IceClient::Start( "
+				"this : %p, "
+				"[OK], "
+				"streamId : %u, "
+				"componentId : %u "
+				")",
+				this,
+				streamId,
+				componentId
+				);
+	} else {
+		LogAync(
+				LOG_ALERT,
+				"DtlsSession::Start( "
+				"this : %p, "
+				"[Fail], "
+				"streamId : %u, "
+				"componentId : %u "
+				")",
+				this,
+				streamId,
+				componentId
+				);
+		Stop();
+	}
 
 	mClientMutex.unlock();
 

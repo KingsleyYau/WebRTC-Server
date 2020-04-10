@@ -62,10 +62,9 @@ proxyRouter.all('/snapshot_backup', async (ctx, next) => {
     ctx.body = respond;
 });
 
-// proxyRouter.all('/test', (ctx, next) => {
-//     // 等待异步接口
-//     let respond = 'test';
-//     ctx.body = respond;
-// });
+proxyRouter.all('/pic_jpg', async (ctx, next) => {
+    let respond = readDirSync(Common.AppGlobalVar.rootPath + "/static/pic_jpg", "pic_jpg");
+    ctx.body = respond;
+});
 
 module.exports = proxyRouter;

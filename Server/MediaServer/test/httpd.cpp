@@ -33,7 +33,7 @@ using namespace std;
 #include <respond/BaseResultRespond.h>
 
 using namespace mediaserver;
-
+unsigned int gReqCount = 0;
 AsyncIOServer gServer;
 class HttpParserCallbackImp : public HttpParserCallback {
 public:
@@ -107,26 +107,41 @@ public:
 			// 马上返回数据
 			HttpSendRespond(parser, "{\"errno\":0,\"errmsg\":\"\"}");
 		} else if ( parser->GetPath() == "/verify/v1/login" ) {
-			int second = rand() % 130;
+			if ( gReqCount++ % 60 == 0 ) {
+				int second = rand() % 40;
 
-			LogAync(
-					LOG_NOTICE,
-					"Recv( "
-					"[Sleep %d seconds before response], "
-					"%s "
-					")",
-					second,
-					parser->GetRawFirstLine().c_str()
-					);
+				LogAync(
+						LOG_NOTICE,
+						"Recv( "
+						"[Sleep %d seconds before response], "
+						"%s "
+						")",
+						second,
+						parser->GetRawFirstLine().c_str()
+						);
 
-			sleep(second);
-			HttpSendRespond(parser, "{\"errno\":0,\"errmsg\":\"\",\"data\":{\"success\":1,\"userid\":\"max\"}}");
+				sleep(second);
+			}
+
+			int success = ((gReqCount % 10)!=0);
+			char buffer[256] = {0};
+			snprintf(buffer, sizeof(buffer), "{\"errno\":0,\"errmsg\":\"\",\"data\":{\"success\":%d,\"userid\":\"max\"}}", success);
+			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/verify/v1/verifyrtmp" ) {
-			HttpSendRespond(parser, "{\"errno\":0,\"errmsg\":\"\"}");
+			int success = ((gReqCount % 30)!=0);
+			char buffer[256] = {0};
+			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
+			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/verify/v1/shutdown" ) {
-			HttpSendRespond(parser, "{\"errno\":0,\"errmsg\":\"\"}");
+			int success = ((gReqCount % 50)!=0);
+			char buffer[256] = {0};
+			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
+			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/record/v1/record" ) {
-			HttpSendRespond(parser, "{\"errno\":0,\"errmsg\":\"\"}");
+			int success = ((gReqCount % 50)!=0);
+			char buffer[256] = {0};
+			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
+			HttpSendRespond(parser, buffer);
 		} else {
 			bFlag = false;
 		}

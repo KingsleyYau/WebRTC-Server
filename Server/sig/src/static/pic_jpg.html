@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>Snapshot Page</title>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+
+<script src="jquery.min.js"></script>
+<script>
+    function onload() {
+        $("[id=empty]").click( () => {
+            $("[id=main]").empty();
+        });
+
+        for(let i = 0; i < 1000; i++) {
+            let imgId=  'img' + i;
+            let img = "<img id=" + imgId + " width='200' ></img>";
+            let main = $("[id=main]");
+            main.append(img);
+        }
+
+        reload();
+    }
+
+    function reload() {
+        console.log("reload()");
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", "/pic_jpg", true);
+        xhr.onload = function (e) {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                if (xhr.status === 200) {
+                    let i = 0;
+                    let json = JSON.parse(xhr.responseText);
+                    json.forEach( (item) => {
+                        let imgId=  'img' + i;
+                        let img = $('#' + imgId);
+                        let now = new Date();
+                        let url = item + '?' +now.getTime();
+                        img.attr('src', url);
+                        i++;
+                        // let img = "<img width='200' src='" + item + "'>";
+                        // $("[id=main]").append(img);
+                    });
+                    for(let j = i; j < 1000; j++) {
+                        let imgId=  'img' + j;
+                        let img = $('#' + imgId);
+                        img.removeAttr("src");
+                    }
+                } else {
+                    console.error(xhr.statusText);
+                }
+            }
+
+            setTimeout(() => {
+                reload();
+            }, 3000);
+        };
+        xhr.onerror = function (e) {
+            console.error(xhr.statusText);
+            setTimeout(() => {
+                reload();
+            }, 3000);
+        };
+        xhr.send(null);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        onload();
+    });
+</script>
+
+<body>
+    <div id="main">
+    </div>
+</body>
+</html>
