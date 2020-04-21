@@ -572,8 +572,10 @@
                         console.log('Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
-                        let capabilities = video.getCapabilities();
-                        console.log('# Captured stream capabilities', capabilities);
+                        if ( !isFirefox() && !isEdge() ) {
+                            let capabilities = video.getCapabilities();
+                            console.log('# Captured stream capabilities', capabilities);
+                        }
                         let constraints = video.getConstraints();
                         constraints.frameRate = 15;
                         video.applyConstraints(constraints);
@@ -593,8 +595,10 @@
                         console.log('Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
-                        let capabilities = video.getCapabilities();
-                        console.log('# Captured stream capabilities', capabilities);
+                        if ( !isFirefox() && !isEdge() ) {
+                            let capabilities = video.getCapabilities();
+                            console.log('# Captured stream capabilities', capabilities);
+                        }
                         let constraints = video.getConstraints();
                         constraints.frameRate = 15;
                         video.applyConstraints(constraints);
@@ -940,10 +944,16 @@
         $("[id=pushVideoBtn]").click(function () {
             call(false, true);
         });
+        if ( isEdge() ) {
+            $("[id=pushVideoBtn]").attr("style", 'display:none');
+        }
 
         $("[id=pushWebGLBtn]").click(function () {
             call(false, true);
         });
+        if ( isEdge() ) {
+            $("[id=pushWebGLBtn]").attr("style", 'display:none');
+        }
 
         $("[id=hangupBtn]").click(function () {
             if (typeof (client) != "undefined") {

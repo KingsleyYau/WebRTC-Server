@@ -58,6 +58,9 @@
 
     let videoConstraints = vgaConstraints;
 
+    let videoArray = ["video/2.mp4", "video/2.mp4","video/2.mp4"];
+    let videoArrayIndex = 0;
+
     let client;
     let reqId = 0;
     let callAlready = false;
@@ -463,9 +466,15 @@
                 let leftVideo = $("[id=localVideo]")[0];
                 $("[id=localVideo]").attr("style", 'display: block');
                 leftVideo.src = './video/jzq_feph.mp4';
+                // leftVideo.src = videoArray[videoArrayIndex];
                 leftVideo.srcObject = null;
                 leftVideo.muted = true;
 
+                // leftVideo.onended = () => {
+                //     videoArrayIndex = ++videoArrayIndex % videoArray.length;
+                //     leftVideo.src = videoArray[videoArrayIndex];
+                //     console.log('Local video changed, videoArrayIndex:', videoArrayIndex, ", leftVideo.src:", leftVideo.src);
+                // };
                 leftVideo.oncanplay = () => {
                     if (this.mediaStream == null) {
                         if (isFirefox()) {
@@ -477,8 +486,10 @@
                         console.log('# Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
-                        let capabilities = video.getCapabilities();
-                        console.log('# Captured stream capabilities', capabilities);
+                        if ( !isFirefox() && !isEdge() ) {
+                            let capabilities = video.getCapabilities();
+                            console.log('# Captured stream capabilities', capabilities);
+                        }
                         let constraints = video.getConstraints();
                         constraints.frameRate = 15;
                         video.applyConstraints(constraints);
@@ -500,8 +511,10 @@
                         console.log('# Captured stream from leftVideo with captureStream',
                             this.mediaStream);
                         let video = this.mediaStream.getVideoTracks()[0];
-                        let capabilities = video.getCapabilities();
-                        console.log('# Captured stream capabilities', capabilities);
+                        if ( !isFirefox() && !isEdge() ) {
+                            let capabilities = video.getCapabilities();
+                            console.log('# Captured stream capabilities', capabilities);
+                        }
                         let constraints = video.getConstraints();
                         constraints.frameRate = 15;
                         video.applyConstraints(constraints);
@@ -828,6 +841,9 @@
             call(false, true);
         });
         $("[id=pushVideoBtn]").attr("disabled", 'true');
+        if ( isEdge() ) {
+            $("[id=pushVideoBtn]").attr("style", 'display:none');
+        }
 
         // Choose video constraints
         getVideoWithConstraints(vgaConstraints, 'VGA');
@@ -937,7 +953,7 @@
     </div>
     <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>
     <p># Video</p>
-    <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
+    <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="true"></video>
     <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
     <img id="localImg" src="img/1.jpg" style="display: none">
 </div>
