@@ -10,6 +10,7 @@
 
 // System
 #include <signal.h>
+#include <algorithm>
 
 #include <Version.h>
 #include <include/CommonHeader.h>
@@ -541,28 +542,18 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 										);
 
 								if ( profileLevelId.length() == 6 ) {
-									string profileIdc = profileLevelId.substr(0, 2);
-									LogAync(
-											LOG_DEBUG,
-											"WebRTC::ParseRemoteSdp( "
-											"this : %p, "
-											"[Found Remote Media H264 Codec, Check Idc], "
-											"profileIdc : %s "
-											")",
-											this,
-											profileIdc.c_str()
-											);
 									/**
 									 * We choose Baseline for the first option
 									 * Example:
-									 * 		profile-level-id=42C01E : Baseline profile 3.0
+									 * 		profile-level-id=42E01F : Baseline profile 3.0
 									 *
 									 * profile_idc(8 bits)
 									 * 0x42(66) Baseline profile
 									 * 0x4D(77) Main profile
 									 * 0x58(88) Extended profile
 									 *
-									 * compatiable(8 bits)
+									 * profile_iop(8 bits)
+									 * Only check first 1 byte
 									 *
 									 * level_idc(8 bits)
 									 * 等级	最大比特率(BP、MP、EP)kbit/s	高分辨率示例@最高帧率(最大存储帧)
@@ -570,7 +561,35 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 									 * 3.1 	14000 	[720*480@80.0(13) | 720*576@66.7(11) | 1280*720@30.0(5)]
 									 * 3.2	20000	[1280*720@60.0(5) | 1280*1024@42.2(4)]
 									 */
-									if ( profileIdc == "42" ) {
+									string profileIdc = profileLevelId.substr(0, 2);
+									string profileIop = profileLevelId.substr(2, 4);
+									transform(profileIop.begin(), profileIop.end(), profileIop.begin(), ::toupper);
+
+									LogAync(
+											LOG_DEBUG,
+											"WebRTC::ParseRemoteSdp( "
+											"this : %p, "
+											"[Found Remote Media H264 Codec, Check Idc], "
+											"profileIdc : %s, "
+											"profileIop : %s "
+											")",
+											this,
+											profileIdc.c_str(),
+											profileIop.c_str()
+											);
+
+									/*
+									 * Only check first 1 byte is greater than 0x8
+									 */
+									char c = profileIop.at(0);
+									bool bCompat = false;
+									if ( c >= '8' && c <= '9' ) {
+										bCompat = true;
+									} else if ( c >= 'A' && c <= 'F' ) {
+										bCompat = true;
+									}
+
+									if ( profileIdc == "42" && bCompat ) {
 										mNeedTranscodeVideo = false;
 
 										LogAync(
@@ -580,7 +599,8 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 												"[Found Remote Media H264 Codec, Relay Only], "
 												"media_type : %s, "
 												"payload : %d %s/%u/%s, "
-												"profileLevelId : %s "
+												"profileLevelId : %s, "
+												"profileIop : %s "
 												")",
 												this,
 												sdp_media_type_str(media->type),
@@ -588,7 +608,8 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 												payload.encoding_name,
 												payload.clock_rate,
 												payload.encoding_params,
-												profileLevelId.c_str()
+												profileLevelId.c_str(),
+												profileIop.c_str()
 												);
 										break;
 									}

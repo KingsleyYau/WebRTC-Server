@@ -66,7 +66,7 @@ then
   $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,rtmp,udp,tcp,tls" \
           -thread_queue_size 1024 \
           -i $RTMP_URL \
-          -vcodec libx264 -an -payload_type $VIDEO_PAYLOAD -ssrc 0x12345678 -cname video -preset superfast -profile:v baseline -level 3.0 -g 15 -f rtp "$RTP_URL" \
+          -vcodec libx264 -an -payload_type $VIDEO_PAYLOAD -ssrc 0x12345678 -cname video -preset superfast -profile:v baseline -level 3.0 -f rtp "$RTP_URL" \
           -acodec opus -vn -payload_type $AUDIO_PAYLOAD -ssrc 0x12345679 -cname audio -strict -2 -ac 1 -f rtp "$RTP_URL" \
           > $LOG_FILE 2>&1 &
 else
