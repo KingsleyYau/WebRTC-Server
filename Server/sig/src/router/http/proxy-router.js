@@ -8,9 +8,14 @@ const Router = require('koa-router');
 
 // 项目公共库
 const Common = require('../../lib/common');
+// Redis
+const redisClient = require('../../lib/redis-connector').RedisConnector.getInstance();
+// Model的Keys
+const DBModelKeys = require('../../db/model-keys');
 
 const Fs = require('fs');
 const Path = require('path');
+const Url = require('url');
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -64,6 +69,223 @@ proxyRouter.all('/snapshot_backup', async (ctx, next) => {
 
 proxyRouter.all('/pic_jpg', async (ctx, next) => {
     let respond = readDirSync(Common.AppGlobalVar.rootPath + "/static/pic_jpg", "pic_jpg");
+    ctx.body = respond;
+});
+
+proxyRouter.all('/set', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "res":-2,
+        "userId":ctx.session.sessionId,
+    }
+
+    // 增加到redis
+    // await redisClient.client.
+    // hsetnx(
+    //     'hash_user_online_' + ctx.session.sessionId,
+    //     'name', ctx.session.sessionId
+    // ).then( (res) => {
+    //     Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-hsetnx], res: ' + res);
+    //     respond.res = res;
+    // }).catch( (err) => {
+    //     Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-hsetnx], err: ' + err);
+    //     respond.errmsg = err;
+    // });
+    //
+    // await redisClient.client.
+    // expire(
+    //     'hash_user_online_' + ctx.session.sessionId,
+    //     300
+    // ).then( (res) => {
+    //     Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-expire], res: ' + res);
+    //     respond.res = res;
+    // }).catch( (err) => {
+    //     Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-expire], err: ' + err);
+    //     respond.errmsg = err;
+    // });
+
+    let start = process.uptime() * 1000;
+
+    // 随机增加时间, 防止雪崩
+    let timeRnd = Math.floor(Math.random() * 30);
+    // 因为使用集群, 必须保证key的hash在同一个slot, 否则不能使用事务
+    await redisClient.client.multi().
+    hset(
+        'hash_user_online_' + ctx.session.sessionId,
+        'name', 'max-' + ctx.session.sessionId,
+        'age', 18
+    ).expire(
+        'hash_user_online_' + ctx.session.sessionId,
+        1800 + timeRnd
+    ).exec().then( (res) => {
+        let all = JSON.stringify(res);
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-set], res:' + all);
+        respond.res = res;
+    }).catch( (err) => {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-set], err:' + err);
+        respond.errmsg = err;
+    });
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/get', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "res":-2,
+        "userId":ctx.session.sessionId,
+    }
+
+    let userId = Url.parse(decodeURI(ctx.originalUrl),true).query.userId;
+    let start = process.uptime() * 1000;
+    // 可以在这里增加hash filter, 减少缓存穿透
+    await redisClient.client.multi().
+    hgetall(
+        'hash_user_online_' + userId
+    ).exec().then( (res) => {
+        let all = JSON.stringify(res);
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-get], res:' + all);
+        respond.res = res;
+    }).catch( (err) => {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-get], err:' + err);
+        respond.errmsg = err;
+    });
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/nodes', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "res":-2,
+        "userId":ctx.session.sessionId,
+    }
+
+    let start = process.uptime() * 1000;
+    let nodes = redisClient.client.nodes('slave');
+    await Promise.all(
+        nodes.map(function (node) {
+           return node.keys('*');
+        })
+    ).then( (res) => {
+        // respond.res = res;
+    });
+    await Promise.all(
+        nodes.map(function (node) {
+            return node.dbsize();
+        })
+    ).then( (res) => {
+        respond.res = res;
+    });
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/nodes_dbsize', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "res":-2,
+        "userId":ctx.session.sessionId,
+    }
+
+    let start = process.uptime() * 1000;
+    let nodes = redisClient.client.nodes('slave');
+    await Promise.all(
+        nodes.map(function (node) {
+            return node.dbsize();
+        })
+    ).then( (res) => {
+        respond.res = res;
+    });
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/rnd', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "res":-2,
+        "userId":ctx.session.sessionId,
+    }
+
+    let start = process.uptime() * 1000;
+
+    // 可以在这里增加hash filter, 减少缓存穿透
+    let nodes = redisClient.client.nodes('slave');
+    let index = Math.floor(Math.random() * 10) % nodes.length;
+    let cursor = -1;
+    await nodes[index].dbsize().then( (res) => {
+        if ( res > 0 ) {
+            cursor = Math.floor(Math.random() * 10) % res;
+        }
+    }).catch( (err) => {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-rnd], err:' + err);
+    });
+
+    if ( cursor > -1 ) {
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-rnd], index:' + index + ', cursor:'+ cursor);
+        await nodes[index].multi().
+        scan(
+            cursor, 'match', 'hash_user_online_*', 'count', 10
+        ).exec().then( (res) => {
+            let all = JSON.stringify(res);
+            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-rnd], res:' + all);
+            respond.res = res;
+        }).catch( (err) => {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-rnd], err:' + err);
+            respond.errmsg = err;
+        });
+    }
+
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/test', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "userId":ctx.session.sessionId,
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/gc', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "userId":ctx.session.sessionId,
+    }
+
+    let start = process.uptime() * 1000;
+    gc();
+    // const Heapdump = require('heapdump');
+    // Heapdump.writeSnapshot('./heapsnapshot/heapsnapshot-' + Date.now());
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
     ctx.body = respond;
 });
 

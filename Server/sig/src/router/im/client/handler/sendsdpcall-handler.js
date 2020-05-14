@@ -45,43 +45,39 @@ module.exports = class SendSdpCallHandler extends BaseHandler {
                     });
                 }
 
-                // var data = QueryString.stringify({
-                //     'sdp': reqData.req_data.sdp,
+                // var obj = {
+                //     'sdp' : reqData.req_data.sdp,
+                // }
+                // var data = JSON.stringify(obj);
+                //
+                // var options = {
+                //     hostname: '192.168.88.133',
+                //     port: 9880,
+                //     path: '/CALLSDP',
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //         'Content-Length': data.length
+                //     }
+                // }
+                //
+                // var req = Http.request(options, res => {
+                //     Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' status:' + res.statusCode + ', header:' + JSON.stringify(res.headers));
+                //
+                //     res.setEncoding('utf8');
+                //     res.on('data', function (data) {
+                //         Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' body:' + data);
+                //     });
+                //     res.on('error', function (err) {
+                //         Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' err:' + err);
+                //     });
                 // });
-
-                var obj = {
-                    'sdp' : reqData.req_data.sdp,
-                }
-                var data = JSON.stringify(obj);
-
-                var options = {
-                    hostname: '192.168.88.133',
-                    port: 9880,
-                    path: '/CALLSDP',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Length': data.length
-                    }
-                }
-
-                var req = Http.request(options, res => {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' status:' + res.statusCode + ', header:' + JSON.stringify(res.headers));
-
-                    res.setEncoding('utf8');
-                    res.on('data', function (data) {
-                        Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' body:' + data);
-                    });
-                    res.on('error', function (err) {
-                        Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' err:' + err);
-                    });
-                });
-
-                req.on('error', function (err) {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' err:' + err);
-                });
-                req.write(data);
-                req.end();
+                //
+                // req.on('error', function (err) {
+                //     Common.log('im', 'info', '[' + ctx.socketId + ']-CallSdp, ' + ' err:' + err);
+                // });
+                // req.write(data);
+                // req.end();
             }
 
             resolve(this.respond);

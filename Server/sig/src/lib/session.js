@@ -10,7 +10,7 @@ const Session = require('koa-session-minimal')
 
 // 存放sessionId的cookie配置
 const session = {
-    maxAge: '', // cookie有效时长
+    maxAge: 300, // cookie有效时长
     expires: '',  // cookie失效时间
     path: '', // 写cookie所在的路径
     domain: '', // 写cookie所在的域名

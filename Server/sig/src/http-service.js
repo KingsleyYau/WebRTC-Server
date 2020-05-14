@@ -22,7 +22,7 @@ const AppConfig = require('./config/app-config');
 // 路由
 const Router = require('koa-router');
 // 项目接口
-const loginRouter = require('./router/http/proxy-router');
+const mainRouter = require('./router/http/proxy-router');
 
 // module.exports = class HttpService {
 class HttpService {
@@ -31,7 +31,7 @@ class HttpService {
 
         // 创建异步框架
         this.app = new Koa();
-        this.app.use(Cors());
+        // this.app.use(Cors());
 
         // 配置静态资源文件
         let staticRoot = new Serve(Path.join(__dirname, 'static'));
@@ -41,27 +41,27 @@ class HttpService {
         this.app.use(Session.getSession());
 
         // 增加公共处理
-        this.app.use(async (ctx, next) => {
-            let sessionId = ctx.session.sessionId;
-            if( Common.isNull(sessionId) ) {
+        this.app.use(async function httpMethod(ctx, next) {
+            if( Common.isNull(ctx.session.sessionId) ) {
                 ctx.session = {
-                    sessionId: 'SESSIONID-' + Math.random().toString(36).substr(2).toLocaleUpperCase(),
-                    count: 0
+                    sessionId: 'CON-' + Math.random().toString(36).substr(2).toLocaleUpperCase(),
+                    count: 0,
                 }
             } else {
                 ctx.session.count++;
             }
 
-            Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ctx.request.url);
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + ctx.req.method + ', ' + JSON.stringify(ctx.req.headers));
 
             // 等待其他中间件处理的异步返回
             await next();
             // 所有中间件处理完成
+
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + JSON.stringify(ctx.response._body));
         });
 
         // 增加路由
-        this.app.use(loginRouter.routes());
-
+        this.app.use(mainRouter.routes());
     }
 
     start(opts) {
