@@ -16,7 +16,7 @@ echo -e "VERSION:[\033[32m$VERSION\033[0m]"
 
 ENVS=( \
 local demo_jp demo_eu \
-product_sg product_au product_eu product_us product_th product_vn product_br \
+product_sg product_au product_eu product_us product_vn product_br \
 )
 
 function package_tar {

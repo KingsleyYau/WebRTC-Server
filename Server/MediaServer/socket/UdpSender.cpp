@@ -48,6 +48,19 @@ bool UdpSender::Init(const string& sendIp, int sendPort) {
     	if ( setsockopt(mFd, SOL_SOCKET, SO_REUSEADDR, &bOptval, sizeof(int)) ) {
     		bFlag = false;
     	}
+
+//    	int bufferSize = 2 * 1024 * 1024;
+//    	while (bufferSize > 0) {
+//    		if (setsockopt(mFd, SOL_SOCKET, SO_RCVBUF, (const void*) (&bufferSize), (socklen_t) sizeof(bufferSize)) < 0) {
+//    			bufferSize = bufferSize / 2;
+//    		} else {
+//    			break;
+//    		}
+//    	}
+//    	if ( bufferSize < 1 ) {
+//    		bFlag = false;
+//    	}
+
     }
 
     if( bFlag ) {

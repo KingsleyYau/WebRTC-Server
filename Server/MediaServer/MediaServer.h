@@ -308,6 +308,8 @@ private:
 	string mWebRTCRtp2RtmpShellFilePath;
 	// 执行转发RTMP的地址
 	string mWebRTCRtp2RtmpBaseUrl;
+	// 执行转发RTMP的地址(全录制)
+	string mWebRTCRtp2RtmpBaseRecordUrl;
 	// 执行转发RTP的脚本
 	string mWebRTCRtmp2RtpShellFilePath;
 	// 执行转发RTP的地址

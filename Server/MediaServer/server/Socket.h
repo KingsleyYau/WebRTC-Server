@@ -167,7 +167,7 @@ public:
 //				")",
 //				fd
 //				);
-		shutdown(fd, SHUT_RD);
+		shutdown(fd, SHUT_RDWR);
 	}
 
 	void Close() {

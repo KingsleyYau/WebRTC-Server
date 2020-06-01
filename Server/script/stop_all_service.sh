@@ -10,10 +10,6 @@ echo "# Mediaserver stoping......"
 ./script/stop_mediaserver.sh
 echo "# Mediaserver stop OK"
 
-echo "# Mediaserver(Test) stoping......"
-./script/stop_mediaserver_test.sh
-echo "# Mediaserver(Test) stop OK"
-
 echo "# Turnserver stoping......"
 ./script/stop_turnserver.sh
 echo "# Turnserver stop OK"

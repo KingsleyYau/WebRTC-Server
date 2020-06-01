@@ -340,16 +340,49 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 				);
 
 		// 尝试读取数据
-		char buf[READ_BUFFER_SIZE];
-		int len = sizeof(buf) - 1;
+//		char buf[READ_BUFFER_SIZE];
+//		int len = sizeof(buf) - 1;
 		SocketStatus status = SocketStatusFail;
 		bool disconnect = false;
 
 		client->clientMutex.lock();
+		Buffer *buffer = client->GetBuffer();
+
+		bool logicDisconnect = false;
 		while (true) {
+//			int len = buffer->Freespace();//READ_BUFFER_SIZE;
+//			if( buffer->Freespace() <= 0 ) {
+			char *buf = (char *)buffer->GetBuffer4Write();
+			int len = buffer->Freespace();//READ_BUFFER_SIZE;
+
+			if( buffer->Freespace() <= 0 ) {
+//			if( true ) {
+				// 没有足够的缓存空间
+				LogAync(
+						LOG_ERR,
+						"AsyncIOServer::OnRecvEvent( "
+						"[Buffer error, buffer is not enough], "
+						"client : %p, "
+						"socket : %p, "
+						"ip : %s, "
+						"port : %u "
+						")",
+						client,
+						socket,
+						socket->ip.c_str(),
+						socket->port
+						);
+				// 同步断开连接, 并且关闭事件监听
+				mTcpServer.DisconnectSync(socket);
+				disconnect = true;
+				break;
+			}
+
 			status = mTcpServer.Read(socket, (char *)buf, len);
 			if( status == SocketStatusSuccess ) {
 				// 读取数据成功, 缓存到客户端
+				buffer->TossWrite(len);
+
 				buf[len] = '\0';
 				LogAync(
 						LOG_INFO,
@@ -359,6 +392,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						"socket : %p, "
 						"ip : %s, "
 						"port : %u, "
+						"freespace : %d, "
 						"len : %d, "
 						"buf :\n%s\n"
 						")",
@@ -366,47 +400,14 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						socket,
 						socket->ip.c_str(),
 						socket->port,
+						buffer->Freespace(),
 						len,
 						buf
 						);
-
-				if( client->Write(buf, len) ) {
-					LogAync(
-							LOG_DEBUG,
-							"AsyncIOServer::OnRecvEvent( "
-							"[Write buffer OK], "
-							"client : %p, "
-							"socket : %p, "
-							"ip : %s, "
-							"port : %u "
-							")",
-							client,
-							socket,
-							socket->ip.c_str(),
-							socket->port
-							);
-					// 放到处理队列
-					PushRecvHandle(client);
-
-				} else {
-					// 没有足够的缓存空间
-					LogAync(
-							LOG_ERR,
-							"AsyncIOServer::OnRecvEvent( "
-							"[Write error, buffer is not enough], "
-							"client : %p, "
-							"socket : %p, "
-							"ip : %s, "
-							"port : %u "
-							")",
-							client,
-							socket,
-							socket->ip.c_str(),
-							socket->port
-							);
-					disconnect = true;
-					break;
-				}
+				// 放到处理队列
+				PushRecvHandle(client);
+				// 释放CPU让处理队列执行
+				break;
 			} else if( status == SocketStatusTimeout ) {
 				// 没有数据可读超时返回, 不处理
 				LogAync(
@@ -420,7 +421,6 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						socket
 						);
 				break;
-
 			} else {
 				// 读取数据出错, 断开
 				LogAync(
@@ -444,10 +444,6 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 
 		// 如果读出错, 断开连接
 		client->disconnected = disconnect;
-//		if( disconnect ) {
-//			// 断开连接
-//			Disconnect(client);
-//		}
 
 		bool bFlag = false;
 		bFlag = ClientCloseIfNeed(client);
@@ -572,7 +568,8 @@ void AsyncIOServer::PushRecvHandle(Client* client) {
 
 bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 	bool bFlag = false;
-	if( client->recvHandleCount == 0 && client->disconnected ) {
+	if( client->recvHandleCount == 0 && client->disconnected && !client->closed ) {
+		client->closed = true;
 		Socket *socket = (Socket *)client->socket;
 		LogAync(
 				LOG_DEBUG,

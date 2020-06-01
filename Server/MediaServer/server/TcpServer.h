@@ -40,7 +40,7 @@ public:
 	virtual void OnDisconnect(Socket* socket) = 0;
 };
 
-typedef KSafeList<::ev_io *> WatcherList;
+typedef KSafeList< ::ev_io * > WatcherList;
 class IORunnable;
 
 class TcpServer {
@@ -60,6 +60,7 @@ public:
 	SocketStatus Read(Socket* socket, const char *data, int &len);
 	bool Send(Socket* socket, const char *data, int &len);
 	void Disconnect(Socket* socket);
+	void DisconnectSync(Socket* socket);
 	void Close(Socket* socket);
 
 	void IOHandleThread();

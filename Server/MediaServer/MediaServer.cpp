@@ -243,6 +243,7 @@ bool MediaServer::Start() {
 			"mWebRTCMaxClient : %u, "
 			"mWebRTCRtp2RtmpShellFilePath : %s, "
 			"mWebRTCRtp2RtmpBaseUrl : %s, "
+			"mWebRTCRtp2RtmpBaseRecordUrl : %s, "
 			"mWebRTCRtmp2RtpShellFilePath : %s, "
 			"mWebRTCRtmp2RtpBaseUrl : %s, "
 			"mWebRTCDtlsCertPath : %s, "
@@ -260,6 +261,7 @@ bool MediaServer::Start() {
 			mWebRTCMaxClient,
 			mWebRTCRtp2RtmpShellFilePath.c_str(),
 			mWebRTCRtp2RtmpBaseUrl.c_str(),
+			mWebRTCRtp2RtmpBaseRecordUrl.c_str(),
 			mWebRTCRtmp2RtpShellFilePath.c_str(),
 			mWebRTCRtmp2RtpBaseUrl.c_str(),
 			mWebRTCDtlsCertPath.c_str(),
@@ -496,6 +498,7 @@ bool MediaServer::LoadConfig() {
 			mWebRTCMaxClient = atoi(conf.GetPrivate("WEBRTC", "WEBRTCMAXCLIENT", "10").c_str());
 			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
 			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "");
+			mWebRTCRtp2RtmpBaseRecordUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASERECORDURL", "");
 			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
 			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
 			mWebRTCDtlsCertPath = conf.GetPrivate("WEBRTC", "DTLSCER", "etc/webrtc_dtls.crt");
@@ -540,6 +543,7 @@ bool MediaServer::ReloadLogConfig() {
 			// WebRTC参数
 			mWebRTCRtp2RtmpShellFilePath = conf.GetPrivate("WEBRTC", "RTP2RTMPSHELL", "script/rtp2rtmp.sh");
 			mWebRTCRtp2RtmpBaseUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASEURL", "");
+			mWebRTCRtp2RtmpBaseRecordUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASERECORDURL", "");
 			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
 			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
 
@@ -867,8 +871,8 @@ bool MediaServer::HttpSendRespond(
 			buffer,
 			MAX_BUFFER_LEN - 1,
 			"HTTP/1.1 200 OK\r\n"
-			"Connection:Close\r\n"
-			"Content-Type:text/html; charset=utf-8\r\n"
+			"Connection: close\r\n"
+			"Content-Type: text/html; charset=utf-8\r\n"
 			"\r\n"
 			);
 	int len = strlen(buffer);
@@ -1346,14 +1350,27 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							stream = reqData["stream"].asString();
 						}
 
+						int record = 0;
+						if( reqData["record"].isInt() ) {
+							record = reqData["record"].asInt();
+						}
+
 						string sdp = "";
 						if( reqData["sdp"].isString() ) {
 							sdp = reqData["sdp"].asString();
 						}
 
 						string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
-						rtmpUrl += "/";
-						rtmpUrl += stream;
+						if ( record == 1 ) {
+							if ( mWebRTCRtp2RtmpBaseRecordUrl.length() > 0 ) {
+								rtmpUrl = mWebRTCRtp2RtmpBaseRecordUrl;
+							}
+						}
+
+						if ( rtmpUrl.length() > 0 ) {
+							rtmpUrl += "/";
+							rtmpUrl += stream;
+						}
 
 						LogAync(
 								LOG_NOTICE,
@@ -1361,15 +1378,17 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								"event : [Websocket-请求-推流], "
 								"hdl : %p, "
 								"stream : %s, "
+								"record : %d, "
 								"rtmpUrl : %s "
 								")",
 								hdl.lock().get(),
 								stream.c_str(),
+								record,
 								rtmpUrl.c_str()
 								);
 
 						if( mWebRTCRtp2RtmpShellFilePath.length() > 0 &&
-								mWebRTCRtp2RtmpBaseUrl.length() > 0 && stream.length() > 0 && sdp.length() > 0 ) {
+								rtmpUrl.length() > 0 && stream.length() > 0 && sdp.length() > 0 ) {
 							WebRTC *rtc = NULL;
 
 							mWebRTCMap.Lock();

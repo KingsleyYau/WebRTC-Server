@@ -73,6 +73,14 @@ public:
 		return false;
 	}
 
+	char *GetBuffer4Write() {
+		return buffer + len;
+	}
+
+	void TossWrite(int size) {
+		len += size;
+	}
+
 private:
 	int		len;
 	int 	size;

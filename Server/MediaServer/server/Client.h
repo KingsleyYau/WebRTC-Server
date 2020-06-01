@@ -60,6 +60,7 @@ public:
 
 		recvHandleCount = 0;
 		disconnected = false;
+		closed = false;
 
 		parser = NULL;
 		data = NULL;
@@ -68,6 +69,10 @@ public:
 	bool CheckBufferEnough() {
 		bool bFlag = (buffer->Freespace() >= READ_BUFFER_SIZE);
 		return bFlag;
+	}
+
+	Buffer *GetBuffer() {
+		return buffer;
 	}
 
 	bool Write(char *data, int len) {
@@ -101,6 +106,11 @@ public:
 	 * 是否已经断开连接
 	 */
 	bool disconnected;
+
+	/**
+	 * 是否已经close
+	 */
+	bool closed;
 
 	/**
 	 * 自定义数据

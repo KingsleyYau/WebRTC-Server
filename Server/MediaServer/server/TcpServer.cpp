@@ -327,11 +327,13 @@ SocketStatus TcpServer::Read(Socket* socket, const char *data, int &len) {
 			"TcpServer::Read( "
 			"fd : %d, "
 			"socket : %p, "
-			"status : %d "
+			"status : %d, "
+			"len : %d "
 			")",
 			socket->fd,
 			socket,
-			status
+			status,
+			len
 			);
 
 	if( status == SocketStatusFail ) {
@@ -356,6 +358,24 @@ void TcpServer::Disconnect(Socket* socket) {
 			socket->fd,
 			socket
 			);
+
+	// 断开连接
+	socket->Disconnect();
+}
+
+void TcpServer::DisconnectSync(Socket* socket) {
+	LogAync(
+			LOG_DEBUG,
+			"TcpServer::DisconnectSync( "
+			"fd : %d, "
+			"socket : %p "
+			")",
+			socket->fd,
+			socket
+			);
+
+	// 马上断开, 停止监听epoll
+	StopEvIO(socket->w);
 
 	// 断开连接
 	socket->Disconnect();

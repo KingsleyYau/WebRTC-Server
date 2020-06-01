@@ -1237,7 +1237,9 @@ bool RtpSession::UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned 
 					rtpLostSize
 					);
 
-			SendRtcpPLI(ssrc);
+			if ( !IsAudioPkt(ssrc) ) {
+				SendRtcpPLI(ssrc);
+			}
 		}
 	}
 

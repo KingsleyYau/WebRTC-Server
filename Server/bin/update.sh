@@ -19,4 +19,4 @@ cp -rf file/* $DEST_PATH || exit 1
 echo -e "############## Updating mediaserver [\033[32mOK\033[0m] ##############"
 
 $DEST_PATH/script/restart_all_service.sh
-$DEST_PATH/script/restart_test_service.sh
+#$DEST_PATH/script/restart_test_service.sh
