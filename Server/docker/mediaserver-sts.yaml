@@ -14,10 +14,18 @@ spec:
   rules:
   - http:
       paths:
-      - path: /ws
+      - path: /test
         backend:
           serviceName: mediaserver-svc
           servicePort: 9981
+      - path: /mediaserver
+        backend:
+          serviceName: mediaserver-svc
+          servicePort: 9881      
+      - path: /camshare
+        backend:
+          serviceName: mediaserver-svc
+          servicePort: 9883           
 ---
 
 apiVersion: v1
@@ -34,15 +42,21 @@ spec:
   externalIPs:
   - 192.168.88.133
   ports:
-  - name: ws
+  - name: ws-live
+    protocol: TCP  
+    port: 9881  
+  - name: ws-camshare
+    protocol: TCP  
+    port: 9883  
+  - name: ws-test
     protocol: TCP  
     port: 9981
   - name: ice
     protocol: TCP
     port: 3478  
-  #- name: ice-udp
-  #  protocol: UDP 
-  #  port: 3478
+  - name: ice-udp
+    protocol: UDP 
+    port: 3478
 ---
 
 apiVersion: apps/v1
@@ -75,7 +89,13 @@ spec:
       - name: mediaserver
         image: 192.168.88.133:5000/mediaserver:1.0.1
         ports:
-        - name: ws
+        - name: ws-live
+          containerPort: 9881
+          protocol: TCP
+        - name: ws-camshare
+          containerPort: 9883
+          protocol: TCP          
+        - name: ws-test
           containerPort: 9981
           protocol: TCP
         - name: ice
@@ -85,12 +105,12 @@ spec:
           containerPort: 3478
           protocol: UDP
         volumeMounts:
-        #- mountPath: /app/live/mediaserver/log
-        #  name: hostlog
+        - mountPath: /app/live/mediaserver/log
+          name: mediaserver-volume
         command: ["/app/live/mediaserver/script/docker_init.sh"]
         args: []
       volumes:
-      - name: hostlog
+      - name: mediaserver-volume
         hostPath:
-          path: /tmp/mediaserver/log/
+          path: /var/mediaserver/log
       restartPolicy: Always
