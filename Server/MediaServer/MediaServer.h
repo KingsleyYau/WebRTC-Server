@@ -193,7 +193,7 @@ public:
 	/***************************** WebRTCCallback **************************************/
 	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type);
 	void OnWebRTCStartMedia(WebRTC *rtc);
-	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
+	void OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const string& errMsg);
 	void OnWebRTCClose(WebRTC *rtc);
 	/***************************** WebRTCCallback **************************************/
 
@@ -264,7 +264,7 @@ private:
 	/**
 	 * 获取错误信息结构体
 	 */
-	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType);
+	void GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType, const string msg = "");
 	/**
 	 * 外部同步在线状态
 	 */

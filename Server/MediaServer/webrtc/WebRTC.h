@@ -18,6 +18,7 @@
 #include <server/MainLoop.h>
 
 #include <common/KSafeList.h>
+#include <include/ErrCode.h>
 
 #include <rtp/DtlsSession.h>
 #include <rtp/RtpSession.h>
@@ -44,20 +45,6 @@ typedef struct SdpPayload {
 	string fmtp;
 } SdpPayload;
 
-typedef enum WebRTCErrorType {
-	WebRTCErrorType_None = 0,
-	WebRTCErrorType_Rtp2Rtmp_Start_Fail,
-	WebRTCErrorType_Rtp2Rtmp_Exit,
-	WebRTCErrorType_Unknow,
-} WebRTCErrorType;
-
-const string WebRTCErrorMsg[] = {
-	"",
-	"WebRTC Rtp Transform Rtmp Start Error.",
-	"WebRTC Rtp Transform Rtmp Exit Error.",
-	"WebRTC Unknow Error.",
-};
-
 typedef enum WebRTCMediaType {
 	WebRTCMediaType_BothVideoAudio,
 	WebRTCMediaType_OnlyVideo,
@@ -80,7 +67,7 @@ public:
 	virtual ~WebRTCCallback(){};
 	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type) = 0;
 	virtual void OnWebRTCStartMedia(WebRTC *rtc) = 0;
-	virtual void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) = 0;
+	virtual void OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const string& errMsg) = 0;
 	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
 };
 
@@ -124,11 +111,14 @@ public:
 	void Stop();
 	void UpdateCandidate(const string& sdp);
 	string GetRtmpUrl();
+	RequestErrorType GetLastErrorType();
+	string GetLastErrorMessage();
 
 private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
 	// IceClientCallback Implement
+	void OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType);
 	void OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceConnected(IceClient *ice);
@@ -250,6 +240,14 @@ private:
 	// 需要传输的媒体流类型
 	WebRTCMediaType mWebRTCMediaType;
 	bool mWebRTCMediaVideoFirst;
+
+	// ICE打洞
+	bool mbCandidate;
+	bool mbIceUfrag;
+	bool mbIcePwd;
+
+	// 最后一次错误码
+	RequestErrorType mLastErrorCode;
 };
 
 } /* namespace mediaserver */

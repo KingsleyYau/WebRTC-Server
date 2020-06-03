@@ -42,7 +42,7 @@ void* loop_thread(void *data) {
 
 void* niceLogFunc(const char *logBuffer) {
 	LogAync(
-			LOG_DEBUG,
+			LOG_INFO,
 			"IceClient::niceLogFunc( "
 			"[libnice], "
 			"%s "
@@ -74,8 +74,8 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 	gLoop = g_main_loop_new(gContext, FALSE);
 	gLoopThread = g_thread_new("IceClient", &loop_thread, gLoop);
 
-//	nice_debug_enable(TRUE);
-	nice_debug_disable(TRUE);
+	nice_debug_enable(TRUE);
+//	nice_debug_disable(TRUE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
 
 	return bFlag;
@@ -162,6 +162,7 @@ bool IceClient::Start() {
 		Stop();
 	}
 
+	mLastErrorCode = RequestErrorType_None;
 	mRunning = true;
 
 	mpAgent = nice_agent_new(g_main_loop_get_context(gLoop), NICE_COMPATIBILITY_RFC5245);
@@ -389,6 +390,14 @@ void IceClient::Stop() {
 				this,
 				agent
 				);
+	}
+	mClientMutex.unlock();
+}
+
+void IceClient::Close() {
+	mClientMutex.lock();
+	if ( mpAgent ) {
+		nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 	}
 	mClientMutex.unlock();
 }
@@ -672,6 +681,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 	    bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);
 	}
 	if ( bFlag ) {
+		bFlag = false;
 		vector<string> candArray;
 		string ipUse;
 		unsigned int portUse = 0;
@@ -736,7 +746,34 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			if( mpIceClientCallback ) {
 				mpIceClientCallback->OnIceCandidateGatheringDone(this, ipUse, portUse, candArray, ufrag, pwd);
 			}
+
+			bFlag = ParseRemoteSdp(streamId);
 		}
+	}
+
+	if ( !bFlag ) {
+		LogAync(
+				LOG_WARNING,
+				"IceClient::OnCandidateGatheringDone( "
+				"this : %p, "
+				"[CandidateGathering Fail], "
+				"streamId : %u, "
+				"localCandidate :\n%s"
+				")",
+				this,
+				streamId,
+				localCandidate
+				);
+		if( mpIceClientCallback ) {
+			mpIceClientCallback->OnIceCandidateGatheringFail(this, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail);
+		}
+
+		mClientMutex.lock();
+		if ( mpAgent ) {
+			mLastErrorCode = RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail;
+			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+		}
+		mClientMutex.unlock();
 	}
 
 	if ( ufrag ) {
@@ -748,8 +785,6 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 	if ( localCandidate ) {
 		g_free(localCandidate);
 	}
-
-	bFlag = ParseRemoteSdp(streamId);
 }
 
 void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state) {

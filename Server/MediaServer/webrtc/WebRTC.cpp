@@ -82,6 +82,12 @@ WebRTC::WebRTC()
 	mIsPull = false;
 	mRtmpUrl = "";
 
+	mbCandidate = false;
+	mbIceUfrag = false;
+	mbIcePwd = false;
+
+	mLastErrorCode = RequestErrorType_None;
+
 	mpSdpFile = NULL;
 	mSdpFilePath = "";
 	mRtpTransformPid = 0;
@@ -207,6 +213,7 @@ bool WebRTC::Start(
 	// Reset Param
 	mNeedTranscodeVideo = true;
 	mWebRTCMediaType = WebRTCMediaType_None;
+	mLastErrorCode = RequestErrorType_None;
 
 	mRtmpUrl = rtmpUrl;
 	mIsPull = isPull;
@@ -337,6 +344,10 @@ void WebRTC::Stop() {
 		mVideoSdpPayload.Reset();
 
 		mIsPull = false;
+
+		mbCandidate = false;
+		mbIceUfrag = false;
+		mbIcePwd = false;
 	}
 	mClientMutex.unlock();
 }
@@ -359,14 +370,28 @@ string WebRTC::GetRtmpUrl() {
 	return mRtmpUrl;
 }
 
+RequestErrorType WebRTC::GetLastErrorType() {
+	return mLastErrorCode;
+}
+
+string WebRTC::GetLastErrorMessage() {
+	if ( mLastErrorCode >= RequestErrorType_None && mLastErrorCode <= RequestErrorType_WebRTC_Rtp2Rtmp_Exit ) {
+		return RequestErrObjects[mLastErrorCode].errMsg;
+	} else {
+		return "";
+	}
+}
+
 bool WebRTC::ParseRemoteSdp(const string& sdp) {
 	LogAync(
 			LOG_INFO,
 			"WebRTC::ParseRemoteSdp( "
 			"this : %p, "
+			"rtmpUrl : %s, "
 			"sdp : \n%s"
 			")",
 			this,
+			mRtmpUrl.c_str(),
 			sdp.c_str()
 			);
 
@@ -662,7 +687,15 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								value.c_str()
 								);
 
-						if ( key == "mid" ) {
+						if ( key == "candidate" ) {
+							mbCandidate = true;
+						} else if ( key == "ice-ufrag" ) {
+							mbIceUfrag = true;
+						} else if ( key == "ice-pwd" ) {
+							mbIcePwd = true;
+						} else if ( key == "ice-options" ) {
+
+						} else if ( key == "mid" ) {
 							if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
 								mAudioMid = value;
 							} else if ( media->type == SDP_MEDIA_TYPE_VIDEO ) {
@@ -740,6 +773,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
 				"[Parse Remote SDP OK, %s], "
+				"rtmpUrl : %s, "
 				"mAudioMid : %s, "
 				"mAudioSSRC : 0x%08x(%u), "
 				"mAudioSdpPayload : %d %s/%u/%s, "
@@ -751,6 +785,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				")",
 				this,
 				mNeedTranscodeVideo?"Video Transcode":"Video Relay",
+				mRtmpUrl.c_str(),
 				mAudioMid.c_str(),
 				mAudioSSRC,
 				mAudioSSRC,
@@ -770,8 +805,23 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				);
 	}
 
+	bFlag &= mbCandidate & mbIceUfrag & mbIcePwd;
 	if( bFlag ) {
 		mIceClient.SetRemoteSdp(sdp);
+	} else {
+		LogAync(
+				LOG_WARNING,
+				"WebRTC::ParseRemoteSdp( "
+				"this : %p, "
+				"[Fail], "
+				"rtmpUrl : %s, "
+				"sdp : \n%s"
+				")",
+				this,
+				mRtmpUrl.c_str(),
+				sdp.c_str()
+				);
+		mLastErrorCode = RequestErrorType_WebRTC_No_Candidate_Info_Found_Fail;
 	}
 
 	return bFlag;
@@ -1446,6 +1496,26 @@ int WebRTC::SendData(const void *data, unsigned int len) {
 	return mIceClient.SendData(data, len);
 }
 
+void WebRTC::OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType) {
+	LogAync(
+			LOG_WARNING,
+			"WebRTC::OnIceCandidateGatheringFail( "
+			"this : %p, "
+			"ice : %p, "
+			"errType : %d, "
+			"rtmpUrl : %s "
+			")",
+			this,
+			ice,
+			errType,
+			mRtmpUrl.c_str()
+			);
+	mLastErrorCode = errType;
+	if( mpWebRTCCallback ) {
+		mpWebRTCCallback->OnWebRTCError(this, errType, "");
+	}
+}
+
 void WebRTC::OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) {
 	string candidate;
 	for(int i = 0; i < (int)candList.size(); i++) {
@@ -1707,8 +1777,9 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						mpWebRTCCallback->OnWebRTCStartMedia(this);
 					}
 				} else {
+					mLastErrorCode = RequestErrorType_WebRTC_Rtp2Rtmp_Start_Fail;
 					if( mpWebRTCCallback ) {
-						mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Start_Fail, WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Start_Fail]);
+						mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Rtp2Rtmp_Start_Fail, "");
 					}
 				}
 
@@ -1860,17 +1931,16 @@ void WebRTC::OnChildExit(int pid) {
         sdpLogFile = NULL;
 	}
 
-	if ( msg.length() == 0 ) {
-		msg = WebRTCErrorMsg[WebRTCErrorType_Rtp2Rtmp_Exit];
-	} else {
+	if ( msg.length() > 0 ) {
 		msg = StringHandle::replace(msg, "\n", ",");
 		if ( msg.length() > 1 ) {
 			msg = msg.substr(0, msg.length() - 1);
 		}
 	}
 
+	mLastErrorCode = RequestErrorType_WebRTC_Rtp2Rtmp_Exit;
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCError(this, WebRTCErrorType_Rtp2Rtmp_Exit, msg);
+		mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Rtp2Rtmp_Exit, msg);
 	}
 }
 

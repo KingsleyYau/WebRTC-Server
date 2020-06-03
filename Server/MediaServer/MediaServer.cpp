@@ -1052,36 +1052,9 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 			);
 }
 
-void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) {
+void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const string& errMsg) {
 	connection_hdl hdl;
 	bool bFound = false;
-
-	mWebRTCMap.Lock();
-	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
-	if( itr != mWebRTCMap.End() ) {
-		MediaClient *client = itr->second;
-		hdl = client->hdl;
-		bFound = true;
-
-		if( bFound ) {
-			Json::Value resRoot;
-			Json::FastWriter writer;
-
-			resRoot["id"] = client->id++;
-			resRoot["route"] = "imRTC/sendErrorNotice";
-			resRoot["errno"] = 0;
-			resRoot["errmsg"] = errMsg;
-
-			string res = writer.write(resRoot);
-			mWSServer.SendText(hdl, res);
-
-			if ( client->connected ) {
-				mWSServer.Disconnect(hdl);
-				client->connected = false;
-			}
-		}
-	}
-	mWebRTCMap.Unlock();
 
 	LogAync(
 			LOG_WARNING,
@@ -1099,6 +1072,32 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const stri
 			errType,
 			errMsg.c_str()
 			);
+
+	mWebRTCMap.Lock();
+	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
+	if( itr != mWebRTCMap.End() ) {
+		MediaClient *client = itr->second;
+		hdl = client->hdl;
+		bFound = true;
+
+		if( bFound ) {
+			Json::Value resRoot;
+			Json::FastWriter writer;
+
+			resRoot["id"] = client->id++;
+			resRoot["route"] = "imRTC/sendErrorNotice";
+			GetErrorObject(resRoot["errno"], resRoot["errmsg"], errType, errMsg);
+
+			string res = writer.write(resRoot);
+			mWSServer.SendText(hdl, res);
+
+			if ( client->connected ) {
+				mWSServer.Disconnect(hdl);
+				client->connected = false;
+			}
+		}
+	}
+	mWebRTCMap.Unlock();
 }
 
 void MediaServer::OnWebRTCClose(WebRTC *rtc) {
@@ -1414,7 +1413,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
 								} else {
-									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail);
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail, rtc->GetLastErrorType());
 								}
 
 							} else {
@@ -1527,7 +1526,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
 								} else {
-									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail);
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail, rtc->GetLastErrorMessage());
 								}
 
 							} else {
@@ -1556,10 +1555,18 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					}
 					mWebRTCMap.Unlock();
 				} else if ( route == "imRTC/sendGetToken" ) {
+					string userId = "";
+					if ( reqRoot["req_data"].isObject() ) {
+						Json::Value reqData = reqRoot["req_data"];
+						if( reqData["user_id"].isString() ) {
+							userId = reqData["user_id"].asString();
+						}
+					}
+
 					// 这里只需要精确到秒
-					char user[256] = {0};
+					char user[1024] = {0};
 					time_t timer = time(NULL);
-					snprintf(user, sizeof(user) - 1, "%lu:client", timer + mTurnClientTTL);
+					snprintf(user, sizeof(user) - 1, "%lu:%s", timer + mTurnClientTTL, (userId.length() > 0)?userId.c_str():"client");
 					string password = Crypto::Sha1("mediaserver12345", user);
 					Arithmetic art;
 					string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
@@ -1632,10 +1639,10 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	}
 }
 
-void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType) {
+void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType, const string msg) {
 	ErrObject obj = RequestErrObjects[errType];
 	resErrorNo = obj.errNo;
-	resErrorMsg = obj.errMsg;
+	resErrorMsg = (msg.length() > 0)?msg:obj.errMsg;
 }
 
 bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
