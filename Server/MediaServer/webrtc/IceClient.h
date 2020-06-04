@@ -62,7 +62,6 @@ public:
 public:
 	bool Start();
 	void Stop();
-	void Close();
 	int SendData(const void *data, unsigned int len);
 
 public:

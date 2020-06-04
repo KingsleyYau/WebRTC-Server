@@ -394,14 +394,6 @@ void IceClient::Stop() {
 	mClientMutex.unlock();
 }
 
-void IceClient::Close() {
-	mClientMutex.lock();
-	if ( mpAgent ) {
-		nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
-	}
-	mClientMutex.unlock();
-}
-
 void IceClient::SetCallback(IceClientCallback *callback) {
 	mpIceClientCallback = callback;
 }
@@ -768,12 +760,10 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			mpIceClientCallback->OnIceCandidateGatheringFail(this, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail);
 		}
 
-		mClientMutex.lock();
 		if ( mpAgent ) {
 			mLastErrorCode = RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail;
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 		}
-		mClientMutex.unlock();
 	}
 
 	if ( ufrag ) {
@@ -807,11 +797,9 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			mpIceClientCallback->OnIceConnected(this);
 		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
-		mClientMutex.lock();
 		if ( mpAgent ) {
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 		}
-		mClientMutex.unlock();
 	}
 }
 

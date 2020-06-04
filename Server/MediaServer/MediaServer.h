@@ -45,7 +45,7 @@ using namespace mediaserver;
 #include <list>
 using namespace std;
 
-#define REQUEST_TIME_OUT_MS 30000
+#define REQUEST_TIME_OUT_MS 300000
 
 // 在线连接对象
 struct MediaClient {

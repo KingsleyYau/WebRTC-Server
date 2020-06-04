@@ -467,12 +467,27 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 				if ( session->media_count == 2 ) {
 					mWebRTCMediaType = WebRTCMediaType_BothVideoAudio;
-				} else {
+				} else if ( session->media_count == 1 ) {
 					if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
 						mWebRTCMediaType = WebRTCMediaType_OnlyAudio;
 					} else {
 						mWebRTCMediaType = WebRTCMediaType_OnlyVideo;
 					}
+				} else {
+					LogAync(
+							LOG_WARNING,
+							"WebRTC::ParseRemoteSdp( "
+							"this : %p, "
+							"[Error Remote Media Count], "
+							"media_type : %s, "
+							"media_attr_count : %d "
+							")",
+							this,
+							sdp_media_type_str(media->type),
+							media->attr_count
+							);
+					bFlag = false;
+					break;
 				}
 
 				for(int i = 0; i < (int)media->payload_type_array_count; i++) {
