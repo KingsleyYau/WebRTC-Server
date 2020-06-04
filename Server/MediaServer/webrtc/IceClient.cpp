@@ -762,7 +762,9 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 
 		if ( mpAgent ) {
 			mLastErrorCode = RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail;
+			mCloseCond.lock();
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+			mCloseCond.unlock();
 		}
 	}
 
@@ -797,9 +799,11 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			mpIceClientCallback->OnIceConnected(this);
 		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
+		mCloseCond.lock();
 		if ( mpAgent ) {
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 		}
+		mCloseCond.unlock();
 	}
 }
 
