@@ -1,0 +1,99 @@
+define show-ss
+  print "is_valid"
+	print ss->alloc->is_valid
+	print "method"
+	print method
+	print "postpone_reply"
+	print postpone_reply
+	print "ss->oauth"
+	print ss->oauth
+	print "ss->username"
+	print ss->username
+	print "ss->hmackey_set"
+	print ss->hmackey_set
+	print "ss->pwd[0]"
+	print ss->pwd[0]
+end
+
+define show-sha
+  print "key"
+	print key
+	print "sarlen"
+	print sarlen
+	print "shatype"
+	print shatype
+end
+
+define show-can_resume
+	print "can_resume"
+	print can_resume
+end
+
+define show-hmackey_set
+	print "ss->oauth"
+	print ss->oauth
+	print "ss->username"
+	print ss->username
+	print "username"
+	print username
+end
+
+define show-username_check
+	print "success"
+	print success
+	print "in_buffer"
+	print in_buffer
+	print "in_buffer->nbh"
+	print in_buffer->nbh
+	print "server"
+	print server
+	print "oauth"
+	print oauth
+end
+
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
+
+break ns_turn_server.c:3728
+#break ns_turn_server.c:3745 
+break ns_turn_msg.c:1875 
+break ns_turn_server.c:3478
+break ns_turn_server.c:3499
+break ns_turn_server.c:2478
+break ns_turn_server.c:3489
+break ns_turn_server.c:3430
+break ns_turn_server.c:3255
+
+commands 1
+  show-ss
+  c
+end
+
+commands 2
+  show-sha
+  c
+end
+
+commands 3
+  show-can_resume
+  c
+end
+
+commands 4 5
+  show-can_resume
+  c
+end
+
+commands 7
+  show-hmackey_set
+  c
+end
+
+commands 8
+  show-username_check
+  c
+end

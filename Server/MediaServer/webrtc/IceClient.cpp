@@ -760,12 +760,12 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			mpIceClientCallback->OnIceCandidateGatheringFail(this, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail);
 		}
 
+		mCloseCond.lock();
 		if ( mpAgent ) {
 			mLastErrorCode = RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail;
-			mCloseCond.lock();
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
-			mCloseCond.unlock();
 		}
+		mCloseCond.unlock();
 	}
 
 	if ( ufrag ) {

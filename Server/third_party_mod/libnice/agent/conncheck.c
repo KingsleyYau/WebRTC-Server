@@ -2000,49 +2000,59 @@ static CandidateCheckPair *priv_add_new_check_pair (NiceAgent *agent,
   g_assert (remote != NULL);
 
   stream = agent_find_stream (agent, stream_id);
-  pair = g_slice_new0 (CandidateCheckPair);
-
-  pair->stream_id = stream_id;
-  pair->component_id = component->id;;
-  pair->local = local;
-  pair->remote = remote;
-  /* note: we use the remote sockptr only in the case
-   * of TCP transport
+  /**
+   * Modify by Max 2020/06/05
+   * Fix crash if candidate come after stream remove
    */
-  if (local->transport == NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE &&
-      remote->type == NICE_CANDIDATE_TYPE_PEER_REFLEXIVE)
-    pair->sockptr = (NiceSocket *) remote->sockptr;
-  else
-    pair->sockptr = (NiceSocket *) local->sockptr;
-  g_snprintf (pair->foundation, NICE_CANDIDATE_PAIR_MAX_FOUNDATION, "%s:%s", local->foundation, remote->foundation);
+  if ( stream != NULL ) {
+	  pair = g_slice_new0 (CandidateCheckPair);
 
-  pair->priority = agent_candidate_pair_priority (agent, local, remote);
-  nice_debug ("Agent %p : creating a new pair", agent);
-  SET_PAIR_STATE (agent, pair, initial_state);
-  {
-      gchar tmpbuf1[INET6_ADDRSTRLEN];
-      gchar tmpbuf2[INET6_ADDRSTRLEN];
-      nice_address_to_string (&pair->local->addr, tmpbuf1);
-      nice_address_to_string (&pair->remote->addr, tmpbuf2);
-      nice_debug ("Agent %p : new pair %p : [%s]:%u --> [%s]:%u", agent, pair,
-          tmpbuf1, nice_address_get_port (&pair->local->addr),
-          tmpbuf2, nice_address_get_port (&pair->remote->addr));
-  }
-  pair->prflx_priority = ensure_unique_priority (stream, component,
-      peer_reflexive_candidate_priority (agent, local));
+	  pair->stream_id = stream_id;
+	  pair->component_id = component->id;;
+	  pair->local = local;
+	  pair->remote = remote;
+	  /* note: we use the remote sockptr only in the case
+	   * of TCP transport
+	   */
+	  if (local->transport == NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE &&
+	      remote->type == NICE_CANDIDATE_TYPE_PEER_REFLEXIVE)
+	    pair->sockptr = (NiceSocket *) remote->sockptr;
+	  else
+	    pair->sockptr = (NiceSocket *) local->sockptr;
+	  g_snprintf (pair->foundation, NICE_CANDIDATE_PAIR_MAX_FOUNDATION, "%s:%s", local->foundation, remote->foundation);
 
-  stream->conncheck_list = g_slist_insert_sorted (stream->conncheck_list, pair,
-      (GCompareFunc)conn_check_compare);
+	  pair->priority = agent_candidate_pair_priority (agent, local, remote);
+	  nice_debug ("Agent %p : creating a new pair", agent);
+	  SET_PAIR_STATE (agent, pair, initial_state);
+	  {
+	      gchar tmpbuf1[INET6_ADDRSTRLEN];
+	      gchar tmpbuf2[INET6_ADDRSTRLEN];
+	      nice_address_to_string (&pair->local->addr, tmpbuf1);
+	      nice_address_to_string (&pair->remote->addr, tmpbuf2);
+	      nice_debug ("Agent %p : new pair %p : [%s]:%u --> [%s]:%u", agent, pair,
+	          tmpbuf1, nice_address_get_port (&pair->local->addr),
+	          tmpbuf2, nice_address_get_port (&pair->remote->addr));
+	  }
+	  pair->prflx_priority = ensure_unique_priority (stream, component,
+	      peer_reflexive_candidate_priority (agent, local));
 
-  nice_debug ("Agent %p : added a new pair %p with foundation '%s' to "
-      "stream %u component %u.", agent, pair, pair->foundation, stream_id,
-      component->id);
+	  stream->conncheck_list = g_slist_insert_sorted (stream->conncheck_list, pair,
+	      (GCompareFunc)conn_check_compare);
 
-  /* implement the hard upper limit for number of
-     checks (see sect 5.7.3 ICE ID-19): */
-  if (agent->compatibility == NICE_COMPATIBILITY_RFC5245) {
-    stream->conncheck_list = priv_limit_conn_check_list_size (agent,
-        stream->conncheck_list, agent->max_conn_checks);
+	  nice_debug ("Agent %p : added a new pair %p with foundation '%s' to "
+	      "stream %u component %u.", agent, pair, pair->foundation, stream_id,
+	      component->id);
+
+	  /* implement the hard upper limit for number of
+	     checks (see sect 5.7.3 ICE ID-19): */
+	  if (agent->compatibility == NICE_COMPATIBILITY_RFC5245) {
+	    stream->conncheck_list = priv_limit_conn_check_list_size (agent,
+	        stream->conncheck_list, agent->max_conn_checks);
+	  }
+  } else {
+	  nice_debug ("Agent %p : no stream for a new pair with foundation '%s:%s' to "
+	      "stream %u component %u.", agent, local->foundation, remote->foundation, stream_id,
+	      component->id);
   }
 
   return pair;
@@ -2074,17 +2084,27 @@ static CandidateCheckPair *priv_conn_check_add_for_candidate_pair_matched (
 
   pair = priv_add_new_check_pair (agent, stream_id, component, local, remote,
       initial_state);
-  if (component->state == NICE_COMPONENT_STATE_CONNECTED ||
-      component->state == NICE_COMPONENT_STATE_READY) {
-    agent_signal_component_state_change (agent,
-        stream_id,
-        component->id,
-        NICE_COMPONENT_STATE_CONNECTED);
+  /**
+   * Modify by Max 2020/06/05
+   * Fix crash if candidate come after stream remove
+   */
+  if ( pair != NULL ) {
+	  if (component->state == NICE_COMPONENT_STATE_CONNECTED ||
+	      component->state == NICE_COMPONENT_STATE_READY) {
+	    agent_signal_component_state_change (agent,
+	        stream_id,
+	        component->id,
+	        NICE_COMPONENT_STATE_CONNECTED);
+	  } else {
+	    agent_signal_component_state_change (agent,
+	        stream_id,
+	        component->id,
+	        NICE_COMPONENT_STATE_CONNECTING);
+	  }
   } else {
-    agent_signal_component_state_change (agent,
-        stream_id,
-        component->id,
-        NICE_COMPONENT_STATE_CONNECTING);
+	  nice_debug ("Agent %p : invalid pair %p with foundation '%s' to "
+	      "stream %u component %u.", agent, pair, pair->foundation, stream_id,
+	      component->id);
   }
 
   return pair;
@@ -2813,8 +2833,16 @@ static gboolean priv_schedule_triggered_check (NiceAgent *agent, NiceStream *str
     nice_debug ("Agent %p : Adding a triggered check to conn.check list (local=%p).", agent, local);
     p = priv_conn_check_add_for_candidate_pair_matched (agent, stream->id,
         component, local, remote_cand, NICE_CHECK_WAITING);
-    priv_add_pair_to_triggered_check_queue (agent, p);
-    return TRUE;
+    /**
+     * Modify by Max 2020/06/05
+     * Fix crash if candidate come after stream remove
+     */
+    if ( p ) {
+    	priv_add_pair_to_triggered_check_queue (agent, p);
+    	return TRUE;
+    } else {
+    	return FALSE;
+    }
   }
   else {
     nice_debug ("Agent %p : Didn't find a matching pair for triggered check (remote-cand=%p).", agent, remote_cand);
