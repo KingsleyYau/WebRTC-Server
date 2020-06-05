@@ -1413,7 +1413,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
 								} else {
-									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail, rtc->GetLastErrorType());
+									GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_Start_Fail, rtc->GetLastErrorMessage());
 								}
 
 							} else {
@@ -1567,9 +1567,11 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					char user[1024] = {0};
 					time_t timer = time(NULL);
 					snprintf(user, sizeof(user) - 1, "%lu:%s", timer + mTurnClientTTL, (userId.length() > 0)?userId.c_str():"client");
-					string password = Crypto::Sha1("mediaserver12345", user);
+//					string password = Crypto::Sha1("mediaserver12345", user);
+					unsigned char sha1Pwd[EVP_MAX_MD_SIZE + 1] = {0};
+					int length = Crypto::Sha1("mediaserver12345", user, sha1Pwd);
 					Arithmetic art;
-					string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
+					string base64 = art.Base64Encode((const char *)sha1Pwd, length);
 
 					LogAync(
 							LOG_NOTICE,

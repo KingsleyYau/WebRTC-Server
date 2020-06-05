@@ -236,9 +236,11 @@ bool IceClient::Start() {
 			char user[256] = {0};
 			time_t timer = time(NULL);
 			snprintf(user, sizeof(user) - 1, "%lu:mediaserver", timer + 3600);
-			password = Crypto::Sha1(gTurnShareSecret, user);
+//			password = Crypto::Sha1(gTurnShareSecret, user);
+			unsigned char sha1Pwd[EVP_MAX_MD_SIZE + 1] = {0};
+			int length = Crypto::Sha1(gTurnShareSecret, user, sha1Pwd);
 			Arithmetic art;
-			string base64 = art.Base64Encode((const char *)password.c_str(), password.length());
+			string base64 = art.Base64Encode((const char *)sha1Pwd, length);
 
 			username = user;
 			password = base64;

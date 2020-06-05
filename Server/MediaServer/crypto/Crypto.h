@@ -14,6 +14,8 @@
 #include <string>
 using namespace std;
 
+#include <openssl/hmac.h>
+
 namespace mediaserver {
 
 class Crypto {
@@ -22,7 +24,7 @@ public:
 	virtual ~Crypto();
 
 public:
-	static string Sha1(const string& key, const string& data);
+	static int Sha1(const string& key, const string& data, unsigned char* result);
 };
 
 } /* namespace mediaserver */
