@@ -80,7 +80,8 @@ public:
 			unsigned int rtpDstAudioPort = 10000
 			);
 	bool Start(
-			const string& sdp
+			const string& sdp,
+			const string& name
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
@@ -89,6 +90,7 @@ private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
 	// IceClientCallback Implement
+	void OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType);
 	void OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd);
 	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceConnected(IceClient *ice);

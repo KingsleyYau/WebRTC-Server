@@ -1,0 +1,11 @@
+file webrtc-tester
+set args -turn 192.168.88.138
+handle SIGPIPE noprint
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
+source gdb_tester.break
+run

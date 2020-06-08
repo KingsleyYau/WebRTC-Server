@@ -22,9 +22,9 @@ using namespace mediaserver;
 // Common
 #include <common/LogManager.h>
 
-char ws[128] = {"192.168.88.133:9881"};
-char turn[128] = {"192.168.88.134"};
-char interface[128] = {""};
+char ws[128] = {"192.168.88.133:9981"};
+char turn[128] = {"192.168.88.133"};
+char interface[128] = {"192.168.88.134"};
 char name[128] = {"tester"};
 int iCurrent = 0;
 int iTotal = 1;
@@ -69,8 +69,8 @@ int main(int argc, char *argv[]) {
 
 	srand(time(0));
 
-	LogManager::GetLogManager()->Start(LOG_WARNING, "./log");
-	LogManager::GetLogManager()->SetDebugMode(true);
+	LogManager::GetLogManager()->Start(LOG_NOTICE, "./log");
+	LogManager::GetLogManager()->SetDebugMode(false);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
 	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
@@ -95,13 +95,13 @@ bool Parse(int argc, char *argv[]) {
 		key = argv[i];
 		value = argv[i+1];
 
-		if( key.compare("-h") == 0 ) {
+		if( key.compare("-ws") == 0 ) {
 			memset(ws, 0, sizeof(ws));
 			memcpy(ws, value.c_str(), value.length());
 		} else if( key.compare("-name") == 0 ) {
 			memset(name, 0, sizeof(name));
 			memcpy(name, value.c_str(), value.length());
-		} else if( key.compare("-s") == 0 ) {
+		} else if( key.compare("-turn") == 0 ) {
 			memset(turn, 0, sizeof(turn));
 			memcpy(turn, value.c_str(), value.length());
 		} else if( key.compare("-i") == 0 ) {
@@ -114,7 +114,9 @@ bool Parse(int argc, char *argv[]) {
 		}
 	}
 
-	printf("# [ws : %s], [turn : %s], [name : %s], [iTotal : %d], [iReconnect : %d]\n", ws, turn, name, iTotal, iReconnect);
+	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -turn [TurnHost]  -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] \n");
+	printf("# Example: ./webrtc-tester -ws %s -turn %s -name %s -i %s -n %d -r %d \n", ws, turn, name, interface, iTotal, iReconnect);
+	printf("# [ws : %s], [turn : %s], [name : %s], [interface : %s], [iTotal : %d], [iReconnect : %d]\n", ws, turn, name, interface, iTotal, iReconnect);
 
 	return true;
 }

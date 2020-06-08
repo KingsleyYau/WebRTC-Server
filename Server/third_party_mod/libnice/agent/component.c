@@ -169,6 +169,11 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
 {
   GSList *i;
   NiceStream *stream;
+  /**
+   * Add Debug Log
+   * Add by Max 2020/06/08
+   */
+  bool stateChange = FALSE;
 
   stream = agent_find_stream (agent, cmp->stream_id);
 
@@ -185,6 +190,7 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
       nice_component_clear_selected_pair (cmp);
       agent_signal_component_state_change (agent, cmp->stream_id,
           cmp->id, NICE_COMPONENT_STATE_FAILED);
+      stateChange = TRUE;
     }
 
     refresh_prune_candidate (agent, candidate);
@@ -203,6 +209,17 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
 
     cmp->local_candidates = g_slist_delete_link (cmp->local_candidates, i);
     i = next;
+  }
+
+  /**
+   * Add by Max 2020/06/08
+   */
+  discovery_prune_socket (agent, nsocket);
+  if ( !stateChange ) {
+      agent_signal_component_state_change (agent, cmp->stream_id,
+          cmp->id, NICE_COMPONENT_STATE_FAILED);
+      agent_unlock_and_emit(agent);
+      agent_lock(agent);
   }
 
   nice_component_detach_socket (cmp, nsocket);

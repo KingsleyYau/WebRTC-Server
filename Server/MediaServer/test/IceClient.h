@@ -12,6 +12,8 @@
 #include <common/KMutex.h>
 #include <common/KCond.h>
 
+#include <include/ErrCode.h>
+
 #include <string>
 #include <vector>
 using namespace std;
@@ -23,6 +25,7 @@ class IceClient;
 class IceClientCallback {
 public:
 	virtual ~IceClientCallback(){};
+	virtual void OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType) = 0;
 	virtual void OnIceCandidateGatheringDone(IceClient *ice, const string& ip, unsigned int port, vector<string> candList, const string& ufrag, const string& pwd) = 0;
 	virtual void OnIceNewSelectedPairFull(IceClient *ice) = 0;
 	virtual void OnIceConnected(IceClient *ice) = 0;
@@ -50,7 +53,7 @@ public:
 	void SetRemoteSdp(const string& sdp);
 
 public:
-	bool Start();
+	bool Start(const string& name);
 	void Stop();
 	int SendData(const void *data, unsigned int len);
 
@@ -87,6 +90,11 @@ private:
 
 	KCond mCloseCond;
 	KCond mStreamRemoveCond;
+
+	// 最后一次错误码
+	RequestErrorType mLastErrorCode;
+
+	string mName;
 };
 
 } /* namespace mediaserver */

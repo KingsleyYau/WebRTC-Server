@@ -27,7 +27,7 @@ public:
 	Tester();
 	~Tester();
 
-	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index);
+	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index, bool bReconnect = true);
 	bool Start();
 	void Disconnect();
 
@@ -48,6 +48,7 @@ public:
 
 	WebRTC rtc;
 	int index;
+	bool bReconnect;
 
 	KMutex mMutex;
 };

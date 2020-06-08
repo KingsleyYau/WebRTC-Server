@@ -23,7 +23,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
     switch (ev) {
 		case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST:{
         	LogAync(
-        			LOG_INFO,
+        			LOG_NOTICE,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Handshake_Request], "
@@ -44,14 +44,17 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
 					tester,
 					tester->index
         			);
-        	tester->rtc.Start("");
+        	char name[1024] = {0};
+        	snprintf(name, sizeof(name), "%s", tester->stream.c_str());
+        	string iceName = name;
+        	tester->rtc.Start("", iceName);
 
         }break;
         case MG_EV_WEBSOCKET_FRAME:{
             // Receive Data
         	string str((const char*)wm->data, wm->size);
         	LogAync(
-        			LOG_INFO,
+        			LOG_NOTICE,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Recv_Data], "
@@ -81,7 +84,10 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         			);
 
         	tester->rtc.Stop();
-        	tester->Start();
+
+        	if ( tester->bReconnect ) {
+            	tester->Start();
+        	}
 
         }break;
     }
@@ -91,17 +97,19 @@ Tester::Tester() : mMutex(KMutex::MutexType_Recursive) {
 	mgr = NULL;
 	conn = NULL;
 	index = 0;
+	bReconnect = true;
 }
 
 Tester::~Tester() {
 
 }
 
-bool Tester::Init(mg_mgr *mgr, const string& url, const string& stream, int index) {
+bool Tester::Init(mg_mgr *mgr, const string& url, const string& stream, int index, bool bReconnect) {
 	this->mgr = mgr;
 	this->url = url;
 	this->stream = stream;
 	this->index = index;
+	this->bReconnect = bReconnect;
 
 	rtc.Init("./push.sh", "127.0.0.1", 10000 + index);
 	rtc.SetCallback(this);
@@ -113,7 +121,7 @@ bool Tester::Start() {
     bool bFlag = false;
 
 	LogAync(
-			LOG_INFO,
+			LOG_NOTICE,
 			"Tester::Start( "
 			"this : %p, "
 			"url : %s, "
@@ -360,7 +368,7 @@ bool WebRTCTester::Start(const string& stream, const string& webSocketServer, un
 		sprintf(indexStr, "%u", i);
 		string wholeStream = stream + indexStr;
 
-		tester->Init(&mMgr, mWebSocketServer, wholeStream, i);
+		tester->Init(&mMgr, mWebSocketServer, wholeStream, i, (miReconnect >= 0));
 		tester->Start();
 	}
 
@@ -399,7 +407,7 @@ bool WebRTCTester::IsRunning() {
 
 void WebRTCTester::MainThread() {
 	LogAync(
-			LOG_INFO,
+			LOG_NOTICE,
 			"WebRTCTester::MainThread( [Start] )"
 			);
 
@@ -441,7 +449,7 @@ void WebRTCTester::MainThread() {
 	}
 
 	LogAync(
-			LOG_INFO,
+			LOG_NOTICE,
 			"WebRTCTester::MainThread( [Exit] )"
 			);
 }
