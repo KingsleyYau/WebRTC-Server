@@ -1,5 +1,11 @@
-file media-server
-set args -f media-server.config
+file mediaserver
+set args -f mediaserver.config
 handle SIGPIPE noprint
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
 source gdb.break
 run

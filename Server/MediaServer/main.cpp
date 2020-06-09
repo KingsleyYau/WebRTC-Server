@@ -115,9 +115,9 @@ void SignalFunc(int sign_no) {
 	case SIGCHLD:{
 		int status;
 		int pid = waitpid(-1, &status, WNOHANG);
-		LogAync(
-				LOG_INFO, "main( waitpid : %d )", pid
-				);
+//		LogAync(
+//				LOG_INFO, "main( waitpid : %d )", pid
+//				);
 		MainLoop::GetMainLoop()->Call(pid);
 	}break;
 	default:{
