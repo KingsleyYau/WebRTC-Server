@@ -330,7 +330,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 							payload.fmtp
 							);
 
-					if ( 0 == strcmp(payload.encoding_name, "H264") ) {
+					if ( (payload.encoding_name) && 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
 								LOG_NOTICE,
 								"WebRTC::ParseRemoteSdp( "
@@ -357,7 +357,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 
 						break;
 
-					} else if ( 0 == strcmp(payload.encoding_name, "opus") ) {
+					} else if ( (payload.encoding_name) && 0 == strcmp(payload.encoding_name, "opus") ) {
 						LogAync(
 								LOG_NOTICE,
 								"WebRTC::ParseRemoteSdp( "

@@ -509,7 +509,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 							payload.fmtp
 							);
 
-					if ( 0 == strcmp(payload.encoding_name, "VP8") ) {
+					if ( (payload.encoding_name) && 0 == strcmp(payload.encoding_name, "VP8") ) {
 						LogAync(
 								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
@@ -535,7 +535,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 							mVideoSdpPayload.fmtp = payload.fmtp?payload.fmtp:"";
 						}
 
-					} else if ( 0 == strcmp(payload.encoding_name, "H264") ) {
+					} else if ( (payload.encoding_name) && 0 == strcmp(payload.encoding_name, "H264") ) {
 						LogAync(
 								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
@@ -656,7 +656,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								}
 							}
 						}
-					} else if ( 0 == strcmp(payload.encoding_name, "opus") ) {
+					} else if ( (payload.encoding_name) && 0 == strcmp(payload.encoding_name, "opus") ) {
 						LogAync(
 								LOG_INFO,
 								"WebRTC::ParseRemoteSdp( "
