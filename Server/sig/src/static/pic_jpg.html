@@ -4,6 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style id="compiled-css" type="text/css">
+        .display-flex {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .div-size {
+            /*border: 1px solid red;*/
+            width: 230px;
+            height: 230px;
+            background-size: contain;
+            background-position: center;
+        }
+    </style>
 </head>
 
 <script src="jquery.min.js"></script>
@@ -14,10 +29,17 @@
         });
 
         for(let i = 0; i < 1000; i++) {
-            let imgId=  'img' + i;
-            let img = "<img id=" + imgId + " width='200' ></img>";
+            let div = "<div id=div" + i + " class=div-size>"+ "</div>";
             let main = $("[id=main]");
-            main.append(img);
+            main.append(div);
+
+            let imgId=  'img' + i;
+            let label = "<label id=label" + imgId + "></label>"
+            let img = "<img id=" + imgId + " width='230' ></img>";
+            div = $("[id=div" + i + "]");
+
+            div.append(label);
+            div.append(img);
         }
 
         reload();
@@ -39,6 +61,10 @@
                         let url = item + '?' +now.getTime();
                         img.attr('src', url);
                         i++;
+
+                        let label = $('#label' + imgId);
+                        let name = item.substr(item.lastIndexOf('/') + 1);
+                        label.html(name);
                         // let img = "<img width='200' src='" + item + "'>";
                         // $("[id=main]").append(img);
                     });
@@ -71,7 +97,7 @@
 </script>
 
 <body>
-    <div id="main">
+    <div id="main" class="display-flex">
     </div>
 </body>
 </html>

