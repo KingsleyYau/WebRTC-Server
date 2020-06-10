@@ -23,29 +23,42 @@
 
 <script src="jquery.min.js"></script>
 <script>
+    start = false;
     function onload() {
-        $("[id=empty]").click( () => {
-            $("[id=main]").empty();
+        $("[id=startBtn]").click(function () {
+            start = true;
+            reload();
         });
 
-        for(let i = 0; i < 1000; i++) {
-            let div = "<div id=div" + i + " class=div-size>"+ "</div>";
-            let main = $("[id=main]");
-            main.append(div);
+        $("[id=stopBtn]").click(function () {
+            start = false;
+        });
 
-            let imgId=  'img' + i;
-            let label = "<label id=label" + imgId + "></label>"
-            let img = "<img id=" + imgId + " width='230' ></img>";
-            div = $("[id=div" + i + "]");
+        $("[id=emptyBtn]").click( () => {
+            $("[id=main]").empty();
 
-            div.append(label);
-            div.append(img);
-        }
+            for(let i = 0; i < 1000; i++) {
+                let div = "<div id=div" + i + " class=div-size>"+ "</div>";
+                let main = $("[id=main]");
+                main.append(div);
 
-        reload();
+                let imgId=  'img' + i;
+                let label = "<label id=label" + imgId + "></label>"
+                let img = "<img id=" + imgId + " width='230' ></img>";
+                div = $("[id=div" + i + "]");
+
+                div.append(label);
+                div.append(img);
+            }
+        });
+        $("[id=emptyBtn]").click();
+        $("[id=startBtn]").click();
     }
 
     function reload() {
+        if ( !start ) {
+            return;
+        }
         console.log("reload()");
         let xhr = new XMLHttpRequest();
         xhr.open("GET", "/pic_jpg", true);
@@ -72,6 +85,8 @@
                         let imgId=  'img' + j;
                         let img = $('#' + imgId);
                         img.removeAttr("src");
+                        let label = $('#label' + imgId);
+                        label.html("");
                     }
                 } else {
                     console.error(xhr.statusText);
@@ -97,6 +112,9 @@
 </script>
 
 <body>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn">Stop</button>
+    <button id="emptyBtn">Empty</button>
     <div id="main" class="display-flex">
     </div>
 </body>
