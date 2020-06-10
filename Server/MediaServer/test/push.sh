@@ -32,12 +32,12 @@ if [ "$TRANSCODE" -eq "1" ]
 then
 $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 \
 				-re -stream_loop -1 -i $FILE \
-				-vcodec libx264 -preset superfast -r 12 -g 12 -profile:v baseline -level 3.0 -b:v 500k -an -payload_type 102 -ssrc 0x12345678 -cname video -force_key_frames 'expr:gte(t,n_forced*5)' -f rtp $RTP_URL \
+				-vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -b:v 1000k -an -payload_type 102 -ssrc 0x12345678 -cname video -f rtp $RTP_URL \
 				-acodec opus -strict -2 -ac 1 -vn -payload_type 111 -ssrc 0x12345679 -cname audio -f rtp $RTP_URL >/dev/null 2>&1 &
 else
 $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" -thread_queue_size 1024 \
 				-re -stream_loop -1 -i $FILE \
-				-vcodec copy -an -payload_type 102 -ssrc 0x12345678 -cname video -f rtp $RTP_URL \
+				-vcodec copy -bsf:v h264_mp4toannexb -an -payload_type 102 -ssrc 0x12345678 -cname video -f rtp $RTP_URL \
 				-acodec opus -strict -2 -ac 1 -vn -payload_type 111 -ssrc 0x12345679 -cname audio -f rtp $RTP_URL >/dev/null 2>&1 &
 fi
 
