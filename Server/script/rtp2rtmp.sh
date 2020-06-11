@@ -59,7 +59,7 @@ then
           -thread_queue_size 1024 \
           -i $SDP_FILE \
           -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -g 12 \
-          -acodec:a libfdk_aac -strict -2 -ar 44100 -ac 1 \
+          -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &
 else
