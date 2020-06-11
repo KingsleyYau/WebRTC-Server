@@ -55,6 +55,7 @@
 <script src="crypto-js/pad-zeropadding.js"></script>
 <!--<script src="aes.js"></script>-->
 <!--<script src="socket.io.js"></script>-->
+<script src="flvjs/flv.js"></script>
 
 <script>
     const qvgaConstraints = {
@@ -890,12 +891,14 @@
     function onload() {
         if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert('WebRTC.mediaDevices is not supported.');
-            return;
+        } else {
+            navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+            var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+            console.log('SupportedConstraints : ', supportedConstraints);
         }
 
         if (!window.RTCPeerConnection) {
             alert('WebRTC.RTCPeerConnection is not supported.');
-            return;
         }
 
         console.log("Browser is " + adapter.browserDetails.browser);
@@ -996,6 +999,13 @@
             });
         });
 
+        $("[id=flvjsBtn]").click(function () {
+            flv_load_mds($("#stream").val());
+        });
+        $("[id=flvjsDestroyBtn]").click(function () {
+            flv_destroy();
+        });
+
         // Choose video constraints
         getVideoWithConstraints(vgaConstraints, 'VGA');
         $("[id=qvgaBtn]").click(function () {
@@ -1034,12 +1044,44 @@
         videoConstraints = constraints;
     }
 
+    function flv_load_mds(stream) {
+        let mediaDataSource = {
+            url:'http://192.168.88.133:8889/flv8889?app=cdn_standard&stream=' + stream,
+            type: 'flv',
+            isLive: 1,
+            hasAudio:1,
+            hasVideo:1,
+        };
+
+        flv_destroy();
+        player = flvjs.createPlayer(mediaDataSource, {
+            enableWorker: false,
+            lazyLoadMaxDuration: 3 * 60,
+            seekType: 'range',
+            autoCleanupMaxBackwardDuration: 3,
+            autoCleanupMinBackwardDuration: 1,
+        });
+
+        let element = $("[id=flvjsVideo]")[0];
+        $("[id=flvjsVideo]").attr("style", 'display: block');
+        player.attachMediaElement(element);
+        player.load();
+    }
+
+    function flv_destroy() {
+        if ( typeof player != "undefined" && player != null ) {
+            player.pause();
+            player.unload();
+            player.detachMediaElement();
+            player.destroy();
+            player = null;
+        }
+        $("[id=flvjsVideo]").attr("style", 'display: none');
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         onload();
         showUserAgent();
-        navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
-        var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log('SupportedConstraints : ', supportedConstraints);
     });
     // window.onload = onload();
 
@@ -1089,6 +1131,8 @@
                 <button id="acceptBtn" style="display: none;">Accept</button>
                 <button id="hangupBtn">Hangup</button>
                 <button id="cmdBtn">Cmd</button>
+                <button id="flvjsBtn">Flvjs</button>
+                <button id="flvjsDestroyBtn">FlvjsDestroy</button>
             </div>
 
             <div id="videoConfigDiv">
@@ -1107,6 +1151,10 @@
             <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop"></video>
             <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
             <img id="localImg" src="img/1.jpg" style="display: none">
+            <label id="flvjsVideoDescLabel"># Flvjs Player</label>
+            <video id="flvjsVideo" class="" style="display: none" controls="" autoplay="" src="">
+                Your browser is too old which doesn't support HTML5 video.
+            </video>
         </div>
         <label id="stats"></label>
     </div>
