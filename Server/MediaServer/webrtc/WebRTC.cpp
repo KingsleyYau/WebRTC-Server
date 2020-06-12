@@ -402,7 +402,6 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 	err = sdp_description_read(sdp.c_str(), &session);
 	if( err == 0 ) {
 		bFlag = true;
-		list_node node;
 		sdp_attr *attr = NULL;
 
 //		list_walk_entry_forward(&session->attrs, attr, node) {
@@ -685,22 +684,27 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				}
 
 				list_walk_entry_forward(&media->attrs, attr, node) {
+					LogAync(
+							LOG_DEBUG,
+							"WebRTC::ParseRemoteSdp( "
+							"this : %p, "
+							"media_type : %s, "
+//							"&media->attrs : %p, "
+//							"&attr->node : %p, "
+//							"attr : %p, "
+							"attr : [%s %s] "
+							")",
+							this,
+							sdp_media_type_str(media->type),
+//							&(media->attrs),
+//							&(attr->node),
+//							attr,
+							attr->key,
+							attr->value
+							);
 					if( attr->key && attr->value ) {
 						string key(attr->key);
 						string value(attr->value);
-
-						LogAync(
-								LOG_DEBUG,
-								"WebRTC::ParseRemoteSdp( "
-								"this : %p, "
-								"media_type : %s, "
-								"attr : [%s %s] "
-								")",
-								this,
-								sdp_media_type_str(media->type),
-								key.c_str(),
-								value.c_str()
-								);
 
 						if ( key == "candidate" ) {
 							mbCandidate = true;
@@ -723,12 +727,12 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 								if ( media->type == SDP_MEDIA_TYPE_AUDIO ) {
 									if ( mAudioSSRC == 0 ) {
 										mAudioSSRC = atoll(ssrc.c_str());
-										break;
+//										break;
 									}
 								} else if ( media->type == SDP_MEDIA_TYPE_VIDEO ) {
 									if ( mVideoSSRC == 0 ) {
 										mVideoSSRC = atoll(ssrc.c_str());
-										break;
+//										break;
 									}
 								}
 							}
