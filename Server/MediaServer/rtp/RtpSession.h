@@ -11,6 +11,7 @@
 
 #include <common/KMutex.h>
 #include <common/KSafeMap.h>
+#include <common/KSafeList.h>
 
 #include <media/VideoMuxer.h>
 
@@ -40,6 +41,12 @@ struct srtp_policy_t;
 
 namespace mediaserver {
 typedef KSafeMap<int, int> LostPacketMap;
+
+class RtpTccFbItem {
+public:
+	unsigned short seq;
+	unsigned long long recv_timestamp_us;
+};
 
 class RtpSession {
 public:
@@ -87,18 +94,30 @@ public:
 public:
 	/**
 	 * 接收原始RTP包(网络字节序)
+	 * @param frame SRTP数据包
+	 * @param size SRTP数据包大小
+	 * @param pkt RTP数据包
+	 * @param pktSize RTP数据包大小
 	 */
 	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
 	/**
 	 * 发送原始RTP包(网络字节序)
+	 * @param pkt 原始RTP数据包
+	 * @param pktSize 原始RTP数据包大小
 	 */
 	bool SendRtpPacket(void *pkt, unsigned int& pktSize);
 	/**
 	 * 接收原始RTCP包(网络字节序)
+	 * @param frame SRTCP数据包
+	 * @param size SRTCP数据包大小
+	 * @param pkt RTCP数据包
+	 * @param pktSize RTCP数据包大小
 	 */
 	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
 	/**
 	 * 发送原始RTCP包(网络字节序)
+	 * @param pkt 原始RTCP数据包
+	 * @param pktSize 原始RTCP数据包大小
 	 */
 	bool SendRtcpPacket(void *pkt, unsigned int& pktSize);
 
@@ -106,14 +125,28 @@ public:
 	/**
 	 * Send Picture Loss Indication(PLI)
 	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
-	 *
+	 * @param mediaSSRC 媒体流SSRC
 	 */
 	bool SendRtcpPLI(unsigned int mediaSSRC);
 	/**
 	 * Send Full Intra Request (FIR)
 	 * 强制刷新视频信息(如H264的SPS和PPS)
+	 * @param mediaSSRC 媒体流SSRC
 	 */
 	bool SendRtcpFIR(unsigned int mediaSSRC);
+	/**
+	 * Send Receiver Estimated Max Bitrate (REMB)
+	 * 发送接收端码率控制包
+	 * @param mediaSSRC 媒体流SSRC
+	 * @param bitrate 需要控制的码率
+	 */
+	bool SendRtcpRemb(unsigned int mediaSSRC, unsigned long long bitrate = 2000000);
+	/**
+	 * Send Receiver Transport Feedback (TCC-FB)
+	 * 发送接收端反馈
+	 * @param mediaSSRC 媒体流SSRC
+	 */
+	bool SendRtcpTccFb(unsigned int mediaSSRC);
 
 private:
 	/**
@@ -122,6 +155,9 @@ private:
 	void Reset();
 	/**
 	 * 发送丢包重传请求
+	 * @param mediaSSRC 媒体流SSRC
+	 * @param nacks 重传包数组
+	 * @param size 重传包数组大小
 	 */
 	bool SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size);
 	/**
@@ -131,26 +167,41 @@ private:
 	bool SendRtcpRR();
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
+	 * @param pkt 原始RTP数据包
+	 * @param pktSize 原始RTP数据包大小
 	 */
 	void UpdateStreamInfo(const void *pkt, unsigned int pktSize);
 	/**
 	 * 更新丢包统计
+	 * @param ssrc 媒体流SSRC
+	 * @param seq 媒体流当前数据包帧号
+	 * @param lastMaxSeq 媒体流数据包最大帧号
+	 * @param ts 媒体流当前数据包时间戳
+	 * @param lastMaxTs 媒体流数据包最大时间戳
 	 */
 	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
 	/**
 	 * 更新媒体信息(RTT)
+	 * @param pkt 原始RTCP数据包
+	 * @param pktSize 原始RTCP数据包大小
 	 */
 	void UpdateStreamInfoWithRtcp(const void *pkt, unsigned int pktSize);
 	/**
 	 * 模拟丢包(测试用)
+	 * @param ssrc 媒体流SSRC
+	 * @param seq 媒体流当前数据包帧号
 	 */
 	bool SimPktLost(unsigned int ssrc, unsigned int seq);
 	/**
 	 * 判断是否音频数据包
+	 * @param ssrc 媒体流SSRC
+	 * @return TRUE/FALSE
 	 */
 	bool IsAudioPkt(unsigned int ssrc);
 	/**
 	 * 根据媒体流包SSRC获取描述
+	 * @param ssrc 媒体流SSRC
+	 * @return 媒体流描述字符串
 	 */
 	string PktTypeDesc(unsigned int ssrc);
 

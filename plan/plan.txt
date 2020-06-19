@@ -1,0 +1,6 @@
+1.减轻服务器转码的压力, 并且支持外部运营商CDN(RTMP)
+a.扩展ffmpeg, 使支持rtmp支持opus(48k采样)支持
+b.扩展nginx-http-flv, 使支持rtmp支持opus(48k采样)支持
+
+2.牺牲带宽, 降低延迟
+a.KCP加RTP, 服务器间relay放弃rtmp

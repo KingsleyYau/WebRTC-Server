@@ -21,6 +21,8 @@
 #include <srtp_priv.h>
 #include "RtpSession.h"
 
+#include <string>
+using namespace std;
 /*
  * SRTP key size
  */
@@ -53,25 +55,39 @@ typedef struct {
 } RtpPacket;
 
 /**
- * profile = 0xBEDE, One byte header
-	0                   1                   2                   3
+ * profile = 0xBE 0xDE, One byte header
+   0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |  ID   | len=2 |              data				              |
+  |       0xBE    |    0xDE       |           length =3           |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  ID   | L=0   |     data      |  ID   |  L=1  |   data...
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		...data   |    0 (pad)    |    0 (pad)    |  ID   | L=3   |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                          data                                 |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
- * profile = 0x1x00, Two byte header
- 	0                   1                   2                   3
+ * profile = 0x100 + appbits, Two byte header
+   0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |  ID   		 | 		len=2    |             data		          |
+  |       0x10    |    0x00       |           length=3            |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+  |      ID       |     L=0       |     ID        |     L=1       |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |       data    |    0 (pad)    |       ID      |      L=4      |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                          data                                 |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 typedef struct {
 	uint16_t profile;          /* extension header profile  */
     uint16_t length;           /* extension header length   */
 } RtpExtHeader; /* BIG END */
+static const uint16_t kProfileOneByte = 0xBEDE;
+static const uint16_t kProfileTwoByte = 0x1000;
+static const uint16_t kExtensionTypeTccSeq = 0x5;
 
 /**
  * Transmission Time Offsets in RTP Streams
@@ -218,6 +234,51 @@ typedef struct {
 	uint16_t seq;
     uint16_t bitmap;
 } RtcpPacketNackItem; /* BIG END */
+
+// Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
+//
+//     0                   1                   2                   3
+//     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//    |V=2|P| FMT=15  |   PT=206      |             length            |
+//    +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+//  0 |                  SSRC of packet sender                        |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  4 |                       Unused = 0                              |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  8 |  Unique identifier 'R' 'E' 'M' 'B'                            |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// 12 |  Num SSRC     | BR Exp    |  BR Mantissa                      |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// 16 |   SSRC feedback                                               |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//    :  ...
+typedef struct {
+	RtcpHeader header;
+    uint32_t ssrc;
+    uint32_t media_ssrc;
+    unsigned int remb;
+    unsigned char num_fb_ssrc;
+    unsigned char bitrate[3];
+} RtcpPacketRemb; /* BIG END */
+static const uint32_t kUniqueIdentifier = 0x52454D42;  // 'R' 'E' 'M' 'B'.
+const uint32_t kMaxMantissa = 0x3FFFF;  // 18 bits.
+
+typedef struct {
+	RtcpHeader header;
+    uint32_t ssrc;
+    uint32_t media_ssrc;
+    unsigned short base_seq_num;
+    unsigned short packet_status_count;
+    unsigned char reference_and_fbcount[4];	// 64ms/unit
+} RtcpPacketTccFb; /* BIG END */
+// Convert to multiples of 0.25ms/250us. If 1 byte, range [0, 63.75]ms. If 2 bytes, range [-8192.0, 8191.75] ms
+static const int kDeltaScaleFactor = 250;
+// 250 * 256 = 64ms/64000us
+static const int kBaseScaleFactor = kDeltaScaleFactor * (1 << 8);
+// reference is 3 bytes, (1ll << 24) cover it. But delta maybe overflow.
+static const int64_t kTimeWrapPeriodUs = (1ll << 24) * kBaseScaleFactor;
+
 #pragma pack(pop)
 
 bool RtpSession::GobalInit() {
@@ -618,6 +679,92 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 			uint32_t ts = ntohl(((RtpPacket *)pkt)->header.ts);
 			uint32_t ssrc = ntohl(((RtpPacket *)pkt)->header.ssrc);
 
+			char extension[1024] = {0};
+			if ( ((RtpPacket *)pkt)->header.x ) {
+				unsigned int payloadOffset = sizeof(RtpHeader) + (((RtpHeader *)pkt)->cc * 4);
+				RtpExtHeader *ext = (RtpExtHeader *)((char *)pkt + payloadOffset);
+				uint16_t extProfile = ntohs(ext->profile);
+				uint16_t extLength = ntohs(ext->length);
+
+				char id = 0;
+				char l = 0;
+				unsigned int tcc_seq = 0;
+				if ( extProfile == kProfileOneByte ) {
+					char *rtpExtPkt = (char *)ext + 4;
+					int step = 0;
+					while( step < extLength * 4 ) {
+						if ( rtpExtPkt[step] == 0 ) {
+							break;
+						}
+						// Parse extension header
+						id = (rtpExtPkt[step] >> 4) & 0x0F;
+						l = (rtpExtPkt[step] & 0x0F);
+						short shift = l;
+						short index = 1;
+
+						switch ( id ) {
+						case kExtensionTypeTccSeq:{
+							/**
+							 * http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+							 * transport-wide sequence number
+							 */
+							while (shift >= 0) {
+								unsigned char c = rtpExtPkt[step + index];
+								unsigned int b = c << (shift * 8);
+								tcc_seq |= b & 0xFFFFFFFF;
+								shift--;
+								index++;
+							}
+						}break;
+						default:break;
+						}
+						// Skip to next extension payload
+						step += 2;
+						step += l;
+					}
+
+					LogAync(
+							LOG_DEBUG,
+							"RtpSession::RecvRtpPacket( "
+							"this : %p, "
+							"[%s], [Ext One Byte], "
+							"ssrc : 0x%08x(%u), "
+							"profile : 0x%04x, "
+							"extLength : %u, "
+							"id : %u, "
+							"l : %u, "
+							"tcc_seq : %u "
+							")",
+							this,
+							PktTypeDesc(ssrc).c_str(),
+							ssrc,
+							ssrc,
+							extProfile,
+							extLength,
+							id,
+							l,
+							tcc_seq
+							);
+				} else if ( (extProfile & kProfileTwoByte) >> 15 ) {
+					LogAync(
+							LOG_DEBUG,
+							"RtpSession::RecvRtpPacket( "
+							"this : %p, "
+							"[%s], [Ext Two Byte], "
+							"ssrc : 0x%08x(%u), "
+							"profile : 0x%04x, "
+							"extLength : %u "
+							")",
+							this,
+							PktTypeDesc(ssrc).c_str(),
+							ssrc,
+							ssrc,
+							extProfile,
+							extLength
+							);
+				}
+			}
+
 			LogAync(
 					LOG_DEBUG,
 					"RtpSession::RecvRtpPacket( "
@@ -642,31 +789,6 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt, 
 					pktSize,
 					((RtpPacket *)pkt)->header.m?", [Mark] ":" "
 					);
-
-			if ( ((RtpPacket *)pkt)->header.x ) {
-				unsigned int payloadOffset = sizeof(RtpHeader) + (((RtpHeader *)pkt)->cc * 4);
-				RtpExtHeader *ext = (RtpExtHeader *)(pkt + payloadOffset);
-				uint16_t extProfile = ntohl(ext->profile);
-				uint16_t extLength = ntohl(ext->length);
-
-				LogAync(
-						LOG_DEBUG,
-						"RtpSession::RecvRtpPacket( "
-						"this : %p, "
-						"[%s], "
-						"ssrc : 0x%08x(%u), "
-						"[Extension], "
-						"profile : 0x%04x, "
-						"extLength : %u "
-						")",
-						this,
-						PktTypeDesc(ssrc).c_str(),
-						ssrc,
-						ssrc,
-						extProfile,
-						extLength
-						);
-			}
 
 			if ( mpRecvSrtpCtx ) {
 				srtp_err_status_t status = srtp_unprotect(mpRecvSrtpCtx, pkt, (int *)&pktSize);
@@ -965,6 +1087,100 @@ bool RtpSession::SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size) {
 	return bFlag;
 }
 
+bool RtpSession::SendRtcpRemb(unsigned int mediaSSRC, unsigned long long bitrate) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_fail;
+	char tmp[MTU];
+	unsigned int pktSize = 0;
+
+	RtcpPacketRemb pkt = {0};
+	pkt.header.version = 2;
+	pkt.header.p = 0;
+	pkt.header.rc = 15;
+	pkt.header.pt = RtcpPayloadTypePSFB;
+	pkt.header.length = 4 + 1; // (1 * ssrc(32bit)) + (1 * media_ssrc(32bit) + (1 * Unique identifier 'R' 'E' 'M' 'B' (32bit)) + (1 * Info(32bit)) + (size * fb_ssrc(32bit)))
+	pkt.header.length = htons(pkt.header.length);
+	pkt.ssrc = htonl(RTCP_SSRC);
+	pkt.media_ssrc = htonl(0); // Unused
+	pkt.remb = htonl(kUniqueIdentifier); // 'R' 'E' 'M' 'B'
+
+	unsigned short exp = 0;
+	unsigned long long mantissa = bitrate;
+	while (mantissa > kMaxMantissa) {
+		mantissa >>= 1;
+		exp++;
+	}
+	pkt.bitrate[0] = (exp << 2) | (mantissa >> 16);
+	pkt.bitrate[1] = (mantissa >> 8) & 0xFF;
+	pkt.bitrate[2] =  mantissa & 0xFF;
+	pkt.num_fb_ssrc = 1;
+
+	char *p = (char *)&bitrate;
+	Arithmetic arc;
+	string payload = arc.AsciiToHexWithSep((const char *)&pkt, sizeof(RtcpPacketRemb));
+
+	LogAync(
+			LOG_DEBUG,
+			"RtpSession::SendRtcpRemb( "
+			"this : %p, "
+			"[%s], "
+			"ssrc : 0x%08x(%u), "
+			"bitrate : %llu, "
+			"exp : %hu, "
+			"mantissa : %llu, "
+			"payload : %s "
+			")",
+			this,
+			PktTypeDesc(mediaSSRC).c_str(),
+			mediaSSRC,
+			mediaSSRC,
+			bitrate,
+			exp,
+			mantissa,
+			payload.c_str()
+			);
+
+	memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketRemb));
+	pktSize += sizeof(RtcpPacketRemb);
+
+	int fb_ssrc = htonl(mediaSSRC);
+	memcpy(tmp + pktSize, (void *)&fb_ssrc, sizeof(fb_ssrc));
+	pktSize += sizeof(fb_ssrc);
+
+	bFlag = SendRtcpPacket((void *)tmp, pktSize);
+
+	return bFlag;
+}
+
+bool RtpSession::SendRtcpTccFb(unsigned int mediaSSRC) {
+	bool bFlag = false;
+
+	srtp_err_status_t status = srtp_err_status_fail;
+	char tmp[MTU];
+	unsigned int pktSize = 0;
+
+	RtcpPacketTccFb pkt = {0};
+	pkt.header.version = 2;
+	pkt.header.p = 0;
+	pkt.header.rc = 15;
+	pkt.header.pt = RtcpPayloadTypeRTPFB;
+	pkt.header.length = 4 + 1; // (1 * ssrc(32bit)) + (1 * media_ssrc(32bit) + (2 * base sequence number/packet status count/reference time/fb pkt. count(32bit)) + (size * chunk(16bit) + size * recv delta(8bit) + padding))
+	pkt.header.length = htons(pkt.header.length);
+	pkt.ssrc = htonl(RTCP_SSRC);
+	pkt.media_ssrc = htonl(mediaSSRC);
+	pkt.base_seq_num = htons(0);
+	pkt.packet_status_count = htons(0);
+//	pkt.reference_and_fbcount;
+
+	memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketTccFb));
+	pktSize += sizeof(RtcpPacketTccFb);
+
+	bFlag = SendRtcpPacket((void *)tmp, pktSize);
+
+	return bFlag;
+}
+
 bool RtpSession::SendRtcpRR() {
 	bool bFlag = false;
 
@@ -1118,6 +1334,8 @@ void RtpSession::UpdateStreamInfo(const void *pkt, unsigned int pktSize) {
 //				SendRtcpFIR(ssrc);
 				// 强制刷新一次关键帧
 				SendRtcpPLI(ssrc);
+//				// 发送Remb
+//				SendRtcpRemb(ssrc);
 			}
 		}
 

@@ -1203,7 +1203,8 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=mid:%s\n"
 	//			"b=AS:800\n"
 	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\n"
 				"a=%s\n"
 				"%s"
 				"a=rtcp-mux\n"
@@ -1221,7 +1222,8 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=setup:active\n"
 				"a=mid:%s\n"
 	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+//				"a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\n"
 				"a=%s\n"
 				"%s"
 				"a=rtcp-mux\n"
@@ -1282,7 +1284,8 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=setup:active\n"
 				"a=mid:%s\n"
 	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+//				"a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\n"
 				"a=%s\n"
 				"%s"
 				"a=rtcp-mux\n"
@@ -1301,7 +1304,8 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"a=mid:%s\n"
 	//			"b=AS:800\n"
 	//			"a=extmap:1 urn:ietf:params:rtp-hdrext:toffset\n"
-	//			"a=extmap:2 http://webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\n"
+//				"a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\n"
 				"a=%s\n"
 				"%s"
 				"a=rtcp-mux\n"
@@ -1483,13 +1487,17 @@ string WebRTC::CreateVideoRtcpFb() {
 //		}
 //	}
 	char tmp[1024];
-//	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u goog-remb\n", mVideoSdpPayload.payload_type);
+//	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u goog-remb\n", mVideoSdpPayload.payload_type);
 //	videoRtcpFb += tmp;
-	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u fir\n", mVideoSdpPayload.payload_type);
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u fir\n", mVideoSdpPayload.payload_type);
 	videoRtcpFb += tmp;
-	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u nack\n", mVideoSdpPayload.payload_type);
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u nack\n", mVideoSdpPayload.payload_type);
 	videoRtcpFb += tmp;
-	snprintf(tmp, sizeof(tmp) -1, "a=rtcb-fb:%u nack pli\n", mVideoSdpPayload.payload_type);
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u nack pli\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u transport-cc\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u goog-remb\n", mVideoSdpPayload.payload_type);
 	videoRtcpFb += tmp;
 
 	return videoRtcpFb;
@@ -1497,16 +1505,22 @@ string WebRTC::CreateVideoRtcpFb() {
 
 string WebRTC::CreateAudioRtcpFb() {
 	string audioRtcpFb = "";
-	while( !mAudioRtcpFbList.empty() ) {
-		string rtcpFb = mAudioRtcpFbList.front();
-		mAudioRtcpFbList.pop_front();
+//	while( !mAudioRtcpFbList.empty() ) {
+//		string rtcpFb = mAudioRtcpFbList.front();
+//		mAudioRtcpFbList.pop_front();
+//
+//		if( rtcpFb.length() > 0 ) {
+//			audioRtcpFb += "a=";
+//			audioRtcpFb += rtcpFb;
+//			audioRtcpFb += "\n";
+//		}
+//	}
+	char tmp[1024];
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u transport-cc\n", mAudioSdpPayload.payload_type);
+	audioRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u goog-remb\n", mAudioSdpPayload.payload_type);
+	audioRtcpFb += tmp;
 
-		if( rtcpFb.length() > 0 ) {
-			audioRtcpFb += "a=";
-			audioRtcpFb += rtcpFb;
-			audioRtcpFb += "\n";
-		}
-	}
 	return audioRtcpFb;
 }
 
