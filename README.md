@@ -24,7 +24,7 @@ Catalog
 ## Compile and Installation
 ### Compile
 ```bash
-cd $your_WebRTC-Server_path/Server/dep && ./extract.sh.sh
+cd $your_WebRTC-Server_path/Server/dep && ./extract.sh
 cd $your_WebRTC-Server_path/Server && ./compile.sh
 ```
 ### Getting started on Linux
