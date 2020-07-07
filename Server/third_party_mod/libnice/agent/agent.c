@@ -6476,9 +6476,10 @@ nice_agent_parse_remote_stream_sdp (NiceAgent *agent, guint stream_id,
     	   * Add by Max 2019/08/23
     	   */
     	  nice_debug ("[Max] Agent %p, parse candidate error, sdp_lines[i]:%s", agent, sdp_lines[i]);
-    	  g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
-    	  candidates = NULL;
-    	  break;
+//    	  g_slist_free_full(candidates, (GDestroyNotify)&nice_candidate_free);
+//    	  candidates = NULL;
+    	  // Just find next one
+    	  continue;
       }
       /**
        * Filter candidate with ufrag

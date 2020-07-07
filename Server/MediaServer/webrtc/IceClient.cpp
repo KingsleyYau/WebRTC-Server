@@ -562,6 +562,17 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
     				pwd
     				);
         }
+    } else {
+		LogAync(
+				LOG_WARNING,
+				"IceClient::ParseRemoteSdp( "
+				"this : %p, "
+				"[nice_agent_parse_remote_stream_sdp Fail], "
+				"sdp :\n%s"
+				")",
+				this,
+				mSdp.c_str()
+				);
     }
 
     mClientMutex.unlock();
