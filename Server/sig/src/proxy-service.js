@@ -46,15 +46,19 @@ class ProxyService {
                 var userAgent = ctx.req.headers["user-agent"];
                 // var proxy = new WebSocketClient(this.proxyHost);
                 var proxyHeaders = {headers:{"user-agent":userAgent}};
-                var proxy = new WebSocketClient(this.proxyHost, "", proxyHeaders);
+                var proxy = new WebSocketClient(this.proxyHost + ctx.originalUrl, "", proxyHeaders);
                 proxy.on('message', (message) => {
-                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.message, ' + message);
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.message.length, ' + message.length);
                     if ( ctx.websocket.readyState == ctx.websocket.OPEN ) {
                         ctx.websocket.send(message);
                     }
                 });
                 proxy.on('close', () => {
                     Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.close, [代理断开]');
+                    ctx.websocket.close();
+                });
+                proxy.on('error', (err) => {
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.error, [代理出错, ' + err);
                     ctx.websocket.close();
                 });
 
@@ -76,15 +80,15 @@ class ProxyService {
                 });
 
                 ctx.websocket.on('message', async (message) => {
-                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message, ' + message);
+                    Common.log('proxy', 'info', '[' + ctx.socketId + ']-Client.message.length, ' + message.length);
                     if (proxy.readyState == proxy.OPEN) {
-                        Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], messageLen:' + message.length);
+                        Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], message.length:' + message.length);
                         proxy.send(message);
                     } else {
                         Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy, [等待代理连接], [' + ctx.socketId + ']->[' + this.proxyHost + ']');
                         await new Promise(function (resolve) {
                             proxy.on('open', () => {
-                                Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], messageLen:' + message.length);
+                                Common.log('proxy', 'info', '[' + ctx.socketId + ']-Proxy.send, [' + ctx.socketId + ']->[' + this.proxyHost + '], message.length:' + message.length);
                                 proxy.send(message);
                                 resolve();
                             });
@@ -145,9 +149,21 @@ if( process.argv.length > 2 ) {
 // 启动
 // proxy = new ProxyService();
 // proxy.start({number:9082, host:"ws://192.168.88.133:9981"});
+// test
 proxy = new ProxyService();
 proxy.start({number:9082, host:"ws://127.0.0.1:9981"});
+// camshare
 proxy2 = new ProxyService();
 proxy2.start({number:9083, host:"ws://127.0.0.1:9883"});
+// mediaserver
+proxy3 = new ProxyService();
+proxy3.start({number:9081, host:"ws://127.0.0.1:9881"});
+// freeswitch
+proxy4 = new ProxyService();
+proxy4.start({number:9080, host:"ws://127.0.0.1:8080"});
+
+// 本地测试
+// proxy2 = new ProxyService();
+// proxy2.start({number:9083, host:"ws://192.168.88.133:9881"});
 // proxy3 = new ProxyService();
-// proxy3.start({number:9081, host:"ws://127.0.0.1:9881"});
+// proxy3.start({number:9080, host:"ws://52.196.96.7:9883"});
