@@ -8,8 +8,35 @@
 <script src="Player/YUVCanvas.js"></script>
 <script src="Player/Player.js"></script>
 <script>
-
     var info = ""
+    var running = true;
+    var client;
+
+    var statistics = {
+        h264NaluRecvTime: 0,
+        h264NaluRecvCount: 0,
+        videoDecodeStartTimeAvg: 0,
+        videoDecodedCountAvg: 0,
+        videoDecodeStartTime: 0,
+        videoDecodedCount: 0,
+        fps: 0,
+        fpsMin: 1000,
+        fpsMax: -1000,
+        webGLTextureUploadTime: 0,
+    };
+
+    function reset() {
+        statistics.h264NaluRecvTime = 0;
+        statistics.h264NaluRecvCount = 0;
+        statistics.videoDecodeStartTimeAvg = 0;
+        statistics.videoDecodedCountAvg = 0;
+        statistics.videoDecodeStartTime = 0;
+        statistics.videoDecodedCount = 0;
+        statistics.fps = 0;
+        statistics.fpsMin = 1000;
+        statistics.fpsMax = -1000;
+        statistics.webGLTextureUploadTime = 0;
+    }
 
     function showInfo() {
         if (info.length > 0) {
@@ -17,22 +44,12 @@
         }
     }
 
-    var statistics = {
-        videoStartTime: 0,
-        videoPictureCounter: 0,
-        windowStartTime: 0,
-        windowPictureCounter: 0,
-        fps: 0,
-        fpsMin: 1000,
-        fpsMax: -1000,
-        webGLTextureUploadTime: 0
-    };
-
     function buf2hex(buffer) { // buffer is an ArrayBuffer
         return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
     }
-    
+
     function play() {
+        console.log(Date.now() + ", play()");
         $('#video').html('');
 
         /* 下载到本地播放mpg */
@@ -62,35 +79,41 @@
             }
         });
         $('#video').append(player.canvas);
-        player.onPictureDecoded = function updateStatistics(buffer, width, height, infos) {
-            var s = statistics;
-            s.videoPictureCounter += 1;
-            s.windowPictureCounter += 1;
+        player.onRenderFrameComplete = function onRenderFrameComplete(frame) {
             var now = Date.now();
-            if (!s.videoStartTime) {
-                s.videoStartTime = now;
+            console.log(now + ", player.onRenderFrameComplete(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + frame.width + ", height:" + frame.height);
+        }
+        player.onPictureDecoded = function onPictureDecoded(buffer, width, height, infos) {
+            var s = statistics;
+            s.videoDecodedCountAvg += 1;
+            s.videoDecodedCount += 1;
+            var now = Date.now();
+            if (!s.videoDecodeStartTimeAvg) {
+                s.videoDecodeStartTimeAvg = now;
             }
-            var videoElapsedTime = now - s.videoStartTime;
+            console.log(now + ", player.onPictureDecoded(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + width + ", height:" + height);
+
+            var videoElapsedTime = now - s.videoDecodeStartTimeAvg;
             s.elapsed = videoElapsedTime / 1000;
             if (videoElapsedTime < 1000) {
                 return;
             }
 
-            if (!s.windowStartTime) {
-                s.windowStartTime = now;
+            if (!s.videoDecodeStartTime) {
+                s.videoDecodeStartTime = now;
                 return;
-            } else if ((now - s.windowStartTime) > 1000) {
-                var windowElapsedTime = now - s.windowStartTime;
-                var fps = (s.windowPictureCounter / windowElapsedTime) * 1000;
-                s.windowStartTime = now;
-                s.windowPictureCounter = 0;
+            } else if ((now - s.videoDecodeStartTime) > 1000) {
+                var windowElapsedTime = now - s.videoDecodeStartTime;
+                var fps = (s.videoDecodedCount / windowElapsedTime) * 1000;
+                s.videoDecodeStartTime = now;
+                s.videoDecodedCount = 0;
 
                 if (fps < s.fpsMin) s.fpsMin = fps;
                 if (fps > s.fpsMax) s.fpsMax = fps;
                 s.fps = fps;
             }
 
-            var fps = (s.videoPictureCounter / videoElapsedTime) * 1000;
+            var fps = (s.videoDecodedCountAvg / videoElapsedTime) * 1000;
             s.fpsSinceStart = fps;
 
             info = "";
@@ -100,14 +123,14 @@
             if (statistics.fpsSinceStart) {
                 info += " avg: " + s.fpsSinceStart.toFixed(2);
             }
-
-            return;
         }
         setInterval(showInfo, 1000);
 
         var host = document.location.hostname;
-        var url = 'wss://' + host + ':9080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
-        var client = new WebSocket(url);
+        // var url = 'wss://' + host + ':9080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
+        var url = 'wss://' + host + ':9080/MM200/' + host + '/CMTS09540|||PC4|||4/4/SID=12346&USERTYPE=1';
+        // var url = 'wss://' + host + ':9080/MM200/' + host + '/C771475|||PC4|||4/4/SID=12346&USERTYPE=1';
+        client = new WebSocket(url);
         client.binaryType = 'arraybuffer';
         client.onopen = function (e) {
             console.log(url + " connected : " + e);
@@ -118,7 +141,14 @@
         client.onmessage = function (e) {
             // ArrayBuffer object if binary
             var messageData = new Uint8Array(e.data);
-            // console.log(messageData.byteLength);
+            var now = Date.now();
+            var delta = 0;
+            if ( statistics.h264NaluRecvTime > 0 ) {
+                delta = now - statistics.h264NaluRecvTime;
+            }
+            statistics.h264NaluRecvTime = now;
+            statistics.h264NaluRecvCount++;
+            console.log(now + ", client.onmessage(), frame:" + statistics.h264NaluRecvCount + ", size:" +messageData.byteLength + ", delta:" + delta);
             // console.log(messageData.toString(16));
             player.decode(messageData);
 //		setTimeout(
@@ -130,24 +160,48 @@
         };
         client.onerror = function (e) {
             console.log(url + " error : " + e);
+            reset();
         }
         client.onclose = function (e) {
             console.log(url + " closed : " + e);
+            reset();
+
             setTimeout(function () {
-                play();
+                if ( running ) {
+                    play();
+                }
             }, 5000);
         }
-
     };
+
+    function onload() {
+        $("[id=playBtn]").click(function () {
+            running = true;
+            $("[id=playBtn]").attr("disabled", 'true');
+            $("[id=stopBtn]").removeAttr("disabled");
+        });
+
+        $("[id=stopBtn]").click(function () {
+            console.log(Date.now() + ", stop()");
+            running = false;
+            client.close();
+            $("[id=playBtn]").removeAttr("disabled");
+        });
+
+        $("[id=playBtn]").attr("disabled", 'true');
+        $("[id=stopBtn]").removeAttr("disabled");
+
+        play();
+    }
 </script>
 
-<body onload="play()">
+<body onload="onload()">
 <p>
 <div id="video"></div>
 </p>
-
-<div id="logtxt" style="margin:50px 0 0;height:300px; width:500px;overflow:scroll;">
-
+<div id="logtxt" style="height:30px; width:500px;">
 </div>
+<button id="playBtn">Play</button>
+<button id="stopBtn">Stop</button>
 </body>
 </html>

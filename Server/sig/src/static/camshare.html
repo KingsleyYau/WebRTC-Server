@@ -322,12 +322,14 @@
         // }, 30000);
     }
 
-    async function sendGetToken() {
+    async function sendGetToken(stream) {
         // await connect();
-
+        let user_id = stream;// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
         obj = {
             route: 'imRTC/sendGetToken',
-            req_data: {}
+            req_data: {
+                user_id:user_id,
+            }
         }
 
         console.log('Client.sendGetToken(), ', JSON.stringify(obj));
@@ -344,7 +346,7 @@
             callType = 'push';
         }
 
-        sendGetToken();
+        sendGetToken($("#stream").val(), $("#localSdpTextarea").val());
 
         $("[id=pushBtn]").attr("disabled", 'true');
         $("[id=pushVideoBtn]").attr("disabled", 'true');
@@ -425,7 +427,9 @@
             this.init();
 
             if (pushVideo) {
-                await this.showStaticVideo();
+                await this.showStaticVideo().catch( err => {
+                    console.log('RTCClient::push(), err :', err);
+                });
             } else {
                 await this.showLocalVideo(videoSource);
             }
@@ -458,6 +462,7 @@
                 this.pc = null;
             }
             this.stopLocalVideo();
+            this.mediaStream = null;
         }
 
         async showStaticVideo() {
@@ -465,6 +470,7 @@
                 // Video tag capture must be set up after video tracks are enumerated.
                 let leftVideo = $("[id=localVideo]")[0];
                 $("[id=localVideo]").attr("style", 'display: block');
+                leftVideo.src = './video/output.mp4';
                 leftVideo.src = './video/jzq_feph.mp4';
                 // leftVideo.src = videoArray[videoArrayIndex];
                 leftVideo.srcObject = null;
@@ -664,6 +670,11 @@
             tracks.forEach(track => {
                 // Get old constraints
                 let constraints = track.getConstraints();
+                if ('contentHint' in track) {
+                    track.contentHint = 'motion';
+                } else {
+                    console.log('RTCClient::setVideoTrackContent(), MediaStreamTrack contentHint attribute not supported');
+                }
                 // constraints.width = 640;
                 // constraints.height = 480;
                 // It is always success, unless you set some parameter with exact value
@@ -924,14 +935,14 @@
 
         <div>
             # Login: <input id="user" type="text" name="" style="width:480px"
-                            value="userId=MM1&userType=0&sid=123456&siteId=4"/></br>
+                            value="userId=CMTS09540&userType=0&sid=123456&siteId=4"/></br>
 
             # Params</br>
-            # uid: Username, Example: MM1</br>
-            # room: Destination, RoomId|||LiveChat Server Id|||站点Id, Example: MM1|||PC64|||4</br>
+            # uid: Username, Example: CMTS09540</br>
+            # room: Destination, RoomId|||LiveChat Server Id|||站点Id, Example: CMTS09540|||PC64|||4</br>
             # site: Site Id, Example: 4</br>
             # Call: <input id="stream" type="text" name="" style="width:480px"
-                           value="camshare?uid=MM1&room=MM1|||PC64|||4&site=4"/><br>
+                           value="camshare?uid=CMTS09540&room=CMTS09540|||PC4|||4&site=4"/><br>
         </div>
     </div>
     <p>### Local Video & Canvas ###</p>
