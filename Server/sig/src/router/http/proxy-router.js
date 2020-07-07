@@ -112,11 +112,11 @@ proxyRouter.all('/set', async (ctx, next) => {
     // 因为使用集群, 必须保证key的hash在同一个slot, 否则不能使用事务
     await redisClient.client.multi().
     hset(
-        'hash_user_online_' + ctx.session.sessionId,
+        'h_user_online_' + ctx.session.sessionId,
         'name', 'max-' + ctx.session.sessionId,
         'age', 18
     ).expire(
-        'hash_user_online_' + ctx.session.sessionId,
+        'h_user_online_' + ctx.session.sessionId,
         1800 + timeRnd
     ).exec().then( (res) => {
         let all = JSON.stringify(res);
@@ -134,18 +134,19 @@ proxyRouter.all('/set', async (ctx, next) => {
 
 proxyRouter.all('/get', async (ctx, next) => {
     let respond = {
-        "errno":0,
-        "errmsg":"",
-        "res":-2,
-        "userId":ctx.session.sessionId,
+        errno:0,
+        errmsg:"",
+        res:-2,
+        user_id:ctx.session.sessionId,
     }
 
-    let userId = Url.parse(decodeURI(ctx.originalUrl),true).query.userId;
+    let url = Url.parse(decodeURI(ctx.originalUrl.toLowerCase()),true);
+    let user_id = url.query.user_id;
     let start = process.uptime() * 1000;
     // 可以在这里增加hash filter, 减少缓存穿透
     await redisClient.client.multi().
     hgetall(
-        'hash_user_online_' + userId
+        'hash_user_online_' + user_id
     ).exec().then( (res) => {
         let all = JSON.stringify(res);
         Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-get], res:' + all);
