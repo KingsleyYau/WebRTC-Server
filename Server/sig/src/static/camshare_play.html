@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>h264 Live Video Stream Example</title>
+    <title>Camshare H264 Live Video Stream Example</title>
 </head>
 
 <script src="jquery.min.js"></script>
@@ -52,12 +52,10 @@
         console.log(Date.now() + ", play()");
         $('#video').html('');
 
-        /* 下载到本地播放mpg */
-        /*
-        var player = new MP4Player(new Stream('test.mpg'), false, '', 'auto');
-        player.play();
-        $('#video').append(player.canvas);
-        */
+        // /* 下载到本地播放mpg */
+        // var player = new MP4Player(new Stream('test.mpg'), false, '', 'auto');
+        // player.play();
+        // $('#video').append(player.canvas);
 
         /* 流播放mpg */
         /*
@@ -176,16 +174,17 @@
 
     function onload() {
         $("[id=playBtn]").click(function () {
-            running = true;
             $("[id=playBtn]").attr("disabled", 'true');
             $("[id=stopBtn]").removeAttr("disabled");
+            running = true;
+            play();
         });
 
         $("[id=stopBtn]").click(function () {
             console.log(Date.now() + ", stop()");
+            $("[id=playBtn]").removeAttr("disabled");
             running = false;
             client.close();
-            $("[id=playBtn]").removeAttr("disabled");
         });
 
         $("[id=playBtn]").attr("disabled", 'true');

@@ -56,7 +56,7 @@ then
           -v error \
           -thread_queue_size 1024 \
           -i $SDP_FILE \
-          -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -map 0 -flags:v +global_header -bsf:v dump_extra \
+          -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -bsf:v h264_mp4toannexb \
           -an \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &

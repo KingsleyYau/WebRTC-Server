@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<title>WebRTC Upload Media Stream Test Page</title>
+<title>Camshare via WebRTC Media Stream Test Page</title>
 
 <head>
     <style id="compiled-css" type="text/css">
@@ -31,9 +31,14 @@
 <script src="sdp_serializer.js"></script>
 <script src="adapter-latest.js"></script>
 <!--<script src="socket.io.js"></script>-->
+<script src="third_party/graph.js"></script>
 <script>
+    const autoConstraints = {
+        width: 640, height: 480
+    };
+
     const qvgaConstraints = {
-        video: {width: {exact: 320}, height: {exact: 240}}
+        width: {exact: 320}, height: {exact: 240}
     };
 
     const vgaConstraints = {
@@ -56,9 +61,9 @@
         width: {exact: 7680}, height: {exact: 4320}
     };
 
-    let videoConstraints = vgaConstraints;
+    let videoConstraints = autoConstraints;
 
-    let videoArray = ["video/2.mp4", "video/2.mp4","video/2.mp4"];
+    let videoArray = ["video/2.mp4", "video/2.mp4", "video/2.mp4"];
     let videoArrayIndex = 0;
 
     let client;
@@ -71,6 +76,10 @@
     let canvasStream;
     let imageFilter;
     let pushVideo = false;
+
+    let lastResult;
+    let bitrateSeries = new TimelineDataSeries();
+    let bitrateGraph;
 
     function reset() {
         reqId = 0;
@@ -308,7 +317,8 @@
             }
         }
 
-        console.log('Client.sendSdpCall(), ', JSON.stringify(obj));
+        // console.log('Client.sendSdpCall(), ', JSON.stringify(obj));
+        console.log('Client.sendSdpCall()');
         send(obj);
     }
 
@@ -328,7 +338,7 @@
         obj = {
             route: 'imRTC/sendGetToken',
             req_data: {
-                user_id:user_id,
+                user_id: user_id,
             }
         }
 
@@ -346,7 +356,7 @@
             callType = 'push';
         }
 
-        sendGetToken($("#stream").val(), $("#localSdpTextarea").val());
+        sendGetToken('CMTS09540');
 
         $("[id=pushBtn]").attr("disabled", 'true');
         $("[id=pushVideoBtn]").attr("disabled", 'true');
@@ -408,7 +418,7 @@
 
             this.pc.oniceconnectionstatechange = event => {
                 console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState: ', this.pc.iceConnectionState);
-                if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
+                if (this.pc.iceConnectionState === 'closed') {
                 }
             };
         }
@@ -427,7 +437,7 @@
             this.init();
 
             if (pushVideo) {
-                await this.showStaticVideo().catch( err => {
+                await this.showStaticVideo().catch(err => {
                     console.log('RTCClient::push(), err :', err);
                 });
             } else {
@@ -465,74 +475,56 @@
             this.mediaStream = null;
         }
 
+        echoStaticVideo(localVideo) {
+            if (isFirefox()) {
+                this.mediaStream = localVideo.mozCaptureStream();
+            } else {
+                this.mediaStream = localVideo.captureStream();
+            }
+
+            console.log('Captured stream from leftVideo with captureStream',
+                this.mediaStream);
+            let video = this.mediaStream.getVideoTracks()[0];
+            if (!isFirefox() && !isEdge()) {
+                let capabilities = video.getCapabilities();
+                console.log('# Captured stream capabilities', capabilities);
+            }
+            let constraints = video.getConstraints();
+            constraints.frameRate = 15;
+            constraints.minFrameRate = 15;
+            video.applyConstraints(constraints);
+            console.log('# Captured stream constraints', constraints);
+
+            this.pc.addStream(this.mediaStream);
+        }
+
         async showStaticVideo() {
             return new Promise((resolve, reject) => {
                 // Video tag capture must be set up after video tracks are enumerated.
-                let leftVideo = $("[id=localVideo]")[0];
+                let localVideo = $("[id=localVideo]")[0];
                 $("[id=localVideo]").attr("style", 'display: block');
-                leftVideo.src = './video/output.mp4';
-                leftVideo.src = './video/jzq_feph.mp4';
-                // leftVideo.src = videoArray[videoArrayIndex];
-                leftVideo.srcObject = null;
-                leftVideo.muted = true;
+                localVideo.src = './video/jzq_bzp.mp4';
+                // leftVideo.src = './video/jzq_feph.mp4';
+                localVideo.srcObject = null;
+                localVideo.muted = true;
 
-                // leftVideo.onended = () => {
-                //     videoArrayIndex = ++videoArrayIndex % videoArray.length;
-                //     leftVideo.src = videoArray[videoArrayIndex];
-                //     console.log('Local video changed, videoArrayIndex:', videoArrayIndex, ", leftVideo.src:", leftVideo.src);
-                // };
-                leftVideo.oncanplay = () => {
+                localVideo.oncanplay = () => {
                     if (this.mediaStream == null) {
-                        if (isFirefox()) {
-                            this.mediaStream = leftVideo.mozCaptureStream();
-                        } else {
-                            this.mediaStream = leftVideo.captureStream();
-                        }
-
-                        console.log('# Captured stream from leftVideo with captureStream',
-                            this.mediaStream);
-                        let video = this.mediaStream.getVideoTracks()[0];
-                        if ( !isFirefox() && !isEdge() ) {
-                            let capabilities = video.getCapabilities();
-                            console.log('# Captured stream capabilities', capabilities);
-                        }
-                        let constraints = video.getConstraints();
-                        constraints.frameRate = 15;
-                        video.applyConstraints(constraints);
-                        console.log('# Captured stream constraints', constraints);
-
-                        let audio = this.mediaStream.getAudioTracks()[0];
-                        this.mediaStream.removeTrack(audio);
-                        this.pc.addStream(this.mediaStream);
+                        this.echoStaticVideo(localVideo);
                         resolve();
+                    } else {
+                        reject('this.mediaStream != null');
                     }
                 };
-                if (leftVideo.readyState >= 3) {
+                if (localVideo.readyState >= 3) {
                     if (this.mediaStream == null) {
-                        if (isFirefox()) {
-                            this.mediaStream = leftVideo.mozCaptureStream();
-                        } else {
-                            this.mediaStream = leftVideo.captureStream();
-                        }
-                        console.log('# Captured stream from leftVideo with captureStream',
-                            this.mediaStream);
-                        let video = this.mediaStream.getVideoTracks()[0];
-                        if ( !isFirefox() && !isEdge() ) {
-                            let capabilities = video.getCapabilities();
-                            console.log('# Captured stream capabilities', capabilities);
-                        }
-                        let constraints = video.getConstraints();
-                        constraints.frameRate = 15;
-                        video.applyConstraints(constraints);
-                        console.log('# Captured stream constraints', constraints);
-
-                        let audio = this.mediaStream.getAudioTracks()[0];
-                        this.mediaStream.removeTrack(audio);
-                        this.pc.addStream(this.mediaStream);
+                        this.echoStaticVideo(localVideo);
                         resolve();
+                    } else {
+                        reject('this.mediaStream != null');
                     }
                 }
-                leftVideo.play();
+                localVideo.play();
             });
         }
 
@@ -547,14 +539,12 @@
             let config = {};
             let videoDevice = {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                frameRate: 15/*{min: 10, max: 15}*/
+                frameRate: 15
             }
             let videoConfig = Object.assign(videoDevice, videoConstraints);
 
             config = {
-                video: {
-                    videoConfig
-                },
+                video: videoConfig,
                 audio: false
             }
 
@@ -675,8 +665,8 @@
                 } else {
                     console.log('RTCClient::setVideoTrackContent(), MediaStreamTrack contentHint attribute not supported');
                 }
-                // constraints.width = 640;
-                // constraints.height = 480;
+                // constraints.width = {exact:640};
+                // constraints.height = {exact:360};
                 // It is always success, unless you set some parameter with exact value
                 track.applyConstraints(constraints).then(() => {
                     console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
@@ -713,30 +703,24 @@
                                     });
                                 }
 
-                                // if ( res.type == 'media-source' ) {
-                                //     statsString += `id ${res.id}<br>`;
-                                //     statsString += `time ${res.timestamp}<br>`;
-                                //     Object.keys(res).forEach(k => {
-                                //         if (k !== 'timestamp' && k !== 'type' && k !== 'id') {
-                                //             statsString += `${k}: ${res[k]}<br>`;
-                                //         }
-                                //     });
-                                //     $("[id=stats]").html(statsString);
-                                // } else if ( res.type == 'outbound-rtp' ) {
-                                //     Object.keys(res).forEach(k => {
-                                //         statsString += `${k}: ${res[k]}<br>`;
-                                //     });
-                                // } else if ( res.type == 'inbound-rtp' ) {
-                                //     Object.keys(res).forEach(k => {
-                                //         statsString += `${k}: ${res[k]}<br>`;
-                                //     });
-                                // }  else if ( res.type == 'transport' ) {
-                                //     Object.keys(res).forEach(k => {
-                                //         statsString += `${k}: ${res[k]}<br>`;
-                                //     });
-                                // }
+                                if (res.type === 'outbound-rtp') {
+                                    const now = res.timestamp;
+                                    let bytes = res.bytesSent;
+                                    let packets = res.packetsSent;
+                                    if (lastResult && lastResult.has(res.id)) {
+                                        // calculate bitrate
+                                        const bitrate = 8 * (bytes - lastResult.get(res.id).bytesSent) /
+                                            (now - lastResult.get(res.id).timestamp);
+
+                                        // append to chart
+                                        bitrateSeries.addPoint(now, bitrate);
+                                        bitrateGraph.setDataSeries([bitrateSeries]);
+                                        bitrateGraph.updateEndDate();
+                                    }
+                                }
                             });
                             $("[id=stats]").html(statsString);
+                            lastResult = results;
                         }
                     );
 
@@ -852,12 +836,15 @@
             call(false, true);
         });
         $("[id=pushVideoBtn]").attr("disabled", 'true');
-        if ( isEdge() ) {
+        if (isEdge()) {
             $("[id=pushVideoBtn]").attr("style", 'display:none');
         }
 
         // Choose video constraints
-        getVideoWithConstraints(vgaConstraints, 'VGA');
+        getVideoWithConstraints(autoConstraints, 'AUTO');
+        $("[id=autoBtn]").click(function () {
+            getVideoWithConstraints(autoConstraints, 'AUTO');
+        });
         $("[id=qvgaBtn]").click(function () {
             getVideoWithConstraints(qvgaConstraints, 'QVGA');
         });
@@ -867,6 +854,9 @@
         $("[id=hdBtn]").click(function () {
             getVideoWithConstraints(hdConstraints, 'HD');
         });
+
+        bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
+        bitrateGraph.updateEndDate();
     }
 
     function handleError(e) {
@@ -890,7 +880,7 @@
         let jsonConst = JSON.stringify(constraints);
         $("[id=videoConstLabel]").html('Now is ' + name + ', ' + jsonConst);
 
-        let videoTestConfig = {video:constraints};
+        let videoTestConfig = {video: constraints};
         videoConstraints = constraints;
     }
 
@@ -957,6 +947,7 @@
         <p>################################################################</p>
     </div>
     <div class="button">
+        <button id="autoBtn">AUTO</button>
         <button id="qvgaBtn">QVGA</button>
         <button id="vgaBtn">VGA</button>
         <button id="hdBtn">HD</button>
@@ -967,6 +958,12 @@
     <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="true"></video>
     <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
     <img id="localImg" src="img/1.jpg" style="display: none">
+</div>
+<div>
+    <label id="bitrateLabel">Bitrate</label>
+</div>
+<div>
+    <canvas id="bitrateCanvas"></canvas>
 </div>
 <label id="stats"></label>
 
