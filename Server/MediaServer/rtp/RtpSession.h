@@ -135,6 +135,13 @@ public:
 	 */
 	bool SendRtcpFIR(unsigned int mediaSSRC);
 	/**
+	 * 发送丢包重传请求
+	 * @param mediaSSRC 媒体流SSRC
+	 * @param start 重传包起始seq
+	 * @param size 重传包长度大小
+	 */
+	bool SendRtcpNack(unsigned int mediaSSRC, unsigned int start, unsigned int size);
+	/**
 	 * Send Receiver Estimated Max Bitrate (REMB)
 	 * 发送接收端码率控制包
 	 * @param mediaSSRC 媒体流SSRC
@@ -153,13 +160,6 @@ private:
 	 * 重置
 	 */
 	void Reset();
-	/**
-	 * 发送丢包重传请求
-	 * @param mediaSSRC 媒体流SSRC
-	 * @param nacks 重传包数组
-	 * @param size 重传包数组大小
-	 */
-	bool SendRtcpNack(unsigned int mediaSSRC, void* nacks, int size);
 	/**
 	 * Send RTCP Receiver Report
 	 * 发送接收者报告
@@ -219,6 +219,8 @@ private:
 	// Video
 	// Max Video Timestamp
 	unsigned int mVideoMaxTimestamp;
+	// PLI Video Timestamp
+	unsigned int mVideoPLITimestamp;
 	// Max Video Sequence
 	uint16_t mVideoMaxSeq;
 	uint16_t mVideoMaxSeqLast;

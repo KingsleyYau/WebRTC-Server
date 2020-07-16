@@ -14,18 +14,21 @@ else
 CXXFLAGS = -O2 -g
 endif
 
-CXXFLAGS 	+=	-DLINUX -DFILE_JNI_LOG
+CXXFLAGS 	+=	-std=c++11 -DLINUX -DFILE_JNI_LOG 
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
 CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include \
 				-I$(OPENSSL_INCLUDE)
-
-OBJS 		+=	DtlsSession.o RtpSession.o RtpRawClient.o NtpTime.o
+				
+OBJS		+=	DtlsSession.o RtpSession.o RtpRawClient.o NtpTime.o
+OBJS		+=	packet/RtpPacketImp.o  packet/RtcpPacketImp.o packet/CommonHeader.o \
+				packet/Psfb.o packet/Pli.o packet/Fir.o packet/Remb.o \
+				packet/Rtpfb.o packet/Nack.o
 		
 TARGET 		=	librtp.a
 
 .PHONY: all clean $(TARGET)
 
-$(TARGET):	$(OBJS)
+$(TARGET):	$(OBJS) 
 	$(AR) cr $@ $(OBJS)
 	@echo '################################################################'
 	@echo ''
