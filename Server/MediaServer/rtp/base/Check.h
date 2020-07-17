@@ -1,9 +1,11 @@
 /*
  * Check.h
  *
- *  Created on: 2020/07/15
+ *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *	Borrow from WebRTC project
  */
 
 #ifndef RTP_PACKET_CHECK_H_

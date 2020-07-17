@@ -1,3 +1,13 @@
+/*
+ * Types.h
+ *
+ *  Created on: 2020/07/16
+ *      Author: max
+ *		Email: Kingsleyyau@gmail.com
+ *
+ *	Borrow from webrtc project
+ */
+
 #ifndef RTP_BASE_TYPES_H_
 #define RTP_BASE_TYPES_H_
 

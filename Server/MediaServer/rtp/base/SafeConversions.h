@@ -1,3 +1,13 @@
+/*
+ * SafeConversions.h
+ *
+ *  Created on: 2020/07/16
+ *      Author: max
+ *		Email: Kingsleyyau@gmail.com
+ *
+ *	Borrow from WebRTC project
+ */
+
 #ifndef RTP_SAFECONVERSIONS_H_
 #define RTP_SAFECONVERSIONS_H_
 
