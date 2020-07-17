@@ -1102,6 +1102,7 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 
 void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	connection_hdl hdl;
+	const void *hdlAddr = NULL;
 	bool bFound = false;
 
 	mWebRTCMap.Lock();
@@ -1109,6 +1110,7 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	if( itr != mWebRTCMap.End() ) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
+		hdlAddr = hdl.lock().get();
 		bFound = true;
 
 		if( bFound ) {
@@ -1128,7 +1130,7 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 			"rtc : %p, "
 			"rtmpUrl : %s "
 			")",
-			hdl.lock().get(),
+			hdlAddr,
 			rtc,
 			rtc->GetRtmpUrl().c_str()
 			);
