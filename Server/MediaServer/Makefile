@@ -57,6 +57,9 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/libnice/agent/.libs -lagent \
 	-Wl,-Bstatic -Lthird_party/libnice/random/.libs -lnice-random \
 	-Wl,-Bstatic -Lthird_party/libnice/socket/.libs -lsocket \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_optional_access \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_variant_access \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_any_cast_impl \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
 	-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
@@ -79,13 +82,14 @@ CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))
 DEPDIRS	= \
 	third_party/libev third_party/sqlite third_party/curl \
 	third_party/amf third_party/json third_party/xml \
-	third_party/libsdp third_party/libsrtp third_party/libnice
+	third_party/libsdp third_party/libsrtp third_party/libnice \
+	third_party/abseil-cpp
 			
 CLEAN_DEPS = $(addprefix _clean_, $(DEPDIRS))
 
-.PHONY: all deps modules test clean cleanall install $(DEPDIRS) $(MODULEDIRS) $(TARGET)
+.PHONY: all version deps modules test clean cleanall install $(DEPDIRS) $(MODULEDIRS) $(TARGET)
 
-$(TARGET): deps modules $(OBJS)
+$(TARGET): version deps modules $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
 	@echo '################################################################'
 	@echo ''
@@ -104,7 +108,10 @@ $(DEPDIRS):
 	
 $(CLEAN_DEPS):	
 	$(MAKE) -C $(patsubst _clean_%, %, $@) clean
-					
+	
+version:
+	rm -f main.o
+	
 deps: $(DEPDIRS)
 	@echo '################################################################'
 	@echo ''

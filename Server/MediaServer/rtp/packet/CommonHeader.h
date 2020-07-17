@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "ByteIO.h"
+#include <rtp/base/ByteIO.h>
 
 #include <common/LogManager.h>
 

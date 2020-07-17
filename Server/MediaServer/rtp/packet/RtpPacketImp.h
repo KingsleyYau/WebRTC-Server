@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#include <rtp/base/ByteIO.h>
+
 #include <vector>
 using namespace std;
 

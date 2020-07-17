@@ -12,8 +12,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "Check.h"
 #include "CommonHeader.h"
+
+#include <base/Check.h>
 
 #include <common/LogManager.h>
 

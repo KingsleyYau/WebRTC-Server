@@ -41,3 +41,7 @@ export CFLAGS="-g $(pkg-config --cflags openssl)"
 export LDFLAGS="$(pkg-config --libs openssl) -ldl -pthread"
 ./autogen.sh --disable-shared --enable-static || exit 1
 cd -
+
+cd third_party/abseil-cpp || exit 1
+cmake3 . || exit 1
+cd -

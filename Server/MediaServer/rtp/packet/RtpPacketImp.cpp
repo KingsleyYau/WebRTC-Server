@@ -7,7 +7,6 @@
  */
 
 #include "RtpPacketImp.h"
-#include "ByteIO.h"
 
 #include <common/LogManager.h>
 
