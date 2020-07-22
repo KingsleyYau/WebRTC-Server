@@ -22,6 +22,7 @@ CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/libsdp/include \
 			-Ithird_party/json \
 			-Ithird_party/websocketpp \
+			-Ithird_party/abseil-cpp \
 			-I$(OPENSSL_INCLUDE)
 
 export BUILD_PATH = /root/mediaserver/build

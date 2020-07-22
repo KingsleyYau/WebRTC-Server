@@ -70,6 +70,7 @@ void RtpPacketImp::Reset() {
 	payload_size_ = 0;
 	padding_size_ = 0;
 
+	hasTransportSequenceNumber_ = false;
 	transport_sequence_number_ = 0;
 }
 
@@ -240,6 +241,7 @@ bool RtpPacketImp::Parse(const uint8_t* buffer, size_t size) {
 				extension_info.length = length;
 
 				if (extension_info.id == TransportSequenceNumber::kId) {
+					hasTransportSequenceNumber_ = true;
 					transport_sequence_number_ = 0;
 					TransportSequenceNumber::Parse(
 							buffer + extension_info.offset,

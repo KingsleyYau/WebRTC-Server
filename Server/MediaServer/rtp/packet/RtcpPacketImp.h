@@ -14,7 +14,7 @@
 
 #include "CommonHeader.h"
 
-#include <base/Check.h>
+#include <rtp/base/Check.h>
 
 #include <common/LogManager.h>
 

@@ -965,6 +965,7 @@ bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 
 void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaType type) {
 	connection_hdl hdl;
+	const void *hdlAddr = NULL;
 	bool bFound = false;
 
 	mWebRTCMap.Lock();
@@ -972,6 +973,7 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaT
 	if( itr != mWebRTCMap.End() ) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
+		hdlAddr = hdl.lock().get();
 		bFound = true;
 
 		if ( bFound ) {
@@ -991,7 +993,6 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaT
 			mWSServer.SendText(hdl, res);
 		}
 	}
-	mWebRTCMap.Unlock();
 
 	LogAync(
 			LOG_NOTICE,
@@ -1003,16 +1004,19 @@ void MediaServer::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp, WebRTCMediaT
 			"type : %s "
 //			"\nsdp:\n%s"
 			")",
-			hdl.lock().get(),
+			hdlAddr,
 			rtc,
 			rtc->GetRtmpUrl().c_str(),
 			WebRTCMediaTypeString[type].c_str()
 //			sdp.c_str()
 			);
+	mWebRTCMap.Unlock();
+
 }
 
 void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 	connection_hdl hdl;
+	const void *hdlAddr = NULL;
 	bool bFound = false;
 
 	mWebRTCMap.Lock();
@@ -1021,6 +1025,7 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 		MediaClient *client = itr->second;
 		client->startMediaTime  = getCurrentTime();
 		hdl = client->hdl;
+		hdlAddr = hdl.lock().get();
 		bFound = true;
 
 		if( bFound ) {
@@ -1036,7 +1041,6 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 			mWSServer.SendText(hdl, res);
 		}
 	}
-	mWebRTCMap.Unlock();
 
 	LogAync(
 			LOG_NOTICE,
@@ -1046,38 +1050,24 @@ void MediaServer::OnWebRTCStartMedia(WebRTC *rtc) {
 			"rtc : %p, "
 			"rtmpUrl : %s "
 			")",
-			hdl.lock().get(),
+			hdlAddr,
 			rtc,
 			rtc->GetRtmpUrl().c_str()
 			);
+	mWebRTCMap.Unlock();
 }
 
 void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const string& errMsg) {
 	connection_hdl hdl;
+	const void *hdlAddr = NULL;
 	bool bFound = false;
-
-	LogAync(
-			LOG_WARNING,
-			"MediaServer::OnWebRTCError( "
-			"event : [WebRTC-出错], "
-			"hdl : %p, "
-			"rtc : %p, "
-			"rtmpUrl : %s, "
-			"errType : %u, "
-			"errMsg : %s "
-			")",
-			hdl.lock().get(),
-			rtc,
-			rtc->GetRtmpUrl().c_str(),
-			errType,
-			errMsg.c_str()
-			);
 
 	mWebRTCMap.Lock();
 	WebRTCMap::iterator itr = mWebRTCMap.Find(rtc);
 	if( itr != mWebRTCMap.End() ) {
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
+		hdlAddr = hdl.lock().get();
 		bFound = true;
 
 		if( bFound ) {
@@ -1097,6 +1087,22 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 			}
 		}
 	}
+	LogAync(
+			LOG_WARNING,
+			"MediaServer::OnWebRTCError( "
+			"event : [WebRTC-出错], "
+			"hdl : %p, "
+			"rtc : %p, "
+			"rtmpUrl : %s, "
+			"errType : %u, "
+			"errMsg : %s "
+			")",
+			hdlAddr,
+			rtc,
+			rtc->GetRtmpUrl().c_str(),
+			errType,
+			errMsg.c_str()
+			);
 	mWebRTCMap.Unlock();
 }
 
@@ -1120,8 +1126,6 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 			}
 		}
 	}
-	mWebRTCMap.Unlock();
-
 	LogAync(
 			LOG_NOTICE,
 			"MediaServer::OnWebRTCClose( "
@@ -1134,6 +1138,7 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 			rtc,
 			rtc->GetRtmpUrl().c_str()
 			);
+	mWebRTCMap.Unlock();
 
 //	if( bFound ) {
 //		mWSServer.Disconnect(hdl);

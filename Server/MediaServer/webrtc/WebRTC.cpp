@@ -2022,7 +2022,8 @@ void WebRTC::DtlsThread() {
 							mRtmpUrl.c_str()
 							);
 					if( mpWebRTCCallback ) {
-						mpWebRTCCallback->OnWebRTCClose(this);
+						mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Dtls_Handshake_Fail, "");
+//						mpWebRTCCallback->OnWebRTCClose(this);
 					}
 				}
 				break;

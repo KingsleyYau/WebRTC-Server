@@ -41,6 +41,7 @@ public:
 
 	// Extension
 	uint16_t transport_sequence_number_;
+	bool hasTransportSequenceNumber_;
 
 private:
 	struct ExtensionInfo {

@@ -18,6 +18,7 @@
 #include <socket/ISocketSender.h>
 
 #include <rtp/NtpTime.h>
+#include <rtp/module/RemoteEstimatorProxy.h>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -42,12 +43,7 @@ struct srtp_policy_t;
 namespace mediaserver {
 typedef KSafeMap<int, int> LostPacketMap;
 
-class RtpTccFbItem {
-public:
-	unsigned short seq;
-	unsigned long long recv_timestamp_us;
-};
-
+class RtpPacketImp;
 class RtpSession {
 public:
 	RtpSession();
@@ -153,7 +149,7 @@ public:
 	 * 发送接收端反馈
 	 * @param mediaSSRC 媒体流SSRC
 	 */
-	bool SendRtcpTccFb(unsigned int mediaSSRC);
+	bool SendRtcpTccFB(unsigned int mediaSSRC);
 
 private:
 	/**
@@ -168,9 +164,9 @@ private:
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
 	 * @param pkt 原始RTP数据包
-	 * @param pktSize 原始RTP数据包大小
+	 * @param recvTime 原始RTP数据包到达时间
 	 */
-	void UpdateStreamInfo(const void *pkt, unsigned int pktSize);
+	void UpdateStreamInfo(const RtpPacketImp *pkt, uint64_t recvTime);
 	/**
 	 * 更新丢包统计
 	 * @param ssrc 媒体流SSRC
@@ -303,6 +299,10 @@ private:
     // 当前已丢包数量
     int mVideoAbandonCount;
     //////////////////////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////////////////////
+    RemoteEstimatorProxy mRemoteEstimatorProxy;
+	//////////////////////////////////////////////////////////////////////////
 };
 
 } /* namespace mediaserver */
