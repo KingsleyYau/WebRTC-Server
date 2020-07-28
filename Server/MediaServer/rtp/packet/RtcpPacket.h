@@ -1,31 +1,31 @@
 /*
- * RtcpPacketImp.h
+ * RtcpPacket.h
  *
  *  Created on: 2020/07/15
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RTP_PACKET_RTCPPACKETIMP_H_
-#define RTP_PACKET_RTCPPACKETIMP_H_
+#ifndef RTP_PACKET_RTCPPACKET_H_
+#define RTP_PACKET_RTCPPACKET_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
 #include "CommonHeader.h"
 
-#include <rtp/base/Check.h>
+#include <rtp/base/checks.h>
 
 #include <common/LogManager.h>
 
 namespace mediaserver {
-class RtcpPacketImp {
+class RtcpPacket {
 public:
 	// Size of the rtcp common header.
 	static constexpr size_t kHeaderLength = 4;
 
-	RtcpPacketImp() = default;
-	virtual ~RtcpPacketImp() = default;
+	RtcpPacket() = default;
+	virtual ~RtcpPacket() = default;
 
 	// Size of this packet in bytes (including headers).
 	virtual size_t BlockLength() const = 0;
@@ -52,4 +52,4 @@ public:
 
 } /* namespace mediaserver */
 
-#endif /* RTP_PACKET_RTCPPACKETIMP_H_ */
+#endif /* RTP_PACKET_RTCPPACKET_H_ */

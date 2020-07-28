@@ -8,7 +8,7 @@ cd $APP_DIR
 
 ./script/stop_all_service.sh
 
-sleep 1
+sleep 10
 
 echo "# Turnserver starting......"
 nohup ./script/start_turnserver.sh >/dev/null 2>&1 &
@@ -26,7 +26,7 @@ sleep 1
 
 echo "# Mediaserver starting......"
 nohup ./script/start_mediaserver.sh >/dev/null 2>&1 &
-sleep 3
+sleep 10
 PID=`cat ./run/mediaserver.pid 2>/dev/null`
 echo "# Mediaserver start finish, shell: $!, pid: $PID"
 if [ ! $PID == "" ]

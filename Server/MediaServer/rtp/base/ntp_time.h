@@ -1,13 +1,15 @@
 /*
- * NtpTime.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
- *  Created on: 2019/12/25
+ *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_NTPTIME_H_
-#define RTP_NTPTIME_H_
+#ifndef RTP_BASE_NTPTIME_H_
+#define RTP_BASE_NTPTIME_H_
 
 #include <unistd.h>
 #include <stdint.h>
@@ -41,4 +43,4 @@ private:
 
 } /* namespace mediaserver */
 
-#endif /* RTP_NTPTIME_H_ */
+#endif /* RTP_BASE_NTPTIME_H_ */

@@ -12,10 +12,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <rtp/base/Check.h>
+#include <rtp/base/checks.h>
 #include <rtp/base/numerics/sequence_number_util.h>
 
-#include <rtp/packet/RtpPacketImp.h>
+#include <rtp/packet/RtpPacket.h>
 #include <rtp/packet/TransportFeedback.h>
 
 #include <absl/types/optional.h>
@@ -31,7 +31,7 @@ public:
 	virtual ~RemoteEstimatorProxy();
 
 	void Reset();
-	void RecvRtpPacket(int64_t arrival_time_ms, const RtpPacketImp* pkt);
+	void RecvRtpPacket(int64_t arrival_time_ms, const RtpPacket* pkt);
 	bool SendPeriodicFeedbacks(uint8_t* packet, size_t* index, size_t max_length);
 
 private:

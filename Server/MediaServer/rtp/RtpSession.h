@@ -17,7 +17,8 @@
 
 #include <socket/ISocketSender.h>
 
-#include <rtp/NtpTime.h>
+#include <rtp/base/ntp_time.h>
+#include <rtp/packet/SenderReport.h>
 #include <rtp/module/RemoteEstimatorProxy.h>
 
 #include <unistd.h>
@@ -43,7 +44,7 @@ struct srtp_policy_t;
 namespace mediaserver {
 typedef KSafeMap<int, int> LostPacketMap;
 
-class RtpPacketImp;
+class RtpPacket;
 class RtpSession {
 public:
 	RtpSession();
@@ -61,6 +62,9 @@ public:
 	void SetRtcpSender(SocketSender *sender);
 	void SetVideoSSRC(unsigned int ssrc);
 	void SetAudioSSRC(unsigned int ssrc);
+
+	void RegisterVideoExtensions(const vector<RtpExtension>& extensions);
+	void RegisterAudioExtensions(const vector<RtpExtension>& extensions);
 
 public:
 	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
@@ -166,7 +170,7 @@ private:
 	 * @param pkt 原始RTP数据包
 	 * @param recvTime 原始RTP数据包到达时间
 	 */
-	void UpdateStreamInfo(const RtpPacketImp *pkt, uint64_t recvTime);
+	void UpdateStreamInfo(const RtpPacket *pkt, uint64_t recvTime);
 	/**
 	 * 更新丢包统计
 	 * @param ssrc 媒体流SSRC
@@ -200,6 +204,9 @@ private:
 	 * @return 媒体流描述字符串
 	 */
 	string PktTypeDesc(unsigned int ssrc);
+
+	void HandleSenderReport(const CommonHeader& rtcp_block);
+	void HandleReportBlock(const ReportBlock& report_block);
 
 protected:
 	// Status
@@ -301,7 +308,12 @@ private:
     //////////////////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////////////////
+    NtpTime mRemoteSenderNtpTime;
+    uint32_t mRemoteSenderRtpTime;
     RemoteEstimatorProxy mRemoteEstimatorProxy;
+
+    RtpHeaderExtensionMap mVideoExtensionMap;
+    RtpHeaderExtensionMap mAudioExtensionMap;
 	//////////////////////////////////////////////////////////////////////////
 };
 

@@ -1,21 +1,21 @@
 /*
- * TimeDelta.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  *
- *	Borrow from WebRTC project
+ *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_TIMEDELTA_H_
-#define RTP_TIMEDELTA_H_
+#ifndef RTP_BASE_TIMEDELTA_H_
+#define RTP_BASE_TIMEDELTA_H_
 
 #include <cstdlib>
 #include <string>
 #include <type_traits>
 
-#include <rtp/base/UnitBase.h>
+#include <rtp/base/unit_base.h>
 
 namespace mediaserver {
 
@@ -96,4 +96,4 @@ private:
 }
 // namespace mediaserver
 
-#endif  // RTP_TIMEDELTA_H_
+#endif  // RTP_BASE_TIMEDELTA_H_

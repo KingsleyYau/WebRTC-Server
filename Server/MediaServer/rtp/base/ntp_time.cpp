@@ -1,12 +1,14 @@
 /*
- * NtpTime.cpp
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
- *  Created on: 2019/12/25
+ *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
  */
 
-#include "NtpTime.h"
+#include "ntp_time.h"
 
 /**
  * https://tools.ietf.org/html/rfc3550#section-4

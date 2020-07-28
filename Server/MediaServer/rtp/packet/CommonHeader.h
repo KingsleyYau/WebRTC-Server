@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <rtp/base/ByteIO.h>
+#include <rtp/base/byte_io.h>
 
 #include <common/LogManager.h>
 
@@ -62,4 +62,4 @@ private:
 	const uint8_t* payload_ = nullptr;
 };
 }  // namespace mediaserver
-#endif  /* RTP_PACKET_RTCPPACKETIMP_H_ */
+#endif  /* RTP_PACKET_COMMON_HEADER_H_ */

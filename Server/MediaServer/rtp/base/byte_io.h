@@ -1,15 +1,15 @@
 /*
- * ByteIO.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  *
- *	Borrow from WebRTC project
+ *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_BYTE_IO_H_
-#define RTP_BYTE_IO_H_
+#ifndef RTP_BASE_BYTE_IO_H_
+#define RTP_BASE_BYTE_IO_H_
 
 // This file contains classes for reading and writing integer types from/to
 // byte array representations. Signed/unsigned, partial (whole byte) sizes,
@@ -399,4 +399,4 @@ class ByteWriter<T, 8, false> {
 
 }  // namespace mediaserver
 
-#endif  // RTP_BYTE_IO_H_
+#endif  // RTP_BASE_BYTE_IO_H_

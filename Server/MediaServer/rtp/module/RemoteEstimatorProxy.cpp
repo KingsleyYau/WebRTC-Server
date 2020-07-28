@@ -38,7 +38,7 @@ void RemoteEstimatorProxy::Reset() {
 }
 
 void RemoteEstimatorProxy::RecvRtpPacket(int64_t arrival_time_ms,
-		const RtpPacketImp* pkt) {
+		const RtpPacket* pkt) {
 	if (arrival_time_ms < 0 || arrival_time_ms > kMaxTimeMs) {
 		LogAync(LOG_WARNING, "RemoteEstimatorProxy::RecvRtpPacket( "
 				"this : %p, "
@@ -48,8 +48,9 @@ void RemoteEstimatorProxy::RecvRtpPacket(int64_t arrival_time_ms,
 	}
 	media_ssrc_ = pkt->ssrc_;
 	int64_t seq = 0;
-	if (pkt->hasTransportSequenceNumber_) {
-		seq = pkt->transport_sequence_number_;
+//	if (pkt->hasTransportSequenceNumber_) {
+	if (false) {
+//		seq = pkt->transport_sequence_number_;
 
 		LogAync(LOG_DEBUG, "RemoteEstimatorProxy::RecvRtpPacket( "
 				"this : %p, "

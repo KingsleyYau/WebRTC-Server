@@ -126,7 +126,8 @@ void cb_stream_removed_actually(NiceAgent *agent, guint streamId, gpointer data)
 }
 
 IceClient::IceClient() :
-		mClientMutex(KMutex::MutexType_Recursive) {
+		mClientMutex(KMutex::MutexType_Recursive),
+		mParamMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
 	// Status
 	mRunning = false;
@@ -419,9 +420,11 @@ void IceClient::SetRemoteSdp(const string& sdp) {
 				);
 
 //		if( state == NICE_COMPONENT_STATE_CONNECTING ) {
+		mParamMutex.lock();
 		if ( mIceGatheringDone && state < NICE_COMPONENT_STATE_CONNECTED ) {
 			ParseRemoteSdp(mStreamId);
 		}
+		mParamMutex.unlock();
 	}
 
 	mClientMutex.unlock();
@@ -454,8 +457,6 @@ bool IceClient::IsConnected() {
 
 bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 	bool bFlag = false;
-
-	mClientMutex.lock();
 
 	LogAync(
 			LOG_INFO,
@@ -575,8 +576,6 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 				);
     }
 
-    mClientMutex.unlock();
-
 //	LogAync(
 //			LOG_DEBUG,
 //			"IceClient::ParseRemoteSdp( "
@@ -676,9 +675,9 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
     gchar ip[INET6_ADDRSTRLEN] = {0};
     gchar baseip[INET6_ADDRSTRLEN] = {0};
 
-	mClientMutex.lock();
+    mParamMutex.lock();
 	mIceGatheringDone = true;
-	mClientMutex.unlock();
+	mParamMutex.unlock();
 
     bool bFlag = true;
 	if ( bFlag ) {

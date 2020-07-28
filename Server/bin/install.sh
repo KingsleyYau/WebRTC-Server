@@ -45,4 +45,9 @@ mkdir -p $DEST_PATH/run/
 mkdir -p $DEST_PATH/log/
 mkdir -p $DEST_PATH/log/turnserver/
 
+# Change Own
+groupadd mediaserver
+useradd mediaserver -g mediaserver -M
+chown -R mediaserver:mediaserver $DEST_PATH
+
 echo -e "############## Installing mediaserver [\033[32mOK\033[0m] ##############"

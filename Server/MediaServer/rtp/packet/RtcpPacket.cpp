@@ -1,16 +1,16 @@
 /*
- * RtcpPacketImp.cpp
+ * RtcpPacket.cpp
  *
  *  Created on: 2020/07/15
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  */
 
-#include "RtcpPacketImp.h"
+#include "RtcpPacket.h"
 
 namespace mediaserver {
 
-size_t RtcpPacketImp::HeaderLength() const {
+size_t RtcpPacket::HeaderLength() const {
 	size_t length_in_bytes = BlockLength();
 	RTC_CHECK_GT(length_in_bytes, 0);
 	RTC_CHECK_EQ(length_in_bytes % 4, 0);
@@ -26,13 +26,13 @@ size_t RtcpPacketImp::HeaderLength() const {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //  |V=2|P| RC/FMT  |      PT       |             length            |
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void RtcpPacketImp::CreateHeader(size_t count_or_format, // Depends on packet type.
+void RtcpPacket::CreateHeader(size_t count_or_format, // Depends on packet type.
 		uint8_t packet_type, size_t length, uint8_t* buffer, size_t* pos) {
 	CreateHeader(count_or_format, packet_type, length, /*padding=*/false,
 			buffer, pos);
 }
 
-void RtcpPacketImp::CreateHeader(
+void RtcpPacket::CreateHeader(
 		size_t count_or_format,  // Depends on packet type.
 		uint8_t packet_type, size_t length, bool padding, uint8_t* buffer,
 		size_t* pos) {

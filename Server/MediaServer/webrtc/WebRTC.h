@@ -20,12 +20,17 @@
 #include <common/KSafeList.h>
 #include <include/ErrCode.h>
 
+// Rtp
+#include <rtp/api/rtp_parameters.h>
 #include <rtp/DtlsSession.h>
 #include <rtp/RtpSession.h>
 #include <rtp/RtpRawClient.h>
 
 #include <socket/ISocketSender.h>
 #include <webrtc/IceClient.h>
+
+#include <vector>
+using namespace std;
 
 namespace mediaserver {
 typedef list<string> RtcpFbList;
@@ -177,11 +182,21 @@ private:
 	 * 创建音频RTCP-FB
 	 */
 	string CreateAudioRtcpFb();
+	/**
+	 * 创建视频EXTMAP
+	 */
+	string CreateVideoExtmap();
+	/**
+	 * 创建音频EXTMAP
+	 */
+	string CreateAudioExtmap();
 
 private:
 	// Status
 	KMutex mClientMutex;
 	bool mRunning;
+
+	KMutex mParamMutex;
 
 	WebRTCCallback *mpWebRTCCallback;
 
@@ -248,6 +263,9 @@ private:
 
 	// 最后一次错误码
 	RequestErrorType mLastErrorCode;
+
+	vector<RtpExtension> mVideoExtmap;
+	vector<RtpExtension> mAudioExtmap;
 };
 
 } /* namespace mediaserver */

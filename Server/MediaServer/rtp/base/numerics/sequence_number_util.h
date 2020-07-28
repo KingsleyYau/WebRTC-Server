@@ -1,11 +1,11 @@
 /*
- * mod_ops.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  *
- *	Borrow from WebRTC project
+ *  Borrow from WebRTC Project
  */
 
 #ifndef RTP_BASE_NUMERICS_SEQUENCE_NUMBER_UTIL_H_
@@ -18,7 +18,7 @@
 
 #include <absl/types/optional.h>
 
-#include <rtp/base/Check.h>
+#include <rtp/base/checks.h>
 #include <rtp/base/numerics/mod_ops.h>
 
 namespace mediaserver {

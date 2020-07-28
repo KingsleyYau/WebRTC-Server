@@ -20,11 +20,20 @@ CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../thi
 				-I../third_party/abseil-cpp -I../../third_party/abseil-cpp -I../../../third_party/abseil-cpp \
 				-I$(OPENSSL_INCLUDE)
 				
-OBJS		+=	DtlsSession.o RtpSession.o RtpRawClient.o NtpTime.o
-OBJS		+=	packet/RtpPacketImp.o  packet/RtcpPacketImp.o packet/CommonHeader.o \
+OBJS		+=	api/units/timestamp.o \
+				api/media_types.o api/rtp_parameters.o api/rtp_headers.o
+OBJS		+=	base/ntp_time.o base/rw_lock_wrapper.o base/rw_lock_posix.o base/clock.o \
+				base/string_encode.o base/string_to_number.o \
+				base/strings/string_builder.o
+OBJS		+=	include/rtp_rtcp_defines.o include/rtp_header_extension_map.o include/rtp_header_extension_size.o \
+				include/rtp_header_extensions.o
+OBJS		+=	packet/rtp_packet_received.o packet/RtpPacket.o packet/RtcpPacket.o packet/CommonHeader.o \
 				packet/Psfb.o packet/Pli.o packet/Fir.o packet/Remb.o \
-				packet/Rtpfb.o packet/Nack.o packet/TransportFeedback.o 
+				packet/Rtpfb.o packet/Nack.o packet/TransportFeedback.o \
+				packet/ReportBlock.o packet/SenderReport.o \
+				packet/Dlrr.o packet/Rrtr.o packet/TargetBitrate.o packet/ExtendedReports.o \
 OBJS		+=	module/RemoteEstimatorProxy.o
+OBJS		+=	DtlsSession.o RtpSession.o RtpRawClient.o
 						
 TARGET 		=	librtp.a
 

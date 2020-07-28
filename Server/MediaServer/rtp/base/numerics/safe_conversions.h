@@ -1,20 +1,20 @@
 /*
- * SafeConversions.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  *
- *	Borrow from WebRTC project
+ *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_SAFECONVERSIONS_H_
-#define RTP_SAFECONVERSIONS_H_
+#ifndef RTP_BASE_NUMERICS_SAFECONVERSIONS_H_
+#define RTP_BASE_NUMERICS_SAFECONVERSIONS_H_
 
 #include <limits>
 
-#include "Check.h"
-#include "SafeConversionsImpl.h"
+#include <rtp/base/checks.h>
+#include <rtp/base/numerics/safe_conversions_impl.h>
 
 namespace mediaserver {
 
@@ -71,4 +71,5 @@ inline constexpr Dst saturated_cast(Src value) {
 
 }  // namespace mediaserver
 
-#endif  // RTP_SAFECONVERSIONS_H_
+#endif  // #ifndef RTP_BASE_NUMERICS_SAFECONVERSIONS_H_
+

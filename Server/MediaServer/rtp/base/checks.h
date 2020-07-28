@@ -1,17 +1,25 @@
 /*
- * Check.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
  *
- *	Borrow from WebRTC project
+ *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_PACKET_CHECK_H_
-#define RTP_PACKET_CHECK_H_
+#ifndef RTP_BASE_CHECK_H_
+#define RTP_BASE_CHECK_H_
 
 #include <common/LogManager.h>
+
+#define RTC_DCHECK(condition)
+#define RTC_DCHECK_EQ(a, b) RTC_DCHECK((a) == (b))
+#define RTC_DCHECK_NE(a, b) RTC_DCHECK((a) != (b))
+#define RTC_DCHECK_LE(a, b) RTC_DCHECK((a) <= (b))
+#define RTC_DCHECK_LT(a, b) RTC_DCHECK((a) < (b))
+#define RTC_DCHECK_GE(a, b) RTC_DCHECK((a) >= (b))
+#define RTC_DCHECK_GT(a, b) RTC_DCHECK((a) > (b))
 
 #define RTC_CHECK(condition)
 
@@ -27,4 +35,4 @@ inline T CheckedDivExact(T a, T b) {
   return a / b;
 }
 
-#endif /* RTP_PACKET_CHECK_H_ */
+#endif /* RTP_BASE_CHECK_H_ */

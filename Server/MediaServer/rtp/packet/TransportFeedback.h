@@ -11,7 +11,7 @@
 
 #include "Rtpfb.h"
 
-#include <rtp/base/TimeDelta.h>
+#include <rtp/base/time_delta.h>
 
 #include <memory>
 using namespace std;

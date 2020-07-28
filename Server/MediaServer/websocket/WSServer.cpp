@@ -246,7 +246,22 @@ void WSServer::Disconnect(connection_hdl hdl) {
 			conn->get_remote_endpoint().c_str()
 			);
 
-	mServer.close(hdl, 0, "Disconnect by server");
+	try {
+		mServer.close(hdl, 0, "Disconnect by server");
+	} catch (websocketpp::exception const & e) {
+	    	LogAync(
+	    			LOG_INFO,
+	    			"WSServer::Disconnect( "
+					"hdl : %p, "
+	    			"[Exception], "
+					"ip : %s, "
+	    			"e : %s "
+	    			")",
+					hdl.lock().get(),
+					conn->get_remote_endpoint().c_str(),
+					e.what()
+	    			);
+	}
 
 	LogAync(
 			LOG_DEBUG,

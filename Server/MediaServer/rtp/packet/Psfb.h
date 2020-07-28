@@ -9,10 +9,10 @@
 #ifndef RTP_PACKET_PSFB_H_
 #define RTP_PACKET_PSFB_H_
 
-#include "RtcpPacketImp.h"
+#include "RtcpPacket.h"
 
 namespace mediaserver {
-class Psfb : public RtcpPacketImp {
+class Psfb : public RtcpPacket {
 public:
 	static constexpr uint8_t kPacketType = 206;
 	static constexpr uint8_t kAfbMessageType = 15;

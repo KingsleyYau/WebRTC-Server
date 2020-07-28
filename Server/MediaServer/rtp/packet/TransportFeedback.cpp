@@ -8,7 +8,7 @@
 
 #include "TransportFeedback.h"
 
-#include <rtp/base/Types.h>
+#include <rtp/base/types.h>
 
 namespace mediaserver {
 
@@ -511,7 +511,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 			++seq_no;
 		}
 	}
-	size_bytes_ = RtcpPacketImp::kHeaderLength + index;
+	size_bytes_ = RtcpPacket::kHeaderLength + index;
 	RTC_CHECK_LE(index, end_index);
 	return true;
 }

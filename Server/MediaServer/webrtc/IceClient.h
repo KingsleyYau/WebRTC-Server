@@ -84,6 +84,8 @@ private:
 	// Status
 	KMutex mClientMutex;
 	bool mRunning;
+
+	KMutex mParamMutex;
 	bool mIceGatheringDone;
 
 	::NiceAgent *mpAgent;
