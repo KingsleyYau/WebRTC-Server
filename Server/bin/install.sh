@@ -49,5 +49,6 @@ mkdir -p $DEST_PATH/log/turnserver/
 groupadd mediaserver
 useradd mediaserver -g mediaserver -M
 chown -R mediaserver:mediaserver $DEST_PATH
+chown -R mediaserver:mediaserver /tmp/webrtc
 
 echo -e "############## Installing mediaserver [\033[32mOK\033[0m] ##############"
