@@ -19,6 +19,7 @@
 #include <rtp/packet/TargetBitrate.h>
 
 namespace mediaserver {
+namespace rtcp {
 class CommonHeader;
 
 // From RFC 3611: RTP Control Protocol Extended Reports (RTCP XR).
@@ -50,7 +51,8 @@ public:
 
 	size_t BlockLength() const override;
 
-	bool Create(uint8_t* packet, size_t* index, size_t max_length) const override;
+	bool Create(uint8_t* packet, size_t* index, size_t max_length) const
+			override;
 
 private:
 	static constexpr size_t kXrBaseLength = 4;
@@ -72,5 +74,6 @@ private:
 	Dlrr dlrr_block_;  // Dlrr without items treated same as no dlrr block.
 	absl::optional<TargetBitrate> target_bitrate_;
 };
+}
 }  // namespace mediaserver
 #endif  // RTP_PACKET_EXTENDED_REPORTS_H_

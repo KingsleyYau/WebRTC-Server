@@ -1,9 +1,11 @@
 /*
- * TargetBitrate.h
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
  */
 
 #ifndef RTP_PACKET_TARGET_BITRATE_H_
@@ -15,6 +17,7 @@
 #include <vector>
 
 namespace mediaserver {
+namespace rtcp {
 class TargetBitrate {
 public:
 	// TODO(sprang): This block type is just a place holder. We need to get an
@@ -51,6 +54,6 @@ public:
 private:
 	std::vector<BitrateItem> bitrates_;
 };
-
+}
 }  // namespace mediaserver
 #endif  // RTP_PACKET_TARGET_BITRATE_H_

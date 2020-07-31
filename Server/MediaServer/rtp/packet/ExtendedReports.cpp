@@ -14,6 +14,7 @@
 #include <rtp/packet/CommonHeader.h>
 
 namespace mediaserver {
+namespace rtcp {
 constexpr uint8_t ExtendedReports::kPacketType;
 constexpr size_t ExtendedReports::kMaxNumberOfDlrrItems;
 // From RFC 3611: RTP Control Protocol Extended Reports (RTCP XR).
@@ -94,7 +95,7 @@ bool ExtendedReports::Parse(const CommonHeader& packet) {
 }
 
 void ExtendedReports::SetRrtr(const Rrtr& rrtr) {
-	if (rrtr_block_)
+//	if (rrtr_block_)
 //		RTC_LOG(LS_WARNING) << "Rrtr already set, overwriting.";
 	rrtr_block_.emplace(rrtr);
 }
@@ -109,10 +110,9 @@ bool ExtendedReports::AddDlrrItem(const ReceiveTimeInfo& time_info) {
 }
 
 void ExtendedReports::SetTargetBitrate(const TargetBitrate& bitrate) {
-	if (target_bitrate_)
+//	if (target_bitrate_)
 //		RTC_LOG(LS_WARNING) << "TargetBitrate already set, overwriting.";
-
-		target_bitrate_ = bitrate;
+	target_bitrate_ = bitrate;
 }
 
 size_t ExtendedReports::BlockLength() const {
@@ -181,5 +181,6 @@ void ExtendedReports::ParseTargetBitrateBlock(const uint8_t* block,
 		uint16_t block_length) {
 	target_bitrate_.emplace();
 	target_bitrate_->Parse(block, block_length);
+}
 }
 }  // namespace mediaserver

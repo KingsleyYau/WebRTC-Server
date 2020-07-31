@@ -15,7 +15,7 @@
 #include <rtp/base/ntp_time.h>
 
 namespace mediaserver {
-
+namespace rtcp {
 class Rrtr {
 public:
 	static const uint8_t kBlockType = 4;
@@ -47,6 +47,6 @@ public:
 private:
 	NtpTime ntp_;
 };
-
+}
 }  // namespace mediaserver
 #endif  // RTP_PACKET_RRTR_H_

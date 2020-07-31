@@ -8,8 +8,8 @@
  *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_BASE_TIMESTAMP_H_
-#define RTP_BASE_TIMESTAMP_H_
+#ifndef RTP_API_UNITS_TIMESTAMP_H_
+#define RTP_API_UNITS_TIMESTAMP_H_
 
 #ifdef UNIT_TEST
 #include <ostream>  // no-presubmit-check TODO(webrtc:8982)
@@ -18,7 +18,7 @@
 #include <string>
 #include <type_traits>
 
-#include <rtp/base/time_delta.h>
+#include <rtp/api/units/time_delta.h>
 #include <rtp/base/checks.h>
 
 namespace mediaserver {
@@ -142,4 +142,4 @@ inline std::ostream& operator<<(  // no-presubmit-check TODO(webrtc:8982)
 }
   // namespace mediaserver
 
-#endif  // RTP_BASE_TIMESTAMP_H_
+#endif  // RTP_API_UNITS_TIMESTAMP_H_

@@ -18,6 +18,7 @@
 #include <common/LogManager.h>
 
 namespace mediaserver {
+namespace rtcp {
 class CommonHeader {
 public:
 	static constexpr size_t kHeaderSizeBytes = 4;
@@ -61,5 +62,6 @@ private:
 	uint32_t payload_size_ = 0;
 	const uint8_t* payload_ = nullptr;
 };
+}
 }  // namespace mediaserver
 #endif  /* RTP_PACKET_COMMON_HEADER_H_ */

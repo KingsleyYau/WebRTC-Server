@@ -8,7 +8,7 @@
  *  Borrow from WebRTC Project
  */
 
-#include <rtp/base/timestamp.h>
+#include <rtp/api/units/timestamp.h>
 
 #include <rtp/api/array_view.h>
 #include <rtp/base/strings/string_builder.h>
@@ -31,4 +31,4 @@ std::string ToString(Timestamp value) {
 	}
 	return sb.str();
 }
-}  // namespace webrtc
+}  // namespace mediaserver

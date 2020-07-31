@@ -15,7 +15,7 @@
 using namespace std;
 
 namespace mediaserver {
-
+namespace rtcp {
 class Fir: public Psfb {
 public:
 	static constexpr uint8_t kFeedbackMessageType = 4;
@@ -57,7 +57,7 @@ private:
 
 	std::vector<Request> items_;
 };
-
+}
 } /* namespace mediaserver */
 
 #endif /* RTP_PACKET_FIR_H_ */

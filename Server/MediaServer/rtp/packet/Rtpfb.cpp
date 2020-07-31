@@ -1,14 +1,16 @@
 /*
- * Rtpfb.cpp
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
  */
-
 #include "Rtpfb.h"
 
 namespace mediaserver {
+namespace rtcp {
 // RFC 4585, Section 6.1: Feedback format.
 //
 // Common packet format:
@@ -34,5 +36,5 @@ void Rtpfb::CreateCommonFeedback(uint8_t* payload) const {
 	ByteWriter<uint32_t>::WriteBigEndian(&payload[0], sender_ssrc_);
 	ByteWriter<uint32_t>::WriteBigEndian(&payload[4], media_ssrc_);
 }
-
+}
 } /* namespace mediaserver */

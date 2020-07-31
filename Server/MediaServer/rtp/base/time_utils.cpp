@@ -10,13 +10,14 @@
 
 #include <stdint.h>
 
+#define WEBRTC_POSIX
 #if defined(WEBRTC_POSIX)
 #include <sys/time.h>
-#if defined(WEBRTC_MAC)
-#include <mach/mach_time.h>
-
-#include "rtc_base/numerics/safe_conversions.h"
-#endif
+//#if defined(WEBRTC_MAC)
+//#include <mach/mach_time.h>
+//
+//#include "rtc_base/numerics/safe_conversions.h"
+//#endif
 #endif
 
 #if defined(WEBRTC_WIN)
@@ -29,10 +30,10 @@
 // clang-format on
 #endif
 
-#include "rtc_base/checks.h"
-#include "rtc_base/time_utils.h"
+#include <rtp/base/checks.h>
+#include <rtp/base/time_utils.h>
 
-namespace rtc {
+namespace mediaserver {
 
 ClockInterface* g_clock = nullptr;
 
@@ -64,7 +65,7 @@ class TimeHelper final {
     TIME_ZONE_INFORMATION time_zone;
     GetTimeZoneInformation(&time_zone);
     int64_t time_zone_bias_ns =
-        rtc::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
+        mediaserver::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
     singleton.app_start_time_ns_ =
         (ntp_server_time_ms - kNTPTimeToUnixTimeEpochOffset) * 1000000 -
         time_zone_bias_ns;
@@ -77,9 +78,9 @@ class TimeHelper final {
     int64_t result = 0;
     LARGE_INTEGER qpcnt;
     QueryPerformanceCounter(&qpcnt);
-    result = rtc::dchecked_cast<int64_t>(
-        (rtc::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
-         rtc::dchecked_cast<uint64_t>(singleton.os_ticks_per_second_)) *
+    result = mediaserver::dchecked_cast<int64_t>(
+        (mediaserver::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
+         mediaserver::dchecked_cast<uint64_t>(singleton.os_ticks_per_second_)) *
         10000);
     result = singleton.app_start_time_ns_ + result -
              singleton.time_since_os_start_ns_;
@@ -91,7 +92,7 @@ class TimeHelper final {
     TIME_ZONE_INFORMATION time_zone;
     GetTimeZoneInformation(&time_zone);
     int64_t time_zone_bias_ns =
-        rtc::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
+        mediaserver::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
     FILETIME ft;
     // This will give us system file in UTC format.
     GetSystemTimeAsFileTime(&ft);
@@ -113,13 +114,13 @@ class TimeHelper final {
   void UpdateReferenceTime() {
     LARGE_INTEGER qpfreq;
     QueryPerformanceFrequency(&qpfreq);
-    os_ticks_per_second_ = rtc::dchecked_cast<int64_t>(qpfreq.QuadPart);
+    os_ticks_per_second_ = mediaserver::dchecked_cast<int64_t>(qpfreq.QuadPart);
 
     LARGE_INTEGER qpcnt;
     QueryPerformanceCounter(&qpcnt);
-    time_since_os_start_ns_ = rtc::dchecked_cast<int64_t>(
-        (rtc::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
-         rtc::dchecked_cast<uint64_t>(os_ticks_per_second_)) *
+    time_since_os_start_ns_ = mediaserver::dchecked_cast<int64_t>(
+        (mediaserver::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
+         mediaserver::dchecked_cast<uint64_t>(os_ticks_per_second_)) *
         10000);
   }
 
@@ -160,7 +161,7 @@ int64_t SystemTimeNanos() {
     RTC_DCHECK_NE(b, 0);
     RTC_DCHECK_LE(a, std::numeric_limits<int64_t>::max() / b)
         << "The multiplication " << a << " * " << b << " overflows";
-    return rtc::dchecked_cast<int64_t>(a * b);
+    return mediaserver::dchecked_cast<int64_t>(a * b);
   };
   ticks = mul(mach_absolute_time(), timebase.numer) / timebase.denom;
 #elif defined(WEBRTC_POSIX)
@@ -309,15 +310,15 @@ int64_t TimeUTCMicros() {
   struct timeval time;
   gettimeofday(&time, nullptr);
   // Convert from second (1.0) and microsecond (1e-6).
-  return (static_cast<int64_t>(time.tv_sec) * rtc::kNumMicrosecsPerSec +
+  return (static_cast<int64_t>(time.tv_sec) * mediaserver::kNumMicrosecsPerSec +
           time.tv_usec);
 
 #elif defined(WEBRTC_WIN)
   struct _timeb time;
   _ftime(&time);
   // Convert from second (1.0) and milliseconds (1e-3).
-  return (static_cast<int64_t>(time.time) * rtc::kNumMicrosecsPerSec +
-          static_cast<int64_t>(time.millitm) * rtc::kNumMicrosecsPerMillisec);
+  return (static_cast<int64_t>(time.time) * mediaserver::kNumMicrosecsPerSec +
+          static_cast<int64_t>(time.millitm) * mediaserver::kNumMicrosecsPerMillisec);
 #endif
 }
 
@@ -325,4 +326,4 @@ int64_t TimeUTCMillis() {
   return TimeUTCMicros() / kNumMicrosecsPerMillisec;
 }
 
-}  // namespace rtc
+}  // namespace mediaserver

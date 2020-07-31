@@ -1,9 +1,11 @@
 /*
- * TargetBitrate.cpp
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
  *
  *  Created on: 2020/07/16
  *      Author: max
  *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
  */
 
 #include "TargetBitrate.h"
@@ -13,6 +15,7 @@
 #include <rtp/base/numerics/safe_conversions.h>
 
 namespace mediaserver {
+namespace rtcp {
 constexpr size_t kTargetBitrateHeaderSizeBytes = 4;
 constexpr uint8_t TargetBitrate::kBlockType;
 const size_t TargetBitrate::kBitrateItemSizeBytes = 4;
@@ -115,5 +118,5 @@ void TargetBitrate::Create(uint8_t* buffer) const {
 		index += kBitrateItemSizeBytes;
 	}
 }
-
+}
 }  // namespace mediaserver

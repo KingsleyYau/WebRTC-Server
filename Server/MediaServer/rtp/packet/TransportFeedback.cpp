@@ -11,7 +11,7 @@
 #include <rtp/base/types.h>
 
 namespace mediaserver {
-
+namespace rtcp {
 namespace {
 // Header size:
 // * 4 bytes Common RTCP Packet Header
@@ -108,8 +108,7 @@ uint16_t TransportFeedback::LastChunk::Emit() {
 		uint16_t chunk = EncodeOneBit();
 		Clear();
 		return chunk;
-	}
-	RTC_CHECK_GE(size_, kMaxTwoBitCapacity);
+	} RTC_CHECK_GE(size_, kMaxTwoBitCapacity);
 	uint16_t chunk = EncodeTwoBit(kMaxTwoBitCapacity);
 	// Remove |kMaxTwoBitCapacity| encoded delta sizes:
 	// Shift remaining delta sizes and recalculate all_same_ && has_large_delta_.
@@ -167,8 +166,7 @@ void TransportFeedback::LastChunk::Decode(uint16_t chunk, size_t max_size) {
 //  S = 0
 //  Symbol list = 14 entries where 0 = not received, 1 = received 1-byte delta.
 uint16_t TransportFeedback::LastChunk::EncodeOneBit() const {
-	RTC_CHECK(!has_large_delta_);
-	RTC_CHECK_LE(size_, kMaxOneBitCapacity);
+	RTC_CHECK(!has_large_delta_); RTC_CHECK_LE(size_, kMaxOneBitCapacity);
 	uint16_t chunk = 0x8000;
 	for (size_t i = 0; i < size_; ++i)
 		chunk |= delta_sizes_[i] << (kMaxOneBitCapacity - 1 - i);
@@ -226,20 +224,19 @@ void TransportFeedback::LastChunk::DecodeTwoBit(uint16_t chunk,
 //  S = symbol
 //  Run Length = Unsigned integer denoting the run length of the symbol
 uint16_t TransportFeedback::LastChunk::EncodeRunLength() const {
-	RTC_CHECK (all_same_);
-	RTC_CHECK_LE(size_, kMaxRunLengthCapacity);
+	RTC_CHECK (all_same_); RTC_CHECK_LE(size_, kMaxRunLengthCapacity);
 	return (delta_sizes_[0] << 13) | static_cast<uint16_t>(size_);
 }
 
 void TransportFeedback::LastChunk::DecodeRunLength(uint16_t chunk,
 		size_t max_count) {
 	RTC_CHECK_EQ(chunk & 0x8000, 0);
-	size_ = std::min < size_t > (chunk & 0x1fff, max_count);
+	size_ = std::min<size_t>(chunk & 0x1fff, max_count);
 	DeltaSize delta_size = (chunk >> 13) & 0x03;
 	has_large_delta_ = delta_size >= kLarge;
 	all_same_ = true;
 	// To make it consistent with Add function, populate delta_sizes_ beyound 1st.
-	for (size_t i = 0; i < std::min < size_t > (size_, kMaxVectorCapacity); ++i)
+	for (size_t i = 0; i < std::min<size_t>(size_, kMaxVectorCapacity); ++i)
 		delta_sizes_[i] = delta_size;
 }
 
@@ -273,8 +270,7 @@ TransportFeedback::~TransportFeedback() {
 
 void TransportFeedback::SetBase(uint16_t base_sequence,
 		int64_t ref_timestamp_us) {
-	RTC_CHECK_EQ(num_seq_no_, 0);
-	RTC_CHECK_GE(ref_timestamp_us, 0);
+	RTC_CHECK_EQ(num_seq_no_, 0); RTC_CHECK_GE(ref_timestamp_us, 0);
 	base_seq_no_ = base_sequence;
 	base_time_ticks_ = (ref_timestamp_us % kTimeWrapPeriodUs)
 			/ kBaseScaleFactor;
@@ -382,25 +378,25 @@ TimeDelta TransportFeedback::GetBaseDelta(TimeDelta prev_timestamp) const {
 
 // De-serialize packet.
 bool TransportFeedback::Parse(const CommonHeader& packet) {
-	RTC_CHECK_EQ(packet.type(), kPacketType);
-	RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
+	RTC_CHECK_EQ(packet.type(), kPacketType); RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
 
 	if (packet.payload_size_bytes() < kMinPayloadSizeBytes) {
-		LogAync(LOG_WARNING, "TransportFeedback::Parse( "
-				"this : %p, "
-				"[RTCP packet error, it is too small to be a valid TransportFeedback], "
-				"packet.payload_size_bytes() : %u, "
-				"Minimum : %d "
-				")", this, packet.payload_size_bytes(), kMinPayloadSizeBytes);
+		LogAync(LOG_WARNING,
+				"TransportFeedback::Parse( "
+						"this : %p, "
+						"[RTCP packet error, it is too small to be a valid TransportFeedback], "
+						"packet.payload_size_bytes() : %u, "
+						"Minimum : %d "
+						")", this, packet.payload_size_bytes(),
+				kMinPayloadSizeBytes);
 		return false;
 	}
 
 	const uint8_t* const payload = packet.payload();
 	ParseCommonFeedback(payload);
 
-	base_seq_no_ = ByteReader < uint16_t > ::ReadBigEndian(&payload[8]);
-	uint16_t status_count = ByteReader < uint16_t
-			> ::ReadBigEndian(&payload[10]);
+	base_seq_no_ = ByteReader<uint16_t>::ReadBigEndian(&payload[8]);
+	uint16_t status_count = ByteReader<uint16_t>::ReadBigEndian(&payload[10]);
 	base_time_ticks_ = ByteReader<int32_t, 3>::ReadBigEndian(&payload[12]);
 	feedback_seq_ = payload[15];
 	Clear();
@@ -415,7 +411,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 		return false;
 	}
 
-	std::vector < uint8_t > delta_sizes;
+	std::vector<uint8_t> delta_sizes;
 	delta_sizes.reserve(status_count);
 	while (delta_sizes.size() < status_count) {
 		if (index + kChunkSizeBytes > end_index) {
@@ -427,8 +423,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 			return false;
 		}
 
-		uint16_t chunk = ByteReader < uint16_t
-				> ::ReadBigEndian(&payload[index]);
+		uint16_t chunk = ByteReader<uint16_t>::ReadBigEndian(&payload[index]);
 		index += kChunkSizeBytes;
 		encoded_chunks_.push_back(chunk);
 		last_chunk_.Decode(chunk, status_count - delta_sizes.size());
@@ -449,10 +444,11 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 	if (end_index >= index + recv_delta_size) {
 		for (size_t delta_size : delta_sizes) {
 			if (index + delta_size > end_index) {
-				LogAync(LOG_WARNING, "TransportFeedback::Parse( "
-						"this : %p, "
-						"[RTCP packet error, Buffer overflow while parsing packet] "
-						")", this);
+				LogAync(LOG_WARNING,
+						"TransportFeedback::Parse( "
+								"this : %p, "
+								"[RTCP packet error, Buffer overflow while parsing packet] "
+								")", this);
 				Clear();
 				return false;
 			}
@@ -471,8 +467,8 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 				break;
 			}
 			case 2: {
-				int16_t delta = ByteReader < int16_t
-						> ::ReadBigEndian(&payload[index]);
+				int16_t delta = ByteReader<int16_t>::ReadBigEndian(
+						&payload[index]);
 				received_packets_.emplace_back(seq_no, delta);
 				if (include_lost_)
 					all_packets_.emplace_back(seq_no, delta);
@@ -523,7 +519,7 @@ std::unique_ptr<TransportFeedback> TransportFeedback::ParseFrom(
 		return nullptr;
 	if (header.type() != kPacketType || header.fmt() != kFeedbackMessageType)
 		return nullptr;
-	std::unique_ptr < TransportFeedback > parsed(new TransportFeedback);
+	std::unique_ptr<TransportFeedback> parsed(new TransportFeedback);
 	if (!parsed->Parse(header))
 		return nullptr;
 	return parsed;
@@ -531,7 +527,7 @@ std::unique_ptr<TransportFeedback> TransportFeedback::ParseFrom(
 
 bool TransportFeedback::IsConsistent() const {
 	size_t packet_size = kTransportFeedbackHeaderSizeBytes;
-	std::vector < DeltaSize > delta_sizes;
+	std::vector<DeltaSize> delta_sizes;
 	LastChunk chunk_decoder;
 	for (uint16_t chunk : encoded_chunks_) {
 		chunk_decoder.Decode(chunk, kMaxReportedPackets);
@@ -563,10 +559,12 @@ bool TransportFeedback::IsConsistent() const {
 				return false;
 			}
 			if (packet_it->sequence_number() != seq_no) {
-				LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
-						"this : %p, "
-						"[Expected to find delta for seq_no %u. Next delta is for %u] "
-						")", this, seq_no, packet_it->sequence_number());
+				LogAync(LOG_WARNING,
+						"TransportFeedback::IsConsistent( "
+								"this : %p, "
+								"[Expected to find delta for seq_no %u. Next delta is for %u] "
+								")", this, seq_no,
+						packet_it->sequence_number());
 				return false;
 			}
 			if (delta_size == 1
@@ -637,10 +635,10 @@ bool TransportFeedback::Create(uint8_t* packet, size_t* position,
 	CreateCommonFeedback(packet + *position);
 	*position += kCommonFeedbackLength;
 
-	ByteWriter < uint16_t > ::WriteBigEndian(&packet[*position], base_seq_no_);
+	ByteWriter<uint16_t>::WriteBigEndian(&packet[*position], base_seq_no_);
 	*position += 2;
 
-	ByteWriter < uint16_t > ::WriteBigEndian(&packet[*position], num_seq_no_);
+	ByteWriter<uint16_t>::WriteBigEndian(&packet[*position], num_seq_no_);
 	*position += 2;
 
 	ByteWriter<int32_t, 3>::WriteBigEndian(&packet[*position],
@@ -650,12 +648,12 @@ bool TransportFeedback::Create(uint8_t* packet, size_t* position,
 	packet[(*position)++] = feedback_seq_;
 
 	for (uint16_t chunk : encoded_chunks_) {
-		ByteWriter < uint16_t > ::WriteBigEndian(&packet[*position], chunk);
+		ByteWriter<uint16_t>::WriteBigEndian(&packet[*position], chunk);
 		*position += 2;
 	}
 	if (!last_chunk_.Empty()) {
 		uint16_t chunk = last_chunk_.EncodeLast();
-		ByteWriter < uint16_t > ::WriteBigEndian(&packet[*position], chunk);
+		ByteWriter<uint16_t>::WriteBigEndian(&packet[*position], chunk);
 		*position += 2;
 	}
 
@@ -665,8 +663,7 @@ bool TransportFeedback::Create(uint8_t* packet, size_t* position,
 			if (delta >= 0 && delta <= 0xFF) {
 				packet[(*position)++] = delta;
 			} else {
-				ByteWriter < int16_t
-						> ::WriteBigEndian(&packet[*position], delta);
+				ByteWriter<int16_t>::WriteBigEndian(&packet[*position], delta);
 				*position += 2;
 			}
 		}
@@ -677,8 +674,7 @@ bool TransportFeedback::Create(uint8_t* packet, size_t* position,
 			packet[(*position)++] = 0;
 		}
 		packet[(*position)++] = padding_length;
-	}
-	RTC_CHECK_EQ(*position, position_end);
+	} RTC_CHECK_EQ(*position, position_end);
 	return true;
 }
 
@@ -714,5 +710,5 @@ bool TransportFeedback::AddDeltaSize(DeltaSize delta_size) {
 	++num_seq_no_;
 	return true;
 }
-
+}
 } /* namespace mediaserver */

@@ -163,7 +163,7 @@ bool RemoteEstimatorProxy::SendPeriodicFeedbacks(uint8_t* packet, size_t* index,
 				begin_iterator->first, packet_arrival_times_.rbegin()->first,
 				packet_arrival_times_.size());
 
-		TransportFeedback feedback_packet;
+		rtcp::TransportFeedback feedback_packet;
 		window_seq_ = BuildFeedbackPacket(feedback_packet_count_++, media_ssrc_,
 				window_seq_, begin_iterator, packet_arrival_times_.end(),
 				&feedback_packet);
@@ -184,7 +184,7 @@ int64_t RemoteEstimatorProxy::BuildFeedbackPacket(uint8_t feedback_packet_count,
 		uint32_t media_ssrc, int64_t base_sequence_number,
 		std::map<int64_t, int64_t>::const_iterator begin_iterator,
 		std::map<int64_t, int64_t>::const_iterator end_iterator,
-		TransportFeedback* feedback_packet) {
+		rtcp::TransportFeedback* feedback_packet) {
 	RTC_CHECK(begin_iterator != end_iterator);
 
 	// TODO(sprang): Measure receive times in microseconds and remove the

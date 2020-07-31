@@ -20,6 +20,7 @@
 #include <rtp/base/ntp_time.h>
 #include <rtp/packet/SenderReport.h>
 #include <rtp/module/RemoteEstimatorProxy.h>
+using namespace mediaserver::rtcp;
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -67,7 +68,8 @@ public:
 	void RegisterAudioExtensions(const vector<RtpExtension>& extensions);
 
 public:
-	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL, int remoteSize = 0);
+	bool Start(char *localKey = NULL, int localSize = 0, char *remoteKey = NULL,
+			int remoteSize = 0);
 	void Stop();
 	/**
 	 * 设置模拟丢包
@@ -77,13 +79,9 @@ public:
 	 * @param videoLostSeed 视频丢包随机数, 满足 ( rand() % 随机数 == 0) 则开始丢包
 	 * @param videoLostSize 视频开始连续丢包的个数
 	 */
-	 void SetSimLostParam(
-			 bool bSimLost,
-			 unsigned int audioLostSeed,
-			 unsigned int audioLostSize,
-			 unsigned int videoLostSeed,
-			 unsigned int videoLostSize
-			 );
+	void SetSimLostParam(bool bSimLost, unsigned int audioLostSeed,
+			unsigned int audioLostSize, unsigned int videoLostSeed,
+			unsigned int videoLostSize);
 
 public:
 	bool StartSend(char *localKey, int size);
@@ -99,7 +97,8 @@ public:
 	 * @param pkt RTP数据包
 	 * @param pktSize RTP数据包大小
 	 */
-	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
+	bool RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
+			unsigned int& pktSize);
 	/**
 	 * 发送原始RTP包(网络字节序)
 	 * @param pkt 原始RTP数据包
@@ -113,7 +112,8 @@ public:
 	 * @param pkt RTCP数据包
 	 * @param pktSize RTCP数据包大小
 	 */
-	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt, unsigned int& pktSize);
+	bool RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
+			unsigned int& pktSize);
 	/**
 	 * 发送原始RTCP包(网络字节序)
 	 * @param pkt 原始RTCP数据包
@@ -125,35 +125,42 @@ public:
 	/**
 	 * Send Picture Loss Indication(PLI)
 	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
-	 * @param mediaSSRC 媒体流SSRC
+	 * @param media_ssrc 媒体流SSRC
 	 */
-	bool SendRtcpPLI(unsigned int mediaSSRC);
+	bool SendRtcpPLI(unsigned int media_ssrc);
 	/**
 	 * Send Full Intra Request (FIR)
 	 * 强制刷新视频信息(如H264的SPS和PPS)
-	 * @param mediaSSRC 媒体流SSRC
+	 * @param media_ssrc 媒体流SSRC
 	 */
-	bool SendRtcpFIR(unsigned int mediaSSRC);
+	bool SendRtcpFIR(unsigned int media_ssrc);
 	/**
 	 * 发送丢包重传请求
-	 * @param mediaSSRC 媒体流SSRC
+	 * @param media_ssrc 媒体流SSRC
 	 * @param start 重传包起始seq
 	 * @param size 重传包长度大小
 	 */
-	bool SendRtcpNack(unsigned int mediaSSRC, unsigned int start, unsigned int size);
+	bool SendRtcpNack(unsigned int media_ssrc, unsigned int start,
+			unsigned int size);
 	/**
 	 * Send Receiver Estimated Max Bitrate (REMB)
 	 * 发送接收端码率控制包
-	 * @param mediaSSRC 媒体流SSRC
+	 * @param media_ssrc 媒体流SSRC
 	 * @param bitrate 需要控制的码率
 	 */
-	bool SendRtcpRemb(unsigned int mediaSSRC, unsigned long long bitrate = 2000000);
+	bool SendRtcpRemb(unsigned int media_ssrc, unsigned long long bitrate =
+			2000000);
 	/**
 	 * Send Receiver Transport Feedback (TCC-FB)
 	 * 发送接收端反馈
-	 * @param mediaSSRC 媒体流SSRC
+	 * @param media_ssrc 媒体流SSRC
 	 */
-	bool SendRtcpTccFB(unsigned int mediaSSRC);
+	bool SendRtcpTccFB(unsigned int media_ssrc);
+
+	/**
+	 * rtcp-xr方案
+	 */
+	bool SendRtcpXr();
 
 private:
 	/**
@@ -179,7 +186,8 @@ private:
 	 * @param ts 媒体流当前数据包时间戳
 	 * @param lastMaxTs 媒体流数据包最大时间戳
 	 */
-	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq, unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
+	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq,
+			unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
 	/**
 	 * 更新媒体信息(RTT)
 	 * @param pkt 原始RTCP数据包
@@ -206,7 +214,10 @@ private:
 	string PktTypeDesc(unsigned int ssrc);
 
 	void HandleSenderReport(const CommonHeader& rtcp_block);
+	void HandleReceiverReport(const CommonHeader& rtcp_block);
 	void HandleReportBlock(const ReportBlock& report_block);
+	void HandleSdes(const CommonHeader& rtcp_block);
+	void HandleXr(const CommonHeader& rtcp_block);
 
 protected:
 	// Status
@@ -278,43 +289,45 @@ private:
 	srtp_ctx_t *mpRecvSrtpCtx;
 	srtp_policy_t *mpRecvPolicy;
 
-    // 请求强制刷新关键帧的序号
-    unsigned int mFirSeq;
-    // 收到的完整视频帧数量
-    unsigned int mVideoRecvFrameCount;
+	// 请求强制刷新关键帧的序号
+	unsigned int mFirSeq;
+	// 收到的完整视频帧数量
+	unsigned int mVideoRecvFrameCount;
 
-    //////////////////////////////////////////////////////////////////////////
-    /**
-     * 模拟丢包
-     */
-    bool mbSimLost;
+	//////////////////////////////////////////////////////////////////////////
+	/**
+	 * 模拟丢包
+	 */
+	bool mbSimLost;
 	unsigned int mAudioLostSeed;
 	unsigned int mAudioLostSize;
 	unsigned int mVideoLostSeed;
 	unsigned int mVideoLostSize;
-    // 模拟丢包状态
-    bool mbAudioAbandonning;
-    // 连续丢包数量
-    int mAudioAbandonTotal;
-    // 当前已丢包数量
-    int mAudioAbandonCount;
+	// 模拟丢包状态
+	bool mbAudioAbandonning;
+	// 连续丢包数量
+	int mAudioAbandonTotal;
+	// 当前已丢包数量
+	int mAudioAbandonCount;
 
-    // 模拟丢包状态
-    bool mbVideoAbandonning;
-    // 连续丢包数量
-    int mVideoAbandonTotal;
-    // 当前已丢包数量
-    int mVideoAbandonCount;
-    //////////////////////////////////////////////////////////////////////////
-
-    //////////////////////////////////////////////////////////////////////////
-    NtpTime mRemoteSenderNtpTime;
-    uint32_t mRemoteSenderRtpTime;
-    RemoteEstimatorProxy mRemoteEstimatorProxy;
-
-    RtpHeaderExtensionMap mVideoExtensionMap;
-    RtpHeaderExtensionMap mAudioExtensionMap;
+	// 模拟丢包状态
+	bool mbVideoAbandonning;
+	// 连续丢包数量
+	int mVideoAbandonTotal;
+	// 当前已丢包数量
+	int mVideoAbandonCount;
 	//////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////////////////////////////////////////////////////
+	NtpTime mRemoteSenderNtpTime;
+	uint32_t mRemoteSenderRtpTime;
+	RemoteEstimatorProxy mRemoteEstimatorProxy;
+
+	RtpHeaderExtensionMap mVideoExtensionMap;
+	RtpHeaderExtensionMap mAudioExtensionMap;
+	//////////////////////////////////////////////////////////////////////////
+
+	bool mSendRtcpXr;
 };
 
 } /* namespace mediaserver */

@@ -8,8 +8,8 @@
  *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_BASE_TIMEDELTA_H_
-#define RTP_BASE_TIMEDELTA_H_
+#ifndef RTP_API_UNITS_TIMEDELTA_H_
+#define RTP_API_UNITS_TIMEDELTA_H_
 
 #include <cstdlib>
 #include <string>
@@ -96,4 +96,4 @@ private:
 }
 // namespace mediaserver
 
-#endif  // RTP_BASE_TIMEDELTA_H_
+#endif  // RTP_API_UNITS_TIMEDELTA_H_

@@ -25,6 +25,10 @@
 
 namespace mediaserver {
 
+namespace rtcp {
+class TransportFeedback;
+}
+
 class RemoteEstimatorProxy {
 public:
 	RemoteEstimatorProxy();
@@ -39,7 +43,7 @@ private:
 			uint32_t media_ssrc, int64_t base_sequence_number,
 			std::map<int64_t, int64_t>::const_iterator begin_iterator,
 			std::map<int64_t, int64_t>::const_iterator end_iterator,
-			TransportFeedback* feedback_packet);
+			rtcp::TransportFeedback* feedback_packet);
 
 	static const int kMaxNumberOfPackets;
 

@@ -12,6 +12,7 @@
 #include "RtcpPacket.h"
 
 namespace mediaserver {
+namespace rtcp {
 class Psfb : public RtcpPacket {
 public:
 	static constexpr uint8_t kPacketType = 206;
@@ -27,7 +28,7 @@ protected:
 	void ParseCommonFeedback(const uint8_t* payload);
 	void CreateCommonFeedback(uint8_t* payload) const;
 };
-
+}
 } /* namespace mediaserver */
 
 #endif /* RTP_PACKET_PSFB_H_ */

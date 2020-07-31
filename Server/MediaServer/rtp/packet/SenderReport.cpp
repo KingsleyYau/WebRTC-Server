@@ -15,6 +15,7 @@
 #include <rtp/packet/CommonHeader.h>
 
 namespace mediaserver {
+namespace rtcp {
 constexpr uint8_t SenderReport::kPacketType;
 constexpr size_t SenderReport::kMaxNumberOfReportBlocks;
 constexpr size_t SenderReport::kSenderBaseLength;
@@ -83,7 +84,8 @@ size_t SenderReport::BlockLength() const {
 			+ report_blocks_.size() * ReportBlock::kLength;
 }
 
-bool SenderReport::Create(uint8_t* packet, size_t* index, size_t max_length) const {
+bool SenderReport::Create(uint8_t* packet, size_t* index,
+		size_t max_length) const {
 	if (*index + BlockLength() > max_length) {
 //    if (!OnBufferFull(packet, index, callback))
 		return false;
@@ -130,5 +132,5 @@ bool SenderReport::SetReportBlocks(std::vector<ReportBlock> blocks) {
 	report_blocks_ = std::move(blocks);
 	return true;
 }
-
-}  // namespace mediaserver
+} // namesapce rtcp
+} // namespace mediaserver

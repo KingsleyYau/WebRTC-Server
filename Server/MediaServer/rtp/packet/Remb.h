@@ -15,6 +15,7 @@
 using namespace std;
 
 namespace mediaserver {
+namespace rtcp {
 // Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
 class Remb : public Psfb {
 public:
@@ -46,7 +47,7 @@ private:
 
 	std::vector<uint32_t> ssrcs_;
 };
-
+}
 } /* namespace mediaserver */
 
 #endif /* RTP_PACKET_REMB_H_ */

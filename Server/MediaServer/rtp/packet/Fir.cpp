@@ -9,7 +9,7 @@
 #include "Fir.h"
 
 namespace mediaserver {
-
+namespace rtcp {
 // RFC 4585: Feedback format.
 // Common packet format:
 //
@@ -43,8 +43,7 @@ Fir::Fir(const Fir& fir) = default;
 Fir::~Fir() = default;
 
 bool Fir::Parse(const CommonHeader& packet) {
-	RTC_CHECK_EQ(packet.type(), kPacketType);
-	RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
+	RTC_CHECK_EQ(packet.type(), kPacketType); RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
 
 	// The FCI field MUST contain one or more FIR entries.
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kFciLength) {
@@ -103,9 +102,8 @@ bool Fir::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 				request.seq_nr);
 		ByteWriter<uint32_t, 3>::WriteBigEndian(packet + *index + 5, kReserved);
 		*index += kFciLength;
-	}
-	RTC_CHECK_EQ(*index, index_end);
+	} RTC_CHECK_EQ(*index, index_end);
 	return true;
 }
-
+}
 } /* namespace mediaserver */

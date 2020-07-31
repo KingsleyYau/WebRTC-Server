@@ -15,7 +15,7 @@
 
 #include <memory>
 
-#include <rtp/base/timestamp.h>
+#include <rtp/api/units/timestamp.h>
 #include <rtp/base/rw_lock_wrapper.h>
 #include <rtp/base/ntp_time.h>
 

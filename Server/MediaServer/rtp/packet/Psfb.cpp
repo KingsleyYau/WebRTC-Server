@@ -9,6 +9,7 @@
 #include "Psfb.h"
 
 namespace mediaserver {
+namespace rtcp {
 // RFC 4585: Feedback format.
 //
 // Common packet format:
@@ -34,5 +35,5 @@ void Psfb::CreateCommonFeedback(uint8_t* payload) const {
 	ByteWriter<uint32_t>::WriteBigEndian(&payload[0], sender_ssrc_);
 	ByteWriter<uint32_t>::WriteBigEndian(&payload[4], media_ssrc_);
 }
-
+}
 } /* namespace mediaserver */

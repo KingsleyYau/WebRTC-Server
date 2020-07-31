@@ -9,6 +9,7 @@
 #include "Nack.h"
 
 namespace mediaserver {
+namespace rtcp {
 // RFC 4585: Feedback format.
 //
 // Common packet format:
@@ -38,8 +39,7 @@ Nack::Nack(const Nack& rhs) = default;
 Nack::~Nack() = default;
 
 bool Nack::Parse(const CommonHeader& packet) {
-	RTC_CHECK_EQ(packet.type(), kPacketType);
-	RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
+	RTC_CHECK_EQ(packet.type(), kPacketType); RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
 
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kNackItemLength) {
 		LogAync(LOG_WARNING, "Pli::Parse( "
@@ -89,7 +89,8 @@ bool Nack::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 
 		size_t payload_size_bytes = kCommonFeedbackLength
 				+ (num_nack_fields * kNackItemLength);
-		size_t payload_size_32bits = CheckedDivExact < size_t > (payload_size_bytes, 4);
+		size_t payload_size_32bits = CheckedDivExact<size_t>(payload_size_bytes,
+				4);
 		CreateHeader(kFeedbackMessageType, kPacketType, payload_size_32bits,
 				packet, index);
 
@@ -104,8 +105,7 @@ bool Nack::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 			ByteWriter<uint16_t>::WriteBigEndian(packet + *index + 2,
 					item.bitmask);
 			*index += kNackItemLength;
-		}
-		RTC_CHECK_LE(*index, max_length);
+		} RTC_CHECK_LE(*index, max_length);
 	}
 
 	return true;
@@ -115,19 +115,19 @@ void Nack::SetPacketIdsWithStart(const uint16_t start_seq, size_t length) {
 	// 每个int可以支持最多17个seq
 	int quotient = length / 17;
 	int remainder = (length % 17);
-	int nackItemTotal = (remainder == 0)?quotient:(quotient + 1);
+	int nackItemTotal = (remainder == 0) ? quotient : (quotient + 1);
 	// 开始帧号
 	int start = start_seq;
 	// 剩余长度
 	int last = length;
 
-	while ( last > 0 ) {
+	while (last > 0) {
 		// 开始序号
 		PackedNack item;
 		item.first_pid = start;
 		// 有多少个连续的丢包
 		int rtpPktLostLen = 0;
-		if ( last >= 17 ) {
+		if (last >= 17) {
 			rtpPktLostLen = 16;
 			item.bitmask = 0xFFFF;
 		} else {
@@ -146,15 +146,13 @@ void Nack::SetPacketIds(const uint16_t* nack_list, size_t length) {
 }
 
 void Nack::SetPacketIds(std::vector<uint16_t> nack_list) {
-	RTC_CHECK(packet_ids_.empty());
-	RTC_CHECK(packed_.empty());
+	RTC_CHECK(packet_ids_.empty()); RTC_CHECK(packed_.empty());
 	packet_ids_ = std::move(nack_list);
 	Pack();
 }
 
 void Nack::Pack() {
-	RTC_CHECK(!packet_ids_.empty());
-	RTC_CHECK(packed_.empty());
+	RTC_CHECK(!packet_ids_.empty()); RTC_CHECK(packed_.empty());
 	auto it = packet_ids_.begin();
 	const auto end = packet_ids_.end();
 	while (it != end) {
@@ -176,8 +174,7 @@ void Nack::Pack() {
 }
 
 void Nack::Unpack() {
-	RTC_CHECK(packet_ids_.empty());
-	RTC_CHECK(!packed_.empty());
+	RTC_CHECK(packet_ids_.empty()); RTC_CHECK(!packed_.empty());
 	for (const PackedNack& item : packed_) {
 		packet_ids_.push_back(item.first_pid);
 		uint16_t pid = item.first_pid + 1;
@@ -187,5 +184,6 @@ void Nack::Unpack() {
 				packet_ids_.push_back(pid);
 		}
 	}
+}
 }
 } /* namespace mediaserver */

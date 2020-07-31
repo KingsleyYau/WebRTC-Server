@@ -9,6 +9,7 @@
 #include "Remb.h"
 
 namespace mediaserver {
+namespace rtcp {
 // Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
 //
 //     0                   1                   2                   3
@@ -138,5 +139,6 @@ bool Remb::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	}
 	RTC_CHECK_EQ(index_end, *index);
 	return true;
+}
 }
 } /* namespace mediaserver */

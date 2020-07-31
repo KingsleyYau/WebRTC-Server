@@ -338,8 +338,8 @@ void WebRTC::Stop() {
 		mbIceUfrag = false;
 		mbIcePwd = false;
 
-//		mAudioExtmap.clear();
-//		mVideoExtmap.clear();
+		mAudioExtmap.clear();
+		mVideoExtmap.clear();
 
 		LogAync(
 				LOG_NOTICE,
@@ -1255,7 +1255,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=rtcp-mux\n"
 				"a=rtcp-rsize\n"
-				"a=rtcp-Xr\n"
+				"a=rtcp-xr\n"
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
 				"a=fmtp:%u %s\n"
@@ -1362,7 +1362,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=rtcp-mux\n"
 				"a=rtcp-rsize\n"
-				"a=rtcp-Xr\n"
+				"a=rtcp-xr\n"
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
 				"a=fmtp:%u %s\n",
@@ -1553,6 +1553,8 @@ string WebRTC::CreateVideoRtcpFb() {
 	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u transport-cc\n", mVideoSdpPayload.payload_type);
 	videoRtcpFb += tmp;
 	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u goog-remb\n", mVideoSdpPayload.payload_type);
+	videoRtcpFb += tmp;
+	snprintf(tmp, sizeof(tmp) -1, "a=rtcp-fb:%u rrtr\n", mVideoSdpPayload.payload_type);
 	videoRtcpFb += tmp;
 
 	return videoRtcpFb;

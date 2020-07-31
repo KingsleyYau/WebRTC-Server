@@ -12,6 +12,7 @@
 #include <rtp/base/checks.h>
 
 namespace mediaserver {
+namespace rtcp {
 // Receiver Reference Time Report Block (RFC 3611).
 //
 //   0                   1                   2                   3
@@ -41,5 +42,5 @@ void Rrtr::Create(uint8_t* buffer) const {
 	ByteWriter<uint32_t>::WriteBigEndian(&buffer[4], ntp_.seconds());
 	ByteWriter<uint32_t>::WriteBigEndian(&buffer[8], ntp_.fractions());
 }
-
+}
 }  // namespace mediaserver

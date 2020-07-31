@@ -9,11 +9,10 @@
 #include "RtcpPacket.h"
 
 namespace mediaserver {
-
+namespace rtcp {
 size_t RtcpPacket::HeaderLength() const {
 	size_t length_in_bytes = BlockLength();
-	RTC_CHECK_GT(length_in_bytes, 0);
-	RTC_CHECK_EQ(length_in_bytes % 4, 0);
+	RTC_CHECK_GT(length_in_bytes, 0); RTC_CHECK_EQ(length_in_bytes % 4, 0);
 	// Length in 32-bit words without common header.
 	return (length_in_bytes - kHeaderLength) / 4;
 }
@@ -36,8 +35,7 @@ void RtcpPacket::CreateHeader(
 		size_t count_or_format,  // Depends on packet type.
 		uint8_t packet_type, size_t length, bool padding, uint8_t* buffer,
 		size_t* pos) {
-	RTC_CHECK_LE(length, 0xffffU);
-	RTC_CHECK_LE(count_or_format, 0x1f);
+	RTC_CHECK_LE(length, 0xffffU); RTC_CHECK_LE(count_or_format, 0x1f);
 	constexpr uint8_t kVersionBits = 2 << 6;
 	uint8_t padding_bit = padding ? 1 << 5 : 0;
 	buffer[*pos + 0] = kVersionBits | padding_bit
@@ -47,5 +45,5 @@ void RtcpPacket::CreateHeader(
 	buffer[*pos + 3] = length & 0xff;
 	*pos += kHeaderLength;
 }
-
+}
 } /* namespace mediaserver */

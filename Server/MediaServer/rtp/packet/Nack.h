@@ -15,7 +15,7 @@
 using namespace std;
 
 namespace mediaserver {
-
+namespace rtcp {
 class Nack: public Rtpfb {
 public:
 	static constexpr uint8_t kFeedbackMessageType = 1;
@@ -35,7 +35,8 @@ public:
 
 	size_t BlockLength() const override;
 
-	bool Create(uint8_t* packet, size_t* index, size_t max_length) const override;
+	bool Create(uint8_t* packet, size_t* index, size_t max_length) const
+			override;
 
 private:
 	static constexpr size_t kNackItemLength = 4;
@@ -50,7 +51,7 @@ private:
 	std::vector<PackedNack> packed_;
 	std::vector<uint16_t> packet_ids_;
 };
-
+}
 } /* namespace mediaserver */
 
 #endif /* RTP_PACKET_NACK_H_ */

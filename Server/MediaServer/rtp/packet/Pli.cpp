@@ -9,6 +9,7 @@
 #include "Pli.h"
 
 namespace mediaserver {
+namespace rtcp {
 // RFC 4585: Feedback format.
 //
 // Common packet format:
@@ -59,5 +60,5 @@ bool Pli::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	*index += kCommonFeedbackLength;
 	return true;
 }
-
+}
 } /* namespace mediaserver */
