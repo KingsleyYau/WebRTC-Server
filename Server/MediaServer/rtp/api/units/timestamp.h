@@ -26,7 +26,7 @@ namespace mediaserver {
 // The epoch is assumed to be before any represented timestamps, this means that
 // negative values are not valid. The most notable feature is that the
 // difference of two Timestamps results in a TimeDelta.
-class Timestamp final : public UnitBase<Timestamp> {
+class Timestamp final : public rtc_units_impl::UnitBase<Timestamp> {
 public:
 	Timestamp() = delete;
 

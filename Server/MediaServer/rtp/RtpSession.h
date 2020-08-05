@@ -19,7 +19,14 @@
 
 #include <rtp/base/ntp_time.h>
 #include <rtp/packet/SenderReport.h>
-#include <rtp/module/RemoteEstimatorProxy.h>
+#include <rtp/packet/RtpPacket.h>
+#include <rtp/packet/rtp_packet_received.h>
+#include <rtp/packet/Dlrr.h>
+
+#include <rtp/modules/RemoteEstimatorProxy.h>
+#include <rtp/modules/nack_module.h>
+#include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
+
 using namespace mediaserver::rtcp;
 
 #include <unistd.h>
@@ -46,13 +53,14 @@ namespace mediaserver {
 typedef KSafeMap<int, int> LostPacketMap;
 
 class RtpPacket;
-class RtpSession {
+class RtpSession : public RemoteBitrateObserver {
 public:
 	RtpSession();
 	virtual ~RtpSession();
 
 public:
 	static bool GobalInit();
+	static void SetGobalParam(unsigned int maxPliSeconds, bool simLost = false);
 	static bool IsRtp(const char *frame, unsigned len);
 	static bool IsRtcp(const char *frame, unsigned len);
 	static unsigned int GetRtpSSRC(void *pkt, unsigned int& pktSize);
@@ -127,13 +135,13 @@ public:
 	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
 	 * @param media_ssrc 媒体流SSRC
 	 */
-	bool SendRtcpPLI(unsigned int media_ssrc);
+	bool SendRtcpPli(unsigned int media_ssrc);
 	/**
 	 * Send Full Intra Request (FIR)
 	 * 强制刷新视频信息(如H264的SPS和PPS)
 	 * @param media_ssrc 媒体流SSRC
 	 */
-	bool SendRtcpFIR(unsigned int media_ssrc);
+	bool SendRtcpFir(unsigned int media_ssrc);
 	/**
 	 * 发送丢包重传请求
 	 * @param media_ssrc 媒体流SSRC
@@ -142,6 +150,8 @@ public:
 	 */
 	bool SendRtcpNack(unsigned int media_ssrc, unsigned int start,
 			unsigned int size);
+	bool SendRtcpNack(unsigned int media_ssrc, const std::vector<uint16_t> &nack_batch);
+
 	/**
 	 * Send Receiver Estimated Max Bitrate (REMB)
 	 * 发送接收端码率控制包
@@ -163,6 +173,9 @@ public:
 	bool SendRtcpXr();
 
 private:
+	void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
+	                                       uint32_t bitrate);
+private:
 	/**
 	 * 重置
 	 */
@@ -174,20 +187,20 @@ private:
 	bool SendRtcpRR();
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
-	 * @param pkt 原始RTP数据包
+	 * @param rtpPkt 原始RTP数据包
 	 * @param recvTime 原始RTP数据包到达时间
 	 */
-	void UpdateStreamInfo(const RtpPacket *pkt, uint64_t recvTime);
+	void UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
 	/**
-	 * 更新丢包统计
-	 * @param ssrc 媒体流SSRC
-	 * @param seq 媒体流当前数据包帧号
-	 * @param lastMaxSeq 媒体流数据包最大帧号
-	 * @param ts 媒体流当前数据包时间戳
-	 * @param lastMaxTs 媒体流数据包最大时间戳
+	 * 更新音频丢包统计, 音频不支持Nack
 	 */
-	bool UpdateLossPacket(unsigned int ssrc, unsigned int seq,
-			unsigned int lastMaxSeq, unsigned int ts, unsigned int lastMaxTs);
+	bool UpdateAudioLossPacket(const RtpPacket *rtpPkt, uint64_t recvTime);
+
+	/**
+	 * 更新视频丢包统计
+	 */
+	bool UpdateVideoLossPacket(const RtpPacket *pkt, uint64_t recvTime);
+
 	/**
 	 * 更新媒体信息(RTT)
 	 * @param pkt 原始RTCP数据包
@@ -206,6 +219,7 @@ private:
 	 * @return TRUE/FALSE
 	 */
 	bool IsAudioPkt(unsigned int ssrc);
+	bool IsVideoPkt(unsigned int ssrc);
 	/**
 	 * 根据媒体流包SSRC获取描述
 	 * @param ssrc 媒体流SSRC
@@ -213,12 +227,12 @@ private:
 	 */
 	string PktTypeDesc(unsigned int ssrc);
 
-	void HandleSenderReport(const CommonHeader& rtcp_block);
-	void HandleReceiverReport(const CommonHeader& rtcp_block);
-	void HandleReportBlock(const ReportBlock& report_block);
-	void HandleSdes(const CommonHeader& rtcp_block);
-	void HandleXr(const CommonHeader& rtcp_block);
-
+	void HandleRtcpSr(const CommonHeader& rtcp_block);
+	void HandleRtcpRr(const CommonHeader& rtcp_block);
+	void HandleRtcpRb(const ReportBlock& report_block);
+	void HandleRtcpSdes(const CommonHeader& rtcp_block);
+	void HandleRtcpXr(const CommonHeader& rtcp_block);
+	void HandleRtcpXrDlrr(const ReceiveTimeInfo& rti);
 protected:
 	// Status
 	KMutex mClientMutex;
@@ -319,15 +333,22 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////
-	NtpTime mRemoteSenderNtpTime;
-	uint32_t mRemoteSenderRtpTime;
+
 	RemoteEstimatorProxy mRemoteEstimatorProxy;
 
 	RtpHeaderExtensionMap mVideoExtensionMap;
 	RtpHeaderExtensionMap mAudioExtensionMap;
 	//////////////////////////////////////////////////////////////////////////
 
-	bool mSendRtcpXr;
+	int64_t xr_last_send_ms_;
+
+	uint32_t remote_sender_rtp_time_;
+	NtpTime remote_sender_ntp_time_;
+	NtpTime last_received_sr_ntp_;
+	int64_t xr_rr_rtt_ms_;
+
+	NackModule nack_module_;
+	RemoteBitrateEstimatorAbsSendTime rbe_module_;
 };
 
 } /* namespace mediaserver */

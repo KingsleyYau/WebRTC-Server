@@ -15,7 +15,7 @@ else
 CXXFLAGS = -O2 -g #-D_CHECK_MEMORY_LEAK
 endif
 
-CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX
 CXXFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/curl/include \

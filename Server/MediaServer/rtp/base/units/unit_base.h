@@ -8,8 +8,8 @@
  *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_BASEUNIT_H_
-#define RTP_BASEUNIT_H_
+#ifndef RTP_BASE_UNITS_UNIT_BASE_H_
+#define RTP_BASE_UNITS_UNIT_BASE_H_
 
 #include <stdint.h>
 
@@ -22,7 +22,7 @@
 #include <rtp/base/numerics/safe_conversions.h>
 
 namespace mediaserver {
-
+namespace rtc_units_impl {
 // UnitBase is a base class for implementing custom value types with a specific
 // unit. It provides type safety and commonly useful operations. The underlying
 // storage is always an int64_t, it's up to the unit implementation to choose
@@ -81,23 +81,17 @@ public:
 		return value_ < other.value_;
 	}
 	Unit_T RoundTo(const Unit_T& resolution) const {
-		RTC_CHECK(IsFinite());
-		RTC_CHECK(resolution.IsFinite());
-		RTC_CHECK_GT(resolution.value_, 0);
+		RTC_CHECK(IsFinite()); RTC_CHECK(resolution.IsFinite()); RTC_CHECK_GT(resolution.value_, 0);
 		return Unit_T((value_ + resolution.value_ / 2) / resolution.value_)
 				* resolution.value_;
 	}
 	Unit_T RoundUpTo(const Unit_T& resolution) const {
-		RTC_CHECK(IsFinite());
-		RTC_CHECK(resolution.IsFinite());
-		RTC_CHECK_GT(resolution.value_, 0);
+		RTC_CHECK(IsFinite()); RTC_CHECK(resolution.IsFinite()); RTC_CHECK_GT(resolution.value_, 0);
 		return Unit_T((value_ + resolution.value_ - 1) / resolution.value_)
 				* resolution.value_;
 	}
 	Unit_T RoundDownTo(const Unit_T& resolution) const {
-		RTC_CHECK(IsFinite());
-		RTC_CHECK(resolution.IsFinite());
-		RTC_CHECK_GT(resolution.value_, 0);
+		RTC_CHECK(IsFinite()); RTC_CHECK(resolution.IsFinite()); RTC_CHECK_GT(resolution.value_, 0);
 		return Unit_T(value_ / resolution.value_) * resolution.value_;
 	}
 
@@ -122,9 +116,7 @@ protected:
 			typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
 	static Unit_T FromValue(T value) {
 		if (Unit_T::one_sided)
-			RTC_CHECK_GE(value, 0);
-		RTC_CHECK_GT(value, MinusInfinityVal());
-		RTC_CHECK_LT(value, PlusInfinityVal());
+			RTC_CHECK_GE(value, 0); RTC_CHECK_GT(value, MinusInfinityVal()); RTC_CHECK_LT(value, PlusInfinityVal());
 		return Unit_T(dchecked_cast<int64_t>(value));
 	}
 	template<typename T, typename std::enable_if<
@@ -144,9 +136,7 @@ protected:
 			std::is_integral<T>::value>::type* = nullptr>
 	static Unit_T FromFraction(T value) {
 		if (Unit_T::one_sided)
-			RTC_CHECK_GE(value, 0);
-		RTC_CHECK_GT(value, MinusInfinityVal() / Denominator);
-		RTC_CHECK_LT(value, PlusInfinityVal() / Denominator);
+			RTC_CHECK_GE(value, 0); RTC_CHECK_GT(value, MinusInfinityVal() / Denominator); RTC_CHECK_LT(value, PlusInfinityVal() / Denominator);
 		return Unit_T(dchecked_cast<int64_t>(value * Denominator));
 	}
 	template<int64_t Denominator, typename T, typename std::enable_if<
@@ -255,24 +245,20 @@ public:
 	}
 	Unit_T operator+(const Unit_T other) const {
 		if (this->IsPlusInfinity() || other.IsPlusInfinity()) {
-			RTC_CHECK(!this->IsMinusInfinity());
-			RTC_CHECK(!other.IsMinusInfinity());
+			RTC_CHECK(!this->IsMinusInfinity()); RTC_CHECK(!other.IsMinusInfinity());
 			return this->PlusInfinity();
 		} else if (this->IsMinusInfinity() || other.IsMinusInfinity()) {
-			RTC_CHECK(!this->IsPlusInfinity());
-			RTC_CHECK(!other.IsPlusInfinity());
+			RTC_CHECK(!this->IsPlusInfinity()); RTC_CHECK(!other.IsPlusInfinity());
 			return this->MinusInfinity();
 		}
 		return UnitBase<Unit_T>::FromValue(this->ToValue() + other.ToValue());
 	}
 	Unit_T operator-(const Unit_T other) const {
 		if (this->IsPlusInfinity() || other.IsMinusInfinity()) {
-			RTC_CHECK(!this->IsMinusInfinity());
-			RTC_CHECK(!other.IsPlusInfinity());
+			RTC_CHECK(!this->IsMinusInfinity()); RTC_CHECK(!other.IsPlusInfinity());
 			return this->PlusInfinity();
 		} else if (this->IsMinusInfinity() || other.IsPlusInfinity()) {
-			RTC_CHECK(!this->IsPlusInfinity());
-			RTC_CHECK(!other.IsMinusInfinity());
+			RTC_CHECK(!this->IsPlusInfinity()); RTC_CHECK(!other.IsMinusInfinity());
 			return this->MinusInfinity();
 		}
 		return UnitBase<Unit_T>::FromValue(this->ToValue() - other.ToValue());
@@ -324,7 +310,7 @@ inline Unit_T operator*(const int32_t& scalar,
 		const RelativeUnit<Unit_T> other) {
 	return other * scalar;
 }
+}  // namespace rtc_units_impl
+}  // namespace mediaserver
 
-}  // namespace webrtc
-
-#endif  // RTP_BASEUNIT_H_
+#endif  // RTP_BASE_UNITS_UNIT_BASE_H_

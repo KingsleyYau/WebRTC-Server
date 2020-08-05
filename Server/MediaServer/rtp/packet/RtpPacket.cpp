@@ -135,6 +135,13 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
 				&buffer[payload_offset_ + 2]);
 		extensions_capacity *= 4;
 		if (extension_offset + extensions_capacity > size) {
+			LogAync(LOG_WARNING, "RtpPacket::Parse( "
+					"this : %p, "
+					"[Unsupported rtp extension offset and capacity], "
+					"size : %u, "
+					"extension_offset : %u, "
+					"extensions_capacity : %u "
+					")", this, size, extension_offset, extensions_capacity);
 			return false;
 		}
 		if (profile != kOneByteExtensionProfileId
@@ -194,16 +201,16 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
 									")", this, id);
 				}
 
-				LogAync(LOG_DEBUG, "RtpPacket::Parse( "
-						"this : %p, "
-						"[Extension], "
-						"ssrc : 0x%08x(%u), "
-						"seq : %u, "
-						"ts : %u, "
-						"id : %u, "
-						"length : %u "
-						")", this, ssrc_, ssrc_, sequence_number_, timestamp_,
-						id, length);
+//				LogAync(LOG_DEBUG, "RtpPacket::Parse( "
+//						"this : %p, "
+//						"[Extension], "
+//						"ssrc : 0x%08x(%u), "
+//						"seq : %u, "
+//						"ts : %u, "
+//						"id : %u, "
+//						"length : %u "
+//						")", this, ssrc_, ssrc_, sequence_number_, timestamp_,
+//						id, length);
 
 				size_t offset = extension_offset + extensions_size_
 						+ extension_header_length;
@@ -218,49 +225,6 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
 				extension_info.offset = static_cast<uint16_t>(offset);
 				extension_info.length = length;
 
-//				RtpExtensionMap::const_iterator itr = rtp_extension_map_.find(
-//						extension_info.id);
-//				if (itr != rtp_extension_map_.end()) {
-//					if (itr->second.uri == TransportSequenceNumber::kUri) {
-//						hasTransportSequenceNumber_ = true;
-//						transport_sequence_number_ = 0;
-//						TransportSequenceNumber::Parse(
-//								buffer + extension_info.offset,
-//								extension_info.length,
-//								&transport_sequence_number_);
-//						LogAync(LOG_DEBUG, "RtpPacket::Parse( "
-//								"this : %p, "
-//								"[Extension, TransportSequenceNumber], "
-//								"ssrc : 0x%08x(%u), "
-//								"seq : %u, "
-//								"ts : %u, "
-//								"transport_sequence_number : %u "
-//								")", this, ssrc_, ssrc_, sequence_number_,
-//								timestamp_, transport_sequence_number_);
-//					} else if (itr->second.uri == AbsoluteSendTime::kUri) {
-//						AbsoluteSendTime::Parse(buffer + extension_info.offset,
-//								extension_info.length, &abs_send_time_);
-//						LogAync(LOG_DEBUG, "RtpPacket::Parse( "
-//								"this : %p, "
-//								"[Extension, AbsoluteSendTime], "
-//								"ssrc : 0x%08x(%u), "
-//								"seq : %u, "
-//								"ts : %u, "
-//								"abs_send_time : %u "
-//								")", this, ssrc_, ssrc_, sequence_number_,
-//								timestamp_, abs_send_time_);
-//					} else {
-//						LogAync(LOG_DEBUG, "RtpPacket::Parse( "
-//								"this : %p, "
-//								"[Extension, Unsupport], "
-//								"ssrc : 0x%08x(%u), "
-//								"seq : %u, "
-//								"ts : %u "
-//								")", this, ssrc_, ssrc_, sequence_number_,
-//								timestamp_);
-//					}
-//				}
-
 				extensions_size_ += extension_header_length + length;
 			}
 		}
@@ -268,6 +232,13 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
 	}
 
 	if (payload_offset_ + padding_size_ > size) {
+		LogAync(LOG_WARNING, "RtpPacket::Parse( "
+				"this : %p, "
+				"[Oversized rtp payload offset], "
+				"payload_offset_ : %u "
+				"padding_size_ : %u "
+				"size : %u "
+				")", this, payload_offset_, padding_size_, size);
 		return false;
 	}
 	payload_size_ = size - payload_offset_ - padding_size_;

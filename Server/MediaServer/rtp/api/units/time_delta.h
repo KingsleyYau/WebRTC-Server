@@ -15,7 +15,7 @@
 #include <string>
 #include <type_traits>
 
-#include <rtp/base/unit_base.h>
+#include <rtp/base/units/unit_base.h>
 
 namespace mediaserver {
 
@@ -26,7 +26,7 @@ namespace mediaserver {
 // undefined. To simplify usage, it can be constructed and converted to
 // different units, specifically seconds (s), milliseconds (ms) and
 // microseconds (us).
-class TimeDelta final : public RelativeUnit<TimeDelta> {
+class TimeDelta final : public rtc_units_impl::RelativeUnit<TimeDelta> {
 public:
 	TimeDelta() = delete;
 	template<int64_t seconds>
@@ -88,7 +88,7 @@ public:
 	}
 
 private:
-	friend class UnitBase<TimeDelta>;
+	friend class UnitBase<TimeDelta> ;
 	using RelativeUnit::RelativeUnit;
 	static constexpr bool one_sided = false;
 };

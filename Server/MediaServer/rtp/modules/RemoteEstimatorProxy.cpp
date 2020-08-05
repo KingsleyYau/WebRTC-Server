@@ -6,7 +6,7 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
-#include "RemoteEstimatorProxy.h"
+#include "../modules/RemoteEstimatorProxy.h"
 
 #include <common/CommonFunc.h>
 

@@ -1255,7 +1255,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=rtcp-mux\n"
 				"a=rtcp-rsize\n"
-				"a=rtcp-xr\n"
+//				"a=rtcp-xr\n"
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
 				"a=fmtp:%u %s\n"
@@ -1362,7 +1362,7 @@ string WebRTC::CreateVideoAudioSdp(const string& candidate, const string& ip, un
 				"%s"
 				"a=rtcp-mux\n"
 				"a=rtcp-rsize\n"
-				"a=rtcp-xr\n"
+//				"a=rtcp-xr\n"
 				"a=rtpmap:%u %s/%u\n"
 				"%s"
 				"a=fmtp:%u %s\n",
