@@ -513,6 +513,13 @@ bool MediaServer::LoadConfig() {
 			mTurnShareSecret = conf.GetPrivate("WEBRTC", "TURNSHARESECRET", "");
 			mTurnClientTTL = atoi(conf.GetPrivate("WEBRTC", "TURNCLIENTTTL", "600").c_str());
 
+			// RTP参数
+			int pli_interval_max = atoi(conf.GetPrivate("RTP", "RTP_PLI_MAX_INTERVAL", "3").c_str());
+			int auto_bitrate = atoi(conf.GetPrivate("RTP", "RTP_AUTO_BITRATE", "1").c_str());
+			int video_min_bitrate = atoi(conf.GetPrivate("RTP", "RTP_MIN_VIDEO_BPS", "200000").c_str());
+			int rtp_test = atoi(conf.GetPrivate("RTP", "RTP_TEST", "0").c_str());
+			RtpSession::SetGobalParam(pli_interval_max, auto_bitrate, video_min_bitrate, rtp_test);
+
 			// Websocket参数
 			miWebsocketPort = atoi(conf.GetPrivate("WEBSOCKET", "PORT", "9881").c_str());
 			miWebsocketMaxClient = atoi(conf.GetPrivate("WEBSOCKET", "MAXCLIENT", "1000").c_str());
@@ -546,6 +553,13 @@ bool MediaServer::ReloadLogConfig() {
 			mWebRTCRtp2RtmpBaseRecordUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASERECORDURL", "");
 			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
 			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
+
+			// RTP参数
+			int pli_interval_max = atoi(conf.GetPrivate("RTP", "RTP_PLI_MAX_INTERVAL", "3").c_str());
+			int auto_bitrate = atoi(conf.GetPrivate("RTP", "RTP_AUTO_BITRATE", "1").c_str());
+			int video_min_bitrate = atoi(conf.GetPrivate("RTP", "RTP_MIN_VIDEO_BPS", "2000000").c_str());
+			int rtp_test = atoi(conf.GetPrivate("RTP", "RTP_TEST", "0").c_str());
+			RtpSession::SetGobalParam(pli_interval_max, auto_bitrate, video_min_bitrate, rtp_test);
 
 			LogManager::GetLogManager()->SetLogLevel(miLogLevel);
 			LogManager::GetLogManager()->SetDebugMode(miDebugMode);

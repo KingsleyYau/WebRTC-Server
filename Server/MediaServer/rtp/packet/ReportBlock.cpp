@@ -12,7 +12,7 @@
 #include <rtp/base/checks.h>
 
 namespace mediaserver {
-
+namespace rtcp {
 // From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
 //
 // RTCP report block (RFC 3550).
@@ -91,5 +91,5 @@ uint32_t ReportBlock::cumulative_lost() const {
   }
   return cumulative_lost_;
 }
-
+}
 }  // namespace mediaserver

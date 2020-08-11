@@ -66,7 +66,12 @@ public:
 		return padding_size_;
 	}
 
-	const uint8_t* data() const { return parse_data_; }
+	size_t size() const {
+		return payload_offset_ + payload_size_ + padding_size_;
+	}
+	const uint8_t* data() const {
+		return parse_data_;
+	}
 
 	void SetMarker(bool marker_bit);
 	void SetPayloadType(uint8_t payload_type);

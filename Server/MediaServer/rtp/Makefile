@@ -30,10 +30,12 @@ OBJS		+=	base/ntp_time.o base/rw_lock_wrapper.o base/rw_lock_posix.o base/clock.
 				base/platform_thread_types.o base/critical_section.o \
 				base/race_checker.o base/rate_statistics.o \
 				base/strings/string_builder.o \
-				base/experiments/field_trial_parser.o
+				base/experiments/field_trial_parser.o \
+				base/zero_memory.o
 				
 OBJS		+=	include/rtp_rtcp_defines.o include/rtp_header_extension_map.o include/rtp_header_extension_size.o \
-				include/rtp_header_extensions.o include/time_util.o 
+				include/rtp_header_extensions.o include/time_util.o \
+				include/receive_statistics_impl.o 
 				
 OBJS		+=	packet/RtpPacket.o packet/rtp_packet_received.o \
 				packet/RtcpPacket.o packet/CommonHeader.o \
@@ -42,9 +44,10 @@ OBJS		+=	packet/RtpPacket.o packet/rtp_packet_received.o \
 				packet/receiver_report.o \
 				packet/sdes.o \
 				packet/Psfb.o packet/Pli.o packet/Fir.o packet/Nack.o packet/Remb.o \
-				packet/Rtpfb.o packet/TransportFeedback.o
+				packet/Rtpfb.o packet/TransportFeedback.o \
+				packet/app.o packet/remote_estimate.o
 				
-OBJS		+=	modules/RemoteEstimatorProxy.o modules/nack_module.o \
+OBJS		+=	modules/nack_module.o \
 				modules/congestion_controller/goog_cc/link_capacity_estimator.o \
 				modules/remote_bitrate_estimator/bwe_defines.o \
 				modules/remote_bitrate_estimator/aimd_rate_control.o \

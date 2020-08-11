@@ -54,7 +54,9 @@ if [ "$TRANSCODE" -eq "1" ]
 then
   $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
-          -thread_queue_size 1024 \
+          -thread_queue_size 2048 \
+          -reorder_queue_size 2048 \
+          -max_delay 3000000 \
           -i $SDP_FILE \
           -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -bsf:v h264_mp4toannexb \
           -an \
@@ -64,7 +66,9 @@ then
 else
   $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v info \
-          -thread_queue_size 1024 \
+          -thread_queue_size 2048 \
+          -reorder_queue_size 2048 \
+          -max_delay 3000000 \
           -i $SDP_FILE \
           -vcodec copy \
           -an \

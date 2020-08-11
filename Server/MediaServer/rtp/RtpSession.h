@@ -23,7 +23,6 @@
 #include <rtp/packet/rtp_packet_received.h>
 #include <rtp/packet/Dlrr.h>
 
-#include <rtp/modules/RemoteEstimatorProxy.h>
 #include <rtp/modules/nack_module.h>
 #include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
 
@@ -60,7 +59,7 @@ public:
 
 public:
 	static bool GobalInit();
-	static void SetGobalParam(unsigned int maxPliSeconds, bool simLost = false);
+	static void SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate = true, unsigned int videoMinBitrate = 200000, bool simLost = false);
 	static bool IsRtp(const char *frame, unsigned len);
 	static bool IsRtcp(const char *frame, unsigned len);
 	static unsigned int GetRtpSSRC(void *pkt, unsigned int& pktSize);
@@ -333,9 +332,6 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////
-
-	RemoteEstimatorProxy mRemoteEstimatorProxy;
-
 	RtpHeaderExtensionMap mVideoExtensionMap;
 	RtpHeaderExtensionMap mAudioExtensionMap;
 	//////////////////////////////////////////////////////////////////////////

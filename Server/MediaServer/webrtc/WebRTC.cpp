@@ -325,22 +325,6 @@ void WebRTC::Stop() {
 			mRtpRecvClient.Stop();
 		}
 
-		// 还原参数
-		mAudioSSRC = 0;
-		mVideoSSRC = 0;
-		mSdpFilePath = "";
-		mAudioSdpPayload.Reset();
-		mVideoSdpPayload.Reset();
-
-		mIsPull = false;
-
-		mbCandidate = false;
-		mbIceUfrag = false;
-		mbIcePwd = false;
-
-		mAudioExtmap.clear();
-		mVideoExtmap.clear();
-
 		LogAync(
 				LOG_NOTICE,
 				"WebRTC::Stop( "
@@ -353,6 +337,20 @@ void WebRTC::Stop() {
 				mRtmpUrl.c_str()
 				);
 
+		// 还原参数
+		mIsPull = false;
+		mAudioSSRC = 0;
+		mVideoSSRC = 0;
+		mSdpFilePath = "";
+		mAudioSdpPayload.Reset();
+		mVideoSdpPayload.Reset();
+
+		mbCandidate = false;
+		mbIceUfrag = false;
+		mbIcePwd = false;
+
+		mAudioExtmap.clear();
+		mVideoExtmap.clear();
 	}
 	mClientMutex.unlock();
 }
@@ -1133,7 +1131,7 @@ bool WebRTC::StartRtpTransform() {
 						rtpUrl,
 						videoPayload,
 						audioPayload,
-						TRUE_2_STRING(mNeedTranscodeVideo)
+						BOOL_2_STRING(mNeedTranscodeVideo)
 						);
 			} else {
 				LogAync(
@@ -1152,7 +1150,7 @@ bool WebRTC::StartRtpTransform() {
 						mRtp2RtmpShellFilePath.c_str(),
 						mSdpFilePath.c_str(),
 						mRtmpUrl.c_str(),
-						TRUE_2_STRING(mNeedTranscodeVideo)
+						BOOL_2_STRING(mNeedTranscodeVideo)
 						);
 			}
 
@@ -1419,6 +1417,7 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 	string result;
 
 	string videoRtcpFb = CreateVideoRtcpFb();
+	string videoExtmap = CreateVideoExtmap();
 
 	char sdp[4096] = {'0'};
 	snprintf(sdp, sizeof(sdp) - 1,
@@ -1438,6 +1437,7 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 			"a=fingerprint:sha-256 %s\n"
 			"a=setup:active\n"
 			"a=mid:%s\n"
+			"%s" // Video Extmap
 			"a=%s\n"
 			"a=rtcp-mux\n"
 			"a=rtcp-rsize\n"
@@ -1453,6 +1453,7 @@ string WebRTC::CreateVideoOnlySdp(const string& candidate, const string& ip, uns
 			pwd.c_str(),
 			DtlsSession::GetFingerprint(),
 			mVideoMid.c_str(),
+			videoExtmap.c_str(), // Video Extmap
 			mIsPull?"sendolny":"recvonly",
 			mVideoSdpPayload.payload_type,
 			mVideoSdpPayload.encoding_name.c_str(),

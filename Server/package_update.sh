@@ -22,9 +22,10 @@ function package_update_tar {
 	cp -rf build/bin/mediaserver $DEST/bin/ || return 1
 
 	# Copy Config Files
-	#mkdir -p $DEST/etc/ || return 1
-	#cp -rf conf/$ENV/etc/mediaserver_camshare.config $DEST/etc/ || return 1
-	#cp -rf conf/$ENV/etc/mediaserver.config $DEST/etc/ || return 1
+	mkdir -p $DEST/etc/ || return 1
+	cp -rf conf/$ENV/etc/mediaserver_camshare.config $DEST/etc/ || return 1
+	cp -rf conf/$ENV/etc/mediaserver_test.config $DEST/etc/ || return 1
+  cp -rf conf/$ENV/etc/mediaserver.config $DEST/etc/ || return 1
 	
 	mkdir -p $DEST/script/ || return 1
 	#cp -rf script/check_status.sh $DEST/script/ || return 1

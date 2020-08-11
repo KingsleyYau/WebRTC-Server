@@ -111,8 +111,15 @@ static unsigned int gAudioLostSeed = 300;
 static unsigned int gAudioLostSize = 150;
 static unsigned int gVideoLostSeed = 100;
 static unsigned int gVideoLostSize = 50;
-void RtpSession::SetGobalParam(unsigned int maxPliSeconds, bool simLost) {
+static bool gAutoBitrate = true;
+static unsigned int gVideoMinBitrate = 200 * 1000;
+void RtpSession::SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate, unsigned int videoMinBitrate, bool simLost) {
+	// 关键帧最大间隔
 	gMaxPliSeconds = maxPliSeconds;
+	// 自适应码率
+	gAutoBitrate = autoBitrate;
+	// 自适应码率模式下, 视频最小码率
+	gVideoMinBitrate = videoMinBitrate;
 	// 模拟丢包
 	gSimLost = simLost;
 }
@@ -186,6 +193,9 @@ void RtpSession::Reset() {
 	mVideoAbandonCount = 0;
 	//////////////////////////////////////////////////////////////////////////
 
+	mVideoExtensionMap.Clear();
+	mAudioExtensionMap.Clear();
+
 	// 统计RTCP中的 RTT/LOSS
 	remote_sender_rtp_time_ = 0;
 	remote_sender_ntp_time_.Reset();
@@ -196,7 +206,7 @@ void RtpSession::Reset() {
 	// NACK模块
 	nack_module_.Reset();
 	// RBE模块
-	rbe_module_.SetMinBitrate(200 * 1000);
+	rbe_module_.SetMinBitrate(gVideoMinBitrate);
 }
 
 void RtpSession::SetRtpSender(SocketSender *sender) {
@@ -296,8 +306,7 @@ void RtpSession::Stop() {
 		StopRecv();
 		StopSend();
 
-		mVideoExtensionMap.Clear();
-		mAudioExtensionMap.Clear();
+		Reset();
 //		LogAync(
 //				LOG_INFO,
 //				"RtpSession::Stop( "
@@ -413,7 +422,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	mpRecvPolicy->ssrc.type = ssrc_any_inbound;
 	mpRecvPolicy->ssrc.value = 0;
-	mpRecvPolicy->window_size = 0;
+	mpRecvPolicy->window_size = 512;
 	mpRecvPolicy->allow_repeat_tx = 0;
 	mpRecvPolicy->ekt = NULL;
 	mpRecvPolicy->next = NULL;
@@ -983,7 +992,7 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 			"ts : %u, "
 			"abs : %lld, "
 			"recvTime : %lld, "
-			"payloadSize : %d, "
+			"payloadSize : %d"
 			"%s"
 			")", this, PktTypeDesc(header.ssrc).c_str(),
 			header.ssrc, header.ssrc,
@@ -1148,11 +1157,9 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacket *rtpPkt,
 	 */
 	bool sendPLI = false;
 	if (deltaSeconds > gMaxPliSeconds) {
+		SendRtcpPli(ssrc);
 		mVideoPLITimestamp = ts;
 		sendPLI = true;
-		SendRtcpPli(ssrc);
-		// 发送Remb
-//			SendRtcpRemb(ssrc, 500000);
 	}
 
 	std::vector<uint16_t> nack_batch;
@@ -1168,9 +1175,12 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacket *rtpPkt,
 			"[%s], "
 			"ssrc : 0x%08x(%u), "
 			"nack_batch_size : %u, "
-			"nack_list_size : %u "
+			"nack_list_size : %u, "
+			"need_request_keyframe : %s "
 			")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size(),
-			nack_list.size());
+			nack_list.size(),
+			BOOL_2_STRING(need_request_keyframe)
+			);
 
 	if (sendPLI) {
 		nack_module_.Clear();
@@ -1186,7 +1196,7 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacket *rtpPkt,
 	// 定时发送RRTR, 计算RTT
 	Clock *clock = Clock::GetRealTimeClock();
 	int64_t now = clock->TimeInMilliseconds();
-	if (xr_last_send_ms_ == 0 || now - xr_last_send_ms_ > 2000) {
+	if (xr_last_send_ms_ == 0 || now - xr_last_send_ms_ > 1000) {
 		xr_last_send_ms_ = now;
 		SendRtcpXr();
 	}
@@ -1411,7 +1421,7 @@ void RtpSession::HandleRtcpXrDlrr(const ReceiveTimeInfo& rti) {
 	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXrDlrr( "
 			"this : %p, "
 			"source_ssrc : 0x%08x(%u), "
-			"now: %u, "
+			"now : %u, "
 			"lrr : %u, "
 			"dlrr : %u, "
 			"rtt_ntp : %u, "
@@ -1558,10 +1568,11 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 					this,
 					PktTypeDesc(*itr).c_str(), *itr, *itr,
 					bitrate);
-//			SendRtcpRemb(*itr, bitrate);
+			if ( gAutoBitrate ) {
+				SendRtcpRemb(*itr, bitrate);
+			}
 			break;
 		}
 	}
-
 }
 } /* namespace mediaserver */
