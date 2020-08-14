@@ -298,6 +298,13 @@ ReceiveStatisticsImpl::~ReceiveStatisticsImpl() {
 	}
 }
 
+void ReceiveStatisticsImpl::Reset() {
+	while (!statisticians_.empty()) {
+		delete statisticians_.begin()->second;
+		statisticians_.erase(statisticians_.begin());
+	}
+}
+
 void ReceiveStatisticsImpl::OnRtpPacket(const RtpPacketReceived& packet) {
 	// StreamStatisticianImpl instance is created once and only destroyed when
 	// this whole ReceiveStatisticsImpl is destroyed. StreamStatisticianImpl has

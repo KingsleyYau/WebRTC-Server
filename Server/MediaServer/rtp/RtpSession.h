@@ -25,6 +25,7 @@
 
 #include <rtp/modules/nack_module.h>
 #include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
+#include <rtp/include/receive_statistics_impl.h>
 
 using namespace mediaserver::rtcp;
 
@@ -189,7 +190,7 @@ private:
 	 * @param rtpPkt 原始RTP数据包
 	 * @param recvTime 原始RTP数据包到达时间
 	 */
-	void UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
+	void UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime, const RTPHeader& header);
 	/**
 	 * 更新音频丢包统计, 音频不支持Nack
 	 */
@@ -336,15 +337,22 @@ private:
 	RtpHeaderExtensionMap mAudioExtensionMap;
 	//////////////////////////////////////////////////////////////////////////
 
+	// RTCP统计数据
 	int64_t xr_last_send_ms_;
-
 	uint32_t remote_sender_rtp_time_;
 	NtpTime remote_sender_ntp_time_;
 	NtpTime last_received_sr_ntp_;
 	int64_t xr_rr_rtt_ms_;
 
+	int64_t last_remb_time_ms_;
+	int64_t last_send_bitrate_bps_;
+	int64_t bitrate_bps_;
+	int64_t max_bitrate_bps_;
+
+	// 码率滤波和丢包重传模块
 	NackModule nack_module_;
 	RemoteBitrateEstimatorAbsSendTime rbe_module_;
+	ReceiveStatisticsImpl rs_module_;
 };
 
 } /* namespace mediaserver */

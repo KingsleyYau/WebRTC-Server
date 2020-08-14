@@ -102,6 +102,8 @@ public:
 
 	~ReceiveStatisticsImpl() override;
 
+	void Reset();
+
 	// Implements ReceiveStatisticsProvider.
 	std::vector<rtcp::ReportBlock> RtcpReportBlocks(size_t max_blocks) override;
 

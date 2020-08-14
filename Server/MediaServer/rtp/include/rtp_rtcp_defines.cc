@@ -7,7 +7,7 @@
 
 #include <absl/algorithm/container.h>
 #include <rtp/api/array_view.h>
-//#include <rtp/packet/rtp_packet.h"
+#include <rtp/packet/RtpPacket.h>
 
 namespace mediaserver {
 
@@ -33,13 +33,15 @@ bool IsLegalRsidName(absl::string_view name) {
 	return true;
 }
 
-//StreamDataCounters::StreamDataCounters() : first_packet_time_ms(-1) {}
+StreamDataCounters::StreamDataCounters() :
+		first_packet_time_ms(-1) {
+}
 
-//void RtpPacketCounter::AddPacket(const RtpPacket& packet) {
-//  ++packets;
-//  header_bytes += packet.headers_size();
-//  padding_bytes += packet.padding_size();
-//  payload_bytes += packet.payload_size();
-//}
+void RtpPacketCounter::AddPacket(const RtpPacket& packet) {
+	++packets;
+	header_bytes += packet.headers_size();
+	padding_bytes += packet.padding_size();
+	payload_bytes += packet.payload_size();
+}
 
-}// namespace mediaserver
+}  // namespace mediaserver

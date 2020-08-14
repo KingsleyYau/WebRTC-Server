@@ -21,7 +21,9 @@
 #include <rtp/packet/sdes.h>
 
 #include <rtp/base/clock.h>
+#include <rtp/base/time_utils.h>
 #include <rtp/include/time_util.h>
+#include <rtp/include/rtp_rtcp_config.h>
 
 #include <include/CommonHeader.h>
 
@@ -105,6 +107,8 @@ bool RtpSession::GobalInit() {
 	return bFlag;
 }
 
+constexpr int kRembSendIntervalMs = 200;
+
 static unsigned int gMaxPliSeconds = 3;
 static bool gSimLost = false;
 static unsigned int gAudioLostSeed = 300;
@@ -127,7 +131,8 @@ void RtpSession::SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate, uns
 RtpSession::RtpSession() :
 		mClientMutex(KMutex::MutexType_Recursive),
 		nack_module_(Clock::GetRealTimeClock()),
-		rbe_module_(this, Clock::GetRealTimeClock()) {
+		rbe_module_(this, Clock::GetRealTimeClock()),
+		rs_module_(Clock::GetRealTimeClock()) {
 	// TODO Auto-generated constructor stub
 	// Status
 	mRunning = false;
@@ -203,10 +208,18 @@ void RtpSession::Reset() {
 	xr_rr_rtt_ms_ = 0;
 	xr_last_send_ms_ = 0;
 
+	last_remb_time_ms_ = 0;
+	last_send_bitrate_bps_ = 0;
+	bitrate_bps_ = 0;
+	max_bitrate_bps_ = 1000 * 1000;
+
 	// NACK模块
 	nack_module_.Reset();
 	// RBE模块
 	rbe_module_.SetMinBitrate(gVideoMinBitrate);
+	// 接收统计模块
+	rs_module_.Reset();
+	rs_module_.SetMaxReorderingThreshold(kDefaultMaxReorderingThreshold);
 }
 
 void RtpSession::SetRtpSender(SocketSender *sender) {
@@ -219,6 +232,7 @@ void RtpSession::SetRtcpSender(SocketSender *sender) {
 
 void RtpSession::SetVideoSSRC(unsigned int ssrc) {
 	mVideoSSRC = ssrc;
+	rs_module_.EnableRetransmitDetection(mVideoSSRC, true);
 }
 
 void RtpSession::SetAudioSSRC(unsigned int ssrc) {
@@ -507,6 +521,11 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 //					RtpPacket rtpPkt;
 					RtpPacketReceived rtpPkt(&mVideoExtensionMap);
 					rtpPkt.set_arrival_time_ms(recvTime);
+					// 更新频率
+					if (!IsAudioPkt(ssrc)) {
+						rtpPkt.set_payload_type_frequency(kVideoPayloadTypeFrequency);
+					}
+
 					bool bFlag = rtpPkt.Parse((const uint8_t *) pkt, pktSize);
 					if (bFlag) {
 //						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
@@ -524,9 +543,31 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 //								rtpPkt.sequence_number_, rtpPkt.timestamp_,
 //								recvTime, pktSize,
 //								rtpPkt.marker_ ? ", [Mark] " : " ");
+						RTPHeader header;
+						rtpPkt.GetHeader(&header);
+						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
+								"this : %p, "
+								"[%s], "
+								"media_ssrc : 0x%08x(%u), "
+								"x : %u, "
+								"seq : %u, "
+								"ts : %u, "
+								"abs : %lld, "
+								"recvTime : %lld, "
+								"payloadSize : %d"
+								"%s"
+								")", this, PktTypeDesc(header.ssrc).c_str(),
+								header.ssrc, header.ssrc,
+								rtpPkt.has_extension_,
+								header.sequenceNumber,
+								header.timestamp,
+								header.extension.GetAbsoluteSendTimestamp().ms(),
+								recvTime,
+								rtpPkt.payload_size() + rtpPkt.padding_size(),
+								header.markerBit ? ", [Mark] " : " ");
 						if (bFlag) {
 							// 更新媒体流信息
-							UpdateStreamInfo(&rtpPkt, recvTime);
+							UpdateStreamInfo(&rtpPkt, recvTime, header);
 						}
 					} else {
 						LogAync(LOG_WARNING, "RtpSession::RecvRtpPacket( "
@@ -976,33 +1017,10 @@ bool RtpSession::SendRtcpRR() {
 	return bFlag;
 }
 
-void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime) {
+void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime, const RTPHeader& header) {
 	uint16_t seq = rtpPkt->sequence_number_;
 	uint32_t ts = rtpPkt->timestamp_;
 	uint32_t ssrc = rtpPkt->ssrc_;
-
-	RTPHeader header;
-	rtpPkt->GetHeader(&header);
-	LogAync(LOG_DEBUG, "RtpSession::UpdateStreamInfo( "
-			"this : %p, "
-			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"x : %u, "
-			"seq : %u, "
-			"ts : %u, "
-			"abs : %lld, "
-			"recvTime : %lld, "
-			"payloadSize : %d"
-			"%s"
-			")", this, PktTypeDesc(header.ssrc).c_str(),
-			header.ssrc, header.ssrc,
-			rtpPkt->has_extension_,
-			header.sequenceNumber,
-			header.timestamp,
-			header.extension.GetAbsoluteSendTimestamp().ms(),
-			recvTime,
-			rtpPkt->payload_size() + rtpPkt->padding_size(),
-			header.markerBit ? ", [Mark] " : " ");
 
 	if (IsAudioPkt(ssrc)) {
 		if (mAudioMaxSeq == 0) {
@@ -1029,9 +1047,10 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 			mVideoMaxTimestamp = ts;
 		}
 
+		// 更新接收包统计
+		rs_module_.OnRtpPacket(*rtpPkt);
 		// 处理丢包逻辑
 		UpdateVideoLossPacket(rtpPkt, recvTime);
-
 		// 更新接收端滤波器
 		rbe_module_.IncomingPacket(recvTime, rtpPkt->payload_size() + rtpPkt->padding_size(), header);
 
@@ -1064,6 +1083,7 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacket *pkt,
 			")", this, ssrc, ssrc, seq, ts, recvTime, mAudioMaxSeq,
 			mAudioMaxTimestamp, mAudioTotalRecvPacket);
 
+	// 音频不处理NACK
 //	/**
 //	 * 暂时只做简单处理, 直接发送Nack
 //	 *
@@ -1559,6 +1579,8 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 		uint32_t bitrate) {
 	for(std::vector<uint32_t>::const_iterator itr = ssrcs.begin(); itr != ssrcs.end(); itr++) {
 		if ( IsVideoPkt(*itr) ) {
+		    StreamStatistician* rs = rs_module_.GetStatistician(*itr);
+
 			LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged( "
 					"this : %p, "
 					"[%s], "
@@ -1568,8 +1590,58 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 					this,
 					PktTypeDesc(*itr).c_str(), *itr, *itr,
 					bitrate);
+			if ( rs ) {
+				RtpReceiveStats rrs = rs->GetStats();
+
+				LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged( "
+						"this : %p, "
+						"[%s], "
+						"media_ssrc : 0x%08x(%u), "
+						"packets_lost : %d, "
+						"jitter : %u, "
+						"bitrate_recv : %u, "
+						"fraction : %d "
+						")",
+						this,
+						PktTypeDesc(*itr).c_str(), *itr, *itr,
+						rrs.packets_lost,
+						rrs.jitter,
+						rs->BitrateReceived(),
+						rs->GetFractionLostInPercent());
+			}
+
 			if ( gAutoBitrate ) {
-				SendRtcpRemb(*itr, bitrate);
+				const int64_t kSendThresholdPercent = 97;
+				int64_t receive_bitrate_bps = static_cast<int64_t>(bitrate);
+				int64_t now_ms = TimeMillis();
+				// If we already have an estimate, check if the new total estimate is below
+				// kSendThresholdPercent of the previous estimate.
+				if (last_send_bitrate_bps_ > 0) {
+					int64_t new_remb_bitrate_bps =
+							last_send_bitrate_bps_ - bitrate_bps_ + receive_bitrate_bps;
+
+					if (new_remb_bitrate_bps <
+							kSendThresholdPercent * last_send_bitrate_bps_ / 100) {
+						// The new bitrate estimate is less than kSendThresholdPercent % of the
+						// last report. Send a REMB asap.
+						last_remb_time_ms_ = now_ms - kRembSendIntervalMs;
+					}
+				}
+				bitrate_bps_ = receive_bitrate_bps;
+
+				if (now_ms - last_remb_time_ms_ < kRembSendIntervalMs) {
+					break;
+				}
+
+				// NOTE: Updated if we intend to send the data; we might not have
+				// a module to actually send it.
+				last_remb_time_ms_ = now_ms;
+				last_send_bitrate_bps_ = receive_bitrate_bps;
+				// Cap the value to send in remb with configured value.
+				receive_bitrate_bps = std::min(receive_bitrate_bps, max_bitrate_bps_);
+
+				// 发送控制包
+				SendRtcpRemb(*itr, receive_bitrate_bps);
 			}
 			break;
 		}
