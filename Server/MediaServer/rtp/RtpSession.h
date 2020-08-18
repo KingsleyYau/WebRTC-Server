@@ -194,12 +194,16 @@ private:
 	/**
 	 * 更新音频丢包统计, 音频不支持Nack
 	 */
-	bool UpdateAudioLossPacket(const RtpPacket *rtpPkt, uint64_t recvTime);
+	bool UpdateAudioLossPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
 
 	/**
-	 * 更新视频丢包统计
+	 * 更新视频收包统计
 	 */
-	bool UpdateVideoLossPacket(const RtpPacket *pkt, uint64_t recvTime);
+	bool UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
+	/**
+	 * 处理视频丢包, 发送Nack
+	 */
+	bool UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
 
 	/**
 	 * 更新媒体信息(RTT)
@@ -343,6 +347,7 @@ private:
 	NtpTime remote_sender_ntp_time_;
 	NtpTime last_received_sr_ntp_;
 	int64_t xr_rr_rtt_ms_;
+	int64_t last_rr_send_time_;
 
 	int64_t last_remb_time_ms_;
 	int64_t last_send_bitrate_bps_;

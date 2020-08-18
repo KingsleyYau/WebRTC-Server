@@ -40,6 +40,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <algorithm>
 using namespace std;
 /*
  * SRTP key size
@@ -108,6 +109,7 @@ bool RtpSession::GobalInit() {
 }
 
 constexpr int kRembSendIntervalMs = 200;
+constexpr int kRRSendIntervalMs = 10000;
 
 static unsigned int gMaxPliSeconds = 3;
 static bool gSimLost = false;
@@ -207,6 +209,7 @@ void RtpSession::Reset() {
 	last_received_sr_ntp_.Reset();
 	xr_rr_rtt_ms_ = 0;
 	xr_last_send_ms_ = 0;
+	last_rr_send_time_ = 0;
 
 	last_remb_time_ms_ = 0;
 	last_send_bitrate_bps_ = 0;
@@ -283,7 +286,7 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey,
 	if (mRunning) {
 		Stop();
 	}
-
+	Reset();
 	mRunning = true;
 
 	bFlag = StartSend(localKey, localSize);
@@ -319,8 +322,6 @@ void RtpSession::Stop() {
 
 		StopRecv();
 		StopSend();
-
-		Reset();
 //		LogAync(
 //				LOG_INFO,
 //				"RtpSession::Stop( "
@@ -1048,7 +1049,7 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 		}
 
 		// 更新接收包统计
-		rs_module_.OnRtpPacket(*rtpPkt);
+		UpdateVideoStatsPacket(rtpPkt, recvTime);
 		// 处理丢包逻辑
 		UpdateVideoLossPacket(rtpPkt, recvTime);
 		// 更新接收端滤波器
@@ -1062,7 +1063,7 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 	}
 }
 
-bool RtpSession::UpdateAudioLossPacket(const RtpPacket *pkt,
+bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 		uint64_t recvTime) {
 	uint16_t seq = pkt->sequence_number_;
 	uint32_t ts = pkt->timestamp_;
@@ -1142,7 +1143,61 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacket *pkt,
 	return bFlag;
 }
 
-bool RtpSession::UpdateVideoLossPacket(const RtpPacket *rtpPkt,
+bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime) {
+	bool bFlag = true;
+
+	uint16_t seq = rtpPkt->sequence_number_;
+	uint32_t ts = rtpPkt->timestamp_;
+	uint32_t ssrc = rtpPkt->ssrc_;
+
+	// 更新接收包统计
+	rs_module_.OnRtpPacket(*rtpPkt);
+
+    StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
+	if ( ss ) {
+		int64_t now_ms = TimeMillis();
+		if ( last_rr_send_time_ == 0 ) {
+			last_rr_send_time_ = now_ms;
+		}
+
+		if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
+			int index = -1;
+			int step = 0;
+			std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
+		    for (auto& report_block : result) {
+		    	if ( report_block.source_ssrc() == ssrc ) {
+		    		index = step;
+		    		break;
+		    	}
+		    	step++;
+		    }
+
+		    double fractionLostInPercent = index > -1?(result[index].fraction_lost() * 100.0 / 255.0):0;
+			LogAync(LOG_DEBUG, "RtpSession::UpdateVideoStatsPacket( "
+					"this : %p, "
+					"[%s], "
+					"media_ssrc : 0x%08x(%u), "
+					"extended_highest_sequence_number : %u, "
+					"packets_lost : %d, "
+					"jitter : %u, "
+					"fraction_since_last : %u%%(%hhu) "
+					")",
+					this,
+					PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
+					index > -1?result[index].extended_high_seq_num():0,
+					index > -1?result[index].cumulative_lost_signed():0,
+					index > -1?result[index].jitter():0,
+					(unsigned int)fractionLostInPercent,
+					index > -1?(result[index].fraction_lost()):0
+					);
+			last_rr_send_time_ = now_ms;
+		}
+	}
+
+	return bFlag;
+}
+
+bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 		uint64_t recvTime) {
 	uint16_t seq = rtpPkt->sequence_number_;
 	uint32_t ts = rtpPkt->timestamp_;
@@ -1579,35 +1634,33 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 		uint32_t bitrate) {
 	for(std::vector<uint32_t>::const_iterator itr = ssrcs.begin(); itr != ssrcs.end(); itr++) {
 		if ( IsVideoPkt(*itr) ) {
-		    StreamStatistician* rs = rs_module_.GetStatistician(*itr);
-
-			LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged( "
-					"this : %p, "
-					"[%s], "
-					"media_ssrc : 0x%08x(%u), "
-					"bitrate : %u "
-					")",
-					this,
-					PktTypeDesc(*itr).c_str(), *itr, *itr,
-					bitrate);
-			if ( rs ) {
-				RtpReceiveStats rrs = rs->GetStats();
-
+		    StreamStatistician* ss = rs_module_.GetStatistician(*itr);
+			if ( ss ) {
+				RtpReceiveStats rrs = ss->GetStats();
 				LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged( "
 						"this : %p, "
 						"[%s], "
 						"media_ssrc : 0x%08x(%u), "
+						"bitrate : %u, "
+						"bitrate_recv : %u, "
 						"packets_lost : %d, "
 						"jitter : %u, "
-						"bitrate_recv : %u, "
-						"fraction : %d "
+						"fraction : %d%% "
+//						"jitter_since_last : %u, "
+//						"packets_lost_since_last : %d, "
+//						"fraction_since_last : %hhu "
 						")",
 						this,
 						PktTypeDesc(*itr).c_str(), *itr, *itr,
+						bitrate,
+						ss->BitrateReceived(),
 						rrs.packets_lost,
 						rrs.jitter,
-						rs->BitrateReceived(),
-						rs->GetFractionLostInPercent());
+						ss->GetFractionLostInPercent()?*ss->GetFractionLostInPercent():0
+//						index > -1?result[index].jitter_:0,
+//						index > -1?result[index].cumulative_lost_:0,
+//						index > -1?result[index].fraction_lost_:0
+						);
 			}
 
 			if ( gAutoBitrate ) {

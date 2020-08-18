@@ -299,6 +299,7 @@ ReceiveStatisticsImpl::~ReceiveStatisticsImpl() {
 }
 
 void ReceiveStatisticsImpl::Reset() {
+	mediaserver::CritScope cs(&receive_statistics_lock_);
 	while (!statisticians_.empty()) {
 		delete statisticians_.begin()->second;
 		statisticians_.erase(statisticians_.begin());

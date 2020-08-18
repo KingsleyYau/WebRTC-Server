@@ -1782,11 +1782,13 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 					int remoteSize = 0;
 					mDtlsSession.GetServerKey(remoteKey, remoteSize);
 
-					mRtpSession.RegisterAudioExtensions(mAudioExtmap);
-					mRtpSession.RegisterVideoExtensions(mVideoExtmap);
-					mRtpSession.SetAudioSSRC(mAudioSSRC);
-					mRtpSession.SetVideoSSRC(mVideoSSRC);
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
+					if ( bStart ) {
+						mRtpSession.RegisterAudioExtensions(mAudioExtmap);
+						mRtpSession.RegisterVideoExtensions(mVideoExtmap);
+						mRtpSession.SetAudioSSRC(mAudioSSRC);
+						mRtpSession.SetVideoSSRC(mVideoSSRC);
+					}
 				}
 
 				if ( bStart ) {
