@@ -950,7 +950,7 @@ bool RtpSession::SendRtcpXr() {
 	return bFlag;
 }
 
-bool RtpSession::SendRtcpRR(const std::vector<rtcp::ReportBlock> &result) {
+bool RtpSession::SendRtcpRr(const std::vector<rtcp::ReportBlock> &result) {
 	bool bFlag = false;
 
 	srtp_err_status_t status = srtp_err_status_fail;
@@ -964,7 +964,7 @@ bool RtpSession::SendRtcpRR(const std::vector<rtcp::ReportBlock> &result) {
 
 	bFlag = rr.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRR( "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRr( "
 			"this : %p, "
 			"bufferSize : %u "
 			")", this, bufferSize);
@@ -1150,7 +1150,7 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 					index > -1?(result[index].fraction_lost()):0
 					);
 
-			SendRtcpRR(result);
+			SendRtcpRr(result);
 
 			last_rr_send_time_ = now_ms;
 		}

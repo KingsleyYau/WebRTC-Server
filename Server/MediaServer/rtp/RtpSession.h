@@ -174,7 +174,7 @@ private:
 	 * Send RTCP Receiver Report
 	 * 发送接收者报告
 	 */
-	bool SendRtcpRR(const std::vector<rtcp::ReportBlock> &result);
+	bool SendRtcpRr(const std::vector<rtcp::ReportBlock> &result);
 
 private:
 	void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,

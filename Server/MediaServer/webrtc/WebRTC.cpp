@@ -1174,6 +1174,7 @@ bool WebRTC::StartRtpTransform() {
 }
 
 void WebRTC::StopRtpTransform() {
+	int pid = mRtpTransformPid;
 	LogAync(
 			LOG_INFO,
 			"WebRTC::StopRtpTransform( "
@@ -1213,7 +1214,7 @@ void WebRTC::StopRtpTransform() {
 			"pid : %d "
 			")",
 			this,
-			mRtpTransformPid
+			pid
 			);
 }
 
