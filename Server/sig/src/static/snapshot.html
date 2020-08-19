@@ -28,6 +28,7 @@
 
     function onload() {
         $("[id=syncBtn]").click(function () {
+            sync();
         });
 
         $("[id=snapshotBtn]").click(function () {
@@ -108,13 +109,13 @@
 
             setTimeout(() => {
                 reload();
-            }, 3000);
+            }, 5000);
         };
         xhr.onerror = function (e) {
             console.error(xhr.statusText);
             setTimeout(() => {
                 reload();
-            }, 3000);
+            }, 5000);
         };
         xhr.send(null);
     }
