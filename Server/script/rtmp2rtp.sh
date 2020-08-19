@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # RTMP stream to RTP stream script
 # Author: Max.Chiu
 # Date: 2020/1/07
@@ -47,14 +47,16 @@ then
   TRANSCODE=$5
 fi
 
-trap 'Clean; exit' SIGTERM
 function Clean() {
   SELF_PID=$$
   FFMPEG_PID=`ps --ppid $SELF_PID | grep ffmpeg | awk '{if($1~/[0-9]+/) print $1}'`
   if [ ! "$FFMPEG_PID" == "" ];then
+    echo "# rtp2rtmp.sh kill -9 $FFMPEG_PID "
     kill -9 $FFMPEG_PID
   fi
+  echo "# rmtp2rtp.sh $SELF_PID exit "
 }
+trap 'Clean; exit' SIGTERM
 
 RTMP_STREAM=`echo $RTMP_URL | sed 's/rtmp:\/\/.*:[0-9]*\/\(.*\)/\1/g' | sed 's/\//_/g'`
 RTP_PORT=`echo $RTP_URL | sed 's/rtp:\/\/.*:\([0-9]*\)/\1/g' | sed 's/\///g'`
@@ -82,7 +84,7 @@ while true;do
 	sleep 2
 	SELF_PID=$$
 	FFMPEG_PID=`ps --ppid $SELF_PID | grep ffmpeg | awk '{if($1~/[0-9]+/) print $1}'`
-	if [ "$FFMPEG_PID" == "" ];then
+	if [ $"SELF_PID" == "" ] || [ "$FFMPEG_PID" == "" ];then
 		exit;
 	fi
 done

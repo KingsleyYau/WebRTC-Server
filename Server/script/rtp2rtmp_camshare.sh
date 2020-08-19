@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # RTP stream to RTMP stream script
 # Author: Max.Chiu
 # Date: 2019/08/13
@@ -40,14 +40,16 @@ then
   LOG_FILE=$4
 fi
 
-trap 'Clean; exit' SIGTERM
 function Clean() {
   SELF_PID=$$
   FFMPEG_PID=`ps --ppid $SELF_PID | grep ffmpeg | awk '{if($1~/[0-9]+/) print $1}'`
   if [ ! "$FFMPEG_PID" == "" ];then
+    echo "# rtp2rtmp_camshare.sh kill -9 $FFMPEG_PID "
     kill -9 $FFMPEG_PID
   fi
+  echo "# rtp2rtmp_camshare.sh $SELF_PID exit "
 }
+trap 'Clean; exit' SIGTERM
 
 if [ "$TRANSCODE" -eq "1" ]
 #if [ "1" -eq "1" ]
@@ -81,7 +83,7 @@ while true;do
   sleep 2
   SELF_PID=$$
   FFMPEG_PID=`ps --ppid $SELF_PID | grep ffmpeg | awk '{if($1~/[0-9]+/) print $1}'`
-  if [ "$FFMPEG_PID" == "" ];then
+  if [ $"SELF_PID" == "" ] || [ "$FFMPEG_PID" == "" ];then
     exit;
   fi
 done

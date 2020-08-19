@@ -114,11 +114,19 @@ void SignalFunc(int sign_no) {
 	switch(sign_no) {
 	case SIGCHLD:{
 		int status;
-		int pid = waitpid(-1, &status, WNOHANG);
-//		LogAync(
-//				LOG_INFO, "main( waitpid : %d )", pid
-//				);
-		MainLoop::GetMainLoop()->Call(pid);
+		int pid = 0;
+		while (true) {
+			int pid = waitpid(-1, &status, WNOHANG);
+			if ( pid > 0 ) {
+				printf("# main( waitpid : %d ) \n", pid);
+		//		LogAync(
+		//				LOG_INFO, "main( waitpid : %d )", pid
+		//				);
+				MainLoop::GetMainLoop()->Call(pid);
+			} else {
+				break;
+			}
+		}
 	}break;
 	default:{
 		LogAync(
