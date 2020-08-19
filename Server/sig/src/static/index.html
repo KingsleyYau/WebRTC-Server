@@ -20,6 +20,17 @@
             filter: sepia(1);
         }
 
+        .display-flex {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .display-item {
+            margin: 5px;
+            width: 300px;
+        }
+
         .button {
             background-color: #d84a38;
             border: none;
@@ -105,12 +116,17 @@
     let bitrateSeries = new TimelineDataSeries();
     let bitrateGraph;
 
+    let packetSeries = new TimelineDataSeries();
+    let packetGraph;
+
+    let nackSeries = new TimelineDataSeries();
+    let nackGraph;
+
     function reset() {
         reqId = 0;
         callAlready = false;
 
         $("[id=status]").html('Not Connected');
-        $("[id=stream]").html('');
         $("[id=socketId]").html('');
         $("[id=msgRecv]").html('');
         $("[id=jsonRecv]").html('');
@@ -141,6 +157,7 @@
          * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
          */
         if (isEdge() || (isSafari() && callType == 'push')) {
+        // if (true) {
             for (i = 0; i < iceServers.length; i++) {
                 let obj = iceServers[i];
                 for (j = 0; j < obj.urls.length; j++) {
@@ -585,6 +602,9 @@
                 this.mediaStream = localVideo.captureStream();
             }
 
+            let audio = this.mediaStream.getAudioTracks()[0];
+            // this.mediaStream.removeTrack(audio);
+
             console.log('Captured stream from leftVideo with captureStream',
                 this.mediaStream);
             let video = this.mediaStream.getVideoTracks()[0];
@@ -606,8 +626,9 @@
                 // Video tag capture must be set up after video tracks are enumerated.
                 let localVideo = $("[id=localVideo]")[0];
                 $("[id=localVideo]").attr("style", 'display: block');
-                // localVideo.src = './video/jzq_feph.mp4';
-                localVideo.src = './video/jzq_bzp.mp4';
+                localVideo.src = './video/jzq_feph.mp4';
+                //localVideo.src = './video/jzq_bzp.mp4';
+                // localVideo.src = './video/jzq_mynks.mp4';
                 localVideo.srcObject = null;
 
                 localVideo.oncanplay = () => {
@@ -742,7 +763,7 @@
 
         setBitRate(sdp) {
             var newSdp = sdp;
-            // Only work for Safari and Chrome
+            // Only work for Safari and ChromegetCapabilities
             newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=1000;x-google-max-bitrate=1000\r\n');
             // Only work for Firefox
             // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
@@ -805,6 +826,7 @@
                                     const now = res.timestamp;
                                     let bytes = res.bytesSent;
                                     let packets = res.packetsSent;
+                                    let retransmittedPacketsSent = res.retransmittedPacketsSent;
                                     if (lastResult && lastResult.has(res.id)) {
                                         // calculate bitrate
                                         const bitrate = 8 * (bytes - lastResult.get(res.id).bytesSent) /
@@ -814,6 +836,18 @@
                                         bitrateSeries.addPoint(now, bitrate);
                                         bitrateGraph.setDataSeries([bitrateSeries]);
                                         bitrateGraph.updateEndDate();
+
+                                        // calculate number of packets and append to chart
+                                        const packetSecond =  packets - lastResult.get(res.id).packetsSent;
+                                        packetSeries.addPoint(now, packetSecond);
+                                        packetGraph.setDataSeries([packetSeries]);
+                                        packetGraph.updateEndDate();
+
+                                        // calculate number of nack rtcp packets received and append to chart
+                                        const nackSecond = retransmittedPacketsSent - lastResult.get(res.id).retransmittedPacketsSent;
+                                        nackSeries.addPoint(now, nackSecond);
+                                        nackGraph.setDataSeries([nackSeries]);
+                                        nackGraph.updateEndDate();
                                     }
                                 }
                             });
@@ -1021,6 +1055,12 @@
 
         bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
         bitrateGraph.updateEndDate();
+
+        packetGraph = new TimelineGraphView('packetGraph', 'packetCanvas');
+        packetGraph.updateEndDate();
+
+        nackGraph = new TimelineGraphView('nackGraph', 'nackCanvas');
+        nackGraph.updateEndDate();
     }
 
     function handleError(e) {
@@ -1160,11 +1200,19 @@
                 Your browser is too old which doesn't support HTML5 video.
             </video>
         </div>
-        <div>
-            <label id="bitrateLabel">Bitrate</label>
-        </div>
-        <div>
-            <canvas id="bitrateCanvas"></canvas>
+        <div class="display-flex">
+            <div class="display-item">
+                <div><label id="bitrateLabel">Bitrate</label></div>
+                <canvas id="bitrateCanvas"></canvas>
+            </div>
+            <div class="display-item">
+                <div><label id="packetLabel">RTP Packets sent per second</label></div>
+                <canvas id="packetCanvas"></canvas>
+            </div>
+            <div class="display-item">
+                <div><label id="nackLabel">Nack receive per second</label></div>
+                <canvas id="nackCanvas"></canvas>
+            </div>
         </div>
         <label id="stats"></label>
     </div>
