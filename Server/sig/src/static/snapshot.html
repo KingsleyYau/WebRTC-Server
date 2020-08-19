@@ -27,6 +27,9 @@
     path = "/snapshot";
 
     function onload() {
+        $("[id=syncBtn]").click(function () {
+        });
+
         $("[id=snapshotBtn]").click(function () {
             start = true;
             path = "/snapshot";
@@ -116,6 +119,23 @@
         xhr.send(null);
     }
 
+    function sync() {
+        console.log("sync(), ", "/sync");
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", "/sync", true);
+        xhr.onload = function (e) {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                if (xhr.status === 200) {
+                } else {
+                    console.error(xhr.statusText);
+                }
+            }
+        };
+        xhr.onerror = function (e) {
+            console.error(xhr.statusText);
+        };
+        xhr.send(null);
+    }
     document.addEventListener("DOMContentLoaded", function() {
         onload();
     });
@@ -126,6 +146,7 @@
     <button id="snapshotBackupBtn">Snapshot Backup</button>
     <button id="stopBtn">Stop</button>
     <button id="emptyBtn">Empty</button>
+    <button id="syncBtn">Sync</button>
     <div id="main" class="display-flex">
     </div>
 </body>

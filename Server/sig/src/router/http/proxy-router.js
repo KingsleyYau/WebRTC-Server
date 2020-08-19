@@ -9,13 +9,14 @@ const Router = require('koa-router');
 // 项目公共库
 const Common = require('../../lib/common');
 // Redis
-const redisClient = require('../../lib/redis-connector').RedisConnector.getInstance();
+// const redisClient = require('../../lib/redis-connector').RedisConnector.getInstance();
 // Model的Keys
 const DBModelKeys = require('../../db/model-keys');
 
 const Fs = require('fs');
 const Path = require('path');
 const Url = require('url');
+const Exec = require('child_process');
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -54,6 +55,15 @@ proxyRouter.all('/verify/v1/start', async (ctx, next) => {
     let respond =
         {"errno":0,"errmsg":""}
     ;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/sync', async (ctx, next) => {
+    let respond;
+
+    Exec('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
+        respond = stdout;
+    })
     ctx.body = respond;
 });
 
@@ -110,22 +120,22 @@ proxyRouter.all('/set', async (ctx, next) => {
     // 随机增加时间, 防止雪崩
     let timeRnd = Math.floor(Math.random() * 30);
     // 因为使用集群, 必须保证key的hash在同一个slot, 否则不能使用事务
-    await redisClient.client.multi().
-    hset(
-        'h_user_online_' + ctx.session.sessionId,
-        'name', 'max-' + ctx.session.sessionId,
-        'age', 18
-    ).expire(
-        'h_user_online_' + ctx.session.sessionId,
-        1800 + timeRnd
-    ).exec().then( (res) => {
-        let all = JSON.stringify(res);
-        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-set], res:' + all);
-        respond.res = res;
-    }).catch( (err) => {
-        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-set], err:' + err);
-        respond.errmsg = err;
-    });
+    // await redisClient.client.multi().
+    // hset(
+    //     'h_user_online_' + ctx.session.sessionId,
+    //     'name', 'max-' + ctx.session.sessionId,
+    //     'age', 18
+    // ).expire(
+    //     'h_user_online_' + ctx.session.sessionId,
+    //     1800 + timeRnd
+    // ).exec().then( (res) => {
+    //     let all = JSON.stringify(res);
+    //     Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-set], res:' + all);
+    //     respond.res = res;
+    // }).catch( (err) => {
+    //     Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-set], err:' + err);
+    //     respond.errmsg = err;
+    // });
     let end = process.uptime() * 1000;
     respond.time = end - start + 'ms';
 
