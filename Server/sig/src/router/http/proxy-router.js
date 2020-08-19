@@ -16,7 +16,7 @@ const DBModelKeys = require('../../db/model-keys');
 const Fs = require('fs');
 const Path = require('path');
 const Url = require('url');
-const { ExecFile, ExecFileSync } = require('child_process');
+const Exec = require('child_process');
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -61,7 +61,7 @@ proxyRouter.all('/verify/v1/start', async (ctx, next) => {
 proxyRouter.all('/sync', async (ctx, next) => {
     let respond;
 
-    ExecFile('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
+    Exec('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
         respond = stdout;
     })
     ctx.body = respond;
