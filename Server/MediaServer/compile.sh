@@ -7,7 +7,7 @@ sudo yum install -y automake libtool gcc-c++.x86_64 gtk-doc.x86_64 glib2-devel.x
 
 wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 sudo rpm -ivh epel-release-latest-7.noarch.rpm
-sudo yum install jq
+sudo yum install -y jq cmake3
 
 BUILD_PATH="$1"
 if [ "$BUILD_PATH" == "" ]; then
