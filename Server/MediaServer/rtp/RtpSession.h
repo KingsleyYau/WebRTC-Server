@@ -129,7 +129,7 @@ public:
 	 */
 	bool SendRtcpPacket(void *pkt, unsigned int& pktSize);
 
-public:
+private:
 	/**
 	 * Send Picture Loss Indication(PLI)
 	 * 仅用于丢包, 不会携带视频信息(如H264的SPS和PPS)
@@ -166,11 +166,15 @@ public:
 	 * @param media_ssrc 媒体流SSRC
 	 */
 	bool SendRtcpTccFB(unsigned int media_ssrc);
-
 	/**
 	 * rtcp-xr方案
 	 */
 	bool SendRtcpXr();
+	/**
+	 * Send RTCP Receiver Report
+	 * 发送接收者报告
+	 */
+	bool SendRtcpRR(const std::vector<rtcp::ReportBlock> &result);
 
 private:
 	void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
@@ -180,11 +184,6 @@ private:
 	 * 重置
 	 */
 	void Reset();
-	/**
-	 * Send RTCP Receiver Report
-	 * 发送接收者报告
-	 */
-	bool SendRtcpRR();
 	/**
 	 * 更新媒体信息(时间戳/帧号/丢包信息)
 	 * @param rtpPkt 原始RTP数据包

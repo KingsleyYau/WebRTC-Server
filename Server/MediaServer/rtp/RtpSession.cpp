@@ -109,7 +109,7 @@ bool RtpSession::GobalInit() {
 }
 
 constexpr int kRembSendIntervalMs = 200;
-constexpr int kRRSendIntervalMs = 10000;
+constexpr int kRRSendIntervalMs = 5000;
 
 static unsigned int gMaxPliSeconds = 3;
 static bool gSimLost = false;
@@ -220,6 +220,7 @@ void RtpSession::Reset() {
 	nack_module_.Reset();
 	// RBE模块
 	rbe_module_.SetMinBitrate(gVideoMinBitrate);
+	rbe_module_.Reset();
 	// 接收统计模块
 	rs_module_.Reset();
 	rs_module_.SetMaxReorderingThreshold(kDefaultMaxReorderingThreshold);
@@ -815,7 +816,7 @@ bool RtpSession::SendRtcpNack(unsigned int media_ssrc, unsigned int start,
 	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack( "
 			"this : %p, "
 			"[%s], "
-			"ssrc : 0x%08x(%u), "
+			"media_ssrc_ : 0x%08x(%u), "
 			"bufferSize : %u, "
 			"start : %u, "
 			"size : %u "
@@ -858,7 +859,7 @@ bool RtpSession::SendRtcpNack(unsigned int media_ssrc,
 	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack( "
 			"this : %p, "
 			"[%s], "
-			"ssrc : 0x%08x(%u), "
+			"media_ssrc_ : 0x%08x(%u), "
 			"nack_batch_size : %u, "
 			"nack_batch : %s "
 			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
@@ -949,71 +950,29 @@ bool RtpSession::SendRtcpXr() {
 	return bFlag;
 }
 
-bool RtpSession::SendRtcpRR() {
+bool RtpSession::SendRtcpRR(const std::vector<rtcp::ReportBlock> &result) {
 	bool bFlag = false;
 
 	srtp_err_status_t status = srtp_err_status_fail;
-	char tmp[MTU];
-	unsigned int pktSize = 0;
-//
-//	RtcpPacketCommon pkt = {0};
-//	pkt.header.version = 2;
-//	pkt.header.p = 0;
-//	pkt.header.rc = 1;
-//	pkt.header.pt = RtcpPayloadTypeRR;
-//	pkt.header.length = 1 + 2 * 6; // (1 * ssrc(32bit)) + (2 * RR(6 * 32bit))
-//	pkt.header.length = htons(pkt.header.length);
-//	pkt.ssrc = htonl(RTCP_SSRC);
-//	memcpy(tmp, (void *)&pkt, sizeof(RtcpPacketCommon));
-//	pktSize += sizeof(RtcpPacketCommon);
-//
-//	// Audio RR
-//	RtcpPacketRR rr_audio = {0};
-//	rr_audio.media_ssrc = htonl(mAudioSSRC);
-//	/**
-//	 * 丢包率: RTP包丢失个数 / 期望接收的RTP包个数
-//	 * RTP包丢失个数 = 期望接收的RTP包个数 - 实际收到的RTP包个数
-//	 * 期望接收的RTP包个数 = 当前最大sequence - 上次最大sequence
-//	 * 实际收到的RTP包个数 = 正常有序RTP包 + 重传包
-//	 */
-//	unsigned int expected = mAudioMaxSeq - mAudioMaxSeqLast;
-//	unsigned int actual = mAudioTotalRecvPacket - mAudioTotalRecvPacketLast;
-//	mAudioTotalRecvPacketLast = mAudioTotalRecvPacket;
-//	rr_audio.fraction = 256 * 1.0f * (expected - actual) / expected;
-//	rr_audio.packet_lost = actual;
-//	rr_audio.max_seq = htons(mAudioMaxSeq);
-//	/**
-//	 * 抖动: 一对数据包在接收端与发送端的数据包时间间距之差
-//	 * R: RTP包接收的时间戳
-//	 * S: RTP包发送的时间戳
-//	 * 抖动(i, j) = D(i, j) = |(Rj - Ri) - (Sj - Si)| = |(Rj - Sj) - (Ri - Si)|
-//	 * 抖动函数 J(i) = J(i - 1) + (|D(i - 1, i)| - J(i - 1)) / 16
-//	 *
-//	 * 暂时先不计算, 需要用到RTP扩展头 jitter_q4_transmission_time_offset_
-//	 */
-//	rr_audio.jitter = 0;
-//
-//	rr_audio.lsr = mAudioLSR;
-//	rr_audio.dlsr = mAudioDLSR;
-//	memcpy(tmp + pktSize, (void *)&rr_audio, sizeof(RtcpPacketRR));
-//	pktSize += sizeof(RtcpPacketRR);
-//
-//	// Video RR
-//	RtcpPacketRR rr_video = {0};
-//	rr_video.media_ssrc = htonl(mVideoSSRC);
-//	expected = mVideoMaxSeq - mVideoMaxSeqLast;
-//	actual = mVideoTotalRecvPacket - mVideoTotalRecvPacketLast;
-//	mVideoTotalRecvPacketLast = mVideoTotalRecvPacket;
-//	rr_video.fraction = 256 * 1.0f * (expected - actual) / expected;
-//	rr_video.packet_lost = actual;
-//	rr_video.max_seq = htons(mVideoMaxSeq);
-//	rr_video.jitter = 0;
-//	rr_video.lsr = mVideoLSR;
-//	rr_video.dlsr = mVideoDLSR;
-//	memcpy(tmp + pktSize, (void *)&rr_video, sizeof(RtcpPacketRR));
-//	pktSize += sizeof(RtcpPacketRR);
 
-	bFlag = SendRtcpPacket((void *) tmp, pktSize);
+	uint8_t buffer[MTU];
+	size_t bufferSize = 0;
+
+	ReceiverReport rr;
+	rr.SetSenderSsrc(RTCP_SSRC);
+	rr.SetReportBlocks(result);
+
+	bFlag = rr.Create((uint8_t *) buffer, &bufferSize, MTU);
+
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRR( "
+			"this : %p, "
+			"bufferSize : %u "
+			")", this, bufferSize);
+
+	if (bFlag) {
+		unsigned int pktSize = (unsigned int) bufferSize;
+		bFlag = SendRtcpPacket((void *) buffer, pktSize);
+	}
 
 	return bFlag;
 }
@@ -1190,6 +1149,9 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 					(unsigned int)fractionLostInPercent,
 					index > -1?(result[index].fraction_lost()):0
 					);
+
+			SendRtcpRR(result);
+
 			last_rr_send_time_ = now_ms;
 		}
 	}
