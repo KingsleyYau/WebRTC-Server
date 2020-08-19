@@ -62,8 +62,13 @@ proxyRouter.all('/sync', async (ctx, next) => {
     let respond;
 
     Exec.exec('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
-        respond = stdout;
+        if ( err || stderr ) {
+            respond = stdout;
+        } else {
+            respond = 'OK';
+        }
     })
+
     ctx.body = respond;
 });
 
