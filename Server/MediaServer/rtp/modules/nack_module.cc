@@ -131,10 +131,10 @@ int NackModule::OnReceivedPacket(uint16_t seq_num, bool is_keyframe,
 		if (nack_list_it != nack_list_.end()) {
 			nacks_sent_for_packet = nack_list_it->second.retries;
 			nack_list_.erase(nack_list_it);
-//			LogAync(LOG_DEBUG, "NackModule::OnReceivedPacket( "
-//					"this : %p, "
-//					"[Ack Nack], seq : %u "
-//					")", this, nack_list_it->first);
+			LogAync(LOG_DEBUG, "NackModule::OnReceivedPacket( "
+					"this : %p, "
+					"[Rtp Nack Ack], seq : %u "
+					")", this, nack_list_it->first);
 		}
 		return nacks_sent_for_packet;
 	}
@@ -164,7 +164,7 @@ int NackModule::OnReceivedPacket(uint16_t seq_num, bool is_keyframe,
 	newest_seq_num_ = seq_num;
 
 	// Are there any nacks that are waiting for this seq_num.
-	nack_batch = GetNackBatch(kSeqNumOnly);
+	nack_batch = GetNackBatch(kSeqNumAndTime);
 	if (!nack_batch.empty()) {
 		// This batch of NACKs is triggered externally; the initiator can
 		// batch them with other feedback messages.
@@ -296,6 +296,10 @@ std::vector<uint16_t> NackModule::GetNackBatch(NackFilterOptions options) {
 			if (it->second.retries >= kMaxNackRetries) {
 //				RTC_LOG(LS_WARNING) << "Sequence number " << it->second.seq_num
 //						<< " removed from NACK list due to max retries.";
+				LogAync(LOG_DEBUG, "NackModule::GetNackBatch( "
+						"this : %p, "
+						"[Remove due to max retries.], seq : %u "
+						")", this, it->second.seq_num);
 				it = nack_list_.erase(it);
 			} else {
 				++it;

@@ -641,27 +641,27 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 		bFlag = false;
 	}
 
-//    if ( !bFlag ) {
-//    	RtpHeader *header = (RtpHeader *)pkt;
-//
-//		LogAync(
-//				LOG_DEBUG,
-//				"RtpSession::SendRtpPacket( "
-//				"this : %p, "
-//				"status : %d, "
-//				"sendSize : %d, "
-//				"pktSize : %d, "
-//				"seq : %u, "
-//				"timestamp : %u "
-//				")",
-//				this,
-//				status,
-//				sendSize,
-//				pktSize,
-//				ntohs(header->seq),
-//				ntohl(header->ts)
-//				);
-//    }
+    if ( !bFlag ) {
+    	RtpHeader *header = (RtpHeader *)pkt;
+
+		LogAync(
+				LOG_WARNING,
+				"RtpSession::SendRtpPacket( "
+				"this : %p, "
+				"status : %d, "
+				"sendSize : %d, "
+				"pktSize : %d, "
+				"seq : %u, "
+				"timestamp : %u "
+				")",
+				this,
+				status,
+				sendSize,
+				pktSize,
+				ntohs(header->seq),
+				ntohl(header->ts)
+				);
+    }
 
 	return bFlag;
 }
@@ -1219,15 +1219,17 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 			BOOL_2_STRING(need_request_keyframe)
 			);
 
+	 if (!nack_batch.empty()) {
+		// 请求NACK重传
+		SendRtcpNack(ssrc, nack_batch);
+	}
+
 	if (sendPLI) {
-		nack_module_.Clear();
+//		nack_module_.Clear();
 	} else if (need_request_keyframe) {
 		// 丢包严重, 发送PLI
 		SendRtcpPli(ssrc);
 		mVideoPLITimestamp = ts;
-	} else if (!nack_batch.empty()) {
-		// 请求NACK重传
-		SendRtcpNack(ssrc, nack_batch);
 	}
 
 	// 定时发送RRTR, 计算RTT
