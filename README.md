@@ -17,6 +17,7 @@ Catalog
 - 接收WebRTC客户端推送音视频流(SRTP/SRTCP), 并转发到Nginx(RTMP), 也可以自定义转发脚本
 - 视频只支持接收H264, 不是Baseline profile的会进行转码, 音频只支持Opus, 转码AAC
 - 支持外部HTTP接口[登录校验/上下线通知/在线列表(Websocket)同步]
+- 支持接收端动态码率算法(Receive side gcc)
 
 ### Sequence Diagram
 ![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/doc/MediaServer_Call_Sequence.png?raw=true)
