@@ -651,7 +651,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
     	RtpHeader *header = (RtpHeader *)pkt;
 
 		LogAync(
-				LOG_WARNING,
+				LOG_INFO,
 				"RtpSession::SendRtpPacket( "
 				"this : %p, "
 				"status : %d, "
