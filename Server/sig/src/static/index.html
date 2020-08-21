@@ -156,7 +156,8 @@
          * 4) turn: occurring muliple times
          * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
          */
-        if (true) {
+        let tcpForce = $("[id=forceTcpCb]").attr('checked');
+        if (!tcpForce) {
         // if (isEdge() || (isSafari() && callType == 'push')) {
             for (i = 0; i < iceServers.length; i++) {
                 let obj = iceServers[i];
@@ -168,17 +169,17 @@
                     }
                 }
             }
-        // } else {
-        //     for (i = 0; i < iceServers.length; i++) {
-        //         let obj = iceServers[i];
-        //         for (j = 0; j < obj.urls.length; j++) {
-        //             let index = obj.urls[j].indexOf("udp", 0);
-        //             if (index != -1) {
-        //                 obj.urls.splice(j, 1);
-        //                 break;
-        //             }
-        //         }
-        //     }
+        } else {
+            for (i = 0; i < iceServers.length; i++) {
+                let obj = iceServers[i];
+                for (j = 0; j < obj.urls.length; j++) {
+                    let index = obj.urls[j].indexOf("udp", 0);
+                    if (index != -1) {
+                        obj.urls.splice(j, 1);
+                        break;
+                    }
+                }
+            }
         }
 
         let config = {
@@ -549,7 +550,7 @@
             await this.pc.setLocalDescription(offer);
 
             // let localDescription = JSON.stringify(this.pc.localDescription);
-            console.log('RTCClient::push(), offer :', offer.sdp);
+            console.log('RTCClient::push()');
 
             $("[id=localSdpTextarea]").html(offer.sdp);
             $("[id=localSdpTextarea]").attr("disabled", false);
@@ -1167,6 +1168,7 @@
             # ServerId : <input id="serverId" type="text" name="" value=""/><br>
             <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
+            <div>Force Tcp <input id="forceTcpCb" type="checkbox"></div>
             <div>
                 <button id="pushBtn">Push</button>
                 <button id="pullBtn">Pull</button>
