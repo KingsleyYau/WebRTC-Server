@@ -119,13 +119,19 @@ static unsigned int gVideoLostSeed = 100;
 static unsigned int gVideoLostSize = 50;
 static bool gAutoBitrate = true;
 static unsigned int gVideoMinBitrate = 200 * 1000;
-void RtpSession::SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate, unsigned int videoMinBitrate, bool simLost) {
+static unsigned int gVideoMaxBitrate = 1000 * 1000;
+void RtpSession::SetGobalParam(
+		unsigned int maxPliSeconds,
+		bool autoBitrate, unsigned int videoMinBitrate, unsigned int videoMaxBitrate,
+		bool simLost) {
 	// 关键帧最大间隔
 	gMaxPliSeconds = maxPliSeconds;
 	// 自适应码率
 	gAutoBitrate = autoBitrate;
 	// 自适应码率模式下, 视频最小码率
 	gVideoMinBitrate = videoMinBitrate;
+	// 自适应码率模式下, 视频最大码率
+	gVideoMaxBitrate = videoMaxBitrate;
 	// 模拟丢包
 	gSimLost = simLost;
 }
@@ -214,7 +220,7 @@ void RtpSession::Reset() {
 	last_remb_time_ms_ = 0;
 	last_send_bitrate_bps_ = 0;
 	bitrate_bps_ = 0;
-	max_bitrate_bps_ = 1000 * 1000;
+	max_bitrate_bps_ = gVideoMaxBitrate;
 
 	// NACK模块
 	nack_module_.Reset();
@@ -438,7 +444,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 
 	mpRecvPolicy->ssrc.type = ssrc_any_inbound;
 	mpRecvPolicy->ssrc.value = 0;
-	mpRecvPolicy->window_size = 512;
+	mpRecvPolicy->window_size = 1024;
 	mpRecvPolicy->allow_repeat_tx = 0;
 	mpRecvPolicy->ekt = NULL;
 	mpRecvPolicy->next = NULL;
@@ -572,7 +578,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 							UpdateStreamInfo(&rtpPkt, recvTime, header);
 						}
 					} else {
-						LogAync(LOG_WARNING, "RtpSession::RecvRtpPacket( "
+						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
 								"this : %p, "
 								"[%s], [Parse Rtp Packet Error], "
 								"media_ssrc : 0x%08x(%u), "
@@ -587,7 +593,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								h->m ? ", [Mark] " : " ");
 					}
 				} else {
-					LogAync(LOG_WARNING, "RtpSession::RecvRtpPacket( "
+					LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
 							"this : %p, "
 							"[%s], [Parse Rtp Packet Error %d], "
 							"media_ssrc : 0x%08x(%u), "
@@ -1132,18 +1138,24 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 		    }
 
 		    double fractionLostInPercent = index > -1?(result[index].fraction_lost() * 100.0 / 255.0):0;
-			LogAync(LOG_DEBUG, "RtpSession::UpdateVideoStatsPacket( "
+			LogAync(LOG_INFO, "RtpSession::UpdateVideoStatsPacket( "
 					"this : %p, "
 					"[%s], "
 					"media_ssrc : 0x%08x(%u), "
+					"bitrate_est : %u, "
+					"bitrate_recv : %u, "
 					"extended_highest_sequence_number : %u, "
+					"rtt : %" PRId64 ", "
 					"packets_lost : %d, "
 					"jitter : %u, "
 					"fraction_since_last : %u%%(%hhu) "
 					")",
 					this,
 					PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
+					last_send_bitrate_bps_,
+					ss->BitrateReceived(),
 					index > -1?result[index].extended_high_seq_num():0,
+					xr_rr_rtt_ms_,
 					index > -1?result[index].cumulative_lost_signed():0,
 					index > -1?result[index].jitter():0,
 					(unsigned int)fractionLostInPercent,
@@ -1167,8 +1179,10 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 
 	bool bFlag = false;
 
+	bool sendPLI = false;
 	if (mVideoPLITimestamp == 0) {
 		mVideoPLITimestamp = ts;
+		sendPLI = true;
 	}
 
 	// 视频帧间隔秒数
@@ -1192,11 +1206,10 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 	/**
 	 * 每gMaxPliSeconds秒, 发送PLI
 	 */
-	bool sendPLI = false;
 	if (deltaSeconds > gMaxPliSeconds) {
+		sendPLI = true;
 		SendRtcpPli(ssrc);
 		mVideoPLITimestamp = ts;
-		sendPLI = true;
 	}
 
 	std::vector<uint16_t> nack_batch;
@@ -1605,7 +1618,7 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 						"this : %p, "
 						"[%s], "
 						"media_ssrc : 0x%08x(%u), "
-						"bitrate : %u, "
+						"bitrate_est : %u, "
 						"bitrate_recv : %u, "
 						"packets_lost : %d, "
 						"jitter : %u, "

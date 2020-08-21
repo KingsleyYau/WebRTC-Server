@@ -1768,10 +1768,16 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						"WebRTC::OnIceRecvData( "
 						"this : %p, "
 						"[DTLS Handshake OK], "
-						"rtmpUrl : %s "
+						"rtmpUrl : %s, "
+						"audio_ssrc : 0x%08x(%u), "
+						"video_ssrc : 0x%08x(%u), "
 						")",
 						this,
-						mRtmpUrl.c_str()
+						mRtmpUrl.c_str(),
+						mAudioSSRC,
+						mAudioSSRC,
+						mVideoSSRC,
+						mVideoSSRC
 						);
 
 				bool bStart = false;

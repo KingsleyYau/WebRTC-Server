@@ -60,7 +60,7 @@ public:
 
 public:
 	static bool GobalInit();
-	static void SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate = true, unsigned int videoMinBitrate = 200000, bool simLost = false);
+	static void SetGobalParam(unsigned int maxPliSeconds, bool autoBitrate = true, unsigned int videoMinBitrate = 200000, unsigned int videoMaxBitrate = 1000 * 1000, bool simLost = false);
 	static bool IsRtp(const char *frame, unsigned len);
 	static bool IsRtcp(const char *frame, unsigned len);
 	static unsigned int GetRtpSSRC(void *pkt, unsigned int& pktSize);
