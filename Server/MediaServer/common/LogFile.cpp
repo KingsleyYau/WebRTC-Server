@@ -161,13 +161,13 @@ bool CFileCtrl::SetFileSeek(unsigned long  nOffset)
     return true;
 }
 
-int CFileCtrl::LogMsg(const char* pszFormat, int aiLen, const char* pszHead)
+int CFileCtrl::LogMsg(const char* pszFormat, int aiLen, const char* pszHead, bool unSafe)
 {
     if (m_pLogFile == NULL || !pszFormat) {
         return -1;
     }
 
-    if (!m_bSingle) {
+    if (!unSafe && !m_bSingle) {
         pthread_mutex_lock(&m_hMutex); 
     }
     if (!m_pBuffer) {
@@ -196,7 +196,7 @@ int CFileCtrl::LogMsg(const char* pszFormat, int aiLen, const char* pszHead)
         Mem2File();
         CreateLog();
     }
-    if (!m_bSingle){
+    if (!unSafe && !m_bSingle){
         pthread_mutex_unlock(&m_hMutex);
     }
     

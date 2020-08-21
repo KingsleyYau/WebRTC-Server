@@ -105,13 +105,14 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
         char logBuffer[MAX_LOG_BUFFER_LEN] = {0};
 		char bitBuffer[128] = {0};
 
-	    struct timeval tv;
-	    gettimeofday(&tv, NULL);
-
 	    //get current time
 	    time_t stm = time(NULL);
         struct tm tTime;
         localtime_r(&stm,&tTime);
+
+	    struct timeval tv;
+	    gettimeofday(&tv, NULL);
+
         snprintf(bitBuffer, sizeof(bitBuffer) - 1, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] [%s] %s:%d ",
         		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
 				(int)syscall(SYS_gettid),
@@ -145,6 +146,66 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
     }
 
     mMutex.unlock();
+
+	return bFlag;
+}
+
+bool LogManager::LogUnSafe(const char *file, int line, LOG_LEVEL nLevel, const char *format, ...) {
+	bool bFlag = false;
+	if( !mIsRunning ) {
+		return false;
+	}
+
+	bool bNeedLog = false;
+	if( mDebugMode ) {
+		bNeedLog = true;
+	} else if( mLogLevel >= nLevel ) {
+		bNeedLog = true;
+	}
+
+    if( bNeedLog ) {
+        char logBuffer[MAX_LOG_BUFFER_LEN] = {0};
+		char bitBuffer[128] = {0};
+
+	    //get current time
+	    time_t stm = time(NULL);
+        struct tm tTime;
+        localtime_r(&stm,&tTime);
+
+	    struct timeval tv;
+	    gettimeofday(&tv, NULL);
+
+        snprintf(bitBuffer, sizeof(bitBuffer) - 1, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] [%s] %s:%d ",
+        		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
+				(int)syscall(SYS_gettid),
+				LOG_LEVEL_DESC[nLevel],
+				file,
+				line
+				);
+
+        //get va_list
+        va_list	agList;
+        va_start(agList, format);
+        vsnprintf(logBuffer, MAX_LOG_BUFFER_LEN - 1, format, agList);
+        va_end(agList);
+
+        strcat(logBuffer, "\n");
+
+        if( mLogLevel >= nLevel ) {
+        	mpFileCtrl->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer, true);
+        }
+
+        if( mDebugMode ) {
+        	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer, true);
+        }
+
+        if ( mSTDMode ) {
+        	printf(bitBuffer);
+        	printf(logBuffer);
+        }
+
+        bFlag = true;
+    }
 
 	return bFlag;
 }

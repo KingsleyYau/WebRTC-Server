@@ -49,7 +49,7 @@ public:
     		);
     FILE* OpenLogFile();
     FILE* FileOpen(const char *szFileName, int aiMod);
-    int LogMsg(const char* pszFormat, int aiLen, const char* pszHead);
+    int LogMsg(const char* pszFormat, int aiLen, const char* pszHead, bool unSafe = false);
     int ReadMsg(char *szFormat, int aiLen);
     bool SetFileSeek(unsigned long nOffset);
     int printLog(const char *szfmt, ...);
