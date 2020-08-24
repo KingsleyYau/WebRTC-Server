@@ -61,14 +61,16 @@ class ImageFilter {
     init(canvas) {
         // this.gl = getWebGLContext(canvas);
         this.gl = canvas.getContext('webgl');
-        this.initFilterVertexBuffer(this.filterVertex_180);
-        this.initShaders();
+        if ( (typeof (this.gl) != "undefined") || (this.gl != null) ) {
+            this.initFilterVertexBuffer(this.filterVertex_180);
+            this.initShaders();
 
-        this.imgTexture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+            this.imgTexture = this.gl.createTexture();
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        }
     }
 
     initShaders() {
@@ -105,38 +107,39 @@ class ImageFilter {
     }
 
     draw() {
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        if ( (typeof (this.gl) != "undefined") || (this.gl != null) ) {
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        this.gl.useProgram(this.programObject);
+            this.gl.useProgram(this.programObject);
 
-        if ( this.canDraw ) {
-            this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
+            if (this.canDraw) {
+                this.gl.activeTexture(this.gl.TEXTURE0);
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
 
-            var aPosition = this.gl.getAttribLocation(this.programObject, "aPosition");
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glVertexBuffer);
-            this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 16, 0);
-            this.gl.enableVertexAttribArray(aPosition);
+                var aPosition = this.gl.getAttribLocation(this.programObject, "aPosition");
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glVertexBuffer);
+                this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 16, 0);
+                this.gl.enableVertexAttribArray(aPosition);
 
-            var aTextureCoordinate = this.gl.getAttribLocation(this.programObject, "aTextureCoordinate");
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glVertexBuffer);
-            this.gl.vertexAttribPointer(aTextureCoordinate, 2, this.gl.FLOAT, false, 16, 8);
-            this.gl.enableVertexAttribArray(aTextureCoordinate);
+                var aTextureCoordinate = this.gl.getAttribLocation(this.programObject, "aTextureCoordinate");
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glVertexBuffer);
+                this.gl.vertexAttribPointer(aTextureCoordinate, 2, this.gl.FLOAT, false, 16, 8);
+                this.gl.enableVertexAttribArray(aTextureCoordinate);
 
-            this.uInputTexture = this.gl.getUniformLocation(this.programObject, "uInputTexture");
-            this.uImagePixel = this.gl.getUniformLocation(this.programObject, "uImagePixel");
-            this.uOffet = this.gl.getUniformLocation(this.programObject, "uOffet");
+                this.uInputTexture = this.gl.getUniformLocation(this.programObject, "uInputTexture");
+                this.uImagePixel = this.gl.getUniformLocation(this.programObject, "uImagePixel");
+                this.uOffet = this.gl.getUniformLocation(this.programObject, "uOffet");
 
-            // 填充着色器-颜色采样器, 将纹理单元GL_TEXTURE0绑元定到采样器
-            this.gl.uniform1i(this.uInputTexture, 0);
-            this.gl.uniform2f(this.uImagePixel, 1 / 720.0, 1 / 1080.0);
+                // 填充着色器-颜色采样器, 将纹理单元GL_TEXTURE0绑元定到采样器
+                this.gl.uniform1i(this.uInputTexture, 0);
+                this.gl.uniform2f(this.uImagePixel, 1 / 720.0, 1 / 1080.0);
 
-            var num = Math.random() * 10 % 5;
-            this.gl.uniform2f(this.uOffet, num, num);
+                var num = Math.random() * 10 % 5;
+                this.gl.uniform2f(this.uOffet, num, num);
 
-            this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+                this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+            }
         }
-
     }
 
     initFilterVertexBuffer(filterVertex) {
@@ -162,8 +165,10 @@ class ImageFilter {
     }
 
     drawImage(img) {
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
-        this.canDraw = true;
+        if ( (typeof (this.gl) != "undefined") || (this.gl != null) ) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgTexture);
+            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+            this.canDraw = true;
+        }
     }
 }
