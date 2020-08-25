@@ -44,7 +44,7 @@ inline constexpr Dst dchecked_cast(Src value) {
 // that the specified numeric conversion will saturate rather than overflow or
 // underflow. NaN assignment to an integral will trigger a RTC_CHECK condition.
 template<typename Dst, typename Src>
-inline constexpr Dst saturated_cast(Src value) {
+inline Dst saturated_cast(Src value) {
 	// Optimization for floating point values, which already saturate.
 	if (std::numeric_limits<Dst>::is_iec559)
 		return static_cast<Dst>(value);

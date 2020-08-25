@@ -22,7 +22,8 @@ constexpr ExtensionInfo CreateExtensionInfo() {
 constexpr ExtensionInfo kExtensions[] = {
 		CreateExtensionInfo<AbsoluteSendTime>(),
 		CreateExtensionInfo<TransportSequenceNumber>(),
-		CreateExtensionInfo<TransportSequenceNumberV2>() };
+		CreateExtensionInfo<TransportSequenceNumberV2>(),
+		CreateExtensionInfo<VideoTimingExtension>()};
 
 // Because of kRtpExtensionNone, NumberOfExtension is 1 bigger than the actual
 // number of known extensions.

@@ -22,7 +22,8 @@ CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../thi
 				
 OBJS		+=  api/transport/network_types.o api/transport/field_trial_based_config.o \
 				api/units/data_rate.o api/units/data_size.o api/units/frequency.o api/units/timestamp.o \
-				api/media_types.o api/rtp_parameters.o api/rtp_headers.o
+				api/media_types.o api/rtp_parameters.o api/rtp_headers.o \
+				api/video/video_timing.o
 				
 OBJS		+=	base/ntp_time.o base/rw_lock_wrapper.o base/rw_lock_posix.o base/clock.o base/time_utils.o \
 				base/string_encode.o base/string_to_number.o \
@@ -31,7 +32,7 @@ OBJS		+=	base/ntp_time.o base/rw_lock_wrapper.o base/rw_lock_posix.o base/clock.
 				base/race_checker.o base/rate_statistics.o \
 				base/strings/string_builder.o \
 				base/experiments/field_trial_parser.o \
-				base/zero_memory.o
+				base/zero_memory.o base/copy_on_write_buffer.o 
 				
 OBJS		+=	include/rtp_rtcp_defines.o include/rtp_header_extension_map.o include/rtp_header_extension_size.o \
 				include/rtp_header_extensions.o include/time_util.o \
@@ -45,7 +46,7 @@ OBJS		+=	packet/RtpPacket.o packet/rtp_packet_received.o \
 				packet/sdes.o \
 				packet/Psfb.o packet/Pli.o packet/Fir.o packet/Nack.o packet/Remb.o \
 				packet/Rtpfb.o packet/TransportFeedback.o \
-				packet/app.o packet/remote_estimate.o
+				packet/app.o packet/remote_estimate.o \
 				
 OBJS		+=	modules/nack_module.o \
 				modules/congestion_controller/goog_cc/link_capacity_estimator.o \

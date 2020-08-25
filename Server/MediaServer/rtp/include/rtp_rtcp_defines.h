@@ -56,6 +56,7 @@ enum RTPExtensionType : int {
 	kRtpExtensionAbsoluteSendTime,
 	kRtpExtensionTransportSequenceNumber,
 	kRtpExtensionTransportSequenceNumber02,
+	kRtpExtensionVideoTiming,
 	kRtpExtensionNumberOfExtensions  // Must be the last entity in the enum.
 };
 

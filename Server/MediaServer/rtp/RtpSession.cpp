@@ -528,12 +528,12 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 				if (bFlag) {
 //					RtpPacket rtpPkt;
 					RtpPacketReceived rtpPkt(&mVideoExtensionMap);
+					// 到达时间
 					rtpPkt.set_arrival_time_ms(recvTime);
-					// 更新频率
-					if (!IsAudioPkt(ssrc)) {
+					// 采集频率
+					if (IsVideoPkt(ssrc)) {
 						rtpPkt.set_payload_type_frequency(kVideoPayloadTypeFrequency);
 					}
-
 					bool bFlag = rtpPkt.Parse((const uint8_t *) pkt, pktSize);
 					if (bFlag) {
 //						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
@@ -562,6 +562,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								"ts : %u, "
 								"abs : %lld, "
 								"recvTime : %lld, "
+								"frequency : %d, "
 								"payloadSize : %d"
 								"%s"
 								")", this, PktTypeDesc(header.ssrc).c_str(),
@@ -571,6 +572,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								header.timestamp,
 								header.extension.GetAbsoluteSendTimestamp().ms(),
 								recvTime,
+								rtpPkt.payload_type_frequency(),
 								rtpPkt.payload_size() + rtpPkt.padding_size(),
 								header.markerBit ? ", [Mark] " : " ");
 						if (bFlag) {
@@ -1142,7 +1144,7 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 					"this : %p, "
 					"[%s], "
 					"media_ssrc : 0x%08x(%u), "
-					"bitrate_est : %u, "
+					"bitrate_est : %" PRId64 ", "
 					"bitrate_recv : %u, "
 					"extended_highest_sequence_number : %u, "
 					"rtt : %" PRId64 ", "
@@ -1318,6 +1320,14 @@ void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt,
 		case ExtendedReports::kPacketType:
 			HandleRtcpXr(rtcp_block);
 			break;
+		case rtcp::Rtpfb::kPacketType:
+			switch (rtcp_block.fmt()) {
+			  case rtcp::Nack::kFeedbackMessageType:
+				HandleNack(rtcp_block);
+				break;
+			  default:break;
+			}
+			break;
 		default:
 			break;
 		};
@@ -1482,8 +1492,56 @@ void RtpSession::HandleRtcpXrDlrr(const ReceiveTimeInfo& rti) {
 			rtt_ntp, xr_rr_rtt_ms_);
 }
 
+void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
+	Nack nack;
+	if (!nack.Parse(rtcp_block)) {
+		return;
+	}
+
+	string nacks = "";
+	for (vector<uint16_t>::const_iterator itr = nack.packet_ids().begin();
+			itr != nack.packet_ids().end(); itr++) {
+		nacks += to_string(*itr);
+		nacks += ",";
+	}
+	if (nacks.length() > 0) {
+		nacks = nacks.substr(0, nacks.length() - 1);
+	}
+
+	LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
+			"this : %p, "
+			"[%s], "
+			"media_ssrc_ : 0x%08x(%u), "
+			"nack_batch_size : %u, "
+			"nack_batch : %s "
+			")", this, PktTypeDesc(nack.media_ssrc_).c_str(), nack.media_ssrc_, nack.media_ssrc_,
+			nack.packet_ids().size(), nacks.c_str());
+
+//  if (receiver_only_ || main_ssrc_ != nack.media_ssrc())  // Not to us.
+//    return;
+//
+//  packet_information->nack_sequence_numbers.insert(
+//      packet_information->nack_sequence_numbers.end(),
+//      nack.packet_ids().begin(), nack.packet_ids().end());
+//  for (uint16_t packet_id : nack.packet_ids())
+//    nack_stats_.ReportRequest(packet_id);
+//
+//  if (!nack.packet_ids().empty()) {
+//    packet_information->packet_type_flags |= kRtcpNack;
+//    ++packet_type_counter_.nack_packets;
+//    packet_type_counter_.nack_requests = nack_stats_.requests();
+//    packet_type_counter_.unique_nack_requests = nack_stats_.unique_requests();
+//  }
+}
+
 string RtpSession::PktTypeDesc(unsigned int ssrc) {
-	return IsAudioPkt(ssrc) ? "Audio" : "Video";
+	string result = "Unknow";
+	if ( IsAudioPkt(ssrc) ) {
+		result = "Audio";
+	} else if ( IsVideoPkt(ssrc) ) {
+		result = "Video";
+	}
+	return result;
 }
 
 bool RtpSession::IsAudioPkt(unsigned int ssrc) {

@@ -1,3 +1,13 @@
+/*
+ *  Copyright 2020 The mediaserver Project Authors. All rights reserved.
+ *
+ *  Created on: 2020/07/16
+ *      Author: max
+ *		Email: Kingsleyyau@gmail.com
+ *
+ *  Borrow from WebRTC Project
+ */
+
 #include <rtp/packet/rtp_packet_received.h>
 
 #include <stddef.h>

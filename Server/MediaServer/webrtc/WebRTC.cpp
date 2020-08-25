@@ -242,6 +242,10 @@ bool WebRTC::Start(
 	if ( mIsPull ) {
 		bFlag &= mRtpRecvClient.Start(NULL, 0, NULL, 0);
 		if( bFlag ) {
+			// Hard code in shell
+			mRtpRecvClient.SetAudioSSRC(0x12345679);
+			mRtpRecvClient.SetVideoSSRC(0x12345678);
+
 			// 启动IO监听线程
 			if( 0 == mRtpRecvThread.Start(mpRtpRecvRunnable, "RecvRtpThread") ) {
 				LogAync(

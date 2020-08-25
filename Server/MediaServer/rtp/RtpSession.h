@@ -236,6 +236,8 @@ private:
 	void HandleRtcpSdes(const CommonHeader& rtcp_block);
 	void HandleRtcpXr(const CommonHeader& rtcp_block);
 	void HandleRtcpXrDlrr(const ReceiveTimeInfo& rti);
+	void HandleNack(const CommonHeader& rtcp_block);
+
 protected:
 	// Status
 	KMutex mClientMutex;
