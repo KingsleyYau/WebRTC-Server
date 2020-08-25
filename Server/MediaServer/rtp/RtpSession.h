@@ -71,6 +71,7 @@ public:
 	void SetRtcpSender(SocketSender *sender);
 	void SetVideoSSRC(unsigned int ssrc);
 	void SetAudioSSRC(unsigned int ssrc);
+	void SetIdentification(string identification);
 
 	void RegisterVideoExtensions(const vector<RtpExtension>& extensions);
 	void RegisterAudioExtensions(const vector<RtpExtension>& extensions);
@@ -248,6 +249,7 @@ private:
 	SocketSender *mpRtpSender;
 	SocketSender *mpRtcpSender;
 
+	string mIdentification;
 	/////////////////////////////////////////////////////////////////////////////
 	// Video
 	// Max Video Timestamp

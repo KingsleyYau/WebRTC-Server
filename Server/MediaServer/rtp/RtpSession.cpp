@@ -172,6 +172,8 @@ RtpSession::~RtpSession() {
 }
 
 void RtpSession::Reset() {
+	mIdentification = "";
+
 	// Video
 	mVideoMaxTimestamp = 0;
 	mVideoPLITimestamp = 0;
@@ -247,6 +249,10 @@ void RtpSession::SetVideoSSRC(unsigned int ssrc) {
 
 void RtpSession::SetAudioSSRC(unsigned int ssrc) {
 	mAudioSSRC = ssrc;
+}
+
+void RtpSession::SetIdentification(string identification) {
+	mIdentification = identification;
 }
 
 void RtpSession::RegisterVideoExtensions(
@@ -337,6 +343,7 @@ void RtpSession::Stop() {
 //				")",
 //				this
 //				);
+		Reset();
 	}
 	mClientMutex.unlock();
 
@@ -1150,7 +1157,8 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 					"rtt : %" PRId64 ", "
 					"packets_lost : %d, "
 					"jitter : %u, "
-					"fraction_since_last : %u%%(%hhu) "
+					"fraction_since_last : %u%%(%hhu), "
+					"identification : %s "
 					")",
 					this,
 					PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
@@ -1161,7 +1169,8 @@ bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_
 					index > -1?result[index].cumulative_lost_signed():0,
 					index > -1?result[index].jitter():0,
 					(unsigned int)fractionLostInPercent,
-					index > -1?(result[index].fraction_lost()):0
+					index > -1?(result[index].fraction_lost()):0,
+					mIdentification.c_str()
 					);
 
 			SendRtcpRr(result);

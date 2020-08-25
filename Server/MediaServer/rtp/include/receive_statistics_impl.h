@@ -85,8 +85,7 @@ private:
 	int64_t received_seq_max_ RTC_GUARDED_BY(&stream_lock_);
 	// Assume that the other side restarted when there are two sequential packets
 	// with large jump from received_seq_max_.
-	absl::optional<uint16_t> received_seq_out_of_order_
-	RTC_GUARDED_BY(&stream_lock_);
+	absl::optional<uint16_t> received_seq_out_of_order_ RTC_GUARDED_BY(&stream_lock_);
 
 	// Current counter values.
 	StreamDataCounters receive_counters_ RTC_GUARDED_BY(&stream_lock_);
@@ -125,8 +124,7 @@ private:
 	mediaserver::CriticalSection receive_statistics_lock_;
 	uint32_t last_returned_ssrc_;
 	int max_reordering_threshold_ RTC_GUARDED_BY(receive_statistics_lock_);
-	std::map<uint32_t, StreamStatisticianImpl*> statisticians_
-	RTC_GUARDED_BY(receive_statistics_lock_);
+	std::map<uint32_t, StreamStatisticianImpl*> statisticians_ RTC_GUARDED_BY(receive_statistics_lock_);
 };
 }  // namespace mediaserver
 #endif  // RTP_INCLUDE_RECEIVE_STATISTICS_IMPL_H_

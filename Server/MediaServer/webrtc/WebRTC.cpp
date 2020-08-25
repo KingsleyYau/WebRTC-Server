@@ -243,6 +243,7 @@ bool WebRTC::Start(
 		bFlag &= mRtpRecvClient.Start(NULL, 0, NULL, 0);
 		if( bFlag ) {
 			// Hard code in shell
+			mRtpRecvClient.SetIdentification(mRtmpUrl);
 			mRtpRecvClient.SetAudioSSRC(0x12345679);
 			mRtpRecvClient.SetVideoSSRC(0x12345678);
 
@@ -1795,6 +1796,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
 					if ( bStart ) {
+						mRtpSession.SetIdentification(mRtmpUrl);
 						mRtpSession.RegisterAudioExtensions(mAudioExtmap);
 						mRtpSession.RegisterVideoExtensions(mVideoExtmap);
 						mRtpSession.SetAudioSSRC(mAudioSSRC);
