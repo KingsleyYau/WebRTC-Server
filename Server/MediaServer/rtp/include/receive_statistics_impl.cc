@@ -292,7 +292,7 @@ ReceiveStatisticsImpl::ReceiveStatisticsImpl(Clock* clock) :
 }
 
 ReceiveStatisticsImpl::~ReceiveStatisticsImpl() {
-	mediaserver::CritScope cs(&receive_statistics_lock_);
+//	mediaserver::CritScope cs(&receive_statistics_lock_);
 	while (!statisticians_.empty()) {
 		delete statisticians_.begin()->second;
 		statisticians_.erase(statisticians_.begin());
@@ -300,7 +300,7 @@ ReceiveStatisticsImpl::~ReceiveStatisticsImpl() {
 }
 
 void ReceiveStatisticsImpl::Reset() {
-	mediaserver::CritScope cs(&receive_statistics_lock_);
+//	mediaserver::CritScope cs(&receive_statistics_lock_);
 	while (!statisticians_.empty()) {
 		delete statisticians_.begin()->second;
 		statisticians_.erase(statisticians_.begin());
@@ -317,7 +317,7 @@ void ReceiveStatisticsImpl::OnRtpPacket(const RtpPacketReceived& packet) {
 
 StreamStatisticianImpl* ReceiveStatisticsImpl::GetStatistician(
 		uint32_t ssrc) const {
-	mediaserver::CritScope cs(&receive_statistics_lock_);
+//	mediaserver::CritScope cs(&receive_statistics_lock_);
 	const auto& it = statisticians_.find(ssrc);
 	if (it == statisticians_.end())
 		return NULL;
@@ -326,7 +326,7 @@ StreamStatisticianImpl* ReceiveStatisticsImpl::GetStatistician(
 
 StreamStatisticianImpl* ReceiveStatisticsImpl::GetOrCreateStatistician(
 		uint32_t ssrc) {
-	mediaserver::CritScope cs(&receive_statistics_lock_);
+//	mediaserver::CritScope cs(&receive_statistics_lock_);
 	StreamStatisticianImpl*& impl = statisticians_[ssrc];
 	if (impl == nullptr) {  // new element
 		impl = new StreamStatisticianImpl(ssrc, clock_,
@@ -339,7 +339,7 @@ void ReceiveStatisticsImpl::SetMaxReorderingThreshold(
 		int max_reordering_threshold) {
 	std::map<uint32_t, StreamStatisticianImpl*> statisticians;
 	{
-		mediaserver::CritScope cs(&receive_statistics_lock_);
+//		mediaserver::CritScope cs(&receive_statistics_lock_);
 		max_reordering_threshold_ = max_reordering_threshold;
 		statisticians = statisticians_;
 	}
@@ -364,7 +364,7 @@ std::vector<rtcp::ReportBlock> ReceiveStatisticsImpl::RtcpReportBlocks(
 		size_t max_blocks) {
 	std::map<uint32_t, StreamStatisticianImpl*> statisticians;
 	{
-		mediaserver::CritScope cs(&receive_statistics_lock_);
+//		mediaserver::CritScope cs(&receive_statistics_lock_);
 		statisticians = statisticians_;
 	}
 	std::vector<rtcp::ReportBlock> result;

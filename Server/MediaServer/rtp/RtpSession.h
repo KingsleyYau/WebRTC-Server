@@ -24,6 +24,7 @@
 #include <rtp/packet/Dlrr.h>
 
 #include <rtp/modules/nack_module.h>
+#include <rtp/modules/nack_audio_module.h>
 #include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
 #include <rtp/include/receive_statistics_impl.h>
 
@@ -192,19 +193,17 @@ private:
 	 */
 	void UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime, const RTPHeader& header);
 	/**
+	 * 更新收包统计
+	 */
+	bool UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
+	/**
 	 * 更新音频丢包统计, 音频不支持Nack
 	 */
 	bool UpdateAudioLossPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
-
-	/**
-	 * 更新视频收包统计
-	 */
-	bool UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
 	/**
 	 * 处理视频丢包, 发送Nack
 	 */
 	bool UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime);
-
 	/**
 	 * 更新媒体信息(RTT)
 	 * @param pkt 原始RTCP数据包
@@ -359,6 +358,7 @@ private:
 
 	// 码率滤波和丢包重传模块
 	NackModule nack_module_;
+	NackAudioModule nack_audio_module_;
 	RemoteBitrateEstimatorAbsSendTime rbe_module_;
 	ReceiveStatisticsImpl rs_module_;
 };

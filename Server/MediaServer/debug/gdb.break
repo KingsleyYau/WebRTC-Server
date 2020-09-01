@@ -1,3 +1,18 @@
+handle SIGPIPE noprint
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
+
+define show-attr
+  print "media"
+	print media
+	print "value"
+	print value
+end
+
 # RTMP
 #break srs_librtmp.cpp:22886
 #break srs_librtmp.cpp:29258
@@ -22,3 +37,10 @@
 
 # MediaServer
 #break MediaServer.cpp:673
+#break sdp.c:2302
+
+
+#commands 1
+#  show-attr
+#  c
+#end

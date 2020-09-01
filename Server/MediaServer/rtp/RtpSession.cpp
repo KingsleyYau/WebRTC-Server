@@ -120,6 +120,7 @@ static unsigned int gVideoLostSize = 50;
 static bool gAutoBitrate = true;
 static unsigned int gVideoMinBitrate = 200 * 1000;
 static unsigned int gVideoMaxBitrate = 1000 * 1000;
+static const int kNackThresholdPackets = 2;
 void RtpSession::SetGobalParam(
 		unsigned int maxPliSeconds,
 		bool autoBitrate, unsigned int videoMinBitrate, unsigned int videoMaxBitrate,
@@ -139,6 +140,7 @@ void RtpSession::SetGobalParam(
 RtpSession::RtpSession() :
 		mClientMutex(KMutex::MutexType_Recursive),
 		nack_module_(Clock::GetRealTimeClock()),
+		nack_audio_module_(Clock::GetRealTimeClock(), kNackThresholdPackets),
 		rbe_module_(this, Clock::GetRealTimeClock()),
 		rs_module_(Clock::GetRealTimeClock()) {
 	// TODO Auto-generated constructor stub
@@ -226,6 +228,7 @@ void RtpSession::Reset() {
 
 	// NACK模块
 	nack_module_.Reset();
+	nack_audio_module_.Reset();
 	// RBE模块
 	rbe_module_.SetMinBitrate(gVideoMinBitrate);
 	rbe_module_.Reset();
@@ -997,6 +1000,9 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 	uint32_t ts = rtpPkt->timestamp_;
 	uint32_t ssrc = rtpPkt->ssrc_;
 
+	// 更新接收包统计
+	UpdateStatsPacket(rtpPkt, recvTime);
+
 	if (IsAudioPkt(ssrc)) {
 		if (mAudioMaxSeq == 0) {
 			mAudioMaxSeq = seq;
@@ -1022,8 +1028,6 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 			mVideoMaxTimestamp = ts;
 		}
 
-		// 更新接收包统计
-		UpdateVideoStatsPacket(rtpPkt, recvTime);
 		// 处理丢包逻辑
 		UpdateVideoLossPacket(rtpPkt, recvTime);
 		// 更新接收端滤波器
@@ -1037,6 +1041,69 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 	}
 }
 
+bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime) {
+	bool bFlag = true;
+
+	uint16_t seq = rtpPkt->sequence_number_;
+	uint32_t ts = rtpPkt->timestamp_;
+//	uint32_t ssrc = rtpPkt->ssrc_;
+
+	// 更新接收包统计
+	rs_module_.OnRtpPacket(*rtpPkt);
+
+	int64_t now_ms = TimeMillis();
+	if ( last_rr_send_time_ == 0 ) {
+		last_rr_send_time_ = now_ms;
+	}
+
+	if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
+		int index = -1;
+		int step = 0;
+		std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
+		for (auto& report_block : result) {
+			uint32_t ssrc = report_block.source_ssrc();
+			StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
+			if ( ss ) {
+				double fractionLostInPercent = index > -1?(result[index].fraction_lost() * 100.0 / 255.0):0;
+				LogAync(LOG_INFO, "RtpSession::UpdateStatsPacket( "
+						"this : %p, "
+						"[%s], "
+						"media_ssrc : 0x%08x(%u), "
+						"bitrate_est : %" PRId64 ", "
+						"bitrate_recv : %u, "
+						"extended_highest_sequence_number : %u, "
+						"rtt : %" PRId64 ", "
+						"packets_lost : %d, "
+						"jitter : %u, "
+						"fraction_since_last : %u%%(%hhu), "
+						"identification : %s "
+						")",
+						this,
+						PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
+						IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
+						ss->BitrateReceived(),
+						index > -1?result[index].extended_high_seq_num():0,
+						xr_rr_rtt_ms_,
+						index > -1?result[index].cumulative_lost_signed():0,
+						index > -1?result[index].jitter():0,
+						(unsigned int)fractionLostInPercent,
+						index > -1?(result[index].fraction_lost()):0,
+						mIdentification.c_str()
+						);
+
+				if ( IsVideoPkt(ssrc) ) {
+					SendRtcpRr(result);
+				}
+			}
+			step++;
+		}
+
+		last_rr_send_time_ = now_ms;
+	}
+
+	return bFlag;
+}
+
 bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 		uint64_t recvTime) {
 	uint16_t seq = pkt->sequence_number_;
@@ -1045,29 +1112,36 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 
 	bool bFlag = false;
 
+//	LogAync(LOG_DEBUG, "RtpSession::UpdateAudioLossPacket( "
+//			"this : %p, "
+//			"[Audio], "
+//			"media_ssrc : 0x%08x(%u), "
+//			"seq : %u, "
+//			"ts : %u, "
+//			"recvTime : %lld, "
+//			"mAudioMaxSeq : %u, "
+//			"mAudioMaxTimestamp : %u, "
+//			"mAudioTotalRecvPacket : %u "
+//			")", this, ssrc, ssrc, seq, ts, recvTime, mAudioMaxSeq,
+//			mAudioMaxTimestamp, mAudioTotalRecvPacket);
+
+	nack_audio_module_.UpdateLastReceivedPacket(seq, ts);
+	std::vector<uint16_t> nack_batch = nack_audio_module_.GetNackList(xr_rr_rtt_ms_);
+
 	LogAync(LOG_DEBUG, "RtpSession::UpdateAudioLossPacket( "
 			"this : %p, "
-			"[Audio], "
-			"media_ssrc : 0x%08x(%u), "
-			"seq : %u, "
-			"ts : %u, "
-			"recvTime : %lld, "
-			"mAudioMaxSeq : %u, "
-			"mAudioMaxTimestamp : %u, "
-			"mAudioTotalRecvPacket : %u "
-			")", this, ssrc, ssrc, seq, ts, recvTime, mAudioMaxSeq,
-			mAudioMaxTimestamp, mAudioTotalRecvPacket);
+			"[%s], "
+			"ssrc : 0x%08x(%u), "
+			"nack_batch_size : %u "
+			")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size()
+			);
+
+	 if (!nack_batch.empty()) {
+		// 请求NACK重传
+		SendRtcpNack(ssrc, nack_batch);
+	}
 
 	// 音频不处理NACK
-//	/**
-//	 * 暂时只做简单处理, 直接发送Nack
-//	 *
-//	 * 正常算法
-//	 * 	1.判断丢包队列数量是否过大, 过大则清空丢包队列, 不进行Nack, 直接请求关键帧(PLI)
-//	 * 	2.判断丢包队列最大时长(根据RTT计算)是否过大, 过大则清空丢包队列, 不进行Nack, 直接请求关键帧(PLI)
-//	 *	3.从(seq) - ((last seq) + 1)的序号开始到seq - 1, 放进Nack队列, 等待重传, 等待时间(根据RTT计算)
-//	 *	4.在独立的处理线程处理丢包队, 发送Nack
-//	 */
 //	bool bFlag = false;
 //
 //	// 开始产生重传队列
@@ -1113,71 +1187,6 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 //					rtpLostSize, lastMaxSeq, seq);
 //		}
 //	}
-
-	return bFlag;
-}
-
-bool RtpSession::UpdateVideoStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime) {
-	bool bFlag = true;
-
-	uint16_t seq = rtpPkt->sequence_number_;
-	uint32_t ts = rtpPkt->timestamp_;
-	uint32_t ssrc = rtpPkt->ssrc_;
-
-	// 更新接收包统计
-	rs_module_.OnRtpPacket(*rtpPkt);
-
-    StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
-	if ( ss ) {
-		int64_t now_ms = TimeMillis();
-		if ( last_rr_send_time_ == 0 ) {
-			last_rr_send_time_ = now_ms;
-		}
-
-		if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
-			int index = -1;
-			int step = 0;
-			std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
-		    for (auto& report_block : result) {
-		    	if ( report_block.source_ssrc() == ssrc ) {
-		    		index = step;
-		    		break;
-		    	}
-		    	step++;
-		    }
-
-		    double fractionLostInPercent = index > -1?(result[index].fraction_lost() * 100.0 / 255.0):0;
-			LogAync(LOG_INFO, "RtpSession::UpdateVideoStatsPacket( "
-					"this : %p, "
-					"[%s], "
-					"media_ssrc : 0x%08x(%u), "
-					"bitrate_est : %" PRId64 ", "
-					"bitrate_recv : %u, "
-					"extended_highest_sequence_number : %u, "
-					"rtt : %" PRId64 ", "
-					"packets_lost : %d, "
-					"jitter : %u, "
-					"fraction_since_last : %u%%(%hhu), "
-					"identification : %s "
-					")",
-					this,
-					PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
-					last_send_bitrate_bps_,
-					ss->BitrateReceived(),
-					index > -1?result[index].extended_high_seq_num():0,
-					xr_rr_rtt_ms_,
-					index > -1?result[index].cumulative_lost_signed():0,
-					index > -1?result[index].jitter():0,
-					(unsigned int)fractionLostInPercent,
-					index > -1?(result[index].fraction_lost()):0,
-					mIdentification.c_str()
-					);
-
-			SendRtcpRr(result);
-
-			last_rr_send_time_ = now_ms;
-		}
-	}
 
 	return bFlag;
 }

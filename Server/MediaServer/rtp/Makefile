@@ -48,7 +48,7 @@ OBJS		+=	packet/RtpPacket.o packet/rtp_packet_received.o \
 				packet/Rtpfb.o packet/TransportFeedback.o \
 				packet/app.o packet/remote_estimate.o \
 				
-OBJS		+=	modules/nack_module.o \
+OBJS		+=	modules/nack_module.o modules/nack_audio_module.o \
 				modules/congestion_controller/goog_cc/link_capacity_estimator.o \
 				modules/remote_bitrate_estimator/bwe_defines.o \
 				modules/remote_bitrate_estimator/aimd_rate_control.o \

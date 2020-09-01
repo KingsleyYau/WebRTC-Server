@@ -129,7 +129,7 @@ void SignalFunc(int sign_no) {
 		}
 	}break;
 	default:{
-		LogAync(
+		LogAyncUnSafe(
 				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
 		gMediaServer.Exit();
