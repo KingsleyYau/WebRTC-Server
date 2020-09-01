@@ -1057,7 +1057,7 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 	}
 
 	if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
-		int index = -1;
+		int index = 0;
 		int step = 0;
 		std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
 		for (auto& report_block : result) {
@@ -1209,19 +1209,19 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 	double deltaSeconds = (ts - mVideoPLITimestamp) / 90000.0;
 	deltaSeconds = (deltaSeconds > 0) ? deltaSeconds : -deltaSeconds;
 
-	LogAync(LOG_DEBUG, "RtpSession::UpdateVideoLossPacket( "
-			"this : %p, "
-			"[Video], "
-			"media_ssrc : 0x%08x(%u), "
-			"seq : %u, "
-			"ts : %u, "
-			"recvTime : %lld, "
-			"mVideoMaxSeq : %u, "
-			"mVideoMaxTimestamp : %u, "
-			"mVideoTotalRecvPacket : %u, "
-			"deltaSeconds : %f "
-			")", this, ssrc, ssrc, seq, ts, recvTime, mVideoMaxSeq,
-			mVideoMaxTimestamp, mVideoTotalRecvPacket, deltaSeconds);
+//	LogAync(LOG_DEBUG, "RtpSession::UpdateVideoLossPacket( "
+//			"this : %p, "
+//			"[Video], "
+//			"media_ssrc : 0x%08x(%u), "
+//			"seq : %u, "
+//			"ts : %u, "
+//			"recvTime : %lld, "
+//			"mVideoMaxSeq : %u, "
+//			"mVideoMaxTimestamp : %u, "
+//			"mVideoTotalRecvPacket : %u, "
+//			"deltaSeconds : %f "
+//			")", this, ssrc, ssrc, seq, ts, recvTime, mVideoMaxSeq,
+//			mVideoMaxTimestamp, mVideoTotalRecvPacket, deltaSeconds);
 
 	/**
 	 * 每gMaxPliSeconds秒, 发送PLI
