@@ -1057,14 +1057,13 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 	}
 
 	if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
-		int index = 0;
 		int step = 0;
 		std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
 		for (auto& report_block : result) {
 			uint32_t ssrc = report_block.source_ssrc();
 			StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
 			if ( ss ) {
-				double fractionLostInPercent = index > -1?(result[index].fraction_lost() * 100.0 / 255.0):0;
+				double fractionLostInPercent = report_block.fraction_lost() * 100.0 / 255.0;
 				LogAync(LOG_INFO, "RtpSession::UpdateStatsPacket( "
 						"this : %p, "
 						"[%s], "
@@ -1082,22 +1081,18 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 						PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
 						IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
 						ss->BitrateReceived(),
-						index > -1?result[index].extended_high_seq_num():0,
+						report_block.extended_high_seq_num(),
 						xr_rr_rtt_ms_,
-						index > -1?result[index].cumulative_lost_signed():0,
-						index > -1?result[index].jitter():0,
+						report_block.cumulative_lost_signed(),
+						report_block.jitter(),
 						(unsigned int)fractionLostInPercent,
-						index > -1?(result[index].fraction_lost()):0,
+						report_block.fraction_lost(),
 						mIdentification.c_str()
 						);
-
-				if ( IsVideoPkt(ssrc) ) {
-					SendRtcpRr(result);
-				}
 			}
 			step++;
 		}
-
+		SendRtcpRr(result);
 		last_rr_send_time_ = now_ms;
 	}
 
