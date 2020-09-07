@@ -72,7 +72,7 @@
 
 <script>
     const autoConstraints = {
-        width: 640, height: 480
+        width: 480, height: 360
     };
 
     const qvgaConstraints = {
@@ -157,19 +157,19 @@
          * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
          */
         let tcpForce = $("[id=forceTcpCb]").attr('checked');
-        if (!tcpForce) {
+        // if (!tcpForce) {
         // if (isEdge() || (isSafari() && callType == 'push')) {
-            for (i = 0; i < iceServers.length; i++) {
-                let obj = iceServers[i];
-                for (j = 0; j < obj.urls.length; j++) {
-                    let index = obj.urls[j].indexOf("tcp", 0);
-                    if (index != -1) {
-                        obj.urls.splice(j, 1);
-                        break;
-                    }
-                }
-            }
-        } else {
+        //     for (i = 0; i < iceServers.length; i++) {
+        //         let obj = iceServers[i];
+        //         for (j = 0; j < obj.urls.length; j++) {
+        //             let index = obj.urls[j].indexOf("tcp", 0);
+        //             if (index != -1) {
+        //                 obj.urls.splice(j, 1);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        if (tcpForce) {
             for (i = 0; i < iceServers.length; i++) {
                 let obj = iceServers[i];
                 for (j = 0; j < obj.urls.length; j++) {
@@ -362,8 +362,8 @@
             }
         }
 
-        console.log('Client.sendSdpCall(), ', sdp);
-        // console.log('Client.sendSdpCall()');
+        // console.log('Client.sendSdpCall(), ', sdp);
+        console.log('Client.sendSdpCall(), stream:', stream);
         send(obj);
     }
 
@@ -378,7 +378,7 @@
         }
 
         // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
-        console.log('Client.sendSdpPull( stream: ', stream, ', serverId: ', serverId, ')');
+        console.log('Client.sendSdpPull(), stream:', stream, ', serverId:', serverId);
         send(obj);
     }
 
@@ -493,7 +493,7 @@
             };
 
             this.pc.oniceconnectionstatechange = event => {
-                console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState: ', this.pc.iceConnectionState);
+                console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState:', this.pc.iceConnectionState);
                 if (this.pc.iceConnectionState === 'connected') {
 
                 } else if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
@@ -523,7 +523,7 @@
             await this.pc.setLocalDescription(offer);
 
             // let localDescription = JSON.stringify(this.pc.localDescription);
-            console.log('RTCClient::pull(), offer :', offer.sdp);
+            console.log('RTCClient::pull(), offer:', offer.sdp);
 
             // $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
             $("[id=localSdpTextarea]").html(offer.sdp);
@@ -550,7 +550,7 @@
             await this.pc.setLocalDescription(offer);
 
             // let localDescription = JSON.stringify(this.pc.localDescription);
-            console.log('RTCClient::push()');
+            console.log('RTCClient::push(), pushVideo:', pushVideo);
 
             $("[id=localSdpTextarea]").html(offer.sdp);
             $("[id=localSdpTextarea]").attr("disabled", false);
@@ -614,9 +614,11 @@
                 console.log('# Captured stream capabilities', capabilities);
             }
             let constraints = video.getConstraints();
-            constraints.frameRate = 15;
-            constraints.minFrameRate = 15;
-            video.applyConstraints(constraints);
+            if ( !isFirefox() ) {
+                constraints.frameRate = 15;
+                constraints.minFrameRate = 15;
+                video.applyConstraints(constraints);
+            }
             console.log('# Captured stream constraints', constraints);
 
             this.pc.addStream(this.mediaStream);
@@ -629,7 +631,7 @@
                 $("[id=localVideo]").attr("style", 'display: block');
                 localVideo.src = './video/jzq_feph.mp4';
                 //localVideo.src = './video/jzq_bzp.mp4';
-                // localVideo.src = './video/jzq_mynks.mp4';
+                localVideo.src = './video/jzq_mynks.mp4';
                 localVideo.srcObject = null;
 
                 localVideo.oncanplay = () => {
@@ -663,14 +665,12 @@
             let config = {};
             let videoDevice = {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                frameRate: {min: 15, max: 15}
+                // frameRate: {min: 15, max: 15}
             }
             let videoConfig = Object.assign(videoDevice, videoConstraints);
 
             config = {
-                video: {
-                    videoConfig
-                },
+                video: videoConfig,
                 audio: true
             }
 
@@ -1043,7 +1043,11 @@
         });
 
         // Choose video constraints
-        getVideoWithConstraints(vgaConstraints, 'VGA');
+        getVideoWithConstraints(autoConstraints, 'AUTO');
+        // getVideoWithConstraints(vgaConstraints, 'VGA');
+        $("[id=autoBtn]").click(function () {
+            getVideoWithConstraints(autoConstraints, 'AUTO');
+        });
         $("[id=qvgaBtn]").click(function () {
             getVideoWithConstraints(qvgaConstraints, 'QVGA');
         });
@@ -1085,7 +1089,7 @@
         let jsonConst = JSON.stringify(constraints);
         $("[id=videoConstLabel]").html('Now is ' + name + ', ' + jsonConst);
 
-        let videoTestConfig = {video: constraints};
+        // let videoTestConfig = {video: constraints};
         videoConstraints = constraints;
     }
 
@@ -1184,6 +1188,7 @@
             <div id="videoConfigDiv">
                 <p>############################ Video Config ############################</p>
                 <div class="button">
+                    <button id="autoBtn">AUTO</button>
                     <button id="qvgaBtn">QVGA</button>
                     <button id="vgaBtn">VGA</button>
                     <button id="hdBtn">HD</button>

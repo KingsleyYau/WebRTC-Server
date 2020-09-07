@@ -14,6 +14,17 @@
             margin-left: -15px;
         }
 
+        .display-flex {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .display-item {
+            margin: 5px;
+            width: 300px;
+        }
+
         .button {
             background-color: #d84a38;
             border: none;
@@ -34,7 +45,7 @@
 <script src="third_party/graph.js"></script>
 <script>
     const autoConstraints = {
-        width: 640, height: 480
+        width: 480, height: 360
     };
 
     const qvgaConstraints = {
@@ -81,12 +92,17 @@
     let bitrateSeries = new TimelineDataSeries();
     let bitrateGraph;
 
+    let packetSeries = new TimelineDataSeries();
+    let packetGraph;
+
+    let nackSeries = new TimelineDataSeries();
+    let nackGraph;
+
     function reset() {
         reqId = 0;
         callAlready = false;
 
         $("[id=status]").html('Not Connected');
-        $("[id=stream]").html('');
         $("[id=socketId]").html('');
         $("[id=msgRecv]").html('');
         $("[id=jsonRecv]").html('');
@@ -191,14 +207,14 @@
     async function connect() {
         return new Promise((resolve, reject) => {
             let host = '';
-            if (window.location.protocol == 'https:') {
-                host = 'wss://' + window.location.hostname + ':9083';
-            } else {
-                host = 'ws://' + window.location.hostname + ':9883';
-            }
+            // if (window.location.protocol == 'https:') {
+            //     host = 'wss://' + window.location.hostname + ':9083';
+            // } else {
+            //     host = 'ws://' + window.location.hostname + ':9883';
+            // }
             // host = 'ws://' + '192.168.88.133' + ':9881';
             // host = 'wss://' + '52.196.96.7' + ':9081';
-
+            host = $("[id=wss_url]").val();
             client = new WebSocket(host);
             client.binaryType = 'arraybuffer';
 
@@ -356,7 +372,7 @@
             callType = 'push';
         }
 
-        sendGetToken('CMTS09540');
+        sendGetToken('WW0');
 
         $("[id=pushBtn]").attr("disabled", 'true');
         $("[id=pushVideoBtn]").attr("disabled", 'true');
@@ -431,6 +447,9 @@
             $("[id=acceptButton]").attr("disabled", false);
 
             $("[id=stats]").html("");
+
+            localVideo.srcObject = null;
+            localVideo.src = "";
         }
 
         async push(videoSource) {
@@ -484,15 +503,21 @@
 
             console.log('Captured stream from leftVideo with captureStream',
                 this.mediaStream);
+
+            let audio = this.mediaStream.getAudioTracks()[0];
+            this.mediaStream.removeTrack(audio);
+
             let video = this.mediaStream.getVideoTracks()[0];
             if (!isFirefox() && !isEdge()) {
                 let capabilities = video.getCapabilities();
                 console.log('# Captured stream capabilities', capabilities);
             }
             let constraints = video.getConstraints();
-            constraints.frameRate = 15;
-            constraints.minFrameRate = 15;
-            video.applyConstraints(constraints);
+            if ( !isFirefox() ) {
+                constraints.frameRate = 15;
+                constraints.minFrameRate = 15;
+                video.applyConstraints(constraints);
+            }
             console.log('# Captured stream constraints', constraints);
 
             this.pc.addStream(this.mediaStream);
@@ -503,8 +528,9 @@
                 // Video tag capture must be set up after video tracks are enumerated.
                 let localVideo = $("[id=localVideo]")[0];
                 $("[id=localVideo]").attr("style", 'display: block');
-                localVideo.src = './video/jzq_bzp.mp4';
+                // localVideo.src = './video/jzq_bzp.mp4';
                 // leftVideo.src = './video/jzq_feph.mp4';
+                localVideo.src = './video/jzq_mynks.mp4';
                 localVideo.srcObject = null;
                 localVideo.muted = true;
 
@@ -539,7 +565,6 @@
             let config = {};
             let videoDevice = {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                frameRate: 15
             }
             let videoConfig = Object.assign(videoDevice, videoConstraints);
 
@@ -644,7 +669,7 @@
         setBitRate(sdp) {
             var newSdp = sdp;
             // Only work for Safari and Chrome
-            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=1000;x-google-max-bitrate=1000\r\n');
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-max-bitrate=1000\r\n');
             // Only work for Firefox
             // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
             return newSdp;
@@ -665,7 +690,7 @@
                 } else {
                     console.log('RTCClient::setVideoTrackContent(), MediaStreamTrack contentHint attribute not supported');
                 }
-                // constraints.width = {exact:640};
+                // constraints.width = {exact:480};
                 // constraints.height = {exact:360};
                 // It is always success, unless you set some parameter with exact value
                 track.applyConstraints(constraints).then(() => {
@@ -707,15 +732,26 @@
                                     const now = res.timestamp;
                                     let bytes = res.bytesSent;
                                     let packets = res.packetsSent;
+                                    let nacks = res.nackCount;
                                     if (lastResult && lastResult.has(res.id)) {
-                                        // calculate bitrate
+                                        // calculate bitrate and append to chart
                                         const bitrate = 8 * (bytes - lastResult.get(res.id).bytesSent) /
                                             (now - lastResult.get(res.id).timestamp);
-
-                                        // append to chart
                                         bitrateSeries.addPoint(now, bitrate);
                                         bitrateGraph.setDataSeries([bitrateSeries]);
                                         bitrateGraph.updateEndDate();
+
+                                        // calculate number of packets and append to chart
+                                        const packetSecond =  packets - lastResult.get(res.id).packetsSent;
+                                        packetSeries.addPoint(now, packetSecond);
+                                        packetGraph.setDataSeries([packetSeries]);
+                                        packetGraph.updateEndDate();
+
+                                        // calculate number of nack rtcp packets received and append to chart
+                                        const nackSecond = nacks - lastResult.get(res.id).nackCount;
+                                        nackSeries.addPoint(now, nackSecond);
+                                        nackGraph.setDataSeries([nackSeries]);
+                                        nackGraph.updateEndDate();
                                     }
                                 }
                             });
@@ -857,6 +893,20 @@
 
         bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
         bitrateGraph.updateEndDate();
+
+        packetGraph = new TimelineGraphView('packetGraph', 'packetCanvas');
+        packetGraph.updateEndDate();
+
+        nackGraph = new TimelineGraphView('nackGraph', 'nackCanvas');
+        nackGraph.updateEndDate();
+
+        let host = '';
+        if (window.location.protocol == 'https:') {
+            host = 'wss://' + window.location.hostname + ':9083';
+        } else {
+            host = 'ws://' + window.location.hostname + ':9883';
+        }
+        $("[id=wss_url]").val(host);
     }
 
     function handleError(e) {
@@ -925,14 +975,15 @@
 
         <div>
             # Login: <input id="user" type="text" name="" style="width:480px"
-                            value="userId=CMTS09540&userType=0&sid=123456&siteId=4"/></br>
-
+                            value="userId=WW0&userType=0&sid=123456&siteId=4"/></br>
             # Params</br>
-            # uid: Username, Example: CMTS09540</br>
-            # room: Destination, RoomId|||LiveChat Server Id|||站点Id, Example: CMTS09540|||PC64|||4</br>
+            # uid: Username, Example: WW0</br>
+            # room: Destination, [RoomId|||LiveChat Server Id|||站点Id|||会话类型{base64(v+时间戳/c+时间戳)}], Example: WW0|||PC64|||4|||v123456</br>
             # site: Site Id, Example: 4</br>
             # Call: <input id="stream" type="text" name="" style="width:480px"
-                           value="camshare?uid=CMTS09540&room=CMTS09540|||PC4|||4&site=4"/><br>
+                           value="camshare?uid=WW0&room=WW0|||PC4|||4|||v123456&site=4"/><br>
+            # WSS: <input id="wss_url" type="text" name="" style="width:480px"
+                            value="123"/></br>
         </div>
     </div>
     <p>### Local Video & Canvas ###</p>
@@ -959,11 +1010,19 @@
     <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
     <img id="localImg" src="img/1.jpg" style="display: none">
 </div>
-<div>
-    <label id="bitrateLabel">Bitrate</label>
-</div>
-<div>
-    <canvas id="bitrateCanvas"></canvas>
+<div class="display-flex">
+    <div class="display-item">
+        <div><label id="bitrateLabel">Bitrate</label></div>
+        <canvas id="bitrateCanvas"></canvas>
+    </div>
+    <div class="display-item">
+        <div><label id="packetLabel">RTP packets sent per second</label></div>
+        <canvas id="packetCanvas"></canvas>
+    </div>
+    <div class="display-item">
+        <div><label id="nackLabel">Nack receive per second</label></div>
+        <canvas id="nackCanvas"></canvas>
+    </div>
 </div>
 <label id="stats"></label>
 

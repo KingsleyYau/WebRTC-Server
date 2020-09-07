@@ -126,7 +126,7 @@
 
         var host = document.location.hostname;
         // var url = 'wss://' + host + ':9080/MM200/' + host + '/MM1|||PC0|||1/1/SID=12346&USERTYPE=1';
-        var url = 'wss://' + host + ':9080/MM200/' + host + '/CMTS09540|||PC4|||4/4/SID=12346&USERTYPE=1';
+        var url = 'wss://' + host + ':9080/MM200/' + host  + '/' + $("[id=room]").val() + '|||PC4|||4/4/SID=12346&USERTYPE=1';
         // var url = 'wss://' + host + ':9080/MM200/' + host + '/C771475|||PC4|||4/4/SID=12346&USERTYPE=1';
         client = new WebSocket(url);
         client.binaryType = 'arraybuffer';
@@ -198,7 +198,10 @@
 <p>
 <div id="video"></div>
 </p>
-<div id="logtxt" style="height:30px; width:500px;">
+<div id="logtxt" style="height:30px; width:500px;"></div>
+<div>
+Room: <input id="room" type="text" name="" style="width:480px"
+       value="WW0"/><br>
 </div>
 <button id="playBtn">Play</button>
 <button id="stopBtn">Stop</button>

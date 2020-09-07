@@ -9,6 +9,7 @@ const Https = require('https');
 const Cors = require('@koa/cors');
 // 异步框架
 const Koa = require('koa');
+const Range = require('koa-range');
 // 静态资源
 const Serve = require('koa-static');
 // 公共库
@@ -31,7 +32,8 @@ class HttpService {
 
         // 创建异步框架
         this.app = new Koa();
-        // this.app.use(Cors());
+        this.app.use(Cors());
+        this.app.use(Range);
 
         // 配置静态资源文件
         let staticRoot = new Serve(Path.join(__dirname, 'static'));
@@ -44,7 +46,7 @@ class HttpService {
         this.app.use(async function httpMethod(ctx, next) {
             if( Common.isNull(ctx.session.sessionId) ) {
                 ctx.session = {
-                    sessionId: 'CON-' + Math.random().toString(36).substr(2).toLocaleUpperCase(),
+                    sessionId: 'USERID-' + Math.random().toString(36).substr(2).toLocaleUpperCase(),
                     count: 0,
                 }
             } else {
