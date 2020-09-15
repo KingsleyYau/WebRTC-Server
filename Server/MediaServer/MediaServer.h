@@ -173,7 +173,7 @@ public:
 	/**
 	 * 清除进程信息
 	 */
-	void Exit();
+	void Exit(int sign_no);
 
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 	// AsyncIOServerCallback

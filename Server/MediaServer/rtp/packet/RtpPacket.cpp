@@ -63,11 +63,9 @@ void RtpPacket::Clear() {
 	extensions_size_ = 0;
 	extension_entries_.clear();
 
-	if ( buffer_.size() > 0 ) {
-		buffer_.SetSize(kFixedHeaderSize);
-		memset(WriteAt(0), 0, kFixedHeaderSize);
-		WriteAt(0, kRtpVersion << 6);
-	}
+//	buffer_.SetSize(kFixedHeaderSize);
+//	memset(WriteAt(0), 0, kFixedHeaderSize);
+//	WriteAt(0, kRtpVersion << 6);
 }
 
 bool RtpPacket::Parse(const uint8_t* buffer, size_t buffer_size) {
@@ -75,9 +73,7 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t buffer_size) {
 		Clear();
 		return false;
 	}
-	if ( buffer_.size() > 0 ) {
-		buffer_.SetData(buffer, buffer_size);
-	}
+//	buffer_.SetData(buffer, buffer_size);
 	return true;
 }
 

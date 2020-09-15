@@ -7,6 +7,7 @@
  */
 
 #include "MainLoop.h"
+#include <signal.h>
 
 #include <common/LogManager.h>
 
@@ -122,6 +123,20 @@ void MainLoop::Stop() {
 			"[OK] "
 			")"
 			);
+}
+
+void MainLoop::Exit(int sign_no) {
+	LogAyncUnSafe(
+			LOG_INFO, "MainLoop::Exit( signal : %d )", sign_no
+			);
+	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
+		MainLoopObj *obj = itr->second;
+		if ( !obj->isExit ) {
+			kill(obj->pid, sign_no);
+		} else {
+			itr++;
+		}
+	}
 }
 
 void MainLoop::Call(int pid) {

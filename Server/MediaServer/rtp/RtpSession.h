@@ -51,8 +51,6 @@ struct srtp_policy_t;
 #define RTP_MAX_LEN (MTU - UDP_HEADER_LEN)
 
 namespace mediaserver {
-typedef KSafeMap<int, int> LostPacketMap;
-
 class RtpPacket;
 class RtpSession : public RemoteBitrateObserver {
 public:
@@ -248,59 +246,21 @@ private:
 	SocketSender *mpRtpSender;
 	SocketSender *mpRtcpSender;
 
+	// 唯一标识
 	string mIdentification;
+
 	/////////////////////////////////////////////////////////////////////////////
 	// Video
-	// Max Video Timestamp
-	unsigned int mVideoMaxTimestamp;
 	// PLI Video Timestamp
 	unsigned int mVideoPLITimestamp;
-	// Max Video Sequence
-	uint16_t mVideoMaxSeq;
-	uint16_t mVideoMaxSeqLast;
-	// Video Frame Count
-	uint16_t mVideoFrameCount;
 	// Video SSRC
 	unsigned int mVideoSSRC;
-	// Lost Video Packet Map
-	LostPacketMap mVideoLostPacketMap;
-
-	// Total Receive Video Packet
-	unsigned int mVideoTotalRecvPacket;
-	unsigned int mVideoTotalRecvPacketLast;
-	// Last Max Video Sequence
-	unsigned int mVideoLastMaxSeq;
-	// Last Total Receive Video Packet
-	unsigned int mVideoLastTotalRecvPacket;
-
-	// Video LSR & DLSR
-	uint32_t mVideoLSR;
-	uint32_t mVideoDLSR;
 	/////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Audio
-	// Max Audio timestamp
-	unsigned int mAudioMaxTimestamp;
-	// Max Audio sequence
-	uint16_t mAudioMaxSeq;
-	uint16_t mAudioMaxSeqLast;
 	// Audio SSRC
 	unsigned int mAudioSSRC;
-	// Lost Audio Packet map
-	LostPacketMap mAudioLostPacketMap;
-
-	// Total Receive Audio Packet
-	unsigned int mAudioTotalRecvPacket;
-	unsigned int mAudioTotalRecvPacketLast;
-	// Last Max Audio Sequence
-	unsigned int mAudioLastMaxSeq;
-	// Last Total Receive Audio Packet
-	unsigned int mAudioLastTotalRecvPacket;
-
-	// Audio LSR & DLSR
-	uint32_t mAudioLSR;
-	uint32_t mAudioDLSR;
 	/////////////////////////////////////////////////////////////////////////////
 
 	// libsrtp

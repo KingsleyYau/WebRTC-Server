@@ -132,10 +132,11 @@ void SignalFunc(int sign_no) {
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
-		gMediaServer.Exit();
+		gMediaServer.Exit(sign_no);
+		MainLoop::GetMainLoop()->Exit(sign_no);
 		LogManager::GetLogManager()->LogFlushMem2File();
-		signal(sign_no, SIG_DFL);
-		kill(getpid(), sign_no);
+//		signal(sign_no, SIG_DFL);
+		exit(0);
 	}break;
 	}
 }

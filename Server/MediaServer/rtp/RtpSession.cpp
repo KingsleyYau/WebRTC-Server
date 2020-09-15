@@ -177,26 +177,12 @@ void RtpSession::Reset() {
 	mIdentification = "";
 
 	// Video
-	mVideoMaxTimestamp = 0;
 	mVideoPLITimestamp = 0;
-	mVideoMaxSeq = 0;
 	mVideoSSRC = 0;
-
-	mVideoTotalRecvPacket = 0;
-	mVideoLastMaxSeq = 0;
-	mVideoLastTotalRecvPacket = 0;
-
 	mFirSeq = 0;
-	mVideoFrameCount = 0;
 
 	// Audio
-	mAudioMaxTimestamp = 0;
-	mAudioMaxSeq = 0;
 	mAudioSSRC = 0;
-
-	mAudioTotalRecvPacket = 0;
-	mAudioLastMaxSeq = 0;
-	mAudioLastTotalRecvPacket = 0;
 
 	//////////////////////////////////////////////////////////////////////////
 	/**
@@ -1004,40 +990,13 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 	UpdateStatsPacket(rtpPkt, recvTime);
 
 	if (IsAudioPkt(ssrc)) {
-		if (mAudioMaxSeq == 0) {
-			mAudioMaxSeq = seq;
-		}
-		if (mAudioMaxTimestamp == 0) {
-			mAudioMaxTimestamp = ts;
-		}
-
 		// 更新丢包信息
 		UpdateAudioLossPacket(rtpPkt, recvTime);
-
-		// 更新音频时间戳和帧号
-		mAudioMaxSeq = MAX(mAudioMaxSeq, seq);
-		mAudioMaxTimestamp = MAX(mAudioMaxTimestamp, ts);
-		// 更新收到的数据包
-		mAudioTotalRecvPacket++;
-
 	} else {
-		if (mVideoMaxSeq == 0) {
-			mVideoMaxSeq = seq;
-		}
-		if (mVideoMaxTimestamp == 0) {
-			mVideoMaxTimestamp = ts;
-		}
-
 		// 处理丢包逻辑
 		UpdateVideoLossPacket(rtpPkt, recvTime);
 		// 更新接收端滤波器
 		rbe_module_.IncomingPacket(recvTime, rtpPkt->payload_size() + rtpPkt->padding_size(), header);
-
-		// 更新视频时间戳和帧号
-		mVideoMaxSeq = MAX(mVideoMaxSeq, seq);
-		mVideoMaxTimestamp = MAX(mVideoMaxTimestamp, ts);
-		// 更新收到的数据包
-		mVideoTotalRecvPacket++;
 	}
 }
 
@@ -1136,53 +1095,6 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 		SendRtcpNack(ssrc, nack_batch);
 	}
 
-	// 音频不处理NACK
-//	bool bFlag = false;
-//
-//	// 开始产生重传队列
-//	int rtpLostSize = (int) (seq - (mAudioMaxSeq + 1));
-//	if (rtpLostSize > 0) {
-//		bFlag = true;
-//
-//		if (rtpLostSize < 120) {
-//			// 每个int可以支持最多17个seq
-//			int quotient = rtpLostSize / 17;
-//			int remainder = (rtpLostSize % 17);
-//			int nackItemTotal = (remainder == 0) ? quotient : (quotient + 1);
-//
-//			// 开始帧号
-//			int rtpStartSeq = lastMaxSeq + 1;
-//			// 剩余长度
-//			int rtpLastCount = rtpLostSize;
-//
-//			LogAync(LOG_INFO, "RtpSession::UpdateAudioLossPacket( "
-//					"this : %p, "
-//					"[%s], "
-//					"[Packet Loss], "
-//					"media_ssrc : 0x%08x(%u), "
-//					"rtpStartSeq : %u, "
-//					"rtpLostSize : %d, "
-//					"nackItemTotal : %d "
-//					")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
-//					rtpStartSeq, rtpLostSize, nackItemTotal);
-//
-//			SendRtcpNack(ssrc, rtpStartSeq, rtpLostSize);
-//		} else {
-//			// 丢包太多
-//			LogAync(LOG_NOTICE, "RtpSession::UpdateAudioLossPacket( "
-//					"this : %p, "
-//					"[%s], "
-//					"[Packet Loss Too Many], "
-//					"media_ssrc : 0x%08x(%u), "
-//					"rtpLostSize : %u, "
-//					"lastMaxSeq : %u, "
-//					"seq : %u "
-//					""
-//					")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
-//					rtpLostSize, lastMaxSeq, seq);
-//		}
-//	}
-
 	return bFlag;
 }
 
@@ -1253,6 +1165,7 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 	}
 
 	if (sendPLI) {
+		// 因为定时会发送关键帧请求, 如果清掉重传请求可能会导致丢包
 //		nack_module_.Clear();
 	} else if (need_request_keyframe) {
 		// 丢包严重, 发送PLI
@@ -1663,8 +1576,7 @@ bool RtpSession::IsRtp(const char *frame, unsigned len) {
 	bool bFlag = false;
 	if (len > sizeof(RtpHeader)) {
 		RtpHeader *header = (RtpHeader *) frame;
-		bFlag =
-				((header->pt < 64) || ((header->pt >= 96) && (header->pt < 200)));
+		bFlag = ((header->pt < 64) || ((header->pt >= 96) && (header->pt < 200)));
 	}
 	return bFlag;
 }
@@ -1711,36 +1623,36 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 						);
 			}
 
+			const int64_t kSendThresholdPercent = 97;
+			int64_t receive_bitrate_bps = static_cast<int64_t>(bitrate);
+			int64_t now_ms = TimeMillis();
+			// If we already have an estimate, check if the new total estimate is below
+			// kSendThresholdPercent of the previous estimate.
+			if (last_send_bitrate_bps_ > 0) {
+				int64_t new_remb_bitrate_bps =
+						last_send_bitrate_bps_ - bitrate_bps_ + receive_bitrate_bps;
+
+				if (new_remb_bitrate_bps <
+						kSendThresholdPercent * last_send_bitrate_bps_ / 100) {
+					// The new bitrate estimate is less than kSendThresholdPercent % of the
+					// last report. Send a REMB asap.
+					last_remb_time_ms_ = now_ms - kRembSendIntervalMs;
+				}
+			}
+			bitrate_bps_ = receive_bitrate_bps;
+
+			if (now_ms - last_remb_time_ms_ < kRembSendIntervalMs) {
+				break;
+			}
+
+			// NOTE: Updated if we intend to send the data; we might not have
+			// a module to actually send it.
+			last_remb_time_ms_ = now_ms;
+			last_send_bitrate_bps_ = receive_bitrate_bps;
+			// Cap the value to send in remb with configured value.
+			receive_bitrate_bps = std::min(receive_bitrate_bps, max_bitrate_bps_);
+
 			if ( gAutoBitrate ) {
-				const int64_t kSendThresholdPercent = 97;
-				int64_t receive_bitrate_bps = static_cast<int64_t>(bitrate);
-				int64_t now_ms = TimeMillis();
-				// If we already have an estimate, check if the new total estimate is below
-				// kSendThresholdPercent of the previous estimate.
-				if (last_send_bitrate_bps_ > 0) {
-					int64_t new_remb_bitrate_bps =
-							last_send_bitrate_bps_ - bitrate_bps_ + receive_bitrate_bps;
-
-					if (new_remb_bitrate_bps <
-							kSendThresholdPercent * last_send_bitrate_bps_ / 100) {
-						// The new bitrate estimate is less than kSendThresholdPercent % of the
-						// last report. Send a REMB asap.
-						last_remb_time_ms_ = now_ms - kRembSendIntervalMs;
-					}
-				}
-				bitrate_bps_ = receive_bitrate_bps;
-
-				if (now_ms - last_remb_time_ms_ < kRembSendIntervalMs) {
-					break;
-				}
-
-				// NOTE: Updated if we intend to send the data; we might not have
-				// a module to actually send it.
-				last_remb_time_ms_ = now_ms;
-				last_send_bitrate_bps_ = receive_bitrate_bps;
-				// Cap the value to send in remb with configured value.
-				receive_bitrate_bps = std::min(receive_bitrate_bps, max_bitrate_bps_);
-
 				// 发送控制包
 				SendRtcpRemb(*itr, receive_bitrate_bps);
 			}

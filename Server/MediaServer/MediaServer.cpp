@@ -622,15 +622,17 @@ bool MediaServer::Stop() {
 	return true;
 }
 
-void MediaServer::Exit() {
+void MediaServer::Exit(int sign_no) {
 	pid_t pid = getpid();
 
 	LogAync(
 			LOG_ALERT,
 			"MediaServer::Exit( "
+			"sign_no : %d, "
 			"pid : %d, "
 			"mPidFilePath : %s "
 			")",
+			sign_no,
 			pid,
 			mPidFilePath.c_str()
 			);

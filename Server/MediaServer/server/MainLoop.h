@@ -60,6 +60,7 @@ public:
 
 	bool Start();
 	void Stop();
+	void Exit(int sign_no);
 
 	void Call(int pid);
 	void StartWatchChild(int pid, MainLoopCallback *cb);
