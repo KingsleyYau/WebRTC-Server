@@ -22,7 +22,6 @@ using namespace std;
 #include <common/LogManager.h>
 #include <common/Arithmetic.h>
 #include <common/StringHandle.h>
-#include <database/DBSpool.hpp>
 
 bool Parse(int argc, char *argv[]);
 void SignalFunc(int sign_no);
@@ -37,7 +36,7 @@ public:
 	B(){ printf("# B \n"); };
 };
 int main(int argc, char *argv[]) {
-	printf("############## webrtc-test ############## \n");
+	printf("############## json-test ############## \n");
 	Parse(argc, argv);
 	srand(time(0));
 
@@ -70,107 +69,83 @@ int main(int argc, char *argv[]) {
 
 	srand(time(0));
 
-	bool bFlag;
-	DBSpool dbReadSpool;
-	bFlag = dbReadSpool.SetDBparm(
-			"192.168.8.177",
-			3306,
-			"mysqldb_chnlove",
-			"dbu_chnlove",
-			"2nih@wf$6i"
-			);
-	bFlag = bFlag && dbReadSpool.Connect();
-	printf("# Databse Read Connect, bFlag: %d \n", bFlag);
+	string input = "{\"http-flv\":{\"nginx_version\":\"1.11.13\",\"nginx_http_flv_version\":\"1.2.5\",\"compiler\":\"gcc 4.8.5 20150623 (Red Hat 4.8.5-39) (GCC) \",\"built\":\"May 29 2020 17:21:04\",\"pid\":5930,\"uptime\":692441,\"naccepted\":1800,\"bw_in\":1165768,\"bytes_in\":28982579394,\"bw_out\":1114160,\"bytes_out\":23230814460,\"servers\":[[{\"name\":\"cdn_flash\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"cdn_standard_no_auth\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"cdn_standard\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"publish_standard_allframe\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"cdn_standard_1\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"cdn_standard_2\",\"live\":{\"streams\":[],\"nclients\":0}}],[{\"name\":\"publish_flash\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"publish_flash_allframe\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"publish_standard\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"publish_standard_allframe\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"play_flash\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"play_standard\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"play_flash_1\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"play_standard_1\",\"live\":{\"streams\":[{\"name\":\"anchor_A488416_338240\",\"time\":678889287,\"bw_in\":0,\"bytes_in\":0,\"bw_out\":0,\"bytes_out\":0,\"bw_audio\":0,\"bw_video\":0,\"clients\":[],\"nclients\":0,\"publishing\":false,\"active\":false}{\"name\":\"anchor_B798735_340330\",\"time\":688783683,\"bw_in\":0,\"bytes_in\":0,\"bw_out\":0,\"bytes_out\":0,\"bw_audio\":0,\"bw_video\":0,\"clients\":[],\"nclients\":0,\"publishing\":false,\"active\":false}{\"name\":\"anchor_G458108_348645\",\"time\":29962,\"bw_in\":1114392,\"bytes_in\":3580942,\"bw_out\":1114392,\"bytes_out\":3333139,\"bw_audio\":106384,\"bw_video\":1008008,\"clients\":[{\"id\":30153,\"address\":\"\",\"time\":29962,\"flashver\":\"ngx-local-relay\",\"dropped\":0,\"avsync\":60,\"timestamp\":338470,\"publishing\":true,\"active\":true},{\"id\":30150,\"address\":\"103.29.140.19\",\"time\":34371,\"flashver\":\"WIN 15,0,0,239\",\"dropped\":15,\"avsync\":60,\"timestamp\":338470,\"publishing\":false,\"active\":true}],\"meta\":{\"video\":{\"width\":640,\"height\":360,\"frame_rate\":15,\"codec\":\"H264\",\"profile\":\"Main\",\"level\":\"5.1\"}, \"audio\": {\"channels\":\"1\",\"sample_rate\":44100,\"profile\":\"LC\"}},\"nclients\":2,\"publishing\":true,\"active\":true}],\"nclients\":2}},{\"name\":\"play_flash_2\",\"live\":{\"streams\":[],\"nclients\":0}},{\"name\":\"play_standard_2\",\"live\":{\"streams\":[],\"nclients\":0}}]]}}";
+//	input = "{\"streams\":[{\"active\":1}{\"active\":2}{\"active\":3},{\"active\":4}]}";
+	//	Json::FastWriter writer;
+//	Json::Value jsonMsg;
+//	jsonMsg["anchorId"] = "123";
+//	string msg = writer.write(jsonMsg);
+//	printf("# Json Encode msg OK, msg: %s \n", msg.c_str());
+//
+//	Json::Value jsonRecord;
+//	jsonRecord["msg"] = msg;
+//	string record = writer.write(jsonRecord);
+//	printf("# Json Encode record OK, record: %s \n", record.c_str());
+//
+//	Json::Value jsonArray;
+//	jsonArray.append(record);
+//	Json::Value jsonDatalist;
+//	jsonDatalist["datalist"] = jsonArray;
+//	string output = writer.write(jsonDatalist);
+//	printf("# Json Encode OK, output: %s \n", output.c_str());
 
-	DBSpool dbSpool;
-	bFlag = dbSpool.SetDBparm(
-			"192.168.8.177",
-			3306,
-			"mysqldb_email",
-			"dbu_email",
-			"&3u*98043u(ier"
-			);
-	bFlag = bFlag && dbSpool.Connect();
-	printf("# Databse Connect, bFlag: %d \n", bFlag);
+	const void* p = NULL;
+	printf("# p: %p \n", p);
 
-	string info;
-	char sql[4096] = {0};
-	snprintf(sql, sizeof(sql) - 1, "select at_content_en from admire_template where at_code='P729365-A4';");
-//	snprintf(sql, sizeof(sql) - 1, "select info from msg_process_list_json where id = 118;");
-	printf("# Databse Read, sql: %s \n", sql);
-	MYSQL_RES *res;
-	int line = 0;
-	short ident = 0;
-	if ( SQL_TYPE_SELECT == dbReadSpool.ExecuteSQL(sql, &res, ident, line) ) {
-		printf("# Databse Read, line: %d \n", line);
-		if ( line > 0 ) {
-			MYSQL_ROW row;
-			mysql_fetch_fields(res);
-			if ((row = mysql_fetch_row(res)) != NULL) {
-				info = row[0];
-				printf("# Databse Read OK, info: %s \n\n", info.c_str());
-			}
-		}
-	}
-	dbReadSpool.ReleaseConnection(ident);
-
-	string input;
-//	input = "[{\"admireId\":\"IDBEJGGIF\",\"admireInfo\":\"Feed my kitty\\ud83d\\ude03\\ud83d\\udc8b\\ud83d\\udc97 this Halloween!  Have you anything to feed me with \\ud83c\\udf4c\\ud83c\\udf4c\\ud83c\\udf4c? Have you anything to hide in my hungry kitty\\ud83d\\udc31?\",\"birthday\":\"1977-11-15\",\"country\":\"Ukraine\",\"firstname\":\"Anna\",\"height\":\"177\",\"id\":\"83665\",\"lastname\":\"Shulga\",\"marry\":\"1\",\"owner\":\"C765\",\"province\":\"Berdiansk\",\"send_time\":\"2019-10-29 09:22:08\",\"template_type\":\"B\",\"weight\":\"70\",\"womanid\":\"C593741\"}]";
-	input = "[{\"admireId\":\"BDBFHGFID\",\"admireInfo\":\"<p align=\\\"left\\\">Hi&nbsp;John,</p><br />I do believe, life isn't just an existence! It's a beautiful miracle of love and joy. We just need to find these.\\r\\nFor the world you may be just the one person, \",\"birthday\":\"1992-01-04\",\"country\":\"Ukraine\",\"firstname\":\"Marina\",\"height\":\"160\",\"id\":\"58767\",\"lastname\":\"Gerasimova\",\"marry\":\"1\",\"owner\":\"C885\",\"province\":\"Luhansk\",\"send_time\":\"2019-11-06 01:37:17\",\"template_type\":\"A\",\"weight\":\"49\",\"womanid\":\"C597482\"},{\"admireId\":\"FDBFHHBBG\",\"admireInfo\":\"U know,I don't understand why you're not married because you're a man who I think can take the heart of every girl!my heart is excited!U know why!\",\"birthday\":\"1989-06-05\",\"country\":\"Ukraine\",\"firstname\":\"Mary\",\"height\":\"170\",\"id\":\"82461\",\"lastname\":\"Kupina\",\"marry\":\"1\",\"owner\":\"C1280\",\"province\":\"Kiev\240(Kyiv)\",\"send_time\":\"2019-11-06 01:29:54\",\"template_type\":\"B\",\"weight\":\"53\",\"womanid\":\"C635377\"},{\"admireId\":\"IDBFHHAHJ\",\"admireInfo\":\"You can be my second half and I even can not imagine that you will not answer me. You're already typing the letter for me, I'm right? :-)\",\"birthday\":\"1979-02-27\",\"country\":\"Ukraine\",\"firstname\":\"Marina \",\"height\":\"167\",\"id\":\"86628\",\"lastname\":\"Shorop\",\"marry\":\"3\",\"owner\":\"C1417\",\"province\":\"Odessa\",\"send_time\":\"2019-11-06 00:54:06\",\"template_type\":\"B\",\"weight\":\"50\",\"womanid\":\"C309051\"},{\"admireId\":\"DDBFHEIBJ\",\"admireInfo\":\"<p align=\\\"left\\\">Hi&nbsp;John,</p><br />You probably every day get a lot of letters here and probably very difficult to understand what kind of woman could be your second half.\\r\\nI understand you, becau\",\"birthday\":\"1985-04-13\",\"country\":\"Ukraine\",\"firstname\":\"Olga\",\"height\":\"173\",\"id\":\"61392\",\"lastname\":\"Kondratevich\",\"marry\":\"1\",\"owner\":\"C1119\",\"province\":\"Kiev\240(Kyiv)\",\"send_time\":\"2019-11-06 00:06:29\",\"template_type\":\"A\",\"weight\":\"52\",\"womanid\":\"C102940\"},{\"admireId\":\"DDBFHIEHH\",\"admireInfo\":\"How are you today? I'm fine )) just not enough man with whom I can share the warmth of my heart*Two-Hearts*How are you today? I'm fine )) just not enough man with whom I can share the warmth of my hea\",\"birthday\":\"1997-08-22\",\"country\":\"Ukraine\",\"firstname\":\"Emma\",\"height\":\"168\",\"id\":\"96076\",\"lastname\":\"Dobryden\",\"marry\":\"1\",\"owner\":\"C2527\",\"province\":\"Luhansk\",\"send_time\":\"2019-11-06 04:13:26\",\"template_type\":\"B\",\"weight\":\"57\",\"womanid\":\"C538721\"}]";
-	//	string input = "[{\"admireId\":\"IDBEJGGIF\",\"admireInfo\":\"Feed my kitty😃💋💗 this Halloween!  Have you anything to feed me with 🍌🍌🍌? Have you anything to hide in my hungry kitty🐱?\",\"birthday\":\"1977-11-15\",\"country\":\"Ukraine\",\"firstname\":\"Anna\",\"height\":\"177\",\"id\":\"83665\",\"lastname\":\"Shulga\",\"marry\":\"1\",\"owner\":\"C765\",\"province\":\"Berdiansk\",\"send_time\":\"2019-10-29 09:22:08\",\"template_type\":\"B\",\"weight\":\"70\",\"womanid\":\"C593741\"}]";
-//	string input = "{\"key\":\"😄😅😆😉\"}";
-//	input = "\"😄😅😆😉\"";
-//	input = "\"\\ud83d\\ude04\\ud83d\\ude05\\ud83d\\ude06\\ud83d\\ude09\"";
-//	input = "\"汉字\"";
-//	input = "{\"admireId\":\"HDIHJIJ\",\"admireInfo\":\"\\u00f0\\u0178\\u02dc\\u201e \\u00f0\\u0178\\u02dc\\u2026 \\u00f0\\u0178\\u02dc\\u2020 \\u00f0\\u0178\\u02dc\\u2030,ues'\\\",\\/,kwg kwg kwg \\r\\nsdfljsd@#$%^ alkjf sdj flksd \\r\\nlsdkjf lsdjflsdflsdj fsdf ssd sdfsdfsdkjsd fljsdl fjsd fsd\",\"birthday\":\"1989-10-06\",\"country\":\"China\",\"firstname\":\"nicole\",\"height\":\"160\",\"id\":\"43748\",\"lastname\":\"nicole\",\"marry\":\"1\",\"owner\":\"GZA\",\"province\":\"Guangdong\",\"send_time\":\"2019-11-01 08:12:43\",\"template_type\":\"B\",\"weight\":\"40\",\"womanid\":\"P503382\"}";
-	string output = info;
-	Json::Value reqRoot;
 	Json::Reader reader;
+	Json::Value reqRoot;
 	bool bParse = reader.parse(input, reqRoot, false);
 	if ( bParse ) {
 		printf("# Json Parse OK, input: %s \n\n", input.c_str());
+		if ( reqRoot.isObject() ) {
+			Json::Value streams = reqRoot["streams"];
+			printf("# streams.size: %d \n", (int)streams.size());
+			for(int j = 0; j < (int)streams.size(); j++) {
+				Json::Value stream = streams[j];
+				if ( stream.isObject() && stream["active"].isInt() ) {
+					printf("# %d, active: %d \n", j, stream["active"].asInt());
+				} else {
+					printf("# %d, active: error \n", j);
+				}
+			}
+		}
+//		if ( reqRoot.isObject() && reqRoot["http-flv"]["servers"].isArray() && reqRoot["http-flv"]["servers"].size() > 0 ) {
+//			Json::Value apps = reqRoot["http-flv"]["servers"][1];
+//			printf("# apps.size: %d \n", (int)apps.size());
+//			for(int i = 0; i < (int)apps.size(); i++) {
+//				Json::Value app = apps[i];
+//				Json::Value streams = app["live"]["streams"];
+//				printf("# %d, streams.size: %d \n", i, (int)streams.size());
+//				for(int j = 0; j < (int)streams.size(); j++) {
+//					Json::Value stream = streams[j];
+//					if ( stream.isObject() ) {
+//						Json::Value clients = stream["clients"];
+//						string name = stream["name"].asString();
+//						printf("# %d, stream : %s, clients.size: %d \n", j, name.c_str(), (int)clients.size());
+//						for(int k = 0; k < (int)clients.size(); k++) {
+//							Json::Value client = clients[k];
+//							if ( client.isObject() ) {
+//								int iClientId = client["id"].asInt();
+//								printf("# %d, iClientId: %d \n", k, iClientId);
+//								if ( iClientId > 0 ) {
+//									char clientId[256] = {0};
+//									snprintf(clientId, sizeof(clientId) - 1, "%u", iClientId);
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
 //		Arithmetic ari;
 //		string inputHex = ari.AsciiToHexWithSep((char *)info.c_str(), info.length());
 //		printf("# Json Read OK, inputHex: %s \n\n", inputHex.c_str());
 
-		int i = 0;
-		Json::Value infoNew;
-		infoNew["birthday"] 		= "";
-		infoNew["firstname"] 		= "";
-		infoNew["lastname"]  		= "";
-		infoNew["country"]   		= "";
-		infoNew["owner"]     		= "";
-		infoNew["id"]        		= "";
-		infoNew["womanid"]   		= "C239420";
-		infoNew["height"]   		= "";
-		infoNew["weight"]   		= "";
-		infoNew["marry"]     		= "";
-		infoNew["admireInfo"]		= "People have very different character and we can like it or not. Everyone has something special in it, so we need to deal with it.";
-		infoNew["admireId"]			= "ABCD1234";
-		infoNew["province"]  		= "";
-		infoNew["template_type"]  	= "B";
-		infoNew["send_time"]  		= "";
-
-		reqRoot.append(infoNew);
-//		reqRoot[i]["admireInfo"] = info;
-//		reqInfo.append(reqRoot[i]);
-//		Json::Value reqInfo = reqInfo0['admireInfo'];
-//		string reqInfo = reqInfo0['admireInfo'].asString();
-		Json::FastWriter writer(true);
-		output = writer.write(reqRoot);
-		printf("# Json Write OK, output: %s \n", output.c_str());
-
 //		string outputHex = ari.AsciiToHexWithSep((char *)output.c_str(), output.length());
 //		printf("# Write OK, outputHex: %s \n\n", outputHex.c_str());
+	} else {
+		printf("# Json Parse Fail, input: %s \n\n", input.c_str());
 	}
-
-//	snprintf(sql, sizeof(sql) - 1, "update msg_process_list_json set info = '%s' where id = 255;\n", SqlTransferInsert(input).c_str());
-////	snprintf(sql, sizeof(sql) - 1, "update msg_process_list_json set info = '%s' where id = 255;\n", SqlTransferInsert(output).c_str());
-//	printf("# Databse Write, sql: %s \n", sql);
-//	if ( SQL_TYPE_UPDATE == dbSpool.ExecuteSQL(sql, &res, ident, line) ) {
-//		printf("# Databse Write OK, line: %d \n", line);
-//	}
-//	dbSpool.ReleaseConnection(ident);
 
 	return EXIT_SUCCESS;
 }

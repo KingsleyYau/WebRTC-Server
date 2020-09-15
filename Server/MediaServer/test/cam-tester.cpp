@@ -16,27 +16,28 @@
 #include <string>
 using namespace std;
 
-#include "WebRTCTester.h"
-using namespace mediaserver;
-
 // Common
 #include <common/LogManager.h>
+#include <common/KThread.h>
 
-char ws[128] = {"192.168.88.133:9981"};
-char turn[128] = {"192.168.88.133"};
+#include "mongoose.h"
+#include "CamTester.h"
+using namespace mediaserver;
+
+char ws[128] = {"192.168.88.133:8080"};
 char interface[128] = {""};//{"192.168.88.134"};
 char name[128] = {"tester"};
 int iCurrent = 0;
 int iTotal = 1;
 int iReconnect = 0;
 
-static WebRTCTester gTester;
+static CamTester gTester;
 
 bool Parse(int argc, char *argv[]);
 void SignalFunc(int sign_no);
 
 int main(int argc, char *argv[]) {
-	printf("############## webrtc-test ############## \n");
+	printf("############## cam-test ############## \n");
 	Parse(argc, argv);
 	srand(time(0));
 
@@ -73,10 +74,8 @@ int main(int argc, char *argv[]) {
 	LogManager::GetLogManager()->SetDebugMode(false);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
-	WebRTC::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
-
     string baseUrl = "ws://" + string(ws);
-    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect);
+    bool bFlag = gTester.Start(name, baseUrl, iTotal, iReconnect);
 
 	while( bFlag && gTester.IsRunning() ) {
 		/* do nothing here */
@@ -101,9 +100,6 @@ bool Parse(int argc, char *argv[]) {
 		} else if( key.compare("-name") == 0 ) {
 			memset(name, 0, sizeof(name));
 			memcpy(name, value.c_str(), value.length());
-		} else if( key.compare("-turn") == 0 ) {
-			memset(turn, 0, sizeof(turn));
-			memcpy(turn, value.c_str(), value.length());
 		} else if( key.compare("-i") == 0 ) {
 			memset(interface, 0, sizeof(interface));
 			memcpy(interface, value.c_str(), value.length());
@@ -114,9 +110,9 @@ bool Parse(int argc, char *argv[]) {
 		}
 	}
 
-	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -turn [TurnHost]  -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] \n");
-	printf("# Example: ./webrtc-tester -ws 192.168.88.133:9981 -turn 192.168.88.133 -name tester -i 192.168.88.134 -n 1 -r 60 \n");
-	printf("# Config: [ws : %s], [turn : %s], [name : %s], [interface : %s], [iTotal : %d], [iReconnect : %d]\n", ws, turn, name, interface, iTotal, iReconnect);
+	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] \n");
+	printf("# Example: ./webrtc-tester -ws 192.168.88.133:8080 -name tester -i 192.168.88.134 -n 1 -r 60 \n");
+	printf("# Config: [ws : %s], [name : %s], [interface : %s], [iTotal : %d], [iReconnect : %d]\n", ws, name, interface, iTotal, iReconnect);
 
 	return true;
 }
@@ -129,7 +125,6 @@ void SignalFunc(int sign_no) {
 		LogAync(
 				LOG_INFO, "main( waitpid : %d )", pid
 				);
-		MainLoop::GetMainLoop()->Call(pid);
 	}break;
 	default:{
 		LogAync(

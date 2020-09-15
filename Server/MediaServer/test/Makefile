@@ -55,9 +55,7 @@ TARGET = webrtc-tester
 
 TARGET_JSON_LIBS = -L. \
 			-Wl,-Bstatic -L../common -lcommon \
-			-Wl,-Bstatic -L../database -ldatabase \
 			-Wl,-Bstatic -L../third_party/json -ljson \
-			-Wl,-Bdynamic -L/usr/lib64/mysql -lmysqlclient \
 			-Wl,-Bdynamic -ldl -pthread 
 			
 TARGET_JSON_OBJS = json-tester.o
@@ -76,7 +74,17 @@ TARGET_HTTPD_LIBS = -L. \
 TARGET_HTTPD_OBJS = httpd.o
 TARGET_HTTPD = httpd
 
-.PHONY: clean $(TARGET) ${TARGET_JSON} $(TARGET_HTTPD)
+TARGET_CAM_LIBS = -L. \
+			-Wl,-Bstatic -L../crypto -lmediacrypto \
+			-Wl,-Bstatic -L../common -lcommon \
+			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bstatic -L../third_party/libev/.libs -lev \
+			-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
+			-Wl,-Bdynamic -ldl -pthread 
+TARGET_CAM_OBJS = cam-tester.o CamTester.o mongoose.o
+TARGET_CAM = cam-tester
+
+.PHONY: clean $(TARGET) ${TARGET_JSON} $(TARGET_HTTPD) $(TARGET_CAM)
 	
 $(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
@@ -101,8 +109,16 @@ $(TARGET_HTTPD): $(TARGET_HTTPD_OBJS)
 	@echo '# Bulid httpd completed!'
 	@echo ''
 	@echo '################################################################'
-				
-all: $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD)
+		
+$(TARGET_CAM): $(TARGET_CAM_OBJS)
+	$(CXX) -o $(TARGET_CAM) $(TARGET_CAM_OBJS) $(TARGET_CAM_LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid cam-tester completed!'
+	@echo ''
+	@echo '################################################################'		
+			
+all: $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD) $(TARGET_CAM)
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD)
+	rm -f $(OBJS) $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD) $(TARGET_CAM)

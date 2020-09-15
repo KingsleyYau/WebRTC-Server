@@ -50,9 +50,11 @@ public:
 				buffer,
 				MAX_BUFFER_LEN - 1,
 				"HTTP/1.1 200 OK\r\n"
-				"Connection:Close\r\n"
-				"Content-Type:text/html; charset=utf-8\r\n"
+				"Connection: close\r\n"
+//				"Content-Length: %d\r\n"
+				"Content-Type: text/html; charset=utf-8\r\n"
 				"\r\n"
+//				(int)body.size()
 				);
 		int len = strlen(buffer);
 		gServer.Send(client, buffer, len);
@@ -143,7 +145,8 @@ public:
 			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
 			HttpSendRespond(parser, buffer);
 		} else {
-			bFlag = false;
+			bFlag = true;
+			HttpSendRespond(parser, "{\"errno\":1,\"errmsg\":\"\"}");
 		}
 
 		return bFlag;
@@ -170,10 +173,11 @@ public:
 	}
 
 	bool HttpParseRequestBody(HttpParser* parser) {
-		bool bFlag = false;
+		bool bFlag = true;
 
 		{
 			// 未知命令
+//			HttpSendRespond(parser, "{\"errno\":1,\"errmsg\":\"\"}}");
 		}
 
 		return bFlag;
@@ -281,10 +285,10 @@ int main(int argc, char *argv[]) {
 
 	LogManager::GetLogManager()->SetSTDMode(true);
 	LogManager::GetLogManager()->SetDebugMode(false);
-	LogManager::GetLogManager()->Start(LOG_NOTICE, "");
+	LogManager::GetLogManager()->Start(LOG_NOTICE, "log");
 
 	gServer.SetAsyncIOServerCallback(&gAsyncIOServerCallbackImp);
-	bool bFlag = gServer.Start(5555, 100, 1);
+	bool bFlag = gServer.Start(5555, 10000, 4);
 	while( bFlag && gServer.IsRunning() ) {
 		LogManager::GetLogManager()->LogFlushMem2File();
 		fflush(stdout);
