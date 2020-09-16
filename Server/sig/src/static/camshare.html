@@ -140,18 +140,8 @@
          * 4) turn: occurring muliple times
          * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
          */
-        if (isEdge() || (isSafari() && callType == 'push')) {
-            for (i = 0; i < iceServers.length; i++) {
-                let obj = iceServers[i];
-                for (j = 0; j < obj.urls.length; j++) {
-                    let index = obj.urls[j].indexOf("tcp", 0);
-                    if (index != -1) {
-                        obj.urls.splice(j, 1);
-                        break;
-                    }
-                }
-            }
-        } else {
+        let tcpForce = $("[id=forceTcpCb]").attr('checked');
+        if (tcpForce) {
             for (i = 0; i < iceServers.length; i++) {
                 let obj = iceServers[i];
                 for (j = 0; j < obj.urls.length; j++) {
@@ -163,6 +153,29 @@
                 }
             }
         }
+        // if (isEdge() || (isSafari() && callType == 'push')) {
+        //     for (i = 0; i < iceServers.length; i++) {
+        //         let obj = iceServers[i];
+        //         for (j = 0; j < obj.urls.length; j++) {
+        //             let index = obj.urls[j].indexOf("tcp", 0);
+        //             if (index != -1) {
+        //                 obj.urls.splice(j, 1);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // } else {
+        //     for (i = 0; i < iceServers.length; i++) {
+        //         let obj = iceServers[i];
+        //         for (j = 0; j < obj.urls.length; j++) {
+        //             let index = obj.urls[j].indexOf("udp", 0);
+        //             if (index != -1) {
+        //                 obj.urls.splice(j, 1);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
 
         let config = {
             iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
@@ -507,6 +520,10 @@
             let audio = this.mediaStream.getAudioTracks()[0];
             this.mediaStream.removeTrack(audio);
 
+            if ( this.pc ) {
+                this.pc.addStream(this.mediaStream);
+            }
+
             let video = this.mediaStream.getVideoTracks()[0];
             if (!isFirefox() && !isEdge()) {
                 let capabilities = video.getCapabilities();
@@ -519,8 +536,6 @@
                 video.applyConstraints(constraints);
             }
             console.log('# Captured stream constraints', constraints);
-
-            this.pc.addStream(this.mediaStream);
         }
 
         async showStaticVideo() {
@@ -620,32 +635,32 @@
             }
         }
 
-        // setBandwidth(bandwidth) {
-        //     // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
-        //     // (local) renegotiation. Note that this will be within the envelope of
-        //     // the initial maximum bandwidth negotiated via SDP.
-        //     if ((adapter.browserDetails.browser === 'chrome' ||
-        //         (adapter.browserDetails.browser === 'firefox' &&
-        //             adapter.browserDetails.version >= 64)) &&
-        //         'RTCRtpSender' in window &&
-        //         'setParameters' in window.RTCRtpSender.prototype) {
-        //         const sender = this.pc.getSenders()[0];
-        //         const parameters = sender.getParameters();
-        //         if (!parameters.encodings) {
-        //             parameters.encodings = [{}];
-        //         }
-        //         parameters.encodings[0].maxFramerate = 15;
-        //         if (bandwidth === 'unlimited') {
-        //             delete parameters.encodings[0].maxBitrate;
-        //         } else {
-        //             parameters.encodings[0].maxBitrate = bandwidth * 1000;
-        //         }
-        //         sender.setParameters(parameters)
-        //             .then(() => {
-        //             })
-        //             .catch(e => console.error(e));
-        //     }
-        // }
+        setBandwidth(bandwidth) {
+            // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+            // (local) renegotiation. Note that this will be within the envelope of
+            // the initial maximum bandwidth negotiated via SDP.
+            if (
+                (adapter.browserDetails.browser === 'firefox' &&
+                    adapter.browserDetails.version >= 64) &&
+                'RTCRtpSender' in window &&
+                'setParameters' in window.RTCRtpSender.prototype) {
+                const sender = this.pc.getSenders()[0];
+                const parameters = sender.getParameters();
+                if (!parameters.encodings) {
+                    parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxFramerate = 15;
+                if (bandwidth === 'unlimited') {
+                    delete parameters.encodings[0].maxBitrate;
+                } else {
+                    parameters.encodings[0].maxBitrate = bandwidth * 1000;
+                }
+                sender.setParameters(parameters)
+                    .then(() => {
+                    })
+                    .catch(e => console.error(e));
+            }
+        }
 
         createLocalSdp(sdp) {
             var newSdp = sdp;
@@ -669,9 +684,10 @@
         setBitRate(sdp) {
             var newSdp = sdp;
             // Only work for Safari and Chrome
-            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-max-bitrate=1000\r\n');
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-min-bitrate=200;x-google-max-bitrate=1000\r\n');
             // Only work for Firefox
             // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
+            this.setBandwidth(600);
             return newSdp;
         }
 
@@ -890,6 +906,9 @@
         $("[id=hdBtn]").click(function () {
             getVideoWithConstraints(hdConstraints, 'HD');
         });
+        $("[id=fullHdBtn]").click(function () {
+            getVideoWithConstraints(fullHdConstraints, 'FullHD');
+        });
 
         bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
         bitrateGraph.updateEndDate();
@@ -989,6 +1008,7 @@
     <p>### Local Video & Canvas ###</p>
     <p># Local SDP</p>
     <textarea id="localSdpTextarea" disabled="true"></textarea>
+    <div>Force Tcp <input id="forceTcpCb" type="checkbox" checked="checked"></div>
     <div>
         <button id="loginBtn">Login</button>
         <button id="pushBtn">Push</button>
@@ -1002,6 +1022,7 @@
         <button id="qvgaBtn">QVGA</button>
         <button id="vgaBtn">VGA</button>
         <button id="hdBtn">HD</button>
+        <button id="fullHdBtn">FullHD</button>
         <lable id="videoConstLabel"></lable>
     </div>
     <label for="videoSelector"># Video source: </label><select id="videoSelector"></select>

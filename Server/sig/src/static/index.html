@@ -563,9 +563,9 @@
             await this.pc.setRemoteDescription(answer);
         }
 
-        close() {
+        async close() {
             if (this.pc != null) {
-                this.pc.close();
+                await this.pc.close();
                 this.pc = null;
             }
             this.stopLocalVideo();
@@ -605,9 +605,13 @@
 
             let audio = this.mediaStream.getAudioTracks()[0];
             // this.mediaStream.removeTrack(audio);
-
             console.log('Captured stream from leftVideo with captureStream',
                 this.mediaStream);
+
+            if ( this.pc ) {
+                this.pc.addStream(this.mediaStream);
+            }
+
             let video = this.mediaStream.getVideoTracks()[0];
             if ( !isFirefox() && !isEdge() ) {
                 let capabilities = video.getCapabilities();
@@ -617,11 +621,13 @@
             if ( !isFirefox() ) {
                 constraints.frameRate = 15;
                 constraints.minFrameRate = 15;
-                video.applyConstraints(constraints);
+                try {
+                    video.applyConstraints(constraints);
+                } catch (e) {
+                    console.log('Captured stream constraints error:', e);
+                }
             }
-            console.log('# Captured stream constraints', constraints);
-
-            this.pc.addStream(this.mediaStream);
+            console.log('Captured stream constraints', constraints);
         }
 
         async showStaticVideo() {
@@ -716,32 +722,32 @@
             }
         }
 
-        // setBandwidth(bandwidth) {
-        //     // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
-        //     // (local) renegotiation. Note that this will be within the envelope of
-        //     // the initial maximum bandwidth negotiated via SDP.
-        //     if ((adapter.browserDetails.browser === 'chrome' ||
-        //         (adapter.browserDetails.browser === 'firefox' &&
-        //             adapter.browserDetails.version >= 64)) &&
-        //         'RTCRtpSender' in window &&
-        //         'setParameters' in window.RTCRtpSender.prototype) {
-        //         const sender = this.pc.getSenders()[0];
-        //         const parameters = sender.getParameters();
-        //         if (!parameters.encodings) {
-        //             parameters.encodings = [{}];
-        //         }
-        //         parameters.encodings[0].maxFramerate = 15;
-        //         if (bandwidth === 'unlimited') {
-        //             delete parameters.encodings[0].maxBitrate;
-        //         } else {
-        //             parameters.encodings[0].maxBitrate = bandwidth * 1000;
-        //         }
-        //         sender.setParameters(parameters)
-        //             .then(() => {
-        //             })
-        //             .catch(e => console.error(e));
-        //     }
-        // }
+        setBandwidth(bandwidth) {
+            // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+            // (local) renegotiation. Note that this will be within the envelope of
+            // the initial maximum bandwidth negotiated via SDP.
+            if (
+                (adapter.browserDetails.browser === 'firefox' &&
+                    adapter.browserDetails.version >= 64) &&
+                'RTCRtpSender' in window &&
+                'setParameters' in window.RTCRtpSender.prototype) {
+                const sender = this.pc.getSenders()[0];
+                const parameters = sender.getParameters();
+                if (!parameters.encodings) {
+                    parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxFramerate = 15;
+                if (bandwidth === 'unlimited') {
+                    delete parameters.encodings[0].maxBitrate;
+                } else {
+                    parameters.encodings[0].maxBitrate = bandwidth * 1000;
+                }
+                sender.setParameters(parameters)
+                    .then(() => {
+                    })
+                    .catch(e => console.error(e));
+            }
+        }
 
         createLocalSdp(sdp) {
             var newSdp = sdp;
@@ -765,9 +771,11 @@
         setBitRate(sdp) {
             var newSdp = sdp;
             // Only work for Safari and ChromegetCapabilities
-            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-max-bitrate=1000\r\n');
+            // newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-max-bitrate=1000\r\n');
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-min-bitrate=200\r\n');
             // Only work for Firefox
             // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
+            // this.setBandwidth(600);
             return newSdp;
         }
 
@@ -1057,6 +1065,9 @@
         $("[id=hdBtn]").click(function () {
             getVideoWithConstraints(hdConstraints, 'HD');
         });
+        $("[id=fullHdBtn]").click(function () {
+            getVideoWithConstraints(fullHdConstraints, 'FullHD');
+        });
 
         bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
         bitrateGraph.updateEndDate();
@@ -1192,6 +1203,7 @@
                     <button id="qvgaBtn">QVGA</button>
                     <button id="vgaBtn">VGA</button>
                     <button id="hdBtn">HD</button>
+                    <button id="fullHdBtn">FullHD</button>
                     <lable id="videoConstLabel"></lable>
                 </div>
                 <p></p>
