@@ -525,16 +525,21 @@
             }
 
             let video = this.mediaStream.getVideoTracks()[0];
-            if (!isFirefox() && !isEdge()) {
+            if ( !isFirefox() && !isEdge() ) {
                 let capabilities = video.getCapabilities();
                 console.log('# Captured stream capabilities', capabilities);
             }
             let constraints = video.getConstraints();
-            if ( !isFirefox() ) {
-                constraints.frameRate = 15;
-                constraints.minFrameRate = 15;
+            // if ( !isFirefox() ) {
+            constraints.frameRate = 15;
+            constraints.minFrameRate = 10;
+            constraints.maxFrameRate = 30;
+            try {
                 video.applyConstraints(constraints);
+            } catch (e) {
+                console.log('Captured stream constraints error:', e);
             }
+            // }
             console.log('# Captured stream constraints', constraints);
         }
 
@@ -609,6 +614,21 @@
 
                 this.pc.addStream(mediaStream);
 
+                if ( !isFirefox() && !isEdge() ) {
+                    let capabilities = video.getCapabilities();
+                    console.log('# Captured stream capabilities', capabilities);
+                }
+                let constraints = video.getConstraints();
+                // if ( !isFirefox() ) {
+                constraints.frameRate = 15;
+                constraints.minFrameRate = 10;
+                constraints.maxFrameRate = 30;
+                try {
+                    video.applyConstraints(constraints);
+                } catch (e) {
+                    console.log('Captured stream constraints error:', e);
+                }
+                // }
                 // (async () => {
                 //     // const workerCode = document.querySelector('#workerCode').textContent;
                 //     // const blob = new Blob([workerCode], { type: 'text/javascript' });
@@ -684,7 +704,8 @@
         setBitRate(sdp) {
             var newSdp = sdp;
             // Only work for Safari and Chrome
-            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-min-bitrate=200;x-google-max-bitrate=1000\r\n');
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=500;x-google-min-bitrate=200;x-google-max-bitrate=600\r\n');
+            // newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-min-bitrate=200\r\n');
             // Only work for Firefox
             // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
             this.setBandwidth(600);

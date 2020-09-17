@@ -618,15 +618,16 @@
                 console.log('# Captured stream capabilities', capabilities);
             }
             let constraints = video.getConstraints();
-            if ( !isFirefox() ) {
+            // if ( !isFirefox() ) {
                 constraints.frameRate = 15;
-                constraints.minFrameRate = 15;
+                constraints.minFrameRate = 10;
+                constraints.maxFrameRate = 30;
                 try {
                     video.applyConstraints(constraints);
                 } catch (e) {
                     console.log('Captured stream constraints error:', e);
                 }
-            }
+            // }
             console.log('Captured stream constraints', constraints);
         }
 
@@ -671,7 +672,6 @@
             let config = {};
             let videoDevice = {
                 deviceId: videoSource ? {exact: videoSource} : undefined,
-                // frameRate: {min: 15, max: 15}
             }
             let videoConfig = Object.assign(videoDevice, videoConstraints);
 
@@ -696,6 +696,22 @@
 
                 this.pc.addStream(mediaStream);
 
+                if ( !isFirefox() && !isEdge() ) {
+                    let capabilities = video.getCapabilities();
+                    console.log('# Captured stream capabilities', capabilities);
+                }
+                let constraints = video.getConstraints();
+                // if ( !isFirefox() ) {
+                    constraints.frameRate = 15;
+                    constraints.minFrameRate = 10;
+                    constraints.maxFrameRate = 30;
+                    try {
+                        video.applyConstraints(constraints);
+                    } catch (e) {
+                        console.log('Captured stream constraints error:', e);
+                    }
+                // }
+                console.log('Captured stream constraints', constraints);
                 // (async () => {
                 //     // const workerCode = document.querySelector('#workerCode').textContent;
                 //     // const blob = new Blob([workerCode], { type: 'text/javascript' });
