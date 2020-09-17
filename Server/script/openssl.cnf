@@ -226,8 +226,6 @@ subjectAltName          = @alt_names
 
 [ alt_names ]
 DNS.1 = *.charmlive.com
-DNS.2 = demo-stream1.charmlive.com
-DNS.3 = demo-stream2.charmlive.com
 IP.1 = 127.0.0.1
 
 [ v3_ca ]
