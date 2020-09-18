@@ -531,9 +531,9 @@
             }
             let constraints = video.getConstraints();
             // if ( !isFirefox() ) {
-            constraints.frameRate = 15;
-            constraints.minFrameRate = 10;
-            constraints.maxFrameRate = 30;
+            constraints.frameRate = 10;
+            constraints.minFrameRate = 8;
+            constraints.maxFrameRate = 15;
             try {
                 video.applyConstraints(constraints);
             } catch (e) {
@@ -620,9 +620,9 @@
                 }
                 let constraints = video.getConstraints();
                 // if ( !isFirefox() ) {
-                constraints.frameRate = 15;
-                constraints.minFrameRate = 10;
-                constraints.maxFrameRate = 30;
+                constraints.frameRate = 10;
+                constraints.minFrameRate = 8;
+                constraints.maxFrameRate = 15;
                 try {
                     video.applyConstraints(constraints);
                 } catch (e) {
