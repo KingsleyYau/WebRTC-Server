@@ -1,0 +1,17 @@
+[ req ]
+prompt             = no
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+req_extensions     = req_ext
+[ req_distinguished_name ]
+countryName                = HK
+localityName               = HK
+organizationName           = MediaServer
+commonName                 = MediaServer
+emailAddress               = kingsleyyau@gmail.com
+[ req_ext ]
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = *.charmlive.com
+IP.1 = 18.194.23.38
