@@ -15,3 +15,5 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = *.charmlive.com
 IP.1 = 198.211.27.71
+IP.2 = 192.168.88.133
+IP.3 = 192.168.88.134

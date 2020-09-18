@@ -25,7 +25,7 @@ openssl verify -CAfile output/private/cacert.crt output/server.crt
 # Show User certificate info
 openssl x509 -in output/server.crt -text -noout
 # Check remote domain certificate
-openssl s_client -connect demo-stream2.charmlive.com:9082 -CAfile private/cacert.crt
+#openssl s_client -connect demo-stream2.charmlive.com:9082 -CAfile output/private/cacert.crt
 
 
 # Create certificate with interactive model
