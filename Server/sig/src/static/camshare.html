@@ -809,7 +809,6 @@
     function showUserAgent() {
         var userAgent = navigator.userAgent;
         $("[id=userAgent]").html(userAgent);
-        $("[id=isEdge]").html(isEdge() ? "TRUE" : "FALSE");
     }
 
     function isIE() {
@@ -989,9 +988,6 @@
 <div id="">
     UserAgent :
     <lable id="userAgent"></lable>
-    <br>
-    IsEdge :
-    <lable id="isEdge"></lable>
     <br>
     Websocket Status :
     <lable id="status">Not Connected</lable>
