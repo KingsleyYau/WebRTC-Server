@@ -11,10 +11,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@koa/cors": "^3.0.0",
-    "amqplib": "^0.5.5",
-    "ioredis": "^4.16.3",
-    "koa": "^2.11.0",
+    "@koa/cors": "^3.1.0",
+    "amqplib": "^0.5.6",
+    "ioredis": "^4.17.3",
+    "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-range": "^0.3.0",
     "koa-router": "^7.4.0",
@@ -29,7 +29,7 @@
     "redis": "^2.8.0",
     "socket.io": "^2.3.0",
     "socket.io-json-parser": "^2.1.0",
-    "socket.io-parser": "^3.4.0",
-    "ws": "^7.3.0"
+    "socket.io-parser": "^3.4.1",
+    "ws": "^7.3.1"
   }
 }
