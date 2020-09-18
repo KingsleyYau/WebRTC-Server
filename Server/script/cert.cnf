@@ -14,4 +14,4 @@ extendedKeyUsage = serverAuth
 subjectAltName = @alt_names
 [alt_names]
 DNS.1 = *.charmlive.com
-IP.1 = 18.194.23.38
+IP.1 = 198.211.27.71
