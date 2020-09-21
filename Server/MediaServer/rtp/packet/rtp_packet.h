@@ -8,39 +8,50 @@
  *  Borrow from WebRTC Project
  */
 
-#ifndef RTP_PACKET_RTPPACKET_H_
-#define RTP_PACKET_RTPPACKET_H_
+#ifndef RTP_PACKET_RTP_PACKET_H_
+#define RTP_PACKET_RTP_PACKET_H_
 
-#include <unistd.h>
-#include <stdint.h>
+#include <string>
+#include <vector>
 
-#include <rtp/base/byte_io.h>
-#include <rtp/api/rtp_parameters.h>
-#include <rtp/include/rtp_rtcp_defines.h>
+#include <absl/types/optional.h>
+#include <rtp/api/array_view.h>
 #include <rtp/include/rtp_header_extension_map.h>
+#include <rtp/include/rtp_rtcp_defines.h>
 #include <rtp/base/copy_on_write_buffer.h>
 
-#include <map>
-#include <vector>
-using namespace std;
-
 namespace mediaserver {
+
 class RtpPacket {
 public:
 	using ExtensionType = RTPExtensionType;
 	using ExtensionManager = RtpHeaderExtensionMap;
 
+	// |extensions| required for SetExtension/ReserveExtension functions during
+	// packet creating and used if available in Parse function.
+	// Adding and getting extensions will fail until |extensions| is
+	// provided via constructor or IdentifyExtensions function.
 	RtpPacket();
-	RtpPacket(const ExtensionManager* extensions);
+	explicit RtpPacket(const ExtensionManager* extensions);
+	RtpPacket(const RtpPacket&);
 	RtpPacket(const ExtensionManager* extensions, size_t capacity);
-	virtual ~RtpPacket();
+	~RtpPacket();
 
-	bool Parse(const uint8_t* buffer, size_t buffer_size);
+	RtpPacket& operator=(const RtpPacket&) = default;
+
+	// Parse and copy given buffer into Packet.
+	// Does not require extension map to be registered (map is only required to
+	// read or allocate extensions in methods GetExtension, AllocateExtension,
+	// etc.)
+	bool Parse(const uint8_t* buffer, size_t size);
+	bool Parse(mediaserver::ArrayView<const uint8_t> packet);
+
+	// Parse and move given buffer into Packet.
+	bool Parse(mediaserver::CopyOnWriteBuffer packet);
 
 	// Maps extensions id to their types.
 	void IdentifyExtensions(const ExtensionManager& extensions);
 
-	/////////////////////////////////////////////////////////////////////////////////
 	// Header.
 	bool Marker() const {
 		return marker_;
@@ -62,9 +73,7 @@ public:
 	size_t headers_size() const {
 		return payload_offset_;
 	}
-	/////////////////////////////////////////////////////////////////////////////////
 
-	/////////////////////////////////////////////////////////////////////////////////
 	// Payload.
 	size_t payload_size() const {
 		return payload_size_;
@@ -72,12 +81,10 @@ public:
 	size_t padding_size() const {
 		return padding_size_;
 	}
-	ArrayView<const uint8_t> payload() const {
-		return MakeArrayView(data() + payload_offset_, payload_size_);
+	mediaserver::ArrayView<const uint8_t> payload() const {
+		return mediaserver::MakeArrayView(data() + payload_offset_, payload_size_);
 	}
-	/////////////////////////////////////////////////////////////////////////////////
 
-	/////////////////////////////////////////////////////////////////////////////////
 	// Buffer.
 	mediaserver::CopyOnWriteBuffer Buffer() const {
 		return buffer_;
@@ -89,45 +96,29 @@ public:
 		return payload_offset_ + payload_size_ + padding_size_;
 	}
 	const uint8_t* data() const {
-		return parse_data_;
+		return buffer_.cdata();
 	}
-//	const uint8_t* data() const {
-//		return buffer_.cdata();
-//	}
 	size_t FreeCapacity() const {
 		return capacity() - size();
 	}
 	size_t MaxPayloadSize() const {
 		return capacity() - headers_size();
 	}
-	/////////////////////////////////////////////////////////////////////////////////
 
 	// Reset fields and buffer.
 	void Clear();
 
+	// Header setters.
+	void CopyHeaderFrom(const RtpPacket& packet);
 	void SetMarker(bool marker_bit);
 	void SetPayloadType(uint8_t payload_type);
 	void SetSequenceNumber(uint16_t seq_no);
 	void SetTimestamp(uint32_t timestamp);
 	void SetSsrc(uint32_t ssrc);
-	// Writes csrc list. Assumes:
-	// a) There is enough room left in buffer.
-	// b) Extension headers, payload or padding data has not already been added.
-	void SetCsrcs(mediaserver::ArrayView<const uint32_t> csrcs);
 
-	// Header.
-	bool has_padding_;
-	bool has_extension_;
-	uint8_t number_of_crcs_;
-	bool marker_;
-	uint8_t payload_type_;
-	uint8_t padding_size_;
-	uint16_t sequence_number_;
-	uint32_t timestamp_;
-	uint32_t ssrc_;
-	size_t payload_offset_;  // Match header size with csrcs and extensions.
-	size_t payload_size_;
-	const uint8_t* parse_data_;
+	// Fills with zeroes mutable extensions,
+	// which are modified after FEC protection is generated.
+	void ZeroMutableExtensions();
 
 	// Removes extension of given |type|, returns false is extension was not
 	// registered in packet's extension map or not present in the packet. Only
@@ -135,25 +126,33 @@ public:
 	// not be registered and will be preserved as is.
 	bool RemoveExtension(ExtensionType type);
 
+	// Writes csrc list. Assumes:
+	// a) There is enough room left in buffer.
+	// b) Extension headers, payload or padding data has not already been added.
+	void SetCsrcs(mediaserver::ArrayView<const uint32_t> csrcs);
+
+	// Header extensions.
 	template<typename Extension>
 	bool HasExtension() const;
 	bool HasExtension(ExtensionType type) const;
+	bool IsExtensionPacket() const;
 
 	template<typename Extension>
 	bool IsExtensionReserved() const;
 	bool IsExtensionReserved(ExtensionType type) const;
 
 	template<typename Extension, typename FirstValue, typename ... Values>
-	bool GetExtension(FirstValue first, Values ... values) const;
+	bool GetExtension(FirstValue, Values...) const;
 
 	template<typename Extension>
 	absl::optional<typename Extension::value_type> GetExtension() const;
 
+	// Returns view of the raw extension or empty view on failure.
 	template<typename Extension>
-	ArrayView<const uint8_t> GetRawExtension() const;
+	mediaserver::ArrayView<const uint8_t> GetRawExtension() const;
 
 	template<typename Extension, typename ... Values>
-	bool SetExtension(Values ... values);
+	bool SetExtension(Values...);
 
 	template<typename Extension>
 	bool ReserveExtension();
@@ -165,8 +164,7 @@ public:
 
 	// Find an extension |type|.
 	// Returns view of the raw extension or empty view on failure.
-	mediaserver::ArrayView<const uint8_t> FindExtension(
-			ExtensionType type) const;
+	mediaserver::ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
 
 	// Reserve size_bytes for payload. Returns nullptr on failure.
 	uint8_t* SetPayloadSize(size_t size_bytes);
@@ -195,10 +193,13 @@ private:
 	// but does not touch packet own buffer, leaving packet in invalid state.
 	bool ParseBuffer(const uint8_t* buffer, size_t size);
 
-	ExtensionInfo& FindOrCreateExtensionInfo(int id);
 	// Returns pointer to extension info for a given id. Returns nullptr if not
 	// found.
 	const ExtensionInfo* FindExtensionInfo(int id) const;
+
+	// Returns reference to extension info for a given id. Creates a new entry
+	// with the specified id if not found.
+	ExtensionInfo& FindOrCreateExtensionInfo(int id);
 
 	// Allocates and returns place to store rtp header extension.
 	// Returns empty arrayview on failure.
@@ -211,30 +212,33 @@ private:
 	uint16_t SetExtensionLengthMaybeAddZeroPadding(size_t extensions_offset);
 
 	uint8_t* WriteAt(size_t offset) {
-		if ( buffer_.size() > offset ) {
-			return buffer_.data() + offset;
-		} else {
-			return NULL;
-		}
+		return buffer_.data() + offset;
 	}
 	void WriteAt(size_t offset, uint8_t byte) {
-		if ( buffer_.size() > offset ) {
-			buffer_.data()[offset] = byte;
-		}
+		buffer_.data()[offset] = byte;
 	}
 	const uint8_t* ReadAt(size_t offset) const {
-		if ( buffer_.size() > offset ) {
-			return buffer_.data() + offset;
-		} else {
-			return NULL;
-		}
+		return buffer_.data() + offset;
 	}
 
-	// Extension
-	std::vector<ExtensionInfo> extension_entries_;
+	// Header.
+	bool marker_;
+	uint8_t payload_type_;
+	uint8_t padding_size_;
+	uint16_t sequence_number_;
+	uint32_t timestamp_;
+	uint32_t ssrc_;
+	size_t payload_offset_;  // Match header size with csrcs and extensions.
+	size_t payload_size_;
+	// Add by Max
+	bool has_padding_;
+	bool has_extension_;
+	uint8_t number_of_crcs_;
+
 	ExtensionManager extensions_;
+	std::vector<ExtensionInfo> extension_entries_;
 	size_t extensions_size_ = 0;  // Unaligned.
-	CopyOnWriteBuffer buffer_;
+	mediaserver::CopyOnWriteBuffer buffer_;
 };
 
 template<typename Extension>
@@ -287,6 +291,6 @@ bool RtpPacket::ReserveExtension() {
 	return true;
 }
 
-} /* namespace mediaserver */
+}  // namespace mediaserver
 
-#endif /* RTP_PACKET_RTPPACKET_H_ */
+#endif  // RTP_PACKET_RTP_PACKET_H_

@@ -17,7 +17,7 @@
 
 #include <rtp/api/array_view.h>
 #include <rtp/api/rtp_headers.h>
-#include <rtp/packet/RtpPacket.h>
+#include <rtp/packet/rtp_packet.h>
 #include <rtp/base/ntp_time.h>
 
 namespace mediaserver {

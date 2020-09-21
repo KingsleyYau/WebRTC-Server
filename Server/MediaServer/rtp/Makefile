@@ -38,7 +38,7 @@ OBJS		+=	include/rtp_rtcp_defines.o include/rtp_header_extension_map.o include/r
 				include/rtp_header_extensions.o include/time_util.o \
 				include/receive_statistics_impl.o 
 				
-OBJS		+=	packet/RtpPacket.o packet/rtp_packet_received.o \
+OBJS		+=	packet/rtp_packet.o packet/rtp_packet_received.o \
 				packet/RtcpPacket.o packet/CommonHeader.o \
 				packet/Dlrr.o packet/Rrtr.o packet/TargetBitrate.o packet/ExtendedReports.o \
 				packet/ReportBlock.o packet/SenderReport.o \

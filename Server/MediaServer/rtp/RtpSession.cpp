@@ -8,7 +8,6 @@
 
 #include "RtpSession.h"
 
-#include <rtp/packet/RtpPacket.h>
 #include <rtp/packet/rtp_packet_received.h>
 #include <rtp/packet/Pli.h>
 #include <rtp/packet/Fir.h>
@@ -563,7 +562,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								"%s"
 								")", this, PktTypeDesc(header.ssrc).c_str(),
 								header.ssrc, header.ssrc,
-								rtpPkt.has_extension_,
+								rtpPkt.IsExtensionPacket(),
 								header.sequenceNumber,
 								header.timestamp,
 								header.extension.GetAbsoluteSendTimestamp().ms(),
@@ -982,9 +981,9 @@ bool RtpSession::SendRtcpRr(const std::vector<rtcp::ReportBlock> &result) {
 }
 
 void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recvTime, const RTPHeader& header) {
-	uint16_t seq = rtpPkt->sequence_number_;
-	uint32_t ts = rtpPkt->timestamp_;
-	uint32_t ssrc = rtpPkt->ssrc_;
+	uint16_t seq = rtpPkt->SequenceNumber();
+	uint32_t ts = rtpPkt->Timestamp();
+	uint32_t ssrc = rtpPkt->Ssrc();
 
 	// 更新接收包统计
 	UpdateStatsPacket(rtpPkt, recvTime);
@@ -1003,9 +1002,9 @@ void RtpSession::UpdateStreamInfo(const RtpPacketReceived *rtpPkt, uint64_t recv
 bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t recvTime) {
 	bool bFlag = true;
 
-	uint16_t seq = rtpPkt->sequence_number_;
-	uint32_t ts = rtpPkt->timestamp_;
-//	uint32_t ssrc = rtpPkt->ssrc_;
+	uint16_t seq = rtpPkt->SequenceNumber();
+	uint32_t ts = rtpPkt->Timestamp();
+//	uint32_t ssrc = rtpPkt->Ssrc();
 
 	// 更新接收包统计
 	rs_module_.OnRtpPacket(*rtpPkt);
@@ -1058,11 +1057,11 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 	return bFlag;
 }
 
-bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
+bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *rtpPkt,
 		uint64_t recvTime) {
-	uint16_t seq = pkt->sequence_number_;
-	uint32_t ts = pkt->timestamp_;
-	uint32_t ssrc = pkt->ssrc_;
+	uint16_t seq = rtpPkt->SequenceNumber();
+	uint32_t ts = rtpPkt->Timestamp();
+	uint32_t ssrc = rtpPkt->Ssrc();
 
 	bool bFlag = false;
 
@@ -1100,9 +1099,9 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *pkt,
 
 bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 		uint64_t recvTime) {
-	uint16_t seq = rtpPkt->sequence_number_;
-	uint32_t ts = rtpPkt->timestamp_;
-	uint32_t ssrc = rtpPkt->ssrc_;
+	uint16_t seq = rtpPkt->SequenceNumber();
+	uint32_t ts = rtpPkt->Timestamp();
+	uint32_t ssrc = rtpPkt->Ssrc();
 
 	bool bFlag = false;
 
