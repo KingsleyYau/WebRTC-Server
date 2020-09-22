@@ -8,6 +8,7 @@
 
 #include "RtpSession.h"
 
+#include <rtp/packet/rtp_packet_to_send.h>
 #include <rtp/packet/rtp_packet_received.h>
 #include <rtp/packet/Pli.h>
 #include <rtp/packet/Fir.h>
@@ -107,6 +108,8 @@ bool RtpSession::GobalInit() {
 	return bFlag;
 }
 
+static const int kMinSendSidePacketHistorySize = 600;
+
 constexpr int kRembSendIntervalMs = 200;
 constexpr int kRRSendIntervalMs = 5000;
 
@@ -141,7 +144,9 @@ RtpSession::RtpSession() :
 		nack_module_(Clock::GetRealTimeClock()),
 		nack_audio_module_(Clock::GetRealTimeClock(), kNackThresholdPackets),
 		rbe_module_(this, Clock::GetRealTimeClock()),
-		rs_module_(Clock::GetRealTimeClock()) {
+		rs_module_(Clock::GetRealTimeClock()),
+		video_packet_history_(Clock::GetRealTimeClock()),
+		audio_packet_history_(Clock::GetRealTimeClock()) {
 	// TODO Auto-generated constructor stub
 	// Status
 	mRunning = false;
@@ -155,6 +160,9 @@ RtpSession::RtpSession() :
 	mpRecvSrtpCtx = NULL;
 	mpSendPolicy = new srtp_policy_t();
 	mpRecvPolicy = new srtp_policy_t();
+
+	video_packet_history_.SetStorePacketsStatus(RtpPacketHistory::StorageMode::kStoreAndCull, kMinSendSidePacketHistorySize);
+	audio_packet_history_.SetStorePacketsStatus(RtpPacketHistory::StorageMode::kStoreAndCull, kMinSendSidePacketHistorySize);
 
 	Reset();
 }
@@ -220,6 +228,9 @@ void RtpSession::Reset() {
 	// 接收统计模块
 	rs_module_.Reset();
 	rs_module_.SetMaxReorderingThreshold(kDefaultMaxReorderingThreshold);
+	// RTP发包缓存模块
+	video_packet_history_.Clear();
+	audio_packet_history_.Clear();
 }
 
 void RtpSession::SetRtpSender(SocketSender *sender) {
@@ -376,8 +387,8 @@ bool RtpSession::StartSend(char *localKey, int size) {
 
 	mpSendPolicy->ssrc.type = ssrc_any_outbound;
 	mpSendPolicy->ssrc.value = 0;
-	mpSendPolicy->window_size = 0;
-	mpSendPolicy->allow_repeat_tx = 0;
+	mpSendPolicy->window_size = 1024;
+	mpSendPolicy->allow_repeat_tx = 1;
 	mpSendPolicy->ekt = NULL;
 	mpSendPolicy->next = NULL;
 
@@ -430,7 +441,6 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtp);
 		srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&mpRecvPolicy->rtcp);
 		mpRecvPolicy->key = (uint8_t *) remoteKey;
-
 	} else {
 		srtp_crypto_policy_set_null_cipher_hmac_null(&mpRecvPolicy->rtp);
 		srtp_crypto_policy_set_null_cipher_hmac_null(&mpRecvPolicy->rtcp);
@@ -440,7 +450,7 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 	mpRecvPolicy->ssrc.type = ssrc_any_inbound;
 	mpRecvPolicy->ssrc.value = 0;
 	mpRecvPolicy->window_size = 1024;
-	mpRecvPolicy->allow_repeat_tx = 0;
+	mpRecvPolicy->allow_repeat_tx = 1;
 	mpRecvPolicy->ekt = NULL;
 	mpRecvPolicy->next = NULL;
 
@@ -621,6 +631,31 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	bool bFlag = false;
 	int sendSize = 0;
 
+	RtpHeader *h = (RtpHeader *)pkt;
+	unsigned int ssrc = GetRtpSSRC(pkt, pktSize);
+	LogAync(
+			LOG_DEBUG,
+			"RtpSession::SendRtpPacket( "
+			"this : %p, "
+			"[%s], "
+			"media_ssrc : 0x%08x(%u), "
+			"x : %u, "
+			"seq : %u, "
+			"ts : %u, "
+			"pktSize : %d"
+			"%s"
+			")",
+			this,
+			PktTypeDesc(ssrc).c_str(),
+			ssrc,
+			ssrc,
+			h->x,
+			ntohs(h->seq),
+			ntohl(h->ts),
+			pktSize,
+			h->m ? ", [Mark] " : " "
+			);
+
 	srtp_err_status_t status = srtp_err_status_fail;
 	mClientMutex.lock();
 	if (mRunning) {
@@ -645,26 +680,50 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	}
 
     if ( !bFlag ) {
-    	RtpHeader *header = (RtpHeader *)pkt;
-
 		LogAync(
 				LOG_INFO,
 				"RtpSession::SendRtpPacket( "
 				"this : %p, "
-				"status : %d, "
-				"sendSize : %d, "
-				"pktSize : %d, "
+				"[%s], "
+				"media_ssrc : 0x%08x(%u), "
 				"seq : %u, "
-				"timestamp : %u "
+				"ts : %u, "
+				"pktSize : %d,"
+				"%s"
+				"sendSize : %d, "
+				"status : %d, "
+				"[Fail] "
 				")",
 				this,
-				status,
-				sendSize,
+				PktTypeDesc(ssrc).c_str(),
+				ssrc,
+				ssrc,
+				ntohs(h->seq),
+				ntohl(h->ts),
 				pktSize,
-				ntohs(header->seq),
-				ntohl(header->ts)
+				h->m ? "[Mark], " : ""
+				sendSize,
+				status
 				);
     }
+
+	return bFlag;
+}
+
+bool RtpSession::EnqueueRtpPacket(void *pkt, unsigned int& pktSize) {
+	bool bFlag = false;
+
+	RtpPacketToSend rtpPkt(&mVideoExtensionMap);
+	bFlag = rtpPkt.Parse((const uint8_t *)pkt, pktSize);
+	if (bFlag) {
+		int64_t now = Clock::GetRealTimeClock()->TimeInMilliseconds();
+		if (IsVideoPkt(rtpPkt.Ssrc())) {
+		    video_packet_history_.PutRtpPacket(mediaserver::make_unique<RtpPacketToSend>(std::move(rtpPkt)), now);
+		} else if (IsAudioPkt(rtpPkt.Ssrc())) {
+			audio_packet_history_.PutRtpPacket(mediaserver::make_unique<RtpPacketToSend>(std::move(rtpPkt)), now);
+		}
+	    SendRtpPacket(pkt, pktSize);
+	}
 
 	return bFlag;
 }
@@ -681,7 +740,6 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 			pktSize = size;
 
 //			RtcpPayloadType type = (RtcpPayloadType)((RtcpHeader *)pkt)->pt;
-//
 //			LogAync(
 //					LOG_DEBUG,
 //					"RtpSession::RecvRtcpPacket( "
@@ -1065,19 +1123,6 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *rtpPkt,
 
 	bool bFlag = false;
 
-//	LogAync(LOG_DEBUG, "RtpSession::UpdateAudioLossPacket( "
-//			"this : %p, "
-//			"[Audio], "
-//			"media_ssrc : 0x%08x(%u), "
-//			"seq : %u, "
-//			"ts : %u, "
-//			"recvTime : %lld, "
-//			"mAudioMaxSeq : %u, "
-//			"mAudioMaxTimestamp : %u, "
-//			"mAudioTotalRecvPacket : %u "
-//			")", this, ssrc, ssrc, seq, ts, recvTime, mAudioMaxSeq,
-//			mAudioMaxTimestamp, mAudioTotalRecvPacket);
-
 	nack_audio_module_.UpdateLastReceivedPacket(seq, ts);
 	std::vector<uint16_t> nack_batch = nack_audio_module_.GetNackList(xr_rr_rtt_ms_);
 
@@ -1404,6 +1449,7 @@ void RtpSession::HandleRtcpXrDlrr(const ReceiveTimeInfo& rti) {
 	xr_rr_rtt_ms_ = CompactNtpRttToMs(rtt_ntp);
 	nack_module_.UpdateRtt(xr_rr_rtt_ms_);
 	rbe_module_.OnRttUpdate(xr_rr_rtt_ms_, xr_rr_rtt_ms_);
+	video_packet_history_.SetRtt(xr_rr_rtt_ms_);
 
 	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXrDlrr( "
 			"this : %p, "
@@ -1436,27 +1482,55 @@ void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
 	LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
 			"this : %p, "
 			"[%s], "
-			"media_ssrc_ : 0x%08x(%u), "
+			"media_ssrc : 0x%08x(%u), "
 			"nack_batch_size : %u, "
 			"nack_batch : %s "
 			")", this, PktTypeDesc(nack.media_ssrc_).c_str(), nack.media_ssrc_, nack.media_ssrc_,
 			nack.packet_ids().size(), nacks.c_str());
 
-//  if (receiver_only_ || main_ssrc_ != nack.media_ssrc())  // Not to us.
-//    return;
-//
-//  packet_information->nack_sequence_numbers.insert(
-//      packet_information->nack_sequence_numbers.end(),
-//      nack.packet_ids().begin(), nack.packet_ids().end());
-//  for (uint16_t packet_id : nack.packet_ids())
-//    nack_stats_.ReportRequest(packet_id);
-//
-//  if (!nack.packet_ids().empty()) {
-//    packet_information->packet_type_flags |= kRtcpNack;
-//    ++packet_type_counter_.nack_packets;
-//    packet_type_counter_.nack_requests = nack_stats_.requests();
-//    packet_type_counter_.unique_nack_requests = nack_stats_.unique_requests();
-//  }
+	if (IsVideoPkt(nack.media_ssrc_)) {
+		for (uint16_t packet_id : nack.packet_ids()) {
+			std::unique_ptr<RtpPacketToSend> packet = video_packet_history_.GetPacketAndMarkAsPending(packet_id);
+
+			if (packet) {
+				packet->set_packet_type(RtpPacketToSend::Type::kRetransmission);
+				video_packet_history_.MarkPacketAsSent(packet->SequenceNumber());
+
+				LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
+						"this : %p, "
+						"[%s], "
+						"media_ssrc : 0x%08x(%u), "
+						"seq : %u, "
+						"[ReSend] "
+						")", this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
+						packet_id);
+
+				unsigned int bufferSize = packet->size();
+				SendRtpPacket((void *)packet->data(), bufferSize);
+			}
+		}
+	} else if (IsAudioPkt(nack.media_ssrc_)) {
+		for (uint16_t packet_id : nack.packet_ids()) {
+			std::unique_ptr<RtpPacketToSend> packet = audio_packet_history_.GetPacketAndMarkAsPending(packet_id);
+
+			if (packet) {
+				packet->set_packet_type(RtpPacketToSend::Type::kRetransmission);
+				audio_packet_history_.MarkPacketAsSent(packet->SequenceNumber());
+
+				LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
+						"this : %p, "
+						"[%s], "
+						"media_ssrc : 0x%08x(%u), "
+						"seq : %u, "
+						"[ReSend] "
+						")", this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
+						packet_id);
+
+				unsigned int bufferSize = packet->size();
+				SendRtpPacket((void *)packet->data(), bufferSize);
+			}
+		}
+	}
 }
 
 string RtpSession::PktTypeDesc(unsigned int ssrc) {

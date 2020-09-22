@@ -10,6 +10,8 @@
 
 # Must be absolute path
 BUILD_PATH=$1
+echo "BUILD_PATH:$BUILD_PATH"
+export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
 
 cd third_party/libev
 chmod +x configure || exit 1
@@ -30,14 +32,14 @@ cd -
 
 cd third_party/libsrtp || exit 1
 chmod +x configure || exit 1
-./configure --disable-shared --enable-static || exit 1
+export CFLAGS="$(pkg-config --cflags openssl)"
+export LDFLAGS="$(pkg-config --libs openssl)"
+./configure || exit 1
 cd -
 
 cd third_party/libnice || exit 1
 chmod +x autogen.sh || exit 1
-echo "BUILD_PATH:$BUILD_PATH"
-export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
-export CFLAGS="-g $(pkg-config --cflags openssl)"
+export CFLAGS="$(pkg-config --cflags openssl)"
 export LDFLAGS="$(pkg-config --libs openssl) -ldl -pthread"
 ./autogen.sh --disable-shared --enable-static || exit 1
 cd -

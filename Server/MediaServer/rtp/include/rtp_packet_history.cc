@@ -15,10 +15,12 @@
 #include <memory>
 #include <utility>
 
-//#include <rtp/include/module_common_types_public.h>
+#include <rtp/modules/include/module_common_types_public.h>
 #include <rtp/packet/rtp_packet_to_send.h>
 #include <rtp/base/checks.h>
 #include <rtp/base/clock.h>
+
+#include <include/CommonHeader.h>
 
 namespace mediaserver {
 
@@ -90,8 +92,8 @@ void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode,
 	RTC_DCHECK_LE(number_to_store, kMaxCapacity);
 	mediaserver::CritScope cs(&lock_);
 	if (mode != StorageMode::kDisabled && mode_ != StorageMode::kDisabled) {
-		RTC_LOG(LS_WARNING)
-				<< "Purging packet history in order to re-set status.";
+//		RTC_LOG(LS_WARNING)
+//				<< "Purging packet history in order to re-set status.";
 	}
 	Reset();
 	mode_ = mode;
@@ -133,7 +135,7 @@ void RtpPacketHistory::PutRtpPacket(std::unique_ptr<RtpPacketToSend> packet,
 	if (packet_index >= 0u
 			&& static_cast<size_t>(packet_index) < packet_history_.size()
 			&& packet_history_[packet_index].packet_ != nullptr) {
-		RTC_LOG(LS_WARNING) << "Duplicate packet inserted: " << rtp_seq_no;
+//		RTC_LOG(LS_WARNING) << "Duplicate packet inserted: " << rtp_seq_no;
 		// Remove previous packet to avoid inconsistent state.
 		RemovePacket(packet_index);
 		packet_index = GetPacketIndex(rtp_seq_no);
@@ -186,14 +188,14 @@ std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(
 	packet->pending_transmission_ = false;
 
 	// Return copy of packet instance since it may need to be retransmitted.
-	return std::make_unique < RtpPacketToSend > (*packet->packet_);
+	return mediaserver::make_unique<RtpPacketToSend>(*packet->packet_);
 }
 
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(
 		uint16_t sequence_number) {
 	return GetPacketAndMarkAsPending(sequence_number,
 			[](const RtpPacketToSend& packet) {
-				return std::make_unique<RtpPacketToSend>(packet);
+				return mediaserver::make_unique<RtpPacketToSend>(packet);
 			});
 }
 
@@ -294,7 +296,7 @@ bool RtpPacketHistory::VerifyRtt(const RtpPacketHistory::StoredPacket& packet,
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
 	// Default implementation always just returns a copy of the packet.
 	return GetPayloadPaddingPacket([](const RtpPacketToSend& packet) {
-		return std::make_unique<RtpPacketToSend>(packet);
+		return mediaserver::make_unique<RtpPacketToSend>(packet);
 	});
 }
 

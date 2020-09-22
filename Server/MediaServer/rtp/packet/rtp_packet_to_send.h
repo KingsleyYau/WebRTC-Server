@@ -20,7 +20,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/api/video/video_timing.h>
 #include <rtp/include/rtp_header_extensions.h>
-#include <rtp/packet/RtpPacket.h>
+#include <rtp/packet/rtp_packet.h>
 
 namespace mediaserver {
 // Class to hold rtp packet with metadata for sender side.

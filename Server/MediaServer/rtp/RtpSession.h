@@ -19,7 +19,6 @@
 
 #include <rtp/base/ntp_time.h>
 #include <rtp/packet/SenderReport.h>
-//#include <rtp/packet/RtpPacket.h>
 #include <rtp/packet/rtp_packet_received.h>
 #include <rtp/packet/Dlrr.h>
 
@@ -27,6 +26,7 @@
 #include <rtp/modules/nack_audio_module.h>
 #include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
 #include <rtp/include/receive_statistics_impl.h>
+#include <rtp/include/rtp_packet_history.h>
 
 using namespace mediaserver::rtcp;
 
@@ -113,6 +113,7 @@ public:
 	 * @param pktSize 原始RTP数据包大小
 	 */
 	bool SendRtpPacket(void *pkt, unsigned int& pktSize);
+	bool EnqueueRtpPacket(void *pkt, unsigned int& pktSize);
 	/**
 	 * 接收原始RTCP包(网络字节序)
 	 * @param frame SRTCP数据包
@@ -321,6 +322,10 @@ private:
 	NackAudioModule nack_audio_module_;
 	RemoteBitrateEstimatorAbsSendTime rbe_module_;
 	ReceiveStatisticsImpl rs_module_;
+
+	// RTP发包缓存模块
+	RtpPacketHistory video_packet_history_;
+	RtpPacketHistory audio_packet_history_;
 };
 
 } /* namespace mediaserver */

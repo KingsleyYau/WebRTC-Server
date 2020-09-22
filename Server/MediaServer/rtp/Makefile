@@ -36,9 +36,9 @@ OBJS		+=	base/ntp_time.o base/rw_lock_wrapper.o base/rw_lock_posix.o base/clock.
 				
 OBJS		+=	include/rtp_rtcp_defines.o include/rtp_header_extension_map.o include/rtp_header_extension_size.o \
 				include/rtp_header_extensions.o include/time_util.o \
-				include/receive_statistics_impl.o 
+				include/receive_statistics_impl.o include/rtp_packet_history.o
 				
-OBJS		+=	packet/rtp_packet.o packet/rtp_packet_received.o \
+OBJS		+=	packet/rtp_packet.o packet/rtp_packet_received.o packet/rtp_packet_to_send.o \
 				packet/RtcpPacket.o packet/CommonHeader.o \
 				packet/Dlrr.o packet/Rrtr.o packet/TargetBitrate.o packet/ExtendedReports.o \
 				packet/ReportBlock.o packet/SenderReport.o \
