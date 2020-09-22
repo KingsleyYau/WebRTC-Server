@@ -701,7 +701,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 				ntohs(h->seq),
 				ntohl(h->ts),
 				pktSize,
-				h->m ? "[Mark], " : ""
+				h->m ? "[Mark], " : "",
 				sendSize,
 				status
 				);

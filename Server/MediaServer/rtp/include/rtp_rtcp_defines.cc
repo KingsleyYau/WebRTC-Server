@@ -7,7 +7,7 @@
 
 #include <absl/algorithm/container.h>
 #include <rtp/api/array_view.h>
-#include <rtp/packet/RtpPacket.h>
+#include <rtp/packet/rtp_packet.h>
 
 namespace mediaserver {
 
