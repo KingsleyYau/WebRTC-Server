@@ -14,6 +14,7 @@ else
 CXXFLAGS = -O2 -g
 endif
 
+CXXFLAGS += -std=c++11
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable 
 CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
 			-I../third_party/json \
