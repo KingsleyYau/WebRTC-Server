@@ -1182,6 +1182,9 @@
             if (typeof (client) != "undefined") {
                 client.close();
             }
+
+            $("[id=localVideo]").attr("style", 'display: none');
+            $("[id=remoteVideo]").attr("style", 'display: none');
         });
 
         $("[id=pushBtn]").click(function () {
@@ -1231,7 +1234,8 @@
                 client.close();
             }
 
-            // reset();
+            $("[id=localVideo]").attr("style", 'display: none');
+            $("[id=remoteVideo]").attr("style", 'display: none');
         });
         $("[id=hangupBtn]").attr("disabled", 'true');
 
