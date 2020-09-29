@@ -34,7 +34,7 @@ const AppConfig = {
         proxyHost: 'ws://192.168.88.133:9881',   // 代理服务ip地址
     },
     ice:[
-        'turn://198.211.27.71:3478?transport=tcp',
+        // 'turn://198.211.27.71:3478?transport=tcp',
         'turn://198.211.27.71:3478?transport=udp',
         // 'turn://192.168.88.133:3478',
     ],
