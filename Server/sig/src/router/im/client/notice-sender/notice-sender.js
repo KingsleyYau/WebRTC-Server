@@ -53,6 +53,8 @@ module.exports = class NoticeSender {
                     }
                 }
             }
+        }).catch( () => {
+
         });
     }
 

@@ -19,6 +19,6 @@ module.exports = class SendMsgNotice extends BaseNotice {
     }
 
     static getRoute() {
-        return 'imShare/sendChatNotice';
+        return 'imP2P/sendChatNotice';
     }
 }

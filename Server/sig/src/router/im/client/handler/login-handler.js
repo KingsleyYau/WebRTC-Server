@@ -23,7 +23,7 @@ module.exports = class LoginHandler extends BaseHandler {
     }
 
     static getRoute() {
-        return 'imLogin/login';
+        return 'imP2P/sendLogin';
     }
 
     async handle(ctx, reqData) {
@@ -55,10 +55,12 @@ module.exports = class LoginHandler extends BaseHandler {
                                 oldUser.websocket.close();
                             }
                         }
+                    }).catch( () => {
 
-                        // 等待登录处理
-                        await OnlineUserManager.getInstance().login(user);
                     });
+
+                    // 等待登录处理
+                    await OnlineUserManager.getInstance().login(user);
                 } else {
                     // 已经登录的用户, 直接返回登录信息
                 }
@@ -72,14 +74,6 @@ module.exports = class LoginHandler extends BaseHandler {
                 this.respond.resData.data = {
                     socketId:user.socketId,
                     userId:user.userId,
-                    notice:{
-                        roomlist:[
-                            {
-                                roomId:'123',
-                                anchor_id:'321'
-                            }
-                        ]
-                    }
                 }
             } else {
                 // 登录失败

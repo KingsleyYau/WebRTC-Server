@@ -105,6 +105,7 @@
     let callAlready = false;
     let rtc;
     let callType;
+    let callDirection;
 
     let img;
     let canvasStream;
@@ -124,6 +125,7 @@
     function reset() {
         reqId = 0;
         callAlready = false;
+        callDirection = '';
 
         $("[id=status]").html('Not Connected');
         $("[id=socketId]").html('');
@@ -140,7 +142,8 @@
         $("[id=rtmpUrlLabel]").html('');
 
         $("[id=videoConfigDiv]").attr("style", 'display: block');
-        $("[id=videoDescLabel]").html("");
+        $("[id=videoDescLabel]").attr("style", 'display: none');
+        $("[id=videoRemoteDescLabel]").attr("style", 'display: none');
     }
 
     function handleGetIceToken(iceServers) {
@@ -184,7 +187,7 @@
         let config = {
             iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
             // iceTransportPolicy: "all",
-            iceTransportPolicy: "relay",
+            iceTransportPolicy: (callType == 'p2p')?"all":"relay",
             iceCandidatePoolSize: 0,
         };
 
@@ -195,7 +198,20 @@
         console.log('Global::handleGetIceToken(), config:', config);
         rtc.config = config;
 
-        if (callType == 'push') {
+        if (callType == 'p2p') {
+            const videoSource = $("[id=videoSelector]").val();
+            rtc.p2pOffer(videoSource).then(() => {
+                // Set local display
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpCall
+
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [P2P Offer Fail], e: ", e);
+            });
+
+        } else if (callType == 'push') {
             const videoSource = $("[id=videoSelector]").val();
 
             rtc.push(videoSource).then(() => {
@@ -229,11 +245,18 @@
                 // host = 'wss://' + window.location.hostname + '/test';
                 // host = 'wss://' + window.location.hostname + '/mediaserver';
                 // host = 'wss://' + window.location.hostname + '/camshare';
+
+                if ( callType == 'p2p' ) {
+                    host = 'wss://' + window.location.hostname + ':9777';
+                }
             } else {
                 host = 'ws://' + window.location.hostname + ':9981';
                 // host = 'ws://' + window.location.hostname + '/test';
                 // host = 'ws://' + window.location.hostname + '/mediaserver';
                 // host = 'ws://' + window.location.hostname + '/camshare';
+                if ( callType == 'p2p' ) {
+                    host = 'ws://' + window.location.hostname + ':9777';
+                }
             }
             // host = 'wss://' + '127.0.0.1' + ':9082';
             // host = 'wss://' + '192.168.88.133' + ':9081';
@@ -284,8 +307,17 @@
                 }
 
                 if (typeof (obj.errno) == "undefined" || obj.errno == 0) {
-                    if (obj.route == 'imRTC/sendSdpCallNotice') {
+                    if (obj.route == 'imP2P/sendLogin') {
+                        if (typeof (obj.data.userId) != "undefined") {
+                            $("[id=p2pUserId]").val(obj.data.userId);
+                        }
+                    } else if (obj.route == 'imP2P/sendOfferNotice') {
+                        $("[id=p2pPeerId]").val(obj.req_data.peerId);
                         $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=p2pAnswerBtn]").click();
+                    } else if (obj.route == 'imP2P/sendAnswerNotice') {
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=acceptBtn]").click();
                     } else if (obj.route == 'imRTC/sendSdpCall') {
                         // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
                         if (typeof (obj.data.rtmpUrl) != "undefined") {
@@ -351,6 +383,52 @@
         send(obj);
     }
 
+    /******************* P2P Start *******************/
+    async function sendP2PLogin(userId) {
+        callType = 'p2p';
+        if (typeof (client) != "undefined") {
+            client.close();
+        }
+        rtc.hangup();
+        await connect();
+
+        obj = {
+            route: 'imP2P/sendLogin',
+            req_data: {
+                userId: userId,
+            }
+        }
+
+        console.log('Client.sendP2PLogin(), userId:', userId);
+        send(obj);
+    }
+
+    async function sendP2POffer(peerId, sdp) {
+        obj = {
+            route: 'imP2P/sendOffer',
+            req_data: {
+                peerId: peerId,
+                sdp:sdp
+            }
+        }
+
+        console.log('Client.sendP2POffer(), peerId:', peerId);
+        send(obj);
+    }
+    async function sendP2PAnswer(peerId, sdp) {
+        obj = {
+            route: 'imP2P/sendAnswer',
+            req_data: {
+                peerId: peerId,
+                sdp:sdp
+            }
+        }
+
+        console.log('Client.sendP2PAnswer(), peerId:', peerId);
+        send(obj);
+    }
+    /******************* P2P End *******************/
+
     function sendSdpCall(stream, sdp) {
         obj = {
             route: 'imRTC/sendSdpCall',
@@ -404,8 +482,6 @@
     }
 
     async function sendGetToken(stream) {
-        await connect();
-
         let user_id = stream;// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
         obj = {
             route: 'imRTC/sendGetToken',
@@ -477,10 +553,10 @@
 
             this.pc.ontrack = event => {
                 console.log('RTCClient::ontrack(), stream:', event.streams[0]);
-                $("[id=localVideo]").attr("style", 'display: block');
-                let video = $("[id=localVideo]")[0];
-                if ($("[id=localVideo]")[0].srcObject !== event.streams[0]) {
-                    $("[id=localVideo]").attr("srcObject", event.streams[0]);
+                $("[id=remoteVideo]").attr("style", 'display: block');
+                let video = $("[id=remoteVideo]")[0];
+                if ($("[id=remoteVideo]")[0].srcObject !== event.streams[0]) {
+                    $("[id=remoteVideo]").attr("srcObject", event.streams[0]);
                 }
             };
 
@@ -554,6 +630,58 @@
             $("[id=localSdpTextarea]").html(offer.sdp);
             $("[id=localSdpTextarea]").attr("disabled", false);
             $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async p2pOffer(videoSource) {
+            this.init();
+
+            if (pushVideo) {
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource);
+            }
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            console.log('RTCClient::p2pOffer(), pushVideo:', pushVideo);
+
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async p2pAnswer (offer, videoSource) {
+            this.init();
+
+            if (pushVideo) {
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource);
+            }
+
+            const ignoreRemote = await this.pc.setRemoteDescription(offer);
+
+            const answer = await this.pc.createAnswer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            const ignoreLocal = await this.pc.setLocalDescription(answer);
+
+            let localDescriptionJson = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::p2pAnswer()');
+
+            $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+
+            $("[id=callButton]").attr("disabled", true);
+            $("[id=answerButton]").attr("disabled", true);
+            $("[id=acceptButton]").attr("disabled", true);
+            $("[id=remoteSdpTextarea]").attr("disabled", true);
         }
 
         async accpet(answer) {
@@ -921,6 +1049,11 @@
         }, 50);
     }
 
+    async function p2pOffer(isLocalVideo) {
+        callDirection = 'offer';
+        sendGetToken($("#p2pUserId").val());
+    }
+
     async function call(isPull, isLocalVideo) {
         if (typeof (client) != "undefined") {
             client.close();
@@ -932,13 +1065,14 @@
         if (isPull) {
             callType = 'pull';
             $("[id=videoConfigDiv]").attr("style", 'display: none');
-            $("[id=videoDescLabel]").html("############################ Remote Video ############################");
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
         } else {
             callType = 'push';
-            $("[id=videoDescLabel]").html("############################ Local Video ############################");
+            $("[id=videoDescLabel]").attr("style", 'display: block');
         }
 
-        sendGetToken($("#stream").val(), $("#localSdpTextarea").val());
+        await connect();
+        sendGetToken($("#stream").val());
 
         $("[id=pushBtn]").attr("disabled", 'true');
         $("[id=pullBtn]").attr("disabled", 'true');
@@ -992,8 +1126,63 @@
                 sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
             } else if (callType == 'pull') {
                 sendSdpPull($("#stream").val(), $("#localSdpTextarea").val(), $("#serverId").val());
+            } else if (callType == 'p2p' && callDirection == 'offer') {
+                sendP2POffer($("#p2pPeerId").val(), $("#localSdpTextarea").val())
+            } else if (callType == 'p2p' && callDirection == 'answer') {
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                sendP2PAnswer($("#p2pPeerId").val(), $("#localSdpTextarea").val());
             }
         }
+
+        $("[id=p2pLoginBtn]").click(function () {
+            console.log("# P2P Login");
+            reset();
+
+            $("[id=pushBtn]").attr("disabled", 'true');
+            $("[id=pullBtn]").attr("disabled", 'true');
+            $("[id=pushVideoBtn]").attr("disabled", 'true');
+            $("[id=hangupBtn]").attr("disabled", 'true');
+            $("[id=cmdBtn]").attr("disabled", 'true');
+            $("[id=flvjsBtn]").attr("disabled", 'true');
+            $("[id=flvjsDestroyBtn]").attr("disabled", 'true');
+            $("[id=videoDescLabel]").attr("style", 'display: block');
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
+
+            sendP2PLogin($("#p2pUserId").val());
+        });
+
+        $("[id=p2pOfferBtn]").click(function () {
+            console.log("# P2P Offer");
+            p2pOffer(false);
+        });
+
+        $("[id=p2pAnswerBtn]").click(function() {
+            console.log("# P2P Answer");
+            $("[id=videoDescLabel]").attr("style", 'display: block');
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
+
+            callDirection = 'answer';
+            let remoteSdp = $("#remoteSdpTextarea").val();
+            let offer = {
+                type: 'offer',
+                sdp: remoteSdp
+            }
+
+            rtc.p2pAnswer(offer).then( function success() {
+                console.log("# P2P Answer OK");
+                rtc.stat();
+            }, function fail(reason) {
+                console.log("# P2P Answer Fail, e:" + reason);
+            });
+        });
+
+        $("[id=p2pHangupBtn]").click(function() {
+            console.log("# P2P Hangup");
+            rtc.hangup();
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+        });
 
         $("[id=pushBtn]").click(function () {
             call(false, false);
@@ -1004,15 +1193,15 @@
         });
 
         $("[id=acceptBtn]").click(function accept() {
-            let remoteSdp = remoteSdpTextarea.value;
+            let remoteSdp = $("#remoteSdpTextarea").val();
             let answer = {
                 type: 'answer',
                 sdp: remoteSdp
             }
             rtc.accpet(answer).then(function success() {
-                console.log("Rtc Accept, [OK]");
+                console.log("# Rtc Accept OK");
             }, e => {
-                console.log("Rtc Accept, [Fail], e: ", e);
+                console.log("# Rtc  Accept Fail, e: ", e);
 
                 if (typeof (client) != "undefined") {
                     client.close();
@@ -1191,8 +1380,19 @@
                 <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
             </div>
 
+            <p>############################ P2P ############################</p>
+            # User : <input id="p2pUserId" type="text" name="" value="A"/><br>
+            # PeerId : <input id="p2pPeerId" type="text" name="" value=""/><br>
+            <div>
+                <button id="p2pLoginBtn">Login</button>
+                <button id="p2pOfferBtn">Offer</button>
+                <button id="p2pAnswerBtn" style="display:none">Answer</button>
+                <button id="p2pHangupBtn">Hangup</button>
+            </div>
+            <p>############################ SFU ############################</p>
             # Stream : <input id="stream" type="text" name="" value="max0"/><br>
             # ServerId : <input id="serverId" type="text" name="" value=""/><br>
+
             <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
             <div>Force Tcp <input id="forceTcpCb" type="checkbox"></div>
@@ -1222,10 +1422,12 @@
                 <select id="videoSelector"></select>
             </div>
             <p></p>
-            <label id="videoDescLabel"></label>
+            <label id="videoDescLabel">############################ Local Video ############################</label>
             <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop" playsinline="true"></video>
             <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
             <img id="localImg" src="img/1.jpg" style="display: none">
+            <label id="videoRemoteDescLabel">############################ Remote Video ############################</label>
+            <video id="remoteVideo" width="640" height="480" autoplay style="display:none" loop="loop" playsinline="true"></video>
             <label id="flvjsVideoDescLabel"># Flvjs Player</label>
             <video id="flvjsVideo" class="" style="display: none" controls="" autoplay="" src="">
                 Your browser is too old which doesn't support HTML5 video.

@@ -8,6 +8,8 @@ const appLog = require('./app-log').AppLog.getInstance();
 const AppConfig = require('../config/app-config');
 // Model的Keys
 const DBModelKeys = require('../db/model-keys');
+// OpenSSL
+const Crypto = require('crypto');
 
 isNull = function(obj) {
     if( typeof(obj)!="undefined" && obj!=null ) {
@@ -38,9 +40,20 @@ let AppGlobalVar = {
     rootPath:""
 }
 
+const encrypt = (algorithm, content, key, encoding) => {
+    let hash = Crypto.createHmac(algorithm, key);
+    hash.update(content);
+    return hash.digest(encoding);
+}
+
+const sha1 = (content, key) => encrypt('sha1', content, key);
+const md5 = (content) => encrypt('md5', content);
+
 module.exports = {
     isNull,
     log,
     appInfo,
     AppGlobalVar,
+    sha1,
+    md5
 }

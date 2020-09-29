@@ -7,7 +7,7 @@ const Router = require('koa-router');
 // 项目公共库
 const Common = require('../../../../lib/common');
 // Redis
-const redisClient = require('../../../../lib/redis-connector').RedisConnector.getInstance();
+// const redisClient = require('../../../../lib/redis-connector').RedisConnector.getInstance();
 // Model的Keys
 const DBModelKeys = require('../../../../db/model-keys');
 // 用户
@@ -24,9 +24,9 @@ function disconnect(ctx) {
     try {
         // 增加在线数量
         let appInfo = Common.appInfo();
-        redisClient.client.DECR(appInfo.serverUniquePattern, async (err, res) => {
-            Common.log('im', 'debug', '[' + ctx.socketId  + ']-ClientMainRouter.disconnect, ' + res + ', err:' + err);
-        });
+        // redisClient.client.DECR(appInfo.serverUniquePattern, async (err, res) => {
+        //     Common.log('im', 'debug', '[' + ctx.socketId  + ']-ClientMainRouter.disconnect, ' + res + ', err:' + err);
+        // });
 
         let user = OnlineUserManager.getInstance().getUserWithSocket(ctx.socketId);
         if( !Common.isNull(user) ) {
@@ -47,11 +47,11 @@ clientMainRouter.all('/', async (ctx, next) => {
                 reqData = JSON.parse(message);
                 // 过滤心跳日志
                 if (reqData.route != HeartBeatHandler.getRoute()) {
-                    Common.log('im', 'info', '[' + ctx.socketId + ']-ClientMainRouter.request, [' + ctx.userId + '], message: ' + message);
+                    Common.log('im', 'info', '[' + ctx.socketId + ']-ClientMainRouter.request, [' + ctx.userId + '], ' + message);
                 }
             }
             catch (e) {
-                Common.log('im', 'error', '[' + ctx.socketId + ']-ClientMainRouter.request, [' + ctx.userId + '], message: ' + message + ', ' + e );
+                Common.log('im', 'error', '[' + ctx.socketId + ']-ClientMainRouter.request, [' + ctx.userId + '], ' + message + ', ' + e );
             }
 
             let data = '';

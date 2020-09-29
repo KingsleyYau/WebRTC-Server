@@ -87,6 +87,11 @@ proxyRouter.all('/pic_jpg', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.all('/snapshot_camshare', async (ctx, next) => {
+    let respond = readDirSync(Common.AppGlobalVar.rootPath + "/static/snapshot_camshare", "snapshot_camshare");
+    ctx.body = respond;
+});
+
 proxyRouter.all('/set', async (ctx, next) => {
     let respond = {
         "errno":0,

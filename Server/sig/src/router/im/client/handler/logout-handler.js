@@ -16,7 +16,7 @@ module.exports = class LogoutHandler extends BaseHandler {
     }
 
     static getRoute() {
-        return 'imLogin/logout';
+        return 'imP2P/sendLogout';
     }
 
     async handle(ctx, reqData) {

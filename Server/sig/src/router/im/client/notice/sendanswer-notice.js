@@ -10,15 +10,15 @@ const OnlineUserManager = require('../../../../user/online-users').OnlineUserMan
 // 业务管理器
 const BaseNotice = require('./base-notice');
 
-module.exports = class SendSdpCallNotice extends BaseNotice {
+module.exports = class SendAnswerNotice extends BaseNotice {
     constructor(fromUserId, toUserId, sdp) {
         super();
 
-        this.obj.noticeData.req_data.userId = fromUserId;
+        this.obj.noticeData.req_data.peerId = fromUserId;
         this.obj.noticeData.req_data.sdp = sdp;
     }
 
     static getRoute() {
-        return 'imShare/sendSdpCallNotice';
+        return 'imP2P/sendAnswerNotice';
     }
 }

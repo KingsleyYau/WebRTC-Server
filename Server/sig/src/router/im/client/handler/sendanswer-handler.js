@@ -11,15 +11,15 @@ const OnlineUserManager = require('../../../../user/online-users').OnlineUserMan
 const BaseHandler = require('./base-handler');
 // 推送消息
 const NoticeSender = require('../notice-sender/notice-sender');
-const SendSdpAnswerNotice = require('../notice/sendsdpanswer-notice');
+const SendAnswerNotice = require('../notice/sendanswer-notice');
 
-module.exports = class SendSdpCallHandler extends BaseHandler {
+module.exports = class SendAnswerHandler extends BaseHandler {
     constructor() {
         super();
     }
 
     static getRoute() {
-        return 'imShare/sendSdpAnswer';
+        return 'imP2P/sendAnswer';
     }
 
     async handle(ctx, reqData) {
@@ -29,17 +29,20 @@ module.exports = class SendSdpCallHandler extends BaseHandler {
 
             if( !Common.isNull(user) ) {
                 // 查找目标用户
-                if( !Common.isNull(reqData.req_data.toUserId) ) {
-                    OnlineUserManager.getInstance().getUserWithId(reqData.req_data.toUserId).then( async (userList) => {
+                if( !Common.isNull(reqData.req_data.peerId) ) {
+                    OnlineUserManager.getInstance().getUserWithId(reqData.req_data.peerId).then( async (userList) => {
                         for (let i = 0; i < userList.length; i++) {
                             let desUser = userList[i];
 
                             // 发送消息到用户
                             let sender = new NoticeSender();
-                            let notice = new SendSdpAnswerNotice(user.userId, desUser.userId, reqData.req_data.sdp);
+                            let notice = new SendAnswerNotice(user.userId, desUser.userId, reqData.req_data.sdp);
                             sender.send(desUser.userId, notice);
                         }
                     });
+                } else {
+                    this.respond.resData.errno = 10003;
+                    this.respond.resData.errmsg = 'Parameter "peerId" Is Missing.';
                 }
             }
 

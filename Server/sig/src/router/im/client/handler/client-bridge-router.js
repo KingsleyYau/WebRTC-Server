@@ -10,8 +10,9 @@ const HeartBeatHandler = require('./heartbeat-handler');
 const LoginHandler = require('./login-handler');
 const LogoutHandler = require('./logout-handler');
 const SendMsgHandler = require('./sendmsg-handler');
-const SendSdpCallHandler = require('./sendsdpcall-handler');
-const SendSdpAnswerHandler = require('./sendsdpanswer-handler');
+const SendOfferHandler = require('./sendoffer-handler');
+const SendAnswerHandler = require('./sendanswer-handler');
+const SendGetTokenHandler = require('./sendgettoken-handler');
 
 class HandleRouter {
     static getInstance() {
@@ -36,8 +37,9 @@ class HandleRouter {
             LoginHandler,
             LogoutHandler,
             SendMsgHandler,
-            SendSdpCallHandler,
-            SendSdpAnswerHandler,
+            SendOfferHandler,
+            SendAnswerHandler,
+            SendGetTokenHandler,
         ]
     }
 

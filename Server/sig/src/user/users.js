@@ -57,18 +57,25 @@ class User {
 class UserManager {
     constructor() {
         this.userList = {};
+        this.userMap = {};
     }
 
     addUser(user) {
         this.userList[user.socketId] = user;
+        this.userMap[user.userId] = user;
     }
 
     delUser(socketId) {
+        delete this.userMap[this.userList[socketId].userId];
         delete this.userList[socketId];
     }
 
     getUser(socketId) {
         return this.userList[socketId];
+    }
+
+    getUserWithId(userId) {
+        return this.userMap[userId];
     }
 
     getUsers(cb) {

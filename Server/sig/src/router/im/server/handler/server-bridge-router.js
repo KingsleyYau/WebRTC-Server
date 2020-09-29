@@ -8,7 +8,7 @@ const Common = require('../../../../lib/common');
 // 业务路由
 const KickNotice = require('../../client/notice/kick-notice');
 const SendMsgNotice = require('../../client/notice/sendmsg-notice');
-const SendSdpCallNotice = require('../../client/notice/sendsdpcall-notice');
+const SendSdpCallNotice = require('../../client/notice/sendoffer-notice');
 
 class BridgeRouter {
     static getInstance() {

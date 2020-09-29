@@ -6,7 +6,7 @@
 // 项目公共库
 const Common = require('../../../../lib/common');
 // Redis
-const redisClient = require('../../../../lib/redis-connector').RedisConnector.getInstance();
+// const redisClient = require('../../../../lib/redis-connector').RedisConnector.getInstance();
 // 用户
 const Users = require('../../../../user/users');
 // 在线用户
@@ -18,6 +18,8 @@ module.exports = class BaseNotice {
             noticeData:{
                 id:0,
                 route:'',
+                errno:0,
+                errmsg:'',
                 req_data:{
 
                 }
