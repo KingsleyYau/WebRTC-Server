@@ -18,7 +18,7 @@ sleep 1
 
 echo "# Mediaserver(Test) starting......"
 rm log/mediaserver_test -rf 
-nohup ./script/start_mediaserver_test.sh > ./log/mediaserver_test.log 2>&1 &
+nohup ./script/start_mediaserver_test.sh >/dev/null 2>&1 &
 sleep 3
 PID=`cat ./run/mediaserver_test.pid 2>/dev/null `
 echo "# Mediaserver(Test) start finish, shell: $!, pid: $PID"

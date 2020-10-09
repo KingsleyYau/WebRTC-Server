@@ -198,9 +198,11 @@
         console.log('Global::handleGetIceToken(), config:', config);
         rtc.config = config;
 
+        const videoSource = $("[id=videoSelector]").val();
+        const audioSource = $("[id=audioSelector]").val();
+
         if (callType == 'p2p') {
-            const videoSource = $("[id=videoSelector]").val();
-            rtc.p2pOffer(videoSource).then(() => {
+            rtc.p2pOffer(videoSource, audioSource).then(() => {
                 // Set local display
                 $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
                 // Start stat
@@ -212,9 +214,7 @@
             });
 
         } else if (callType == 'push') {
-            const videoSource = $("[id=videoSelector]").val();
-
-            rtc.push(videoSource).then(() => {
+            rtc.push(videoSource, audioSource).then(() => {
                 // Set local display
                 $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
                 // Start stat
@@ -606,14 +606,14 @@
             $("[id=acceptButton]").attr("disabled", false);
         }
 
-        async push(videoSource) {
+        async push(videoSource, audioSource) {
             this.init();
 
             if (pushVideo) {
                 // await this.showWebGL();
                 await this.showStaticVideo();
             } else {
-                await this.showLocalVideo(videoSource);
+                await this.showLocalVideo(videoSource, audioSource);
             }
 
             let offer = await this.pc.createOffer({
@@ -788,7 +788,7 @@
             });
         }
 
-        async showLocalVideo(videoSource) {
+        async showLocalVideo(videoSource, audioSource) {
             $("[id=localVideo]").attr("style", 'display: block');
             $("[id=localVideo]").attr('src', null);
 
@@ -802,9 +802,14 @@
             }
             let videoConfig = Object.assign(videoDevice, videoConstraints);
 
+            let audioDevice = {
+                deviceId: audioSource ? {exact: audioSource} : undefined,
+            }
+            let audioConfig = Object.assign(audioDevice);
+
             config = {
                 video: videoConfig,
-                audio: true
+                audio: audioConfig
             }
 
             return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
@@ -1292,6 +1297,8 @@
 
     function gotDevices(deviceInfos) {
         // Handles being called several times to update labels. Preserve values.
+        let defaultVideo;
+        let defaultAudio;
         for (let i = 0; i !== deviceInfos.length; ++i) {
             const deviceInfo = deviceInfos[i];
             // console.log('Got Device: ', deviceInfo);
@@ -1299,6 +1306,19 @@
             if (deviceInfo.kind === 'videoinput') {
                 console.log('Got Video Capture Input : ', deviceInfo);
                 $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+                let n = deviceInfo.label.search('e2eSoft');
+                if ( n > -1 ) {
+                    defaultVideo = deviceInfo.deviceId;
+                    $("[id=videoSelector]").val(defaultVideo);
+                }
+            } else if (deviceInfo.kind === 'audioinput') {
+                console.log('Got Audio Capture Input : ', deviceInfo);
+                $("[id=audioSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+                let n = deviceInfo.label.search('e2eSoft');
+                if ( n > -1 ) {
+                    defaultAudio = deviceInfo.deviceId;
+                    $("[id=audioSelector]").val(defaultAudio);
+                }
             }
         }
     }
@@ -1423,7 +1443,8 @@
                     <lable id="videoConstLabel"></lable>
                 </div>
                 <p></p>
-                <select id="videoSelector"></select>
+                <div>Video:<select id="videoSelector"></select></div>
+                <div>Audio:<select id="audioSelector"></select></div>
             </div>
             <p></p>
             <label id="videoDescLabel">############################ Local Video ############################</label>
