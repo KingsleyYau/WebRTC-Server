@@ -6,7 +6,7 @@ Catalog
    		* [Compile & Installation](#compile-and-installation)
    		* [Sequence diagram](#sequence-diagram)
    		* [Test page](#test-page)
-   		* [Example Config](#example-config)
+   		* [Example Config](#example-mediaserver.config)
       * [Third party](#third-party)
       
       
