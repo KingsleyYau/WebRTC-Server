@@ -65,13 +65,8 @@ cd $your_WebRTC-Server_path/Server/docker
 sed -i 's/^- ip: .*/- ip: $your_nginx_server/g' rtmp-svc.yaml
 kubectl apply -f rtmp-svc.yaml
 ```
-## Running in interactive model
-![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/demo.png?raw=true)
 
-## Test Page
-https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/index.html
-
-Example mediaserver.config
+### Example mediaserver.config
 ```
 # MediaServer Config File
 # 基本配置
@@ -150,6 +145,13 @@ RTP_MAX_VIDEO_BPS=1000000
 # 是否开启模拟丢包
 RTP_TEST=0
 ```
+
+## Running in interactive model
+![](https://github.com/KingsleyYau/WebRTC-Server/blob/master/demo.png?raw=true)
+
+## Test Page
+https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/index.html
+
 ## Third Party
 [coturn](https://github.com/coturn/coturn)</br>
 [ffmpeg](https://www.ffmpeg.org/)</br>
