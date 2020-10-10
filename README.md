@@ -104,13 +104,13 @@ WEBRTCMAXCLIENT=100
 # 执行转发RTMP的脚本
 RTP2RTMPSHELL=/app/live/mediaserver/script/rtp2rtmp.sh
 # 执行转发RTMP的地址
-RTP2RTMPBASEURL=rtmp://127.0.0.1:8899/publish_standard
+RTP2RTMPBASEURL=rtmp://127.0.0.1/live
 # 执行转发RTMP的地址(全录制)
-RTP2RTMPBASERECORDURL=rtmp://127.0.0.1:8899/publish_standard_allframe
+RTP2RTMPBASERECORDURL=rtmp://127.0.0.1/live_allframe
 # 执行转发RTP的脚本
 RTMP2RTPSHELL=/app/live/mediaserver/script/rtmp2rtp.sh
 # 执行转发RTP的地址
-RTMP2RTPBASEURL=rtmp://127.0.0.1:8899/play_standard
+RTMP2RTPBASEURL=rtmp://127.0.0.1/live_play
 # 证书路径
 DTLSCER=/app/live/mediaserver/etc/webrtc_dtls.crt
 DTLSKEY=/app/live/mediaserver/etc/webrtc_dtls.key
