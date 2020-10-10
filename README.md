@@ -67,7 +67,7 @@ sed -i 's/^- ip: .*/- ip: $your_nginx_server/g' rtmp-svc.yaml
 kubectl apply -f rtmp-svc.yaml
 ```
 
-### Example mediaserver.config
+## Example mediaserver.config
 ```
 # MediaServer Config File
 # 基本配置
