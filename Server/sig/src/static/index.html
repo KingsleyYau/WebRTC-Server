@@ -274,6 +274,8 @@
                 // client.send(bytes.buffer);
                 $("[id=status]").html('Connected');
 
+                heartBeat();
+
                 // login();
                 resolve();
             };
@@ -473,12 +475,12 @@
 
     function heartBeat() {
         // console.log('Client.heartBeat()');
-        // setTimeout(() => {
-        //     if( client.readyState == client.OPEN ) {
-        //         sendHeartBeat();
-        //         heartBeat();
-        //     }
-        // }, 30000);
+        setTimeout(() => {
+            if( client.readyState == client.OPEN ) {
+                sendHeartBeat();
+                heartBeat();
+            }
+        }, 30000);
     }
 
     async function sendGetToken(stream) {
