@@ -6,7 +6,7 @@ Catalog
    		* [Compile & Installation](#compile-and-installation)
    		* [Sequence diagram](#sequence-diagram)
    		* [Test page](#test-page)
-   		* [Example Config](#example-mediaserver.config)
+   		* [Example Config](#example-config)
       * [Third party](#third-party)
       
       
@@ -67,7 +67,8 @@ sed -i 's/^- ip: .*/- ip: $your_nginx_server/g' rtmp-svc.yaml
 kubectl apply -f rtmp-svc.yaml
 ```
 
-## Example mediaserver.config
+### Example config
+#### mediaserver.config
 ```
 # MediaServer Config File
 # 基本配置
