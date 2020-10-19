@@ -16,7 +16,7 @@ module.exports = class HeartBeatHandler extends BaseHandler {
     }
 
     static getRoute() {
-        return 'heartbeat';
+        return 'imRTC/heartbeat';
     }
 
     async handle(ctx, reqData) {
