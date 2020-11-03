@@ -246,6 +246,8 @@ bool WebRTC::Start(
 			mRtpRecvClient.SetIdentification(mRtmpUrl);
 			mRtpRecvClient.SetAudioSSRC(0x12345679);
 			mRtpRecvClient.SetVideoSSRC(0x12345678);
+			mAudioSSRC = 0x12345679;
+			mVideoSSRC = 0x12345678;
 
 			// 启动IO监听线程
 			if( 0 == mRtpRecvThread.Start(mpRtpRecvRunnable, "RecvRtpThread") ) {
@@ -1775,7 +1777,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						"[DTLS Handshake OK], "
 						"rtmpUrl : %s, "
 						"audio_ssrc : 0x%08x(%u), "
-						"video_ssrc : 0x%08x(%u), "
+						"video_ssrc : 0x%08x(%u) "
 						")",
 						this,
 						mRtmpUrl.c_str(),
@@ -1796,11 +1798,17 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
 					if ( bStart ) {
+						// 设置对接客户端RTP的EXTENSION
 						mRtpSession.SetIdentification(mRtmpUrl);
 						mRtpSession.RegisterAudioExtensions(mAudioExtmap);
 						mRtpSession.RegisterVideoExtensions(mVideoExtmap);
+						// 设置对接客户端RTP的SSRC
 						mRtpSession.SetAudioSSRC(mAudioSSRC);
 						mRtpSession.SetVideoSSRC(mVideoSSRC);
+
+						// 设置转发客户端RTP的SSRC
+						mRtpDstAudioClient.SetAudioSSRC(mAudioSSRC);
+						mRtpDstVideoClient.SetVideoSSRC(mVideoSSRC);
 					}
 				}
 
@@ -2054,8 +2062,8 @@ void WebRTC::RecvRtpThread() {
 	while ( mRunning ) {
 		char pkt[2048] = {0};
 		unsigned int pktSize = sizeof(pkt);
-		if (mRtpRecvClient.RecvRtpPacket(pkt, pktSize) ) {
-			mRtpSession.SendRtpPacket(pkt, pktSize);
+		if (mRtpRecvClient.RecvRtpPacket(pkt, pktSize)) {
+			mRtpSession.EnqueueRtpPacket(pkt, pktSize);
 		} else {
 			break;
 		}

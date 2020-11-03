@@ -124,6 +124,8 @@ void RtpPacket::CopyHeaderFrom(const RtpPacket& packet) {
 	extension_entries_ = packet.extension_entries_;
 	extensions_size_ = packet.extensions_size_;
 	buffer_ = packet.buffer_.Slice(0, packet.headers_size());
+	has_padding_ = packet.has_padding_;
+	has_extension_ = packet.has_extension_;
 	// Reset payload and padding.
 	payload_size_ = 0;
 	padding_size_ = 0;
@@ -328,6 +330,7 @@ mediaserver::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id,
 			extensions_offset);
 	payload_offset_ = extensions_offset + extensions_size_padded;
 	buffer_.SetSize(payload_offset_);
+	has_extension_ = true;
 	return mediaserver::MakeArrayView(WriteAt(extension_info_offset),
 			extension_info_length);
 }

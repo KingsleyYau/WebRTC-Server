@@ -1,0 +1,11 @@
+handle SIGPIPE noprint
+set logging file /tmp/mediaserver.log.dump
+set logging on
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set pagination of
+set confirm off
+thread apply all bt
+quit

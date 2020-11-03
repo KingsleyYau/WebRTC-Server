@@ -173,6 +173,7 @@ bool MediaServer::Start() {
 	bool bFlag = true;
 
 	pid_t pid = getpid();
+	srand(0);
 
 	LogManager::GetLogManager()->Start(miLogLevel, mLogDir);
 	LogManager::GetLogManager()->SetDebugMode(miDebugMode);
@@ -1290,6 +1291,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 		uuid = client->uuid;
 		mMediaClientMap.Erase(uuid);
 
+		// 重置 client
 		client->Reset();
 	}
 	mWebsocketMap.Erase(hdl);
@@ -1638,6 +1640,8 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			} else {
 				GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Unknow_Command);
 			}
+		} else {
+			GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Data_Format_Parse);
 		}
 	} else {
 		GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Data_Format_Parse);

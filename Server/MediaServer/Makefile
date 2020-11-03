@@ -76,7 +76,7 @@ MODULEDIRS = \
 	request respond \
 	websocket \
 	webrtc rtp socket \
-	media 
+	media tools
 			
 CLEAN_MODULES = $(addprefix _clean_, $(MODULEDIRS))
 

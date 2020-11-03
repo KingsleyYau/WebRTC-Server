@@ -145,29 +145,32 @@ void MainLoop::Call(int pid) {
 	if ( itr != mCallbackMap.End() ) {
 		MainLoopObj *obj = itr->second;
 		obj->isExit = true;
-//		MainLoopCallback *cb = obj->cb;
-//		cb->OnChildExit(pid);
-//		mCallbackMap.Erase(itr);
 	}
 	mCallbackMap.Unlock();
 }
 
 void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
-	mCallbackMap.Lock();
 	MainLoopObj *obj = new MainLoopObj(pid, cb);
+
+	mCallbackMap.Lock();
 	mCallbackMap.Insert(pid, obj);
     mCallbackMap.Unlock();
 }
 
 void MainLoop::StopWatchChild(int pid) {
+	MainLoopObj *obj = NULL;
+
 	mCallbackMap.Lock();
 	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
 	if ( itr != mCallbackMap.End() ) {
-		MainLoopObj *obj = itr->second;
+		obj = itr->second;
 		mCallbackMap.Erase(itr);
-		delete obj;
 	}
     mCallbackMap.Unlock();
+
+    if ( obj ) {
+    	delete obj;
+    }
 }
 
 void MainLoop::MainLoopHandle() {
@@ -177,20 +180,29 @@ void MainLoop::MainLoopHandle() {
 			);
 
 	while( mRunning ) {
+		bool bSleep = true;
+		MainLoopObj *obj = NULL;
+
 		mCallbackMap.Lock();
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
-			MainLoopObj *obj = itr->second;
+			obj = itr->second;
 			if ( obj->isExit ) {
 				mCallbackMap.Erase(itr++);
-				obj->cb->OnChildExit(obj->pid);
-				delete obj;
+				bSleep = false;
+				break;
 			} else {
 				itr++;
 			}
 		}
 		mCallbackMap.Unlock();
 
-		sleep(1);
+		if ( !bSleep && obj ) {
+			obj->cb->OnChildExit(obj->pid);
+			delete obj;
+			obj = NULL;
+		} else {
+			sleep(1);
+		}
 	}
 
 	LogAync(

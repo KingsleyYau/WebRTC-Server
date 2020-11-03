@@ -51,8 +51,8 @@ function Clean() {
 }
 trap 'Clean; exit' SIGTERM
 
-if [ "$TRANSCODE" -eq "1" ]
-#if [ "1" -eq "1" ]
+#if [ "$TRANSCODE" -eq "1" ]
+if [ "1" -eq "1" ]
 then
   $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
@@ -60,14 +60,15 @@ then
           -reorder_queue_size 2048 \
           -max_delay 3000000 \
           -i $SDP_FILE \
-          -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -bsf:v h264_mp4toannexb \
+          -vcodec libx264 -preset superfast -profile:v baseline -level 3.0 -g 15 \
+          -vf "scale=480:'trunc(ow*ih/iw/2)*2',crop=iw:'if(gt(ih,360),360,ih)':0:'if(gt(ih,360),(360-ih)/2,0)',pad=iw:iw*3/4:0:(oh-ih)/2" \
           -an \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &
 				
 else
   $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
-          -v info \
+          -v error \
           -thread_queue_size 2048 \
           -reorder_queue_size 2048 \
           -max_delay 3000000 \

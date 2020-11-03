@@ -21,6 +21,7 @@ function package_update_tar {
 	mkdir -p $DEST/bin/ || return 1
  	cp -rf build/bin/mediaserver $DEST/bin/ || return 1
   #cp -rf build/bin/ffmpeg $DEST/bin/ || return 1
+  cp -rf build/bin/wscat $DEST/bin/ || return 1
 
 	# Copy Config Files
 	mkdir -p $DEST/etc/ || return 1
@@ -40,6 +41,8 @@ function package_update_tar {
 	#cp -rf script/rtp2rtmp.sh $DEST/script/ || return 1
 	#cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
 	#cp -rf script/rtmp2rtp.sh $DEST/script/ || return 1
+	cp -rf script/deamon.sh $DEST/script/ || return 1
+	cp -rf script/dump_thread_bt.init $DEST/script/ || return 1
 	
 	# Clean index files
 	find tmp -name ".DS_Store" | xargs rm -rf || return 1

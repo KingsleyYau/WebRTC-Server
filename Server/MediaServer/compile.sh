@@ -34,5 +34,6 @@ make || exit 1
 
 mkdir -p $BUILD_PATH/bin
 cp mediaserver $BUILD_PATH/bin || exit 1
+cp tools/wscat $BUILD_PATH/bin || exit 1
 mkdir -p $BUILD_PATH/etc
 cp etc/* $BUILD_PATH/etc || exit 1

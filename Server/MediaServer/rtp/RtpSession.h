@@ -311,6 +311,7 @@ private:
 	NtpTime last_received_sr_ntp_;
 	int64_t xr_rr_rtt_ms_;
 	int64_t last_rr_send_time_;
+	int64_t last_stats_time_;
 
 	int64_t last_remb_time_ms_;
 	int64_t last_send_bitrate_bps_;

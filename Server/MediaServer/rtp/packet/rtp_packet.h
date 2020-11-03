@@ -81,6 +81,9 @@ public:
 	size_t padding_size() const {
 		return padding_size_;
 	}
+	bool IsPadding() {
+		return has_padding_;
+	}
 	mediaserver::ArrayView<const uint8_t> payload() const {
 		return mediaserver::MakeArrayView(data() + payload_offset_, payload_size_);
 	}
