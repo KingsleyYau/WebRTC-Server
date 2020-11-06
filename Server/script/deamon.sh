@@ -19,9 +19,9 @@ function print_log()
   print_body=$1
   if [ -n "$REBOOT_LOG_FILE_PATH" ]; then
     log_time=$(date "+[%Y-%m-%d %H:%M:%S]")
-    echo "$log_time deamon.sh: $print_body" >> $REBOOT_LOG_FILE_PATH
+    echo -e "$log_time deamon.sh: $print_body" >> $REBOOT_LOG_FILE_PATH
   else
-    echo "$log_time deamon.sh: $print_body"
+    echo -e "$log_time deamon.sh: $print_body"
   fi
 }
 
@@ -49,43 +49,42 @@ export TEST_REQ="{\"id\":0,\"route\":\"imRTC/sendPing\"}"
 export TEST_RES="{\"data\":null,\"errmsg\":\"\",\"errno\":0,\"id\":0,\"route\":\"imRTC/sendPing\"}"
 WS_RES=$(/app/live/mediaserver/bin/wscat -c ws://${SERVER}:9881 -t 10 -x "$TEST_REQ" 2>&1)
 if [ "$WS_RES" == "$TEST_RES" ];then
-  print_log "# CHECK_WS:OK"
+  print_log "CHECK_WS:[\033[32mOK\033[0m]"
 else
-  print_log "# CHECK_WS:FAIL WS_RES:$WS_RES"
+  print_log "CHECK_WS:[\033[31mFAIL\033[0m] WS_RES:$WS_RES"
   IS_REBOOT=1
 fi  
 
 TURN_CONNECT=$(bash -c 'cat < /dev/null > /dev/tcp/${SERVER}/3478' 2>&1 | grep -v connect)
 if [ "$TURN_CONNECT" == "" ];then
-  print_log "# CHECK_TURN:OK"
+  print_log "CHECK_TURN:[\033[32mOK\033[0m]"
 else
-  print_log "# CHECK_TURN:FAIL TURN_CONNECT:$TURN_CONNECT"
+  print_log "CHECK_TURN:[\033[31mFAIL\033[0m] TURN_CONNECT:$TURN_CONNECT"
   IS_REBOOT=1
 fi
 
-print_log "-------------------- 	netstat	 --------------------"
+print_log "-------------------- [\033[32mnetstat\033[0m] --------------------"
 WS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9881\|9981\|9883' | wc -l)
-print_log "Websocket:" $WS_SOCKET
+print_log "Websocket: $WS_SOCKET" 
 TCP_SOCKET=$(netstat -anpt 2>/dev/null | grep 'turnserver' | wc -l)
-print_log "TCP Socket:" $TCP_SOCKET
+print_log "TCP Socket: $TCP_SOCKET" 
 UDP_SOCKET=$(netstat -anpu 2>/dev/null | grep 'mediaserver\|turnserver' | wc -l)
-print_log "UDP Socket:" $UDP_SOCKET
+print_log "UDP Socket: $UDP_SOCKET" 
 FFMPEG_SOCKET=$(netstat -anptu 2>/dev/null | grep 'ffmpeg' | wc -l)
-print_log "FFMPEG Socket:" $FFMPEG_SOCKET
+print_log "FFMPEG Socket: $FFMPEG_SOCKET" 
 TIME_WAIT=$(netstat -antlpu 2>/dev/null | grep -c 'TIME_WAIT')
-print_log "TIME_WAIT:" $TIME_WAIT
-print_log "-------------------- 		top		 --------------------"
+print_log "TIME_WAIT: $TIME_WAIT" 
+
 TOP_HEAD=$(top -b -n 1 | head -n 6)
-print_log $TOP_HEAD
 SERVERS_STATUS=$(top -b -n 1 | grep 'turnserver\|mediaserver')
-print_log $SERVERS_STATUS
+print_log "-------------------- [\033[32mtop\033[0m] --------------------\n$TOP_HEAD\n\n$SERVERS_STATUS"
 
 # reboot
 #echo "is_reboot: $is_reboot"
 if [ $(($IS_REBOOT)) -gt 0 ]; then
   REBOOT_TIME=$(date +%Y-%m-%d-%H-%M-%S)
   # print log
-  print_log "# Reboot now... "
+  print_log "# [\033[31mReboot\033[0m] now... "
   
   # Send Mail
   create_mail
