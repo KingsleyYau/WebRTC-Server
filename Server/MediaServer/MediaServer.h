@@ -63,6 +63,7 @@ struct MediaClient {
 		startMediaTime = 0;
 		logined = false;
 		uuid = "";
+		userAgent = "";
 		extParam = "";
 	}
 
@@ -77,6 +78,7 @@ struct MediaClient {
 		startMediaTime = item.startMediaTime;
 		logined = item.logined;
 		uuid = item.uuid;
+		userAgent = item.userAgent;
 		extParam = item.extParam;
 		return *this;
 	}
@@ -107,6 +109,7 @@ struct MediaClient {
 	bool logined;
 
 	string uuid;
+	string userAgent;
 	string extParam;
 };
 
@@ -140,18 +143,21 @@ typedef KSafeList<MediaClient *> MediaClientList;
 // 外部请求队列
 typedef KSafeList<ExtRequestItem *> ExtRequestList;
 
-class ExtRequestRunnable;
-class TimeoutCheckRunnable;
 class StateRunnable;
+class TimeoutCheckRunnable;
+class ExtRequestRunnable;
+class RecycleRunnable;
+
 class MediaServer :
 		public AsyncIOServerCallback,
 		public HttpParserCallback,
 		public WebRTCCallback,
 		public WSServerCallback
 {
-	friend class ExtRequestRunnable;
-	friend class TimeoutCheckRunnable;
 	friend class StateRunnable;
+	friend class TimeoutCheckRunnable;
+	friend class ExtRequestRunnable;
+	friend class RecycleRunnable;
 
 public:
 	MediaServer();
@@ -233,6 +239,11 @@ private:
 	 * 外部请求线程处理
 	 */
 	void ExtRequestHandle();
+
+	/**
+	 * 回收资源线程处理
+	 */
+	void RecycleHandle();
 	/***************************** 定时任务 **************************************/
 
 
@@ -390,6 +401,10 @@ private:
 	// 外部登录校验线程
 	ExtRequestRunnable* mpExtRequestRunnable;
 	KThread mExtRequestThread;
+
+	// 资源回收线程
+	RecycleRunnable* mpRecycleRunnable;
+	KThread mRecycleThread;
 	/***************************** 定时任务线程 **************************************/
 
 
@@ -416,6 +431,8 @@ private:
 	MediaClientMap mMediaClientMap;
 	// 可用的WebRTC Object
 	WebRTCList mWebRTCList;
+	// 待回收的WebRTC列表
+	WebRTCList mWebRTCRecycleList;
 	// 可用的MediaClient
 	MediaClientList mMediaClientList;
 	// 外部请求队列

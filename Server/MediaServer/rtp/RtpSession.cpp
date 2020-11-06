@@ -1210,38 +1210,19 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 	uint32_t ssrc = rtpPkt->Ssrc();
 
 	bool bFlag = false;
-
 	bool sendPLI = false;
-	if (mVideoPLITimestamp == 0) {
-		mVideoPLITimestamp = ts;
-		sendPLI = true;
-	}
 
 	// 视频帧间隔秒数
 	double deltaSeconds = (ts - mVideoPLITimestamp) / 90000.0;
 	deltaSeconds = (deltaSeconds > 0) ? deltaSeconds : -deltaSeconds;
 
-//	LogAync(LOG_DEBUG, "RtpSession::UpdateVideoLossPacket( "
-//			"this : %p, "
-//			"[Video], "
-//			"media_ssrc : 0x%08x(%u), "
-//			"seq : %u, "
-//			"ts : %u, "
-//			"recvTime : %lld, "
-//			"mVideoMaxSeq : %u, "
-//			"mVideoMaxTimestamp : %u, "
-//			"mVideoTotalRecvPacket : %u, "
-//			"deltaSeconds : %f "
-//			")", this, ssrc, ssrc, seq, ts, recvTime, mVideoMaxSeq,
-//			mVideoMaxTimestamp, mVideoTotalRecvPacket, deltaSeconds);
-
 	/**
 	 * 每gMaxPliSeconds秒, 发送PLI
 	 */
-	if (deltaSeconds > gMaxPliSeconds) {
-		sendPLI = true;
+	if ( (mVideoPLITimestamp == 0) || (deltaSeconds > gMaxPliSeconds) ) {
 		SendRtcpPli(ssrc);
 		mVideoPLITimestamp = ts;
+		sendPLI = true;
 	}
 
 	std::vector<uint16_t> nack_batch;

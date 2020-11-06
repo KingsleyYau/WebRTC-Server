@@ -1,11 +1,3 @@
-handle SIGPIPE noprint
-set pagination off
-set print thread-events off
-set print array-indexes on
-set print pretty on
-set print object on
-set confirm off
-
 define show-attr
   print "media"
 	print media

@@ -79,7 +79,23 @@ private:
 };
 
 /***************************** 外部登录处理 **************************************/
-
+/***************************** 回收处理 **************************************/
+class RecycleRunnable : public KRunnable {
+public:
+	RecycleRunnable(MediaServer *container) {
+		mContainer = container;
+	}
+	virtual ~RecycleRunnable() {
+		mContainer = NULL;
+	}
+protected:
+	void onRun() {
+		mContainer->RecycleHandle();
+	}
+private:
+	MediaServer *mContainer;
+};
+/***************************** 回收处理 **************************************/
 
 MediaServer::MediaServer()
 :mServerMutex(KMutex::MutexType_Recursive) {
@@ -94,6 +110,8 @@ MediaServer::MediaServer()
 	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
 	// 外部请求线程
 	mpExtRequestRunnable = new ExtRequestRunnable(this);
+	// 资源回收线程
+	mpRecycleRunnable = new RecycleRunnable(this);
 
 	// 内部服务(HTTP)参数
 	miPort = 0;
@@ -202,10 +220,12 @@ bool MediaServer::Start() {
 			"MediaServer::Start( "
 			"[运行参数], "
 			"pid : %d, "
-			"mPidFilePath : %s "
+			"mPidFilePath : %s, "
+			"cpu : %ld "
 			")",
 			pid,
-			mPidFilePath.c_str()
+			mPidFilePath.c_str(),
+			sysconf(_SC_NPROCESSORS_ONLN)
 			);
 	if ( mPidFilePath.length() > 0 ) {
 		remove(mPidFilePath.c_str());
@@ -350,7 +370,7 @@ bool MediaServer::Start() {
 
 	// 启动Websocket服务
 	if( bFlag ) {
-		bFlag = mWSServer.Start(miWebsocketPort);
+		bFlag = mWSServer.Start(miWebsocketPort, miWebsocketMaxClient);
 		if( bFlag ) {
 			LogAync(
 					LOG_NOTICE, "MediaServer::Start( event : [创建内部服务(Websocket)-OK] )"
@@ -361,6 +381,12 @@ bool MediaServer::Start() {
 					LOG_ALERT, "MediaServer::Start( event : [创建内部服务(Websocket)-Fail] )"
 					);
 			printf("# MediaServer(Websocket) start Fail. \n");
+		}
+
+		// Websocket最大连接数
+		for(unsigned int i = 0; i < miWebsocketMaxClient; i++) {
+			MediaClient *client = new MediaClient();
+			mMediaClientList.PushBack(client);
 		}
 	}
 
@@ -380,10 +406,21 @@ bool MediaServer::Start() {
 			mWebRTCList.PushBack(rtc);
 		}
 
-		// Websocket最大连接数
-		for(unsigned int i = 0; i < miWebsocketMaxClient; i++) {
-			MediaClient *client = new MediaClient();
-			mMediaClientList.PushBack(client);
+		if( mRecycleThread.Start(mpRecycleRunnable, "Recycle") != 0 ) {
+			LogAync(
+					LOG_NOTICE,
+					"MediaServer::Start( "
+					"event : [启动资源回收线程-OK] "
+					")");
+		} else {
+			bFlag = false;
+			LogAync(
+					LOG_ALERT,
+					"MediaServer::Start( "
+					"event : [启动资源回收线程-Fail] "
+					")"
+					);
+			printf("# MediaServer(Recycle Thread) start Fail. \n");
 		}
 	}
 
@@ -581,7 +618,7 @@ bool MediaServer::IsRunning() {
 
 bool MediaServer::Stop() {
 	LogAync(
-			LOG_WARNING,
+			LOG_ALERT,
 			"MediaServer::Stop("
 			")"
 			);
@@ -599,12 +636,12 @@ bool MediaServer::Stop() {
 		mStateThread.Stop();
 		mTimeoutCheckThread.Stop();
 		mExtRequestThread.Stop();
+		mRecycleThread.Stop();
 		// 停止子进程监听循环
 		MainLoop::GetMainLoop()->Stop();
 
 		if ( mPidFilePath.length() > 0 ) {
 			int ret = remove(mPidFilePath.c_str());
-			mPidFilePath = "";
 		}
 	}
 
@@ -626,7 +663,7 @@ bool MediaServer::Stop() {
 void MediaServer::Exit(int sign_no) {
 	pid_t pid = getpid();
 
-	LogAync(
+	LogAyncUnSafe(
 			LOG_ALERT,
 			"MediaServer::Exit( "
 			"sign_no : %d, "
@@ -742,6 +779,29 @@ void MediaServer::ExtRequestHandle() {
 	}
 }
 
+void MediaServer::RecycleHandle() {
+	HttpClient httpClient;
+	bool bFlag = false;
+
+	while( IsRunning() ) {
+		WebRTC *rtc = mWebRTCRecycleList.PopFront();
+		if ( rtc ) {
+			rtc->Stop();
+			mWebRTCList.PushBack(rtc);
+			LogAync(
+					LOG_NOTICE,
+					"MediaServer::RecycleHandle( "
+					"rtc : %p, "
+					"size : %d "
+					")",
+					rtc,
+					mWebRTCRecycleList.Size()
+					);
+		} else {
+			sleep(1);
+		}
+	}
+}
 /***************************** 定时任务 **************************************/
 
 
@@ -1087,7 +1147,13 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 		MediaClient *client = itr->second;
 		hdl = client->hdl;
 		hdlAddr = hdl.lock().get();
-		bFound = true;
+
+		Json::Value resRoot;
+		Json::FastWriter writer;
+
+		resRoot["id"] = client->id++;
+		resRoot["route"] = "imRTC/sendErrorNotice";
+		GetErrorObject(resRoot["errno"], resRoot["errmsg"], errType, errMsg);
 
 		LogAync(
 				LOG_WARNING,
@@ -1106,20 +1172,11 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 				errMsg.c_str()
 				);
 
-		if( bFound ) {
-			Json::Value resRoot;
-			Json::FastWriter writer;
-
-			resRoot["id"] = client->id++;
-			resRoot["route"] = "imRTC/sendErrorNotice";
-			GetErrorObject(resRoot["errno"], resRoot["errmsg"], errType, errMsg);
-
-			string res = writer.write(resRoot);
-			mWSServer.SendText(hdl, res);
-			if ( client->connected ) {
-				mWSServer.Disconnect(hdl);
-				client->connected = false;
-			}
+		string res = writer.write(resRoot);
+		mWSServer.SendText(hdl, res);
+		if ( client->connected ) {
+			mWSServer.Disconnect(hdl);
+			client->connected = false;
 		}
 	}
 	mWebRTCMap.Unlock();
@@ -1171,7 +1228,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 	mServerMutex.lock();
 	if( !mRunning ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_ERR,
 				"MediaServer::OnWSOpen( "
 				"event : [Websocket-新连接, 服务器启动中...], "
 				"hdl : %p, "
@@ -1218,6 +1275,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 		client->connected = true;
 		client->addr = addr;
 		client->uuid = uuid_str;
+		client->userAgent = userAgent;
 
 		mWebRTCMap.Lock();
 		mWebsocketMap.Insert(hdl, client);
@@ -1252,7 +1310,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	mServerMutex.lock();
 	if( !mRunning ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_ERR,
 				"MediaServer::OnWSClose( "
 				"event : [Websocket-断开, 服务器启动中...], "
 				"hdl : %p, "
@@ -1266,6 +1324,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	WebRTC *rtc = NULL;
 	string addr = "";
 	string uuid = "";
+	string userAgent = "";
 
 	mWebRTCMap.Lock();
 	WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
@@ -1284,6 +1343,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 		// Remove rtc
 		addr = client->addr;
 		connectTime = client->connectTime;
+		userAgent = client->userAgent;
 		rtc = client->rtc;
 		mWebRTCMap.Erase(rtc);
 
@@ -1305,18 +1365,21 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 			"rtc : %p, "
 			"uuid : %s, "
 			"addr : %s, "
+			"userAgent : %s, "
 			"aliveTime : %lldms "
 			")",
 			hdl.lock().get(),
 			rtc,
 			uuid.c_str(),
 			addr.c_str(),
+			userAgent.c_str(),
 			currentTime - connectTime
 			);
 
 	if ( rtc ) {
-		rtc->Stop();
-		mWebRTCList.PushBack(rtc);
+//		rtc->Stop();
+//		mWebRTCList.PushBack(rtc);
+		mWebRTCRecycleList.PushBack(rtc);
 	}
 
 	if ( client ) {
@@ -1364,7 +1427,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 				route = resRoot["route"].asString();
 			}
 
-			bParse = false;
 			if ( reqRoot["route"].isString() ) {
 				string route = reqRoot["route"].asString();
 				if ( route == "imRTC/sendPing" ) {
@@ -1655,18 +1717,28 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	}
 
 	if ( !bFlag ) {
-		LogAync(
-				LOG_DEBUG,
-				"MediaServer::OnWSMessage( "
-				"event : [Websocket-请求出错], "
-				"hdl : %p, "
-				"str : %s, "
-				"res : %s "
-				")",
-				hdl.lock().get(),
-				str.c_str(),
-				res.c_str()
-				);
+		if ( bParse ) {
+			LogAync(
+					LOG_WARNING,
+					"MediaServer::OnWSMessage( "
+					"event : [Websocket-请求出错], "
+					"hdl : %p, "
+					"req : %s "
+					")",
+					hdl.lock().get(),
+					str.c_str()
+					);
+			LogAync(
+					LOG_WARNING,
+					"MediaServer::OnWSMessage( "
+					"event : [Websocket-请求出错], "
+					"hdl : %p, "
+					"res : %s "
+					")",
+					hdl.lock().get(),
+					res.c_str()
+					);
+		}
 
 		mWSServer.Disconnect(hdl);
 	}

@@ -27,6 +27,7 @@ typedef enum RequestErrorType {
 	RequestErrorType_WebRTC_Rtp2Rtmp_Exit = 11,
 	RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail = 12,
 	RequestErrorType_WebRTC_Dtls_Handshake_Fail = 13,
+	RequestErrorType_WebRTC_Ice_Fail = 14,
 } RequestErrorType;
 
 typedef struct ErrObject {
@@ -60,6 +61,7 @@ const ErrObject RequestErrObjects[] = {
 	ErrObject(RequestErrorType_WebRTC_Rtp2Rtmp_Exit, RequestErrorType_WebRTC_Rtp2Rtmp_Exit, "WebRTC Rtp Transform Rtmp Exit Error."),
 	ErrObject(RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail, "WebRTC No Server Candidate Info Found Error."),
 	ErrObject(RequestErrorType_WebRTC_Dtls_Handshake_Fail, RequestErrorType_WebRTC_Dtls_Handshake_Fail, "WebRTC Dtls Handshake Error."),
+	ErrObject(RequestErrorType_WebRTC_Dtls_Handshake_Fail, RequestErrorType_WebRTC_Ice_Fail, "WebRTC Ice Fail Error."),
 };
 
 #endif /* INCLUDE_ERRCODE_H_ */

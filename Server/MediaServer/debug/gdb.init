@@ -1,4 +1,11 @@
-file ./bin/mediaserver
-set args -f ./etc/mediaserver_test.config
+handle SIGPIPE noprint
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
+file /app/live/mediaserver/bin/mediaserver
+set args -f /app/live/mediaserver/etc/mediaserver_test.config
 source gdb.break
 run

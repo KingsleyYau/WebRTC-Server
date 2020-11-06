@@ -54,13 +54,14 @@ OBJS += DtlsSession.o RtpSession.o RtpRawClient.o MainLoop.o
 OBJS +=	WebRTCTester.o webrtc-tester.o mongoose.o
 TARGET = webrtc-tester
 
-TARGET_JSON_LIBS = -L. \
+TARGET_GLIB_LIBS = -L. \
 			-Wl,-Bstatic -L../common -lcommon \
 			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 			-Wl,-Bdynamic -ldl -pthread 
 			
-TARGET_JSON_OBJS = json-tester.o
-TARGET_JSON = json-tester
+TARGET_GLIB_OBJS = glib-tester.o
+TARGET_GLIB = glib-tester
 
 TARGET_HTTPD_LIBS = -L. \
 			-Wl,-Bstatic -L../server -lserver \
@@ -85,7 +86,15 @@ TARGET_CAM_LIBS = -L. \
 TARGET_CAM_OBJS = cam-tester.o CamTester.o mongoose.o
 TARGET_CAM = cam-tester
 
-.PHONY: clean $(TARGET) ${TARGET_JSON} $(TARGET_HTTPD) $(TARGET_CAM)
+TARGET_WSCAT_LIBS = -L. \
+			-Wl,-Bstatic -L../common -lcommon \
+			-Wl,-Bstatic -L../third_party/json -ljson \
+			-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
+			-Wl,-Bdynamic -ldl -pthread 
+TARGET_WSCAT_OBJS = wscat.o mongoose.o
+TARGET_WSCAT = wscat
+
+.PHONY: clean $(TARGET) ${TARGET_GLIB} $(TARGET_HTTPD) $(TARGET_CAM) $(TARGET_WSCAT)
 	
 $(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
@@ -95,11 +104,11 @@ $(TARGET): $(OBJS)
 	@echo ''
 	@echo '################################################################'
 	
-$(TARGET_JSON): $(TARGET_JSON_OBJS)
-	$(CXX) -o $(TARGET_JSON) $(TARGET_JSON_OBJS) $(TARGET_JSON_LIBS)
+$(TARGET_GLIB): $(TARGET_GLIB_OBJS)
+	$(CXX) -o $(TARGET_GLIB) $(TARGET_GLIB_OBJS) $(TARGET_GLIB_LIBS)
 	@echo '################################################################'
 	@echo ''
-	@echo '# Bulid json-tester completed!'
+	@echo '# Bulid glib-tester completed!'
 	@echo ''
 	@echo '################################################################'
 	
@@ -118,8 +127,16 @@ $(TARGET_CAM): $(TARGET_CAM_OBJS)
 	@echo '# Bulid cam-tester completed!'
 	@echo ''
 	@echo '################################################################'		
-			
-all: $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD) $(TARGET_CAM)
+
+$(TARGET_WSCAT): $(TARGET_WSCAT_OBJS)
+	$(CXX) -o $(TARGET_WSCAT) $(TARGET_WSCAT_OBJS) $(TARGET_WSCAT_LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid wscat completed!'
+	@echo ''
+	@echo '################################################################'	
+				
+all: $(TARGET) $(TARGET_GLIB) $(TARGET_HTTPD) $(TARGET_CAM) $(TARGET_WSCAT)
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(TARGET_JSON) $(TARGET_HTTPD) $(TARGET_CAM)
+	rm -f $(OBJS) $(TARGET) $(TARGET_GLIB) $(TARGET_HTTPD) $(TARGET_CAM) $(TARGET_WSCAT)
