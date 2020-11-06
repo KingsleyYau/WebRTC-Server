@@ -36,8 +36,8 @@ function package_update_tar {
 	#cp -rf script/stop_mediaserver_camshare.sh $DEST/script/ || return 1
 	#cp -rf script/restart_test_service.sh $DEST/script/ || return 1
 	#cp -rf script/stop_test_service.sh $DEST/script || return 1
-	#cp -rf script/restart_all_service.sh $DEST/script/ || return 1
-	#cp -rf script/stop_all_service.sh $DEST/script/ || return 1
+	cp -rf script/restart_all_service.sh $DEST/script/ || return 1
+	cp -rf script/stop_all_service.sh $DEST/script/ || return 1
 	#cp -rf script/rtp2rtmp.sh $DEST/script/ || return 1
 	#cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
 	#cp -rf script/rtmp2rtp.sh $DEST/script/ || return 1

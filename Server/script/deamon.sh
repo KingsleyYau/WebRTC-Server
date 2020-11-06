@@ -19,9 +19,9 @@ function print_log()
   print_body=$1
   if [ -n "$REBOOT_LOG_FILE_PATH" ]; then
     log_time=$(date "+[%Y-%m-%d %H:%M:%S]")
-    echo "$log_time mediaserver_deamon.sh: $print_body" >> $REBOOT_LOG_FILE_PATH
+    echo "$log_time deamon.sh: $print_body" >> $REBOOT_LOG_FILE_PATH
   else
-    echo "$log_time mediaserver_deamon.sh: $print_body"
+    echo "$log_time deamon.sh: $print_body"
   fi
 }
 
@@ -42,7 +42,7 @@ IS_REBOOT=0
 MEDIASERVER_PID=`cat ./run/mediaserver.pid 2>/dev/null`
 TURNSERVER_PID=`cat ./run/turnserver.pid 2>/dev/null`
 
-print_log "# START #################################################################################### "
+print_log "#################################################################################### "
 export SERVER="127.0.0.1"
 
 export TEST_REQ="{\"id\":0,\"route\":\"imRTC/sendPing\"}"
@@ -63,6 +63,22 @@ else
   IS_REBOOT=1
 fi
 
+print_log "-------------------- 	netstat	 --------------------"
+WS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9881\|9981\|9883' | wc -l)
+print_log "Websocket:" $WS_SOCKET
+TCP_SOCKET=$(netstat -anpt 2>/dev/null | grep 'turnserver' | wc -l)
+print_log "TCP Socket:" $TCP_SOCKET
+UDP_SOCKET=$(netstat -anpu 2>/dev/null | grep 'mediaserver\|turnserver' | wc -l)
+print_log "UDP Socket:" $UDP_SOCKET
+FFMPEG_SOCKET=$(netstat -anptu 2>/dev/null | grep 'ffmpeg' | wc -l)
+print_log "FFMPEG Socket:" $FFMPEG_SOCKET
+TIME_WAIT=$(netstat -antlpu 2>/dev/null | grep -c 'TIME_WAIT')
+print_log "TIME_WAIT:" $TIME_WAIT
+print_log "-------------------- 		top		 --------------------"
+TOP_HEAD=$(top -b -n 1 | head -n 6)
+print_log $TOP_HEAD
+SERVERS_STATUS=$(top -b -n 1 | grep 'turnserver\|mediaserver')
+print_log $SERVERS_STATUS
 
 # reboot
 #echo "is_reboot: $is_reboot"
@@ -83,7 +99,5 @@ if [ $(($IS_REBOOT)) -gt 0 ]; then
   # Restart server
   /bin/su -l mediaserver -c ./script/restart_all_service.sh
 fi
-print_log "# END #################################################################################### "
-
 
 cd - >/dev/null 2>&1

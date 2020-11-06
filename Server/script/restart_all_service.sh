@@ -36,4 +36,16 @@ else
   echo -e "############## Restart mediaserver [\033[31mFail\033[0m] ##############"
 fi
 
+echo "# Deamon starting......"
+nohup watch -n 300 /app/live/mediaserver/script/deamon.sh >/dev/null 2>&1 &
+echo $! > ./run/deamon.pid
+sleep 3
+echo "# Deamon start finish, shell: $!"
+if [ ! $! == "" ]
+then
+  echo -e "############## Restart deamon [\033[32mOK\033[0m] ##############"
+else
+  echo -e "############## Restart deamon [\033[31mFail\033[0m] ##############"
+fi
+
 cd - >/dev/null 2>&1
