@@ -30,6 +30,7 @@ echo -e "############## Updating mediaserver [\033[32mOK\033[0m] ##############"
 if [ "$DEMO" == 0 ]
 then
   /bin/su -l mediaserver -c $DEST_PATH/script/restart_all_service.sh
+  # start crontab
 else
   $DEST_PATH/script/restart_all_service.sh
 fi
