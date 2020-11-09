@@ -292,6 +292,16 @@
                 $("[id=pullBtn]").removeAttr("disabled");
                 $("[id=pushVideoBtn]").removeAttr("disabled");
                 $("[id=hangupBtn]").attr("disabled", 'true');
+
+                let reconnect = $("[id=reconnectCb]").attr('checked');
+                if (reconnect) {
+                    setTimeout(() => {
+                        if (client.readyState != client.OPEN) {
+                            console.log('Client.reconnect(), host:', host);
+                            call(false, false);
+                        }
+                    }, 3000);
+                }
             }
 
             client.onmessage = function (ev) {
@@ -1422,7 +1432,7 @@
 
             <p># Local SDP</p>
             <textarea id="localSdpTextarea" disabled="true"></textarea>
-            <div>Force Tcp <input id="forceTcpCb" type="checkbox"></div>
+            <div>Force Tcp <input id="forceTcpCb" type="checkbox"> Reconnect <input id="reconnectCb" type="checkbox"> </div>
             <div>
                 <button id="pushBtn">Push</button>
                 <button id="pullBtn">Pull</button>
