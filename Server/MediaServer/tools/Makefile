@@ -22,10 +22,6 @@ CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
 
 CFLAGS += -DDISABLE_MD5=1
 
-export BUILD_PATH = /root/mediaserver/build
-export OPENSSL_INCLUDE = $(BUILD_PATH)/include
-export OPENSSL_LIB = $(BUILD_PATH)/lib
-
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS = -L. \
 		-Wl,-Bstatic -L../common -lcommon \
