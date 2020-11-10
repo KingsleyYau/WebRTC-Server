@@ -429,15 +429,17 @@ void DtlsSession::SetSocketSender(SocketSender *sender) {
 	mpSocketSender = sender;
 }
 
-bool DtlsSession::Start() {
+bool DtlsSession::Start(bool bActive) {
 	bool bFlag = true;
 
 	LogAync(
 			LOG_INFO,
 			"DtlsSession::Start( "
-			"this : %p "
+			"this : %p, "
+			"bActive : %s "
 			")",
-			this
+			this,
+			BOOL_2_STRING(bActive)
 			);
 
 	mClientMutex.lock();
@@ -463,8 +465,11 @@ bool DtlsSession::Start() {
 //    	BIO_ctrl(mpWriteBIO, BIO_CTRL_DGRAM_SET_MTU, MTU, NULL);
 
     	SSL_set_bio(mpSSL, mpReadBIO, mpWriteBIO);
-    	SSL_set_connect_state(mpSSL);
-//    	SSL_set_accept_state(mpSSL);
+    	if ( bActive ) {
+    		SSL_set_connect_state(mpSSL);
+    	} else {
+    		SSL_set_accept_state(mpSSL);
+    	}
     	EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
     	SSL_set_options(mpSSL, SSL_OP_SINGLE_ECDH_USE);
     	SSL_set_tmp_ecdh(mpSSL, ecdh);

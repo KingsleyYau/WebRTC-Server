@@ -50,7 +50,7 @@ public:
 
 public:
 	void SetSocketSender(SocketSender *sender);
-	bool Start();
+	bool Start(bool bActive = true);
 	void Stop();
 
 	bool Handshake();

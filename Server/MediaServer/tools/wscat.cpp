@@ -23,7 +23,7 @@ using namespace std;
 #include <common/StringHandle.h>
 #include <common/CommonFunc.h>
 
-#include "mongoose.h"
+#include <mongoose/mongoose.h>
 
 char url[1024] = {"ws://127.0.0.1:9981"};
 char cmd[1024] = {""};

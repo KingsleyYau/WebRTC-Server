@@ -9,8 +9,9 @@
 #ifndef TEST_WEBRTCTESTER_H_
 #define TEST_WEBRTCTESTER_H_
 
-#include "mongoose.h"
-#include "WebRTC.h"
+#include "WebRTCClient.h"
+
+#include <mongoose/mongoose.h>
 
 // Common
 #include <common/LogManager.h>
@@ -19,7 +20,7 @@
 namespace mediaserver {
 class WebRTCTester;
 
-class Tester : public WebRTCCallback {
+class Tester : public WebRTCClientCallback {
 public:
 	static void Handle(struct mg_connection *nc, int ev, void *ev_data);
 
@@ -35,10 +36,10 @@ public:
 	bool HandleRecvData(unsigned char *data, size_t size);
 
 public:
-	void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp);
-	void OnWebRTCStartMedia(WebRTC *rtc);
-	void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg);
-	void OnWebRTCClose(WebRTC *rtc);
+	void OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp);
+	void OnWebRTCClientStartMedia(WebRTCClient *rtc);
+	void OnWebRTCClientError(WebRTCClient *rtc, WebRTCClientErrorType errType, const string& errMsg);
+	void OnWebRTCClientClose(WebRTCClient *rtc);
 
 public:
 	mg_mgr *mgr;
@@ -46,7 +47,7 @@ public:
 	string url;
 	string stream;
 
-	WebRTC rtc;
+	WebRTCClient rtc;
 	int index;
 	bool bReconnect;
 

@@ -137,7 +137,7 @@ bool Tester::Start() {
 		opt.user_data = (void *)this;
 
 		mMutex.lock();
-		conn = mg_connect_ws_opt(mgr, Handle, opt, url.c_str(), "", "User-Agent: WebRTC-Tester\r\n");
+		conn = mg_connect_ws_opt(mgr, Handle, opt, url.c_str(), "", "User-Agent: WebRTCClient-Tester\r\n");
 		if ( NULL != conn && conn->err == 0 ) {
 			bFlag = true;
 		}
@@ -215,10 +215,10 @@ bool Tester::HandleRecvData(unsigned char *data, size_t size) {
 	return bFlag;
 }
 
-void Tester::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
+void Tester::OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp) {
 //	LogAync(
 //			LOG_WARNING,
-//			"Tester::OnWebRTCServerSdp( "
+//			"Tester::OnWebRTCClientServerSdp( "
 //			"this : %p, "
 //			"rtc : %p, "
 //			"sdp:\n%s"
@@ -248,12 +248,12 @@ void Tester::OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) {
 	mMutex.unlock();
 }
 
-void Tester::OnWebRTCStartMedia(WebRTC *rtc) {
+void Tester::OnWebRTCClientStartMedia(WebRTCClient *rtc) {
 	LogAync(
 			LOG_WARNING,
-			"Tester::OnWebRTCStartMedia( "
+			"Tester::OnWebRTCClientStartMedia( "
 			"this : %p, "
-			"[WebRTC-开始媒体传输], "
+			"[WebRTCClient-开始媒体传输], "
 			"rtc : %p, "
 			"index : %d "
 			")",
@@ -263,10 +263,10 @@ void Tester::OnWebRTCStartMedia(WebRTC *rtc) {
 			);
 }
 
-void Tester::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) {
+void Tester::OnWebRTCClientError(WebRTCClient *rtc, WebRTCClientErrorType errType, const string& errMsg) {
 	LogAync(
 			LOG_WARNING,
-			"Tester::OnWebRTCError( "
+			"Tester::OnWebRTCClientError( "
 			"this : %p, "
 			"rtc : %p, "
 			"index : %d "
@@ -284,10 +284,10 @@ void Tester::OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& e
 	mMutex.unlock();
 }
 
-void Tester::OnWebRTCClose(WebRTC *rtc) {
+void Tester::OnWebRTCClientClose(WebRTCClient *rtc) {
 	LogAync(
 			LOG_WARNING,
-			"Tester::OnWebRTCClose( "
+			"Tester::OnWebRTCClientClose( "
 			"this : %p, "
 			"rtc : %p, "
 			"index : %d "

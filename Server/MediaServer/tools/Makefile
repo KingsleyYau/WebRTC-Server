@@ -1,7 +1,7 @@
-# Copyright (C) 2015 The Mediaserver
+# Copyright (C) 2020 The Mediaserver
 # webrtc-tester Makefile
 #
-# Created on: 2015/10/10
+# Created on: 2020/11/10
 # Author: Max.Chiu
 # Email: Kingsleyyau@gmail.com
 #
@@ -26,9 +26,10 @@ CFLAGS += -DDISABLE_MD5=1
 LIBS = -L. \
 		-Wl,-Bstatic -L../common -lcommon \
 		-Wl,-Bstatic -L../third_party/json -ljson \
+		-Wl,-Bstatic -L../third_party/mongoose -lmongoose \
 		-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
 		-Wl,-Bdynamic -ldl -pthread 
-OBJS = wscat.o mongoose.o
+OBJS = wscat.o
 TARGET = wscat
 
 .PHONY: clean $(TARGET)

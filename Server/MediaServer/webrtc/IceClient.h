@@ -14,6 +14,11 @@
 
 #include <include/ErrCode.h>
 
+// glib
+#include <glib-object.h>
+#include <gio/gio.h>
+#include <gio/gnetworking.h>
+
 #include <string>
 #include <vector>
 using namespace std;
@@ -30,11 +35,13 @@ public:
 	virtual void OnIceNewSelectedPairFull(IceClient *ice) = 0;
 	virtual void OnIceConnected(IceClient *ice) = 0;
 	virtual void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId) = 0;
+	virtual void OnIceFail(IceClient *ice) = 0;
 	virtual void OnIceClose(IceClient *ice) = 0;
 };
 
 class IceClient {
-	friend void cb_closed(void *src, void *res, void *data);
+	friend void cb_closed(::GObject *src, ::GAsyncResult *res, ::gpointer user_data);
+//	friend void cb_closed(void *src, void *res, void *data);
 	friend void cb_nice_recv(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int len, char *buf, void *data);
 	friend void cb_candidate_gathering_done(::NiceAgent *agent, unsigned int streamId, void* data);
 	friend void cb_component_state_changed(::NiceAgent *agent, unsigned int streamId, unsigned int componentId, unsigned int state, void *data);
@@ -60,7 +67,7 @@ public:
 	void SetRemoteSdp(const string& sdp);
 
 public:
-	bool Start();
+	bool Start(bool bControlling = false);
 	void Stop();
 	int SendData(const void *data, unsigned int len);
 
@@ -100,6 +107,8 @@ private:
 
 	KCond mCloseCond;
 	KCond mStreamRemoveCond;
+
+	bool mbControlling;
 
 	// 最后一次错误码
 	RequestErrorType mLastErrorCode;

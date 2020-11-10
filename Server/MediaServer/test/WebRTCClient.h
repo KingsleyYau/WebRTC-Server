@@ -1,6 +1,6 @@
 /*
- * WebRTC.h
- * WebRTC控制器, 管理整个WebRTC流程
+ * WebRTCClient.h
+ * WebRTCClient控制器, 管理整个WebRTCClient流程
  * 1.解析远程SDP
  * 2.开启ICE获取转发端口
  * 3.进行DTLS握手
@@ -12,8 +12,8 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef WEBRTC_WEBRTC_H_
-#define WEBRTC_WEBRTC_H_
+#ifndef WebRTCClient_WebRTCClient_H_
+#define WebRTCClient_WebRTCClient_H_
 
 #include <server/MainLoop.h>
 
@@ -22,10 +22,10 @@
 
 #include <socket/ISocketSender.h>
 
-#include "DtlsSession.h"
-#include "RtpSession.h"
-#include "RtpRawClient.h"
-#include "IceClient.h"
+#include <rtp/DtlsSession.h>
+#include <rtp/RtpSession.h>
+#include <rtp/RtpRawClient.h>
+#include <webrtc/IceClient.h>
 
 namespace mediaserver {
 typedef list<string> RtcpFbList;
@@ -37,43 +37,43 @@ typedef struct SdpPayload {
 	string fmtp;
 } SdpPayload;
 
-typedef enum WebRTCErrorType {
-	WebRTCErrorType_None = 0,
-	WebRTCErrorType_Rtp2Rtmp_Start_Fail,
-	WebRTCErrorType_Rtp2Rtmp_Exit,
-	WebRTCErrorType_Unknow,
-} WebRTCErrorType;
+typedef enum WebRTCClientErrorType {
+	WebRTCClientErrorType_None = 0,
+	WebRTCClientErrorType_Rtp2Rtmp_Start_Fail,
+	WebRTCClientErrorType_Rtp2Rtmp_Exit,
+	WebRTCClientErrorType_Unknow,
+} WebRTCClientErrorType;
 
-const string WebRTCErrorMsg[] = {
+const string WebRTCClientErrorMsg[] = {
 	"",
-	"WebRTC Rtp Transform Rtmp Start Error.",
-	"WebRTC Rtp Transform Rtmp Exit Error.",
-	"WebRTC Unknow Error.",
+	"WebRTCClient Rtp Transform Rtmp Start Error.",
+	"WebRTCClient Rtp Transform Rtmp Exit Error.",
+	"WebRTCClient Unknow Error.",
 };
 
-class WebRTCRunnable;
-class WebRTC;
-class WebRTCCallback {
+class WebRTCClientRunnable;
+class WebRTCClient;
+class WebRTCClientCallback {
 public:
-	virtual ~WebRTCCallback(){};
-	virtual void OnWebRTCServerSdp(WebRTC *rtc, const string& sdp) = 0;
-	virtual void OnWebRTCStartMedia(WebRTC *rtc) = 0;
-	virtual void OnWebRTCError(WebRTC *rtc, WebRTCErrorType errType, const string& errMsg) = 0;
-	virtual void OnWebRTCClose(WebRTC *rtc) = 0;
+	virtual ~WebRTCClientCallback(){};
+	virtual void OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp) = 0;
+	virtual void OnWebRTCClientStartMedia(WebRTCClient *rtc) = 0;
+	virtual void OnWebRTCClientError(WebRTCClient *rtc, WebRTCClientErrorType errType, const string& errMsg) = 0;
+	virtual void OnWebRTCClientClose(WebRTCClient *rtc) = 0;
 };
 
-class WebRTC : public SocketSender, IceClientCallback, MainLoopCallback {
-	friend class WebRTCRunnable;
+class WebRTCClient : public SocketSender, IceClientCallback, MainLoopCallback {
+	friend class WebRTCClientRunnable;
 
 public:
-	WebRTC();
-	virtual ~WebRTC();
+	WebRTCClient();
+	virtual ~WebRTCClient();
 
 public:
 	static bool GobalInit(const string& certPath, const string& keyPath, const string& stunServerIp, const string& localIp);
 
 public:
-	void SetCallback(WebRTCCallback *callback);
+	void SetCallback(WebRTCClientCallback *callback);
 	bool Init(
 			const string rtp2RtmpShellFilePath,
 			const string rtpDstAudioIp = "127.0.0.1",
@@ -96,6 +96,8 @@ private:
 	void OnIceConnected(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
 	void OnIceClose(IceClient *ice);
+	void OnIceFail(IceClient *ice);
+
 	// MainLoopCallback
 	void OnChildExit(int pid);
 
@@ -121,13 +123,13 @@ private:
 	KMutex mClientMutex;
 	bool mRunning;
 
-	WebRTCCallback *mpWebRTCCallback;
+	WebRTCClientCallback *mpWebRTCClientCallback;
 
 	IceClient mIceClient;
 	DtlsSession mDtlsSession;
 	RtpSession mRtpSession;
 
-	WebRTCRunnable* mpRtpClientRunnable;
+	WebRTCClientRunnable* mpRtpClientRunnable;
 	KThread mRtpClientThread;
 	RtpRawClient mRtpClient;
 
@@ -146,8 +148,8 @@ private:
 
 	// 执行转发RTMP的脚本
 	string mRtp2RtmpShellFilePath;
-	// 转发RTMP的链接
-	string mRtmpUrl;
+	// 转发RTP的链接
+	string mRtpUrl;
 	// 转发RTMP脚本的进程ID
 	int mRtpTransformPid;
 	KMutex mRtpTransformPidMutex;
@@ -155,4 +157,4 @@ private:
 
 } /* namespace mediaserver */
 
-#endif /* WEBRTC_WEBRTC_H_ */
+#endif /* WebRTCClient_WebRTCClient_H_ */

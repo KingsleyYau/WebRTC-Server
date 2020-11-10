@@ -1,4 +1,4 @@
-# Copyright (C) 2019 The Qpidnetwork
+# Copyright (C) 2019 The Mediaserver
 # MediaServer Makefile
 #
 # Created on: 2019/6/13
@@ -85,7 +85,7 @@ DEPDIRS	= \
 	third_party/libev third_party/sqlite third_party/curl \
 	third_party/amf third_party/json third_party/xml \
 	third_party/libsdp third_party/libsrtp third_party/libnice \
-	third_party/abseil-cpp
+	third_party/abseil-cpp third_party/mongoose
 			
 CLEAN_DEPS = $(addprefix _clean_, $(DEPDIRS))
 
@@ -98,7 +98,7 @@ $(TARGET): version deps modules $(OBJS)
 	@echo '# Bulid mediaserver completed!'
 	@echo ''
 	@echo '################################################################'
-
+	
 $(MODULEDIRS):
 	$(MAKE) -C $@
 	
@@ -131,6 +131,7 @@ modules: $(MODULEDIRS)
 all: deps modules $(TARGET)
 
 test: deps modules
+	$(MAKE) -C test
 
 clean: $(CLEAN_MODULES)
 	rm -f $(TARGET) $(OBJS)

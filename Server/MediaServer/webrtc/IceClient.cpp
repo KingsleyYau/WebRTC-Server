@@ -23,26 +23,34 @@
 #include <agent.h>
 #include <debug.h>
 
-// glib
-#include <gio/gnetworking.h>
-
 namespace mediaserver {
-::GMainLoop* gLoop = NULL;
-::GThread* gLoopThread = NULL;
-::GMainContext *gContext = NULL;
+//::GMainContext *gWorkerContext = NULL;
+//::GMainLoop* gWorkerLoop = NULL;
+//::GThread* gWorkerLoopThread = NULL;
+
+GMainLoop* gDeamonLoop = NULL;
+GThread* gDeamonLoopThread = NULL;
+
+KMutex gWorkerLoopMutex(KMutex::MutexType_Recursive);
+long gWorkerLoopSize = 0;
+long gWorkerLoopIndex = 0;
+GMainContext** gWorkerContext = NULL;
+GMainLoop** gWorkerLoop = NULL;
+GThread** gWorkerLoopThread = NULL;
 
 static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
 static const char *CandidateTransportName[] = {"", "tcptype active", "tcptype passive", ""};
 
 void* loop_thread(void *data) {
-	::GMainLoop* pLoop = (GMainLoop *)data;
+	GMainLoop* pLoop = (GMainLoop *)data;
     g_main_loop_run(pLoop);
+
     return 0;
 }
 
 void* niceLogFunc(const char *logBuffer) {
 	LogAync(
-			LOG_DEBUG,
+			LOG_INFO,
 			"IceClient::niceLogFunc( "
 			"[libnice], "
 			"%s "
@@ -70,12 +78,22 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 
 	g_networking_init();
 //	g_thread_init(NULL);
-//	gContext = g_main_context_new();
-	gLoop = g_main_loop_new(gContext, FALSE);
-	gLoopThread = g_thread_new("IceClient", &loop_thread, gLoop);
+//	gWorkerContext = g_main_context_new();
+	gDeamonLoop = g_main_loop_new(NULL, FALSE);
+	gDeamonLoopThread = g_thread_new("IceDeamon", &loop_thread, gDeamonLoop);
+
+	gWorkerLoopSize = sysconf(_SC_NPROCESSORS_ONLN);
+	gWorkerContext = new GMainContext*[gWorkerLoopSize];
+	gWorkerLoop = new GMainLoop*[gWorkerLoopSize];
+	gWorkerLoopThread = new GThread*[gWorkerLoopSize];
+	for (int i = 0; i < gWorkerLoopSize; i++) {
+		gWorkerContext[i] = g_main_context_new();
+		gWorkerLoop[i] = g_main_loop_new(gWorkerContext[i], FALSE);
+		gWorkerLoopThread[i] = g_thread_new("IceWorker", &loop_thread, gWorkerLoop[i]);
+	}
 
 //	nice_debug_enable(TRUE);
-	nice_debug_disable(TRUE);
+//	nice_debug_disable(TRUE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
 
 	return bFlag;
@@ -84,18 +102,18 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 //void IceClient::GobalStop() {
 //}
 
-void cb_closed(void *src, void *res, void *data) {
+void cb_closed(::GObject *src, ::GAsyncResult *res, ::gpointer user_data) {
+//void cb_closed(void *src, void *res, void *data) {
 	LogAync(
-			LOG_DEBUG,
+			LOG_INFO,
 			"IceClient::cb_closed( "
 			"this : %p, "
 			"agent : %p "
 			")",
-			data,
+			user_data,
 			src
 			);
-
-	IceClient *pClient = (IceClient *)data;
+	IceClient *pClient = (IceClient *)user_data;
 	NiceAgent *agent = NICE_AGENT((GObject *)src);
 	pClient->OnClose(agent);
 }
@@ -138,6 +156,8 @@ IceClient::IceClient() :
 	mStreamId = -1;
 	mComponentId = -1;
 
+	mbControlling = false;
+
 	mSdp = "";
 	mpIceClientCallback = NULL;
 }
@@ -147,7 +167,7 @@ IceClient::~IceClient() {
 	Stop();
 }
 
-bool IceClient::Start() {
+bool IceClient::Start(bool bControlling) {
 	bool bFlag = false;
 
 	LogAync(
@@ -165,8 +185,15 @@ bool IceClient::Start() {
 
 	mLastErrorCode = RequestErrorType_None;
 	mRunning = true;
+	mbControlling = bControlling;
 
-	mpAgent = nice_agent_new(g_main_loop_get_context(gLoop), NICE_COMPATIBILITY_RFC5245);
+	gWorkerLoopMutex.lock();
+	::GMainLoop* loop = gWorkerLoop[gWorkerLoopIndex];
+	gWorkerLoopIndex++;
+	gWorkerLoopIndex %= gWorkerLoopSize;
+	gWorkerLoopMutex.unlock();
+
+	mpAgent = nice_agent_new(g_main_loop_get_context(loop), NICE_COMPATIBILITY_RFC5245);
 
     /**
      * https://nice.freedesktop.org/libnice/NiceAgent.html
@@ -193,7 +220,7 @@ bool IceClient::Start() {
      *
      */
 	// 被动呼叫, controlling-mode为0
-    g_object_set(mpAgent, "controlling-mode", 0, NULL);
+    g_object_set(mpAgent, "controlling-mode", bControlling?1:0, NULL);
     // 允许使用turn
     g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
     // 强制使用turn转发
@@ -251,7 +278,7 @@ bool IceClient::Start() {
 
 		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_TCP);
 		bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
-		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(gLoop), cb_nice_recv, this);
+		bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(loop), cb_nice_recv, this);
 		bFlag &= nice_agent_gather_candidates(mpAgent, streamId);
 
 		bFlag = true;
@@ -301,15 +328,13 @@ void IceClient::Stop() {
 			LogAync(
 					LOG_INFO,
 					"IceClient::Stop( "
-					"[Close Turn Port], "
 					"this : %p, "
+					"[Request Turnserver Close Port], "
 					"agent : %p "
 					")",
 					this,
 					agent
 					);
-			// Notice Turn Server To Remove Port
-			mCloseCond.lock();
 			mRunning = false;
 			/**
 			 * 通知turnserver关闭对应端口
@@ -337,6 +362,8 @@ void IceClient::Stop() {
 			 * 			...
 			 * 		}
 			 */
+			// Notice Turn Server To Remove Port
+			mCloseCond.lock();
 			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
 			mCloseCond.wait();
 			mCloseCond.unlock();
@@ -345,8 +372,8 @@ void IceClient::Stop() {
 			LogAync(
 					LOG_INFO,
 					"IceClient::Stop( "
-					"[Remove Stream], "
 					"this : %p, "
+					"[Remove Local Stream], "
 					"agent : %p "
 					")",
 					this,
@@ -361,8 +388,8 @@ void IceClient::Stop() {
 			LogAync(
 					LOG_INFO,
 					"IceClient::Stop( "
-					"[Release Agent], "
 					"this : %p, "
+					"[Release Agent], "
 					"agent : %p "
 					")",
 					this,
@@ -616,11 +643,11 @@ void IceClient::OnClose(::NiceAgent *agent) {
 			);
 
 	mCloseCond.lock();
-	if( mRunning ) {
+//	if( mRunning ) {
 		if( mpIceClientCallback ) {
 			mpIceClientCallback->OnIceClose(this);
 		}
-	}
+//	}
 	mCloseCond.signal();
 	mCloseCond.unlock();
 
@@ -750,7 +777,10 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 				mpIceClientCallback->OnIceCandidateGatheringDone(this, ipUse, portUse, candArray, ufrag, pwd);
 			}
 
-			bFlag = ParseRemoteSdp(streamId);
+			bFlag = true;
+			if (!mbControlling) {
+				bFlag = ParseRemoteSdp(streamId);
+			}
 		}
 	}
 
@@ -770,13 +800,6 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 		if( mpIceClientCallback ) {
 			mpIceClientCallback->OnIceCandidateGatheringFail(this, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail);
 		}
-
-		mCloseCond.lock();
-		if ( mpAgent ) {
-			mLastErrorCode = RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail;
-			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
-		}
-		mCloseCond.unlock();
 	}
 
 	if ( ufrag ) {
@@ -810,11 +833,9 @@ void IceClient::OnComponentStateChanged(::NiceAgent *agent, unsigned int streamI
 			mpIceClientCallback->OnIceConnected(this);
 		}
 	} else if (state == NICE_COMPONENT_STATE_FAILED) {
-		mCloseCond.lock();
-		if ( mpAgent ) {
-			nice_agent_close_async(mpAgent, (GAsyncReadyCallback)cb_closed, this);
+		if( mpIceClientCallback ) {
+			mpIceClientCallback->OnIceFail(this);
 		}
-		mCloseCond.unlock();
 	}
 }
 

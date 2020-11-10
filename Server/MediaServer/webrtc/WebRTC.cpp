@@ -200,15 +200,16 @@ bool WebRTC::Init(
 bool WebRTC::Start(
 		const string& sdp,
 		const string& rtmpUrl,
-		bool isPull
+		bool isPull,
+		bool bControlling
 		) {
 	bool bFlag = true;
+
 
 	mClientMutex.lock();
 	if( mRunning ) {
 		Stop();
 	}
-
 	mRunning = true;
 
 	// Reset Param
@@ -221,19 +222,21 @@ bool WebRTC::Start(
 
 	// Start Modules
 	bFlag &= ParseRemoteSdp(sdp);
-	bFlag &= mIceClient.Start();
+	bFlag &= mIceClient.Start(bControlling);
 	bFlag &= mDtlsSession.Start();
 
 	if( bFlag ) {
 		// 启动DTLS协商线程
-		if( 0 ==  mDtlsThread.Start(mpDtlsRunnable, "DtlsRunnable") ) {
+		if( 0 ==  mDtlsThread.Start(mpDtlsRunnable, "Dtls") ) {
 			LogAync(
 					LOG_ALERT,
 					"WebRTC::Start( "
 					"this : %p, "
-					"[Create Dtls Thread Fail] "
+					"[Create Dtls Thread Fail], "
+					"rtmpUrl : %s "
 					")",
-					this
+					this,
+					rtmpUrl.c_str()
 					);
 			bFlag = false;
 		}
@@ -255,9 +258,11 @@ bool WebRTC::Start(
 						LOG_ALERT,
 						"WebRTC::Start( "
 						"this : %p, "
-						"[Create Rtp Thread Fail] "
+						"[Create Rtp Thread Fail], "
+						"rtmpUrl : %s "
 						")",
-						this
+						this,
+						rtmpUrl.c_str()
 						);
 				bFlag = false;
 			}
@@ -275,6 +280,7 @@ bool WebRTC::Start(
 		bFlag &= mRtpDstAudioClient.Start(NULL, 0, NULL, 0);
 		bFlag &= mRtpDstVideoClient.Start(NULL, 0, NULL, 0);
 	}
+
 
 	LogAync(
 			LOG_NOTICE,
@@ -1063,10 +1069,12 @@ bool WebRTC::CreateLocalSdpFile() {
 				"WebRTC::CreateLocalSdp( "
 				"this : %p, "
 				"[OK], "
-				"mSdpFilePath : %s "
+				"mSdpFilePath : %s, "
+				"rtmpUrl : %s "
 				")",
 				this,
-				mSdpFilePath.c_str()
+				mSdpFilePath.c_str(),
+				mRtmpUrl.c_str()
 				);
 	} else {
 		LogAync(
@@ -1074,10 +1082,12 @@ bool WebRTC::CreateLocalSdpFile() {
 				"WebRTC::CreateLocalSdp( "
 				"this : %p, "
 				"[Fail], "
-				"mSdpFilePath : %s "
+				"mSdpFilePath : %s, "
+				"rtmpUrl : %s "
 				")",
 				this,
-				mSdpFilePath.c_str()
+				mSdpFilePath.c_str(),
+				mRtmpUrl.c_str()
 				);
 	}
 
@@ -1093,7 +1103,7 @@ void WebRTC::RemoveLocalSdpFile() {
 }
 
 bool WebRTC::StartRtpTransform() {
-	bool bFlag = true;//CreateLocalSdpFile();
+	bool bFlag = true;
 
 	if ( bFlag ) {
 		char transcode[2] = {'\0'};
@@ -1104,6 +1114,10 @@ bool WebRTC::StartRtpTransform() {
 		sprintf(videoPayload, "%u", mVideoSdpPayload.payload_type);
 		char audioPayload[16] = {'\0'};
 		sprintf(audioPayload, "%u", mAudioSdpPayload.payload_type);
+
+		if ( !mIsPull ) {
+			bFlag = CreateLocalSdpFile();
+		}
 
 		pid_t pid = fork();
 		if ( pid < 0 ) {
@@ -1164,11 +1178,30 @@ bool WebRTC::StartRtpTransform() {
 			mRtpTransformPid = pid;
 			MainLoop::GetMainLoop()->StartWatchChild(mRtpTransformPid, this);
 		} else {
+			struct sigaction sa;
+			sa.sa_handler = SIG_IGN;
+			sigemptyset(&sa.sa_mask);
+			sigaction(SIGPIPE, &sa, 0);
+
+			sa.sa_handler = SIG_DFL;
+			sigaction(SIGCHLD, &sa, 0);
+			sigaction(SIGINT, &sa, 0);
+			sigaction(SIGQUIT, &sa, 0);
+			sigaction(SIGILL, &sa, 0);
+			sigaction(SIGABRT, &sa, 0);
+			sigaction(SIGFPE, &sa, 0);
+			sigaction(SIGBUS, &sa, 0);
+			sigaction(SIGSEGV, &sa, 0);
+			sigaction(SIGSYS, &sa, 0);
+			sigaction(SIGTERM, &sa, 0);
+			sigaction(SIGXCPU, &sa, 0);
+			sigaction(SIGXFSZ, &sa, 0);
+
 			if ( mIsPull ) {
 				int ret = execle("/bin/sh", "sh", mRtmp2RtpShellFilePath.c_str(), mRtmpUrl.c_str(), rtpUrl, videoPayload, audioPayload, transcode, NULL, NULL);
 				exit(EXIT_SUCCESS);
 			} else {
-				bool bFlag = CreateLocalSdpFile();
+//				bool bFlag = CreateLocalSdpFile();
 				if ( bFlag ) {
 					int ret = execle("/bin/sh", "sh", mRtp2RtmpShellFilePath.c_str(), mSdpFilePath.c_str(), mRtmpUrl.c_str(), transcode, mSdpLogFilePath.c_str(), NULL, NULL);
 				}
@@ -1197,16 +1230,16 @@ void WebRTC::StopRtpTransform() {
 
 	mRtpTransformPidMutex.lock();
 	if ( mRtpTransformPid != 0 ) {
-		LogAync(
-				LOG_INFO,
-				"WebRTC::StopRtpTransform( "
-				"this : %p, "
-				"pid : %d "
-				")",
-				this,
-				mRtpTransformPid
-				);
-		kill(mRtpTransformPid, SIGTERM);
+//		LogAync(
+//				LOG_INFO,
+//				"WebRTC::StopRtpTransform( "
+//				"this : %p, "
+//				"pid : %d "
+//				")",
+//				this,
+//				mRtpTransformPid
+//				);
+		kill(mRtpTransformPid, SIGKILL);
 		mRtpTransformPid = 0;
 	}
 	mRtpTransformPidMutex.unlock();
@@ -1917,6 +1950,23 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 	}
 }
 
+void WebRTC::OnIceFail(IceClient *ice) {
+	LogAync(
+			LOG_WARNING,
+			"WebRTC::OnIceFail( "
+			"this : %p, "
+			"ice : %p, "
+			"rtmpUrl : %s "
+			")",
+			this,
+			ice,
+			mRtmpUrl.c_str()
+			);
+	if( mpWebRTCCallback ) {
+		mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Ice_Fail, "");
+	}
+}
+
 void WebRTC::OnIceClose(IceClient *ice) {
 	LogAync(
 			LOG_NOTICE,
@@ -1995,48 +2045,52 @@ void WebRTC::DtlsThread() {
 			);
 
 	unsigned int times = 0;
-	unsigned int interval = 1;
+	int64_t interval = 1000;
+	int64_t lastTime = 0;
 
 	while ( mRunning ) {
-		if ( mIceClient.IsConnected() ) {
-			DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
-			if ( times < 5 && (status < DtlsSessionStatus_HandshakeDone) ) {
-				LogAync(
-						LOG_NOTICE,
-						"WebRTC::DtlsThread( "
-						"this : %p, "
-						"[Try DTLS Handshake], "
-						"times : %u, "
-						"rtmpUrl : %s "
-						")",
-						this,
-						times,
-						mRtmpUrl.c_str()
-						);
-				mDtlsSession.Handshake();
-				times++;
-				interval++;
-			} else {
-				if ( status < DtlsSessionStatus_HandshakeDone ) {
+		int64_t now = getCurrentTime();
+		if (now - lastTime > interval) {
+			if ( mIceClient.IsConnected() ) {
+				DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
+				if ( times < 5 && (status < DtlsSessionStatus_HandshakeDone) ) {
 					LogAync(
 							LOG_NOTICE,
 							"WebRTC::DtlsThread( "
 							"this : %p, "
-							"[DTLS Handshake Timeout], "
+							"[Try DTLS Handshake], "
+							"times : %u, "
 							"rtmpUrl : %s "
 							")",
 							this,
+							times,
 							mRtmpUrl.c_str()
 							);
-					if( mpWebRTCCallback ) {
-						mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Dtls_Handshake_Fail, "");
-//						mpWebRTCCallback->OnWebRTCClose(this);
+					mDtlsSession.Handshake();
+					lastTime = now;
+					times++;
+					interval += 1000;
+				} else {
+					if ( status < DtlsSessionStatus_HandshakeDone ) {
+						LogAync(
+								LOG_NOTICE,
+								"WebRTC::DtlsThread( "
+								"this : %p, "
+								"[DTLS Handshake Timeout], "
+								"rtmpUrl : %s "
+								")",
+								this,
+								mRtmpUrl.c_str()
+								);
+						if( mpWebRTCCallback ) {
+							mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Dtls_Handshake_Fail, "");
+						}
 					}
+					break;
 				}
-				break;
 			}
 		}
-		sleep(interval);
+		usleep(1000);
 	}
 
 	LogAync(

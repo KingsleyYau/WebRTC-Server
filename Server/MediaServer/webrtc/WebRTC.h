@@ -111,7 +111,8 @@ public:
 	bool Start(
 			const string& sdp,
 			const string& rtmpUrl,
-			bool isPull = false
+			bool isPull = false,
+			bool bControlling = false
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
@@ -128,7 +129,9 @@ private:
 	void OnIceNewSelectedPairFull(IceClient *ice);
 	void OnIceConnected(IceClient *ice);
 	void OnIceRecvData(IceClient *ice, const char *data, unsigned int size, unsigned int streamId, unsigned int componentId);
+	void OnIceFail(IceClient *ice);
 	void OnIceClose(IceClient *ice);
+
 	// MainLoopCallback
 	void OnChildExit(int pid);
 	// Dtls Handshake Thread Proc
