@@ -1102,7 +1102,17 @@
         if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert('WebRTC.mediaDevices is not supported.');
         } else {
-            navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+            window.navigator.mediaDevices.getUserMedia({video: true, audio: true}).then(mediaStream => {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(
+                        track => track.stop()
+                    );
+                }
+                navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+            }).catch(err => {
+                console.log('WebRTC.getUserMedia error:', err);
+            });
+            //navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
             var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
             console.log('SupportedConstraints : ', supportedConstraints);
         }
