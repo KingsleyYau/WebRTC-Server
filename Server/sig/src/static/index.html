@@ -122,6 +122,22 @@
     let nackSeries = new TimelineDataSeries();
     let nackGraph;
 
+    function toast(msg, duration) {
+        duration = isNaN(duration) ? 3000 : duration;
+        var m = document.createElement('div');
+        m.innerHTML = msg;
+        m.style.cssText = "font-family:siyuan;max-width:60%;min-width: 150px;padding:10px 14px;word-wrap:break-word;color: rgb(255, 255, 255);line-height: 25px;text-align: left;border-radius: 4px;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 999999;background: rgba(0, 0, 0,.7);font-size: 16px;";
+        document.body.appendChild(m);
+        setTimeout(function() {
+            var d = 0.5;
+            m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+            m.style.opacity = '0';
+            setTimeout(function() {
+                document.body.removeChild(m)
+            }, d * 1000);
+        }, duration);
+    }
+
     function reset() {
         reqId = 0;
         callAlready = false;
@@ -867,9 +883,7 @@
                 //     worker.postMessage({msg:'draw', canvas:canvas}, [canvas]);
                 //     URL.revokeObjectURL(url);
                 // })();
-            }).catch(e => {
-                console.log("RTCClient::showLocalVideo(), [Fail], e: ", e);
-            });
+            }).catch(handleError);
         }
 
         async stopLocalVideo() {
@@ -1109,9 +1123,7 @@
                     );
                 }
                 navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
-            }).catch(err => {
-                console.log('WebRTC.getUserMedia error:', err);
-            });
+            }).catch(handleError);
             //navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
             var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
             console.log('SupportedConstraints : ', supportedConstraints);
@@ -1315,7 +1327,8 @@
     }
 
     function handleError(e) {
-        console.log('navigator.MediaDevices.getUserMedia, [Fail], e:', e);
+        console.log('WebRTC.handleError:', e);
+        toast(e);
     }
 
     function gotDevices(deviceInfos) {
