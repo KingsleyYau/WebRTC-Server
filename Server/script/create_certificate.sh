@@ -23,7 +23,11 @@ openssl x509 -req -in output/server.csr -CA output/private/cacert.crt -CAkey out
 # Verify User certificate
 openssl verify -CAfile output/private/cacert.crt output/server.crt 
 # Show User certificate info
-openssl x509 -in output/server.crt -text -noout
+openssl x509 -text -noout -in output/server.crt
+# Show User key info
+#openssl rsa -text -noout -in output/server.key
+# Show User csr info
+#openssl req -text -noout -in output/server.csr
 # Check remote domain certificate
 #openssl s_client -connect demo-stream2.charmlive.com:9082 -CAfile output/private/cacert.crt
 
