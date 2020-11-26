@@ -19,6 +19,7 @@
 
 #include <common/KSafeList.h>
 #include <include/ErrCode.h>
+#include <include/ForkNotice.h>
 
 // Rtp
 #include <rtp/api/rtp_parameters.h>
@@ -97,7 +98,6 @@ public:
 			);
 
 public:
-	void SetCallback(WebRTCCallback *callback);
 	bool Init(
 			const string& rtp2RtmpShellFilePath,
 			const string& rtmp2RtpShellFilePath,
@@ -108,6 +108,7 @@ public:
 			const string& rtpRecvIp = "127.0.0.1",
 			unsigned int rtpRecvPort = 10000
 			);
+	void SetCallback(WebRTCCallback *callback, ForkNotice *forkNotice = NULL);
 	bool Start(
 			const string& sdp,
 			const string& rtmpUrl,
@@ -200,8 +201,8 @@ private:
 	bool mRunning;
 
 	KMutex mParamMutex;
-
 	WebRTCCallback *mpWebRTCCallback;
+	ForkNotice *mpForkNotice;
 
 	IceClient mIceClient;
 	DtlsSession mDtlsSession;

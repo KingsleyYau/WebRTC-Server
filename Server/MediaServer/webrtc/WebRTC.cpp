@@ -70,6 +70,7 @@ WebRTC::WebRTC()
 	mRtpSession.SetRtcpSender(this);
 
 	mpWebRTCCallback = NULL;
+	mpForkNotice = NULL;
 
 	mVideoSSRC = 0;
 	mAudioSSRC = 0;
@@ -140,8 +141,9 @@ bool WebRTC::GobalInit(
 	return bFlag;
 }
 
-void WebRTC::SetCallback(WebRTCCallback *callback) {
+void WebRTC::SetCallback(WebRTCCallback *callback, ForkNotice *forkNotice) {
 	mpWebRTCCallback = callback;
+	mpForkNotice = forkNotice;
 }
 
 bool WebRTC::Init(
@@ -211,11 +213,6 @@ bool WebRTC::Start(
 		Stop();
 	}
 	mRunning = true;
-
-	// Reset Param
-	mNeedTranscodeVideo = true;
-	mWebRTCMediaType = WebRTCMediaType_None;
-	mLastErrorCode = RequestErrorType_None;
 
 	mRtmpUrl = rtmpUrl;
 	mIsPull = isPull;
@@ -361,6 +358,11 @@ void WebRTC::Stop() {
 		mbCandidate = false;
 		mbIceUfrag = false;
 		mbIcePwd = false;
+
+		mNeedTranscodeVideo = true;
+		mWebRTCMediaVideoFirst = false;
+		mLastErrorCode = RequestErrorType_None;
+		mWebRTCMediaType = WebRTCMediaType_BothVideoAudio;
 
 		mAudioExtmap.clear();
 		mVideoExtmap.clear();
@@ -1119,6 +1121,10 @@ bool WebRTC::StartRtpTransform() {
 			bFlag = CreateLocalSdpFile();
 		}
 
+		if ( mpForkNotice ) {
+			mpForkNotice->OnForkBefore();
+		}
+
 		pid_t pid = fork();
 		if ( pid < 0 ) {
 			LogAync(
@@ -1129,6 +1135,10 @@ bool WebRTC::StartRtpTransform() {
 					")",
 					this
 					);
+			if ( mpForkNotice ) {
+				mpForkNotice->OnForkParent();
+			}
+
 			bFlag = false;
 		} else if ( pid > 0 ) {
 			if ( mIsPull ) {
@@ -1175,6 +1185,10 @@ bool WebRTC::StartRtpTransform() {
 						);
 			}
 
+			if ( mpForkNotice ) {
+				mpForkNotice->OnForkParent();
+			}
+
 			mRtpTransformPid = pid;
 			MainLoop::GetMainLoop()->StartWatchChild(mRtpTransformPid, this);
 		} else {
@@ -1196,6 +1210,10 @@ bool WebRTC::StartRtpTransform() {
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGXCPU, &sa, 0);
 			sigaction(SIGXFSZ, &sa, 0);
+
+			if ( mpForkNotice ) {
+				mpForkNotice->OnForkChild();
+			}
 
 			if ( mIsPull ) {
 				int ret = execle("/bin/sh", "sh", mRtmp2RtpShellFilePath.c_str(), mRtmpUrl.c_str(), rtpUrl, videoPayload, audioPayload, transcode, NULL, NULL);

@@ -13,6 +13,8 @@
 #include <common/KSafeList.h>
 #include <common/KSafeMap.h>
 
+#include <include/ForkNotice.h>
+
 #include <websocketpp/config/asio_no_tls.hpp>
 //#include <websocketpp/config/asio.hpp>
 #include <websocketpp/server.hpp>
@@ -35,7 +37,7 @@ public:
 };
 
 class WSIORunnable;
-class WSServer {
+class WSServer : public ForkNotice {
 	friend class WSIORunnable;
 
 public:
@@ -45,6 +47,10 @@ public:
 public:
 	bool Start(int port, int maxConnection = 100);
 	void Stop();
+
+	void OnForkBefore();
+	void OnForkParent();
+	void OnForkChild();
 
 	bool SendText(connection_hdl hdl, const string& str);
 	void Disconnect(connection_hdl hdl);

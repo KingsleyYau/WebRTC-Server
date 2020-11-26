@@ -395,7 +395,7 @@ bool MediaServer::Start() {
 		// WebRTC最大转发数
 		for(unsigned int i = 0, port = mWebRTCPortStart; i < mWebRTCMaxClient; i++, port +=4) {
 			WebRTC *rtc = new WebRTC();
-			rtc->SetCallback(this);
+			rtc->SetCallback(this, this);
 			rtc->Init(
 					mWebRTCRtp2RtmpShellFilePath,
 					mWebRTCRtmp2RtpShellFilePath,
@@ -1742,6 +1742,23 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 		mWSServer.Disconnect(hdl);
 	}
+}
+
+void MediaServer::OnForkBefore() {
+//	// 停止监听Websocket
+//	mWSServer.OnForkBefore();
+}
+
+void MediaServer::OnForkParent() {
+//	// 停止监听Websocket
+//	mWSServer.OnForkParent();
+}
+
+void MediaServer::OnForkChild() {
+//	// 停止监听Websocket
+//	mWSServer.OnForkChild();
+	// 停止监听socket
+	mAsyncIOServer.Close();
 }
 
 void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorMsg, RequestErrorType errType, const string msg) {

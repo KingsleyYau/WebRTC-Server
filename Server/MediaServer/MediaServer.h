@@ -36,7 +36,8 @@
 // WebRTC
 #include <webrtc/WebRTC.h>
 // ErrorCode
-#include <ErrCode.h>
+#include <include/ErrCode.h>
+#include <include/ForkNotice.h>
 
 using namespace mediaserver;
 
@@ -152,7 +153,8 @@ class MediaServer :
 		public AsyncIOServerCallback,
 		public HttpParserCallback,
 		public WebRTCCallback,
-		public WSServerCallback
+		public WSServerCallback,
+		public ForkNotice
 {
 	friend class StateRunnable;
 	friend class TimeoutCheckRunnable;
@@ -208,6 +210,10 @@ public:
 	void OnWSClose(WSServer *server, connection_hdl hdl);
 	void OnWSMessage(WSServer *server, connection_hdl hdl, const string& str);
 	/***************************** WSServerCallback **************************************/
+
+	void OnForkBefore();
+	void OnForkParent();
+	void OnForkChild();
 
 private:
 	/**

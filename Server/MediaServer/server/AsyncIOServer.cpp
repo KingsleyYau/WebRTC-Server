@@ -197,6 +197,11 @@ bool AsyncIOServer::IsRunning() {
 	return mRunning;
 }
 
+void AsyncIOServer::Close() {
+	// 关闭监听socket
+	mTcpServer.Close();
+}
+
 bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 	LogAync(
 			LOG_INFO,

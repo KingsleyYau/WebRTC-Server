@@ -91,6 +91,9 @@ bool WSServer::Start(int port, int maxConnection) {
     	mServer.set_message_handler(bind(&WSServer::OnMessage, this, ::_1, ::_2));
 //    	mServer.set_tls_init_handler(bind(&WSServer::OnTlsInit, 1, ::_1));
 
+    	lib::asio::error_code ec;
+    	lib::asio::ip::tcp::endpoint ep = mServer.get_local_endpoint(ec);
+
         // Listen on port
     	mServer.listen(lib::asio::ip::tcp::v4(), port);
 
@@ -193,6 +196,24 @@ void WSServer::Stop() {
 			"[OK] "
 			")"
 			);
+}
+
+void WSServer::OnForkBefore() {
+	mServer.get_io_service().notify_fork(boost::asio::io_service::fork_prepare);
+}
+
+void WSServer::OnForkParent() {
+	mServer.get_io_service().notify_fork(boost::asio::io_service::fork_parent);
+}
+
+void WSServer::OnForkChild() {
+	try {
+		mServer.get_io_service().notify_fork(boost::asio::io_service::fork_child);
+		if( mServer.is_listening() ) {
+			mServer.stop_listening();
+		}
+	} catch (websocketpp::exception const & e) {
+	}
 }
 
 bool WSServer::SendText(connection_hdl hdl, const string& str) {

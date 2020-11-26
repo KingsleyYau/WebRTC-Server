@@ -319,6 +319,11 @@ bool TcpServer::IsRunning() {
 	return mRunning;
 }
 
+void TcpServer::Close() {
+	// 关闭监听socket
+	mpSocket->Close();
+}
+
 SocketStatus TcpServer::Read(Socket* socket, const char *data, int &len) {
 	SocketStatus status = socket->Read(data, len);
 

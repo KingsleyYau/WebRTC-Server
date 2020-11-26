@@ -38,6 +38,7 @@ public:
 			);
 	void Stop();
 	bool IsRunning();
+	void Close();
 
 	bool Send(Client* client, const char* buf, int &len);
 	void Disconnect(Client* client);

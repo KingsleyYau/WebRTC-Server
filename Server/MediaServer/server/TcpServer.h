@@ -56,6 +56,7 @@ public:
 	bool Start(int port = 9201, int maxConnection = 1000, const char *ip = "0.0.0.0");
 	void Stop();
 	bool IsRunning();
+	void Close();
 
 	SocketStatus Read(Socket* socket, const char *data, int &len);
 	bool Send(Socket* socket, const char *data, int &len);
