@@ -1257,7 +1257,8 @@ void WebRTC::StopRtpTransform() {
 //				this,
 //				mRtpTransformPid
 //				);
-		kill(mRtpTransformPid, SIGKILL);
+		kill(mRtpTransformPid, SIGTERM);
+//		kill(mRtpTransformPid, SIGKILL);
 		mRtpTransformPid = 0;
 	}
 	mRtpTransformPidMutex.unlock();
@@ -2108,7 +2109,7 @@ void WebRTC::DtlsThread() {
 				}
 			}
 		}
-		usleep(1000);
+		Sleep(100);
 	}
 
 	LogAync(
@@ -2139,7 +2140,7 @@ void WebRTC::RecvRtpThread() {
 		} else {
 			break;
 		}
-		usleep(10);
+		Sleep(1);
 	}
 
 	LogAync(

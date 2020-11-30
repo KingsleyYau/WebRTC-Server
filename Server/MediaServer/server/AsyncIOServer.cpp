@@ -7,6 +7,10 @@
  */
 
 #include "AsyncIOServer.h"
+
+// Common
+#include <common/CommonFunc.h>
+
 namespace mediaserver {
 class RecvRunnable : public KRunnable {
 public:
@@ -279,7 +283,7 @@ bool AsyncIOServer::OnAccept(Socket* socket) {
 		bFlag = true;
 
 		// 超过一半连接数目, 释放CPU, 让处理线程处理
-		usleep(200 * 1000);
+		Sleep(200);
 
 	} else {
 		LogAync(
@@ -550,7 +554,7 @@ void AsyncIOServer::RecvHandleThread() {
 			}
 
 		} else {
-			usleep(100 * 1000);
+			Sleep(100);
 		}
 	}
 

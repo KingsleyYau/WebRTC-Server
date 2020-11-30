@@ -73,13 +73,22 @@ int GetRandomValue();
 #else
 	// include 头文件
 	#include <stdio.h>
+	#include <stdlib.h>
+    #include <stdint.h>
 	#include <sys/time.h>
 	#include <unistd.h>
+	#include <errno.h>
 
 	// define
-	#define Sleep(ms)  usleep(ms * 1000)
+//	#define Sleep(ms) usleep(ms * 1000)
+	#define Sleep(ms) millisleep(ms)
 
 #endif
+
+inline void millisleep(uint32_t milliseconds) {
+	struct timespec ts = {milliseconds / 1000, (milliseconds % 1000) * 1000000};
+	while ((-1 == nanosleep(&ts, &ts)) && (EINTR == errno));
+}
 
 // 获取当前时间（Unix Timestamp ms）
 inline long long getCurrentTime()
