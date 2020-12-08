@@ -100,6 +100,13 @@ void nice_debug_enable (gboolean with_stun);
 void nice_debug_disable (gboolean with_stun);
 
 /**
+ * nice_debug_verbose_enable
+ *
+ * Add by Max 2020/12/04
+ */
+void nice_debug_verbose_enable();
+void nice_debug_verbose_disable ();
+/**
  * Log function defined
  */
 typedef void(*NICE_LOG_FUNC_IMP)(const char *logBuffer);

@@ -113,9 +113,12 @@ nice_udp_turn_over_tcp_socket_new (NiceSocket *base_socket,
 
   /**
    * Add Debug Log
-   * Add by Max 2019/08/26
+   * Add by Max 2020/12/04
    */
-  nice_debug ("%s:%d nice_udp_turn_over_tcp_socket_new, sock:%p, fileno:%p, base_socket:%p", __FILE__, __LINE__, sock, sock->fileno, priv->base_socket);
+  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Create Base Socket %p(FD %d)",
+		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
 
   return sock;
 }
@@ -129,10 +132,13 @@ socket_close (NiceSocket *sock)
 //  if (priv->base_socket)
 //    nice_socket_free (priv->base_socket);
   /**
-   * Modify by Max 2019/08/26
+   * Modify by Max 2020/12/04
    */
   if (priv->base_socket) {
-	  nice_debug ("%s:%d socket_close, sock:%p, base_socket:%p", __FILE__, __LINE__, sock, priv->base_socket);
+	  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Close Base Socket %p(FD %d)",
+			  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+			  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
+			  );
 //	  priv->base_socket->close(priv->base_socket);
 	  nice_socket_free (priv->base_socket);
 	  priv->base_socket = NULL;

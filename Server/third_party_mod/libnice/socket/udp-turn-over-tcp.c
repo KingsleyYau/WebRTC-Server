@@ -113,9 +113,12 @@ nice_udp_turn_over_tcp_socket_new (NiceSocket *base_socket,
 
   /**
    * Add Debug Log
-   * Add by Max 2019/08/26
+   * Add by Max 2020/12/04
    */
-  nice_debug ("%s:%d nice_udp_turn_over_tcp_socket_new, sock:%p, fileno:%p, base_socket:%p", __FILE__, __LINE__, sock, sock->fileno, priv->base_socket);
+  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Create Base Socket %p(FD %d)",
+		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
 
   return sock;
 }
@@ -129,10 +132,13 @@ socket_close (NiceSocket *sock)
 //  if (priv->base_socket)
 //    nice_socket_free (priv->base_socket);
   /**
-   * Modify by Max 2019/08/26
+   * Modify by Max 2020/12/04
    */
   if (priv->base_socket) {
-	  nice_debug ("%s:%d socket_close, sock:%p, base_socket:%p", __FILE__, __LINE__, sock, priv->base_socket);
+	  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Close Base Socket %p(FD %d)",
+			  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+			  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
+			  );
 //	  priv->base_socket->close(priv->base_socket);
 	  nice_socket_free (priv->base_socket);
 	  priv->base_socket = NULL;
@@ -449,11 +455,6 @@ static gboolean
 socket_is_reliable (NiceSocket *sock)
 {
   TurnTcpPriv *priv = sock->priv;
-  /**
-   * Modify by Max 2020/06/08
-   * Make sure socket has not been freed:
-   */
-  g_assert (sock->priv != NULL);
 
   return nice_socket_is_reliable (priv->base_socket);
 }
@@ -462,11 +463,6 @@ static gboolean
 socket_can_send (NiceSocket *sock, NiceAddress *addr)
 {
   TurnTcpPriv *priv = sock->priv;
-  /**
-   * Modify by Max 2020/06/08
-   * Make sure socket has not been freed:
-   */
-  g_assert (sock->priv != NULL);
 
   return nice_socket_can_send (priv->base_socket, addr);
 }
@@ -476,11 +472,6 @@ socket_set_writable_callback (NiceSocket *sock,
     NiceSocketWritableCb callback, gpointer user_data)
 {
   TurnTcpPriv *priv = sock->priv;
-  /**
-   * Modify by Max 2020/06/08
-   * Make sure socket has not been freed:
-   */
-  g_assert (sock->priv != NULL);
 
   nice_socket_set_writable_callback (priv->base_socket, callback, user_data);
 }
@@ -489,11 +480,6 @@ static gboolean
 socket_is_based_on (NiceSocket *sock, NiceSocket *other)
 {
   TurnTcpPriv *priv = sock->priv;
-  /**
-   * Modify by Max 2020/06/08
-   * Make sure socket has not been freed:
-   */
-  g_assert (sock->priv != NULL);
 
   return (sock == other) ||
       (priv && nice_socket_is_based_on (priv->base_socket, other));

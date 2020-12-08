@@ -79,12 +79,4 @@ else
           >$LOG_FILE 2>&1 &
 fi
 
-
-while true;do
-  sleep 2
-  SELF_PID=$$
-  FFMPEG_PID=`ps --ppid $SELF_PID | grep ffmpeg | awk '{if($1~/[0-9]+/) print $1}'`
-  if [ $"SELF_PID" == "" ] || [ "$FFMPEG_PID" == "" ];then
-    exit;
-  fi
-done
+wait $!

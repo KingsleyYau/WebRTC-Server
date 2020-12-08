@@ -424,7 +424,7 @@ void TcpServer::IOHandleThread() {
 	LogAync(
 			LOG_INFO,
 			"TcpServer::IOHandleThread( "
-			"[Exit]"
+			"[Exit] "
 			")"
 			);
 }

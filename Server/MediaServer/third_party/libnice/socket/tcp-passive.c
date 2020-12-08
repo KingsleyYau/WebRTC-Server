@@ -176,9 +176,9 @@ nice_tcp_passive_socket_new (GMainContext *ctx, NiceAddress *addr)
 
   /**
    * Add Debug Log
-   * Add by Max 2019/08/26
+   * Add by Max 2020/12/04
    */
-  nice_debug ("%s:%d nice_tcp_passive_socket_new, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
+  nice_debug ("Socket %p(FD %d): [TCP/PASSIVE] Create", sock, g_socket_get_fd(sock->fileno));
 
   return sock;
 }
@@ -190,9 +190,9 @@ socket_close (NiceSocket *sock)
 
   /**
    * Add Debug Log
-   * Add by Max 2019/08/26
+   * Add by Max 2020/12/04
    */
-  nice_debug ("%s:%d socket_close, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
+  nice_debug ("Socket %p(FD %d): [TCP/PASSIVE] Close", sock, g_socket_get_fd(sock->fileno));
 
   if (sock->fileno != NULL) {
     g_socket_close (sock->fileno, NULL);

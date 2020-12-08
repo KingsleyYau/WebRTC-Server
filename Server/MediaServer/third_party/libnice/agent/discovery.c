@@ -160,7 +160,7 @@ void refresh_free (NiceAgent *agent, CandidateRefresh *cand)
 	 * Add Debug Log
 	 * Add by Max 2019/09/02
 	 */
-	nice_debug ("[Max] Agent %p, refresh_free, cand %p, destroy_cb %p, destroy_cb_data %p", agent, cand, cand->destroy_cb, cand->destroy_cb_data);
+	nice_debug ("Agent %p, refresh_free, cand %p, destroy_cb %p, destroy_cb_data %p", agent, cand, cand->destroy_cb, cand->destroy_cb_data);
 //	nice_debug ("Freeing candidate refresh cand %p, destroy_cb %p, destroy_cb_data %p", cand, cand->destroy_cb, cand->destroy_cb_data);
 
   agent->refresh_list = g_slist_remove (agent->refresh_list, cand);
@@ -240,7 +240,7 @@ static gboolean refresh_remove_async (NiceAgent *agent, CandidateRefresh *cand,
    * Add Debug Log
    * Add by Max 2019/08/30
    */
-  nice_debug ("[Max] Agent %p, refresh_remove_async, destroy_cb %p, destroy_cb_data %p, cand %p", agent, cb, cb_data, cand);
+  nice_debug ("Agent %p, refresh_remove_async, destroy_cb %p, destroy_cb_data %p, cand %p", agent, cb, cb_data, cand);
   nice_debug ("Sending request to remove TURN allocation for refresh %p", cand);
 
   cand->disposing = TRUE;
@@ -269,6 +269,9 @@ static gboolean refresh_remove_async (NiceAgent *agent, CandidateRefresh *cand,
       password, password_len,
       agent_to_turn_compatibility (agent));
 
+  cand->destroy_cb = cb;
+  cand->destroy_cb_data = cb_data;
+
   if (buffer_len > 0) {
     agent_socket_send (cand->nicesock, &cand->server, buffer_len,
         (gchar *)cand->stun_buffer);
@@ -287,8 +290,8 @@ static gboolean refresh_remove_async (NiceAgent *agent, CandidateRefresh *cand,
     g_free (password);
   }
 
-  cand->destroy_cb = cb;
-  cand->destroy_cb_data = cb_data;
+//  cand->destroy_cb = cb;
+//  cand->destroy_cb_data = cb_data;
 
   return TRUE;
 }
@@ -326,7 +329,7 @@ static void refresh_prune_async (NiceAgent *agent, GSList *refreshes,
 	   * Add Debug Log
 	   * Add by Max 2019/09/02
 	   */
-	  nice_debug ("[Max] Agent %p, refresh_prune_async, function %p, user_data %p, cand %p", agent, function, user_data, it->data);
+	  nice_debug ("Agent %p, refresh_prune_async, function %p, user_data %p, cand %p", agent, function, user_data, it->data);
 	  if (refresh_remove_async (agent, it->data, (GDestroyNotify) on_refresh_removed, data)) {
 		  ++data->items_to_free;
 	  }
@@ -336,7 +339,7 @@ static void refresh_prune_async (NiceAgent *agent, GSList *refreshes,
    * Add Debug Log
    * Add by Max 2019/09/02
    */
-  nice_debug ("[Max] Agent %p, refresh_prune_async, function %p, user_data %p, items_to_free %u", agent, function, user_data, data->items_to_free);
+  nice_debug ("Agent %p, refresh_prune_async, function %p, user_data %p, items_to_free %u", agent, function, user_data, data->items_to_free);
 
   if (data->items_to_free == 0) {
     /* Stream doesn't have any refreshes to remove. Invoke our callback once to
@@ -696,7 +699,7 @@ HostCandidateResult discovery_add_local_host_candidate (
    * Add Debug Log
    * Add by Max 2019/08/26
    */
-  nice_debug ("%s:%d Agent %p : nicesock:%p, transport:%d", __FILE__, __LINE__, agent, nicesock, transport);
+  nice_debug ("Agent %p: Socket %p, transport %d", agent, nicesock, transport);
 
   candidate->sockptr = nicesock;
   candidate->addr = nicesock->addr;
@@ -1136,7 +1139,7 @@ static gboolean priv_discovery_tick_unlocked (NiceAgent *agent)
   {
     static int tick_counter = 0;
     if (tick_counter++ % 50 == 0)
-      nice_debug ("Agent %p : discovery tick #%d with list %p (1)", agent, tick_counter, agent->discovery_list);
+      nice_debug ("Agent %p: discovery tick #%d with list %p (1)", agent, tick_counter, agent->discovery_list);
   }
 
   for (i = agent->discovery_list; i ; i = i->next) {
@@ -1151,7 +1154,7 @@ static gboolean priv_discovery_tick_unlocked (NiceAgent *agent)
       if (nice_debug_is_enabled ()) {
         gchar tmpbuf[INET6_ADDRSTRLEN];
         nice_address_to_string (&cand->server, tmpbuf);
-        nice_debug ("Agent %p : discovery - scheduling cand type %u addr %s.",
+        nice_debug ("Agent %p: discovery - scheduling cand type %u addr %s.",
             agent, cand->type, tmpbuf);
       }
       if (nice_address_is_valid (&cand->server) &&
@@ -1238,7 +1241,7 @@ static gboolean priv_discovery_tick_unlocked (NiceAgent *agent)
       g_get_current_time (&now);
 
       if (cand->stun_message.buffer == NULL) {
-	nice_debug ("Agent %p : STUN discovery was cancelled, marking discovery done.", agent);
+	nice_debug ("Agent %p: STUN discovery was cancelled, marking discovery done.", agent);
 	cand->done = TRUE;
       }
       else if (priv_timer_expired (&cand->next_tick, &now)) {
@@ -1255,7 +1258,7 @@ static gboolean priv_discovery_tick_unlocked (NiceAgent *agent)
               cand->done = TRUE;
               cand->stun_message.buffer = NULL;
               cand->stun_message.buffer_len = 0;
-              nice_debug ("Agent %p : bind discovery timed out, aborting discovery item.", agent);
+              nice_debug ("Agent %p: bind discovery timed out, aborting discovery item.", agent);
               break;
             }
           case STUN_USAGE_TIMER_RETURN_RETRANSMIT:
@@ -1300,7 +1303,7 @@ static gboolean priv_discovery_tick_unlocked (NiceAgent *agent)
   }
 
   if (not_done == 0) {
-    nice_debug ("Agent %p : Candidate gathering FINISHED, stopping discovery timer.", agent);
+    nice_debug ("Agent %p: Candidate gathering FINISHED, stopping discovery timer.", agent);
 
     discovery_free (agent);
 

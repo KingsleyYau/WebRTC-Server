@@ -1681,6 +1681,9 @@ void
 nice_agent_close_async (NiceAgent *agent, GAsyncReadyCallback callback,
     gpointer callback_data);
 
+void nice_epoll_run(gint timeout);
+void nice_epoll_exit();
+
 G_END_DECLS
 
 #endif /* __LIBNICE_AGENT_H__ */

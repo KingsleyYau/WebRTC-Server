@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
 	srand(time(0));
 
-	LogManager::GetLogManager()->Start(LOG_NOTICE, "./log");
+	LogManager::GetLogManager()->Start(LOG_INFO, "./log");
 	LogManager::GetLogManager()->SetDebugMode(false);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
@@ -140,7 +140,7 @@ void SignalFunc(int sign_no) {
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
-		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		exit(0);
 	}break;

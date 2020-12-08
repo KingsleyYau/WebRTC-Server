@@ -95,12 +95,80 @@ incoming_check_free (IncomingCheck *icheck)
   g_slice_free (IncomingCheck, icheck);
 }
 
+//typedef gboolean (*nice_epoll_ev_cb)(GSocket*, GIOCondition, gpointer);
+static gboolean epoll_source_prepare(GSource *source, gint *timeout) {
+	IOSource *isrc = (IOSource *)source;
+//	nice_debug ("Source %p(FD %d): epoll_source_prepare", source, isrc->fd);
+
+	if ( isrc->canRead ) {
+		return TRUE;
+	} else {
+		*timeout = 20;
+	}
+    return FALSE;
+}
+
+static gboolean epoll_source_check(GSource *source) {
+	IOSource *isrc = (IOSource *)source;
+//	nice_debug ("Source %p(FD %d): epoll_source_check", source, isrc->fd);
+
+	if ( isrc->canRead ) {
+		return TRUE;
+	}
+    return FALSE;
+}
+
+static gboolean epoll_source_dispatch(GSource *source, GSourceFunc callback, gpointer user_data) {
+	IOSource *isrc = (IOSource *)source;
+//	nice_debug ("Source %p(FD %d): epoll_source_dispatch, isrc->condition %d", source, isrc->fd, isrc->condition);
+
+	isrc->canRead = false;
+	GSocketSourceFunc io_cb = (GSocketSourceFunc)callback;
+	return io_cb(isrc->gsocket, isrc->condition, user_data);
+}
+
+static void epoll_source_finalize(GSource *source) {
+	IOSource *isrc = (IOSource *)source;
+	nice_debug ("Source %p(FD %d): epoll_source_finalize", source, isrc->fd);
+	g_object_unref(isrc->gsocket);
+}
+
+static GSourceFuncs epoll_source_funcs = {
+		epoll_source_prepare,
+		epoll_source_check,
+		epoll_source_dispatch,
+		epoll_source_finalize
+};
+
+GSource* nice_epoll_create_source(SocketSource *socket_source) {
+	int fd = g_socket_get_fd(socket_source->socket->fileno);
+
+	struct epoll_event ev;
+    ev.events = EPOLLIN | EPOLLET;
+    ev.data.fd = fd;
+	if ( epoll_ctl( nice_epoll_fd(), EPOLL_CTL_ADD, fd, &ev ) == -1 ) {
+		nice_debug ("Socket %p(FD %d): Add to epoll(FD %d) error", socket_source->socket, fd, nice_epoll_fd());
+		return NULL;
+	}
+
+    GSource *source = g_source_new(&epoll_source_funcs, sizeof(IOSource));
+    ((IOSource *)source)->fd = fd;
+    ((IOSource *)source)->canRead = false;
+    ((IOSource *)source)->gsocket = g_object_ref(socket_source->socket->fileno);
+    sources[fd] = source;
+
+    nice_debug ("Socket %p(FD %d): Add (source %p) to epoll(FD %d)", socket_source->socket, fd, source, nice_epoll_fd());
+
+    return source;
+}
+
 /* Must *not* take the agent lock, since it’s called from within
  * nice_component_set_io_context(), which holds the Component’s I/O lock. */
 static void
 socket_source_attach (SocketSource *socket_source, GMainContext *context)
 {
   GSource *source;
+  bool bPoll = true;
 
   if (socket_source->socket->fileno == NULL)
     return;
@@ -113,33 +181,51 @@ socket_source_attach (SocketSource *socket_source, GMainContext *context)
     return;
 
   /* Create a source. */
-  source = g_socket_create_source (socket_source->socket->fileno,
-      G_IO_IN, NULL);
+//  if ( nice_socket_is_reliable(socket_source->socket) ) {
+  if ( socket_source->socket->type == NICE_SOCKET_TYPE_TCP_ACTIVE
+		  || socket_source->socket->type == NICE_SOCKET_TYPE_TCP_PASSIVE
+		  || socket_source->socket->type == NICE_SOCKET_TYPE_UDP_TURN_OVER_TCP
+		  || socket_source->socket->type == NICE_SOCKET_TYPE_TCP_BSD
+		  ) {
+	  source = nice_epoll_create_source(socket_source);
+	  bPoll = false;
+  } else {
+	  source = g_socket_create_source (socket_source->socket->fileno,
+	      G_IO_IN, NULL);
+	  bPoll = true;
+  }
+
   g_source_set_callback (source, (GSourceFunc) G_CALLBACK (component_io_cb),
-      socket_source, NULL);
+	  socket_source, NULL);
 
   /* Add the source. */
-  nice_debug ("Attaching source %p (socket %p, FD %d) to context %p", source,
-      socket_source->socket, g_socket_get_fd (socket_source->socket->fileno),
-      context);
+  nice_debug ("Socket %p(FD %d): Attaching (source %p) to context %p(%s)",
+		  socket_source->socket,
+		  g_socket_get_fd(socket_source->socket->fileno),
+		  source,
+		  context,
+		  bPoll?"poll":"epoll"
+		  );
 
   g_assert (socket_source->source == NULL);
   socket_source->source = source;
   g_source_attach (source, context);
+
 }
 
 static void
 socket_source_detach (SocketSource *source)
 {
-  nice_debug ("Detaching source %p (socket %p, FD %d) from context %p",
-      source->source, source->socket,
-      (source->socket->fileno != NULL) ?
-          g_socket_get_fd (source->socket->fileno) : 0,
-      (source->source != NULL) ? g_source_get_context (source->source) : 0);
+  nice_debug ("Socket %p(FD %d): Detaching (source %p) from context %p",
+		  source->socket,
+		  (source->socket->fileno != NULL) ?
+          g_socket_get_fd (source->socket->fileno) : -1,
+		  source->source,
+		  (source->source != NULL) ? g_source_get_context (source->source) : 0);
 
   if (source->source != NULL) {
-    g_source_destroy (source->source);
-    g_source_unref (source->source);
+	  g_source_destroy (source->source);
+	  g_source_unref (source->source);
   }
   source->source = NULL;
 }
@@ -169,6 +255,11 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
 {
   GSList *i;
   NiceStream *stream;
+  /**
+   * Add Debug Log
+   * Add by Max 2020/06/08
+   */
+  bool stateChange = FALSE;
 
   stream = agent_find_stream (agent, cmp->stream_id);
 
@@ -185,6 +276,7 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
       nice_component_clear_selected_pair (cmp);
       agent_signal_component_state_change (agent, cmp->stream_id,
           cmp->id, NICE_COMPONENT_STATE_FAILED);
+      stateChange = TRUE;
     }
 
     refresh_prune_candidate (agent, candidate);
@@ -203,6 +295,17 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
 
     cmp->local_candidates = g_slist_delete_link (cmp->local_candidates, i);
     i = next;
+  }
+
+  /**
+   * Add by Max 2020/06/08
+   */
+  discovery_prune_socket (agent, nsocket);
+  if ( !stateChange ) {
+      agent_signal_component_state_change (agent, cmp->stream_id,
+          cmp->id, NICE_COMPONENT_STATE_FAILED);
+      agent_unlock_and_emit(agent);
+      agent_lock(agent);
   }
 
   nice_component_detach_socket (cmp, nsocket);
@@ -308,7 +411,7 @@ nice_component_close (NiceAgent *agent, NiceComponent *cmp)
    * Add Debug Log
    * Add by Max 2019/08/30
    */
-  nice_debug ("[Max] Agent %p, component %p close", agent, cmp);
+  nice_debug ("Agent %p, component %p close", agent, cmp);
 
   /* Start closing the pseudo-TCP socket first. FIXME: There is a very big and
    * reliably triggerable race here. pseudo_tcp_socket_close() does not block
@@ -1193,7 +1296,7 @@ nice_component_finalize (GObject *obj)
    * Add Debug Log
    * Add by Max 2019/09/03
    */
-  nice_debug ("[Max] Compenent %p, nice_component_finalize", cmp);
+  nice_debug ("Compenent %p, nice_component_finalize", cmp);
 
   /* Component should have been closed already. */
   g_warn_if_fail (cmp->local_candidates == NULL);
@@ -1541,7 +1644,7 @@ nice_component_add_valid_candidate (NiceAgent *agent, NiceComponent *component,
   if (nice_debug_is_enabled ()) {
     char str[INET6_ADDRSTRLEN];
     nice_address_to_string (&candidate->addr, str);
-    nice_debug ("Agent %p :  %d:%d Adding valid source"
+    nice_debug ("Agent %p:  %d:%d Adding valid source"
         " candidate: %s:%d trans: %d", agent,
         candidate->stream_id, candidate->component_id, str,
         nice_address_get_port (&candidate->addr), candidate->transport);
@@ -1585,7 +1688,7 @@ nice_component_verify_remote_candidate (NiceComponent *component,
 //     * Add Debug Log
 //     * Add by Max 2019/08/01
 //     */
-//    nice_debug ("[Max] verify_remote_candidate, "
+//    nice_debug ("verify_remote_candidate, "
 //    	  "component %p, "
 //  		  "nicesock->type %d, "
 //  		  "cand->transport %d, "
@@ -1617,7 +1720,7 @@ nice_component_verify_remote_candidate (NiceComponent *component,
 //		 * Add Debug Log
 //		 * Add by Max 2019/08/01
 //		 */
-//		nice_debug ("[Max] verify_remote_candidate, TRUE, "
+//		nice_debug ("verify_remote_candidate, TRUE, "
 //			  "component %p, "
 //			  "nicesock->type %d, "
 //			  "cand->transport %d, "
@@ -1648,7 +1751,7 @@ nice_component_verify_remote_candidate (NiceComponent *component,
 //       * Add Debug Log
 //       * Add by Max 2019/08/01
 //       */
-//      nice_debug ("[Max] verify_remote_candidate, TRUE 2, "
+//      nice_debug ("verify_remote_candidate, TRUE 2, "
 //    		  "component %p, "
 //	  		  "nicesock->type : %d, "
 //	  		  "cand->transport : %d, "

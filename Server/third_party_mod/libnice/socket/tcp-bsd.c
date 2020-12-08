@@ -211,9 +211,9 @@ nice_tcp_bsd_socket_new (GMainContext *ctx, NiceAddress *local_addr,
 
   /**
    * Add Debug Log
-   * Add by Max 2020/06/08
+   * Add by Max 2020/12/04
    */
-  nice_debug ("%s:%d nice_tcp_bsd_socket_new, sock:%p, fileno:%p", __FILE__, __LINE__, sock, sock->fileno);
+  nice_debug ("Socket %p(FD %d): [TCP/BSD] Create", sock, g_socket_get_fd(sock->fileno));
 
   return sock;
 }
@@ -223,6 +223,12 @@ static void
 socket_close (NiceSocket *sock)
 {
   TcpPriv *priv = sock->priv;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [TCP/BSD] Close", sock, g_socket_get_fd(sock->fileno));
 
   g_mutex_lock (&mutex);
 

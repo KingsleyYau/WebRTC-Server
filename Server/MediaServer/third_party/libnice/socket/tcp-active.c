@@ -41,6 +41,7 @@
 
 #include "socket.h"
 #include "tcp-active.h"
+#include "agent-priv.h"
 
 #include <string.h>
 #include <errno.h>
@@ -127,6 +128,12 @@ nice_tcp_active_socket_new (GMainContext *ctx, NiceAddress *addr)
   sock->set_writable_callback = socket_set_writable_callback;
   sock->close = socket_close;
 
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD -1): [TCP/ACTIVE] Create", sock);
+
   return sock;
 }
 
@@ -134,6 +141,12 @@ static void
 socket_close (NiceSocket *sock)
 {
   TcpActivePriv *priv = sock->priv;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [TCP/ACTIVE] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
 
   if (priv->context)
     g_main_context_unref (priv->context);

@@ -269,6 +269,12 @@ nice_udp_turn_socket_new (GMainContext *ctx, NiceAddress *addr,
   sock->close = socket_close;
   sock->priv = (void *) priv;
 
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD -1): [UDP/TURN] Create", sock);
+
   return sock;
 }
 
@@ -279,6 +285,12 @@ socket_close (NiceSocket *sock)
 {
   UdpTurnPriv *priv = (UdpTurnPriv *) sock->priv;
   GList *i = NULL;
+
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [UDP/TURN] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
 
   g_mutex_lock (&mutex);
 

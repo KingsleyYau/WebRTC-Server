@@ -927,7 +927,7 @@ void WebRTCClient::RecvRtpThread() {
 			break;
 		}
 
-		usleep(10);
+		Sleep(1);
 	}
 
 	LogAync(

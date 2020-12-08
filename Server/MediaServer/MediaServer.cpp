@@ -343,7 +343,6 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_NOTICE, "MediaServer::Start( event : [启动监听子进程循环-OK] )"
 					);
-
 		} else {
 			LogAync(
 					LOG_ALERT, "MediaServer::Start( event : [启动监听子进程循环-Fail] )"
@@ -359,7 +358,6 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_NOTICE, "MediaServer::Start( event : [创建内部服务(HTTP)-OK] )"
 					);
-
 		} else {
 			LogAync(
 					LOG_ALERT, "MediaServer::Start( event : [创建内部服务(HTTP)-Fail] )"
@@ -375,7 +373,6 @@ bool MediaServer::Start() {
 			LogAync(
 					LOG_NOTICE, "MediaServer::Start( event : [创建内部服务(Websocket)-OK] )"
 					);
-
 		} else {
 			LogAync(
 					LOG_ALERT, "MediaServer::Start( event : [创建内部服务(Websocket)-Fail] )"

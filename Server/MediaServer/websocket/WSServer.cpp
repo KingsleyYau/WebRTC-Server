@@ -179,7 +179,18 @@ void WSServer::Stop() {
 	if ( mRunning ) {
 		mRunning = false;
 		if( mServer.is_listening() ) {
-			mServer.stop_listening();
+		    try {
+		    	mServer.stop_listening();
+		    } catch (websocketpp::exception const & e) {
+		    	LogAync(
+		    			LOG_INFO,
+		    			"WSServer::Stop( "
+		    			"[Exception], "
+		    			"e : %s "
+		    			")",
+						e.what()
+		    			);
+		    }
 		}
 		/**
 		 * Must be call after mServer.init_asio()

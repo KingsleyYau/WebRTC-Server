@@ -119,9 +119,6 @@ void SignalFunc(int sign_no) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
 				printf("# main( waitpid : %d ) \n", pid);
-		//		LogAync(
-		//				LOG_INFO, "main( waitpid : %d )", pid
-		//				);
 				MainLoop::GetMainLoop()->Call(pid);
 			} else {
 				break;
@@ -132,8 +129,8 @@ void SignalFunc(int sign_no) {
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get signal : %d )", sign_no
 				);
+		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		gMediaServer.Exit(sign_no);
-		MainLoop::GetMainLoop()->Exit(SIGKILL);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		exit(0);
 	}break;
