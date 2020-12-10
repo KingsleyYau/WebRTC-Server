@@ -51,10 +51,12 @@ function Clean() {
 }
 trap 'Clean; exit' SIGTERM
 
-#if [ "$TRANSCODE" -eq "1" ]
+CPU_NUM=$(cat /proc/cpuinfo | grep processor | wc -l)
+CPU=$(($(cat /dev/urandom 2>/dev/null | head -n 10 | cksum | awk -F ' ' '{print $1}')%${CPU_NUM}))
 if [ "1" -eq "1" ]
+#if [ "$TRANSCODE" -eq "1" ]
 then
-  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 2048 \
           -reorder_queue_size 2048 \
@@ -67,7 +69,7 @@ then
           >$LOG_FILE 2>&1 &
 				
 else
-  $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 2048 \
           -reorder_queue_size 2048 \

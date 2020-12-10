@@ -105,7 +105,7 @@ int set_sock_buf_size(evutil_socket_t fd, int sz0)
 		perror("Cannot set socket rcv size");
 		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Cannot set rcv sock size %d on fd %d\n", sz0, fd);
 	} else {
-		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Set rcv sock size %d on fd %d\n", sz, fd);
+//		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Set rcv sock size %d on fd %d\n", sz, fd);
 	}
 
 	sz = sz0;
@@ -121,7 +121,7 @@ int set_sock_buf_size(evutil_socket_t fd, int sz0)
 		perror("Cannot set socket snd size");
 		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Cannot set snd sock size %d on fd %d\n", sz0, fd);
 	} else {
-		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Set snd sock size %d on fd %d\n", sz, fd);
+//		TURN_LOG_FUNC(TURN_LOG_LEVEL_INFO, "Set snd sock size %d on fd %d\n", sz, fd);
 	}
 
 	return 0;

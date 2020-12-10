@@ -2413,6 +2413,16 @@ static int socket_input_worker(ioa_socket_handle s)
 					if(ret != -1) {
 						ret = len;
 					}
+				} else {
+					/**
+					 * Add by Max 2020/12/09
+					 */
+					if ( !is_channel_msg_str(buf_elem->buf.buf, blen) ) {
+						s->tobeclosed = 1;
+						s->broken = 1;
+						ret = -1;
+						log_socket_event(s, "socket protocol invalid failed, to be closed",1);
+					}
 				}
 
 			} else if(blen<0) {

@@ -397,9 +397,8 @@ int is_channel_msg_str(const u08bits* buf, size_t blen) {
 
 /**
  * Modify by Max 2020/01/19
- * Fix Sticky Packet When Use Tcp Relay
  */
-u32bits turn_get_channel_msg_len(const u08bits* buf, size_t blen) {
+s32bits turn_get_channel_msg_len(const u08bits* buf, size_t blen) {
 	if ( is_channel_msg_str(buf, blen) ) {
 		int len = (int) (nswap16(((const u16bits*)(buf))[1]));
 		if ( len > 0 ) {

@@ -121,9 +121,8 @@ int stun_is_channel_message_str(const u08bits *buf, size_t *blen, u16bits* chnum
 int is_channel_msg_str(const u08bits* buf, size_t blen);
 /**
  * Modify by Max 2020/01/19
- * Fix Sticky Packet When Use Tcp Relay
  */
-u32bits turn_get_channel_msg_len(const u08bits* buf, size_t blen);
+s32bits turn_get_channel_msg_len(const u08bits* buf, size_t blen);
 
 void stun_set_binding_request_str(u08bits* buf, size_t *len);
 int stun_set_binding_response_str(u08bits* buf, size_t *len, stun_tid* tid, 
