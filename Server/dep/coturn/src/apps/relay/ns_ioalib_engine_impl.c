@@ -2417,7 +2417,7 @@ static int socket_input_worker(ioa_socket_handle s)
 					/**
 					 * Add by Max 2020/12/09
 					 */
-					if ( !is_channel_msg_str(buf_elem->buf.buf, blen) ) {
+					if ( mlen == -1 ) {
 						s->tobeclosed = 1;
 						s->broken = 1;
 						ret = -1;

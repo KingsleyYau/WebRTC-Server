@@ -90,8 +90,11 @@ int main(int argc, char *argv[]) {
 	while( bFlag && gMediaServer.IsRunning() ) {
 		LogManager::GetLogManager()->LogFlushMem2File();
 		fflush(stdout);
-		sleep(5);
+		sleep(1);
 	}
+
+	gMediaServer.Stop();
+	printf("# main() exit \n");
 
 	return EXIT_SUCCESS;
 }
@@ -125,12 +128,20 @@ void SignalFunc(int sign_no) {
 			}
 		}
 	}break;
+	case SIGQUIT:
+	case SIGTERM:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Exit Signal : %d )", sign_no
+				);
+		gMediaServer.Exit(sign_no);
+		LogManager::GetLogManager()->LogFlushMem2File();
+	}break;
 	default:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get signal : %d )", sign_no
+				LOG_ALERT, "main( Get Error Signal : %d )", sign_no
 				);
-		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		gMediaServer.Exit(sign_no);
+		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		exit(0);
 	}break;

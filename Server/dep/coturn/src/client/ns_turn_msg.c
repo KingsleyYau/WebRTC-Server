@@ -896,6 +896,8 @@ static inline int is_http_inline(const char *s, size_t blen) {
 					}
 				}
 			}
+		} else {
+			return -1;
 		}
 	}
 	return 0;
@@ -906,6 +908,7 @@ int is_http(const char *s, size_t blen) {
 }
 
 int stun_get_message_len_str(u08bits *buf, size_t blen, int padding, size_t *app_len) {
+	int http_len = 0;
 	if (buf && blen) {
 		/* STUN request/response ? */
 		if (buf && blen >= STUN_HEADER_LENGTH) {
@@ -919,6 +922,8 @@ int stun_get_message_len_str(u08bits *buf, size_t blen, int padding, size_t *app
 							if ((size_t) len <= blen) {
 								*app_len = (size_t)len;
 								return (int)len;
+							} else {
+								return 0;
 							}
 						}
 					}
@@ -928,7 +933,7 @@ int stun_get_message_len_str(u08bits *buf, size_t blen, int padding, size_t *app
 
 		//HTTP request ?
 		{
-			int http_len = is_http_inline(((char*)buf), blen);
+			http_len = is_http_inline(((char*)buf), blen);
 			if((http_len>0) && ((size_t)http_len<=blen)) {
 				*app_len = (size_t)http_len;
 				return http_len;
@@ -950,13 +955,19 @@ int stun_get_message_len_str(u08bits *buf, size_t blen, int padding, size_t *app
 
 				if(bret<=blen) {
 					return bret;
+				} else {
+					return 0;
 				}
 			}
 		}
 
 	}
 
-	return -1;
+	if ( blen >= STUN_HEADER_LENGTH && (http_len == -1) ) {
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 ////////// ALLOCATE ///////////////////////////////////

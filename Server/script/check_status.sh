@@ -15,6 +15,6 @@ echo "TIME_WAIT:" && netstat -antlpu 2>/dev/null | grep -c 'TIME_WAIT';\
 echo "-------------------- 	sar	 --------------------";\
 echo "Network:" && sar -n DEV 1 1 | grep Average:;\
 echo "-------------------- 		top		 --------------------";\
-top -b -n 3 | grep -A 5 'load average' | tail -n 5;\
+top -b -n 3 | grep -A 4 'load average' | tail -n 5;\
 top -b -n 1 | grep 'turnserver\|mediaserver';\
 "

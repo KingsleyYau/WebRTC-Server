@@ -24,11 +24,11 @@ CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/websocketpp \
 			-Ithird_party/abseil-cpp \
 			-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/ \
-			-I$(OPENSSL_INCLUDE)
+			-I$(BUILD_PATH_INCLUDE)
 
 export BUILD_PATH = /root/mediaserver/build
-export OPENSSL_INCLUDE = $(BUILD_PATH)/include
-export OPENSSL_LIB = $(BUILD_PATH)/lib
+export BUILD_PATH_INCLUDE = $(BUILD_PATH)/include
+export BUILD_PATH_LIB = $(BUILD_PATH)/lib
 
 # 注意连接依赖顺序问题, 被依赖的放后面
 LIBS = \
@@ -64,7 +64,7 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_any_cast_impl \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
-	-Wl,-Bstatic -L$(OPENSSL_LIB) -lssl -lcrypto \
+	-Wl,-Bstatic -L$(BUILD_PATH_LIB) -lssl -lcrypto \
 	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre -luuid -lz
 	
 OBJS = main.o MediaServer.o

@@ -20,7 +20,7 @@ CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsdp/include \
 				-I../third_party/libnice/nice -I../third_party/libnice/agent \
 				-I../third_party/libnice/nice -I../third_party/abseil-cpp \
 				-I/usr/include/glib-2.0/ -I/usr/lib64/glib-2.0/include/ \
-				-I$(OPENSSL_INCLUDE)
+				-I$(BUILD_PATH_INCLUDE)
 				
 OBJS 		+=	WebRTC.o IceClient.o
 		

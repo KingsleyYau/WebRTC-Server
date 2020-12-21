@@ -92,7 +92,7 @@ bool MainLoop::Start() {
 	return bFlag;
 }
 
-void MainLoop::Stop() {
+void MainLoop::Stop(int sign_no) {
 	LogAync(
 			LOG_INFO,
 			"MainLoop::Stop("
@@ -109,6 +109,7 @@ void MainLoop::Stop() {
 		mCallbackMap.Lock();
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 			MainLoopObj *obj = itr->second;
+			kill(obj->pid, sign_no);
 			delete obj;
 			mCallbackMap.Erase(itr++);
 		}

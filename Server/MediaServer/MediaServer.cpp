@@ -624,25 +624,26 @@ bool MediaServer::Stop() {
 
 	if( mRunning ) {
 		mRunning = false;
-
-		// 停止监听socket
-		mAsyncIOServer.Stop();
-		// 停止监听Websocket
-		mWSServer.Stop();
-		// 停止定时任务
-		mStateThread.Stop();
-		mTimeoutCheckThread.Stop();
-		mExtRequestThread.Stop();
-		mRecycleThread.Stop();
-		// 停止子进程监听循环
-		MainLoop::GetMainLoop()->Stop();
-
-		if ( mPidFilePath.length() > 0 ) {
-			int ret = remove(mPidFilePath.c_str());
-		}
 	}
 
 	mServerMutex.unlock();
+
+	if ( mPidFilePath.length() > 0 ) {
+		int ret = remove(mPidFilePath.c_str());
+		mPidFilePath = "";
+	}
+
+	// 停止监听socket
+	mAsyncIOServer.Stop();
+	// 停止监听Websocket
+	mWSServer.Stop();
+	// 停止定时任务
+	mStateThread.Stop();
+	mTimeoutCheckThread.Stop();
+	mExtRequestThread.Stop();
+	mRecycleThread.Stop();
+	// 停止子进程监听循环
+	MainLoop::GetMainLoop()->Stop();
 
 	LogAync(
 			LOG_NOTICE,
@@ -659,6 +660,7 @@ bool MediaServer::Stop() {
 
 void MediaServer::Exit(int sign_no) {
 	pid_t pid = getpid();
+	mRunning = false;
 
 	LogAyncUnSafe(
 			LOG_ALERT,
@@ -1227,7 +1229,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 		LogAync(
 				LOG_ERR,
 				"MediaServer::OnWSOpen( "
-				"event : [Websocket-新连接, 服务器启动中...], "
+				"event : [Websocket-新连接, 服务器启动中, 断开], "
 				"hdl : %p, "
 				"addr : %s, "
 				"connectTime : %lld, "
@@ -1309,7 +1311,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 		LogAync(
 				LOG_ERR,
 				"MediaServer::OnWSClose( "
-				"event : [Websocket-断开, 服务器启动中...], "
+				"event : [Websocket-断开, 服务器未启动], "
 				"hdl : %p, "
 				")",
 				hdl.lock().get()
@@ -1412,7 +1414,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 	// Parse Json
 	bool bParse = reader.parse(str, reqRoot, false);
-	if ( bParse ) {
+	if ( bParse && mRunning ) {
 		if( reqRoot.isObject() ) {
 			resRoot["id"] = reqRoot["id"];
 			resRoot["route"] = reqRoot["route"];

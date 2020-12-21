@@ -9,6 +9,8 @@
 #ifndef SERVER_MAINLOOP_H_
 #define SERVER_MAINLOOP_H_
 
+#include <signal.h>
+
 #include <common/KSafeMap.h>
 #include <common/KThread.h>
 
@@ -59,8 +61,8 @@ public:
 	virtual ~MainLoop();
 
 	bool Start();
-	void Stop();
-	void Exit(int sign_no);
+	void Stop(int sign_no = SIGTERM);
+	void Exit(int sign_no = SIGTERM);
 
 	void Call(int pid);
 	void StartWatchChild(int pid, MainLoopCallback *cb);
