@@ -37,15 +37,25 @@ OBJS = wscat.o
 TARGET = wscat
 
 # 注意连接依赖顺序问题, 被依赖的放后面
+WSSTRESS_LIBS = -L. \
+		-Wl,-Bstatic -L../common -lcommon \
+		-Wl,-Bstatic -L../third_party/json -ljson \
+		-Wl,-Bstatic -L../third_party/mongoose -lmongoose \
+		-Wl,-Bstatic -L$(BUILD_PATH_LIB) -lssl -lcrypto \
+		-Wl,-Bdynamic -ldl -pthread 
+WSSTRESS_OBJS = wsstress.o
+WSSTRESS = wsstress
+
+# 注意连接依赖顺序问题, 被依赖的放后面
 SNAPSHOT_LIBS =	-L. \
     -Wl,-Bstatic -L../common -lcommon \
     -Wl,-Bstatic -L$(BUILD_PATH_LIB) -lavfilter -lavformat -lavdevice -lavcodec -lswscale -lavutil -lswresample -lpostproc \
     -lx264 -lfdk-aac -lopus -lssl -lcrypto \
     -Wl,-Bdynamic -ldl -lz -lpthread -lidn -lrt
-WSCAT_OBJS = snapshot.o
-WSCAT = snapshot
+SNAPSHOT_OBJS = snapshot.o
+SNAPSHOT = snapshot
 			
-.PHONY: clean $(TARGET) $(WSCAT)
+.PHONY: clean $(TARGET) $(SNAPSHOT)
 	
 $(TARGET): $(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
@@ -55,15 +65,23 @@ $(TARGET): $(OBJS)
 	@echo ''
 	@echo '################################################################'
 
-$(WSCAT) : $(WSCAT_OBJS)
-	$(CXX) -o $(WSCAT) $(WSCAT_OBJS) $(SNAPSHOT_LIBS)
+$(WSSTRESS): $(WSSTRESS_OBJS)
+	$(CXX) -o $(WSSTRESS) $(WSSTRESS_OBJS) $(WSSTRESS_LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid wsstress completed!'
+	@echo ''
+	@echo '################################################################'
+	
+$(SNAPSHOT) : $(SNAPSHOT_OBJS)
+	$(CXX) -o $(SNAPSHOT) $(SNAPSHOT_OBJS) $(SNAPSHOT_LIBS)
 	@echo '################################################################'
 	@echo ''
 	@echo '# Bulid snapshot completed!'
 	@echo ''
 	@echo '################################################################'
 	
-all: $(TARGET) $(WSCAT)
+all: $(TARGET) $(SNAPSHOT)
 
 clean:
-	rm -f $(OBJS) $(TARGET) $(WSCAT)
+	rm -f $(OBJS) $(TARGET) $(WSSTRESS) $(SNAPSHOT)

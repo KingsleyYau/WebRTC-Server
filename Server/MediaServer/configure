@@ -13,8 +13,11 @@ BUILD_PATH=$1
 echo "BUILD_PATH:$BUILD_PATH"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
 
+find . -type f | xargs touch
+
 cd third_party/libev
-chmod +x configure || exit 1
+chmod +x configure autogen.sh || exit 1
+./autogen.sh || exit 1
 ./configure || exit 1
 cd -
 

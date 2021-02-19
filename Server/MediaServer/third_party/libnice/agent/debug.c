@@ -169,14 +169,15 @@ void nice_debug_disable (gboolean with_stun)
 }
 
 #ifndef NDEBUG
-void nice_debug_imp (const char *file, int line, const char *fmt, ...)
+void nice_debug_imp (const char *file, int line, const char *func, const char *fmt, ...)
 {
 	char logBuffer[4096] = {'\0'};
 	va_list ap;
 	if (debug_enabled) {
-        snprintf(logBuffer, sizeof(logBuffer) - 1, "%s:%d ",
+        snprintf(logBuffer, sizeof(logBuffer) - 1, "%s:%d %s, ",
 				file,
-				line
+				line,
+				func
 				);
         int start = strlen(logBuffer);
         va_start (ap, fmt);
@@ -188,14 +189,15 @@ void nice_debug_imp (const char *file, int line, const char *fmt, ...)
         }
 	}
 }
-void nice_debug_verbose_imp (const char *file, int line, const char *fmt, ...)
+void nice_debug_verbose_imp (const char *file, int line, const char *func, const char *fmt, ...)
 {
 	char logBuffer[4096] = {'\0'};
 	va_list ap;
 	if (debug_verbose_enabled) {
-        snprintf(logBuffer, sizeof(logBuffer) - 1, "%s:%d ",
+        snprintf(logBuffer, sizeof(logBuffer) - 1, "%s:%d %s, ",
 				file,
-				line
+				line,
+				func
 				);
         int start = strlen(logBuffer);
         va_start (ap, fmt);

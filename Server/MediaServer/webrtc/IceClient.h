@@ -67,7 +67,7 @@ public:
 	void SetRemoteSdp(const string& sdp);
 
 public:
-	bool Start(bool bControlling = false, const string name = "mediaserver");
+	bool Start(const string& name, bool bControlling = false);
 	void Stop();
 	int SendData(const void *data, unsigned int len);
 

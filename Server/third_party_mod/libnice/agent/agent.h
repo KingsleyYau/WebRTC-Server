@@ -853,6 +853,8 @@ nice_agent_send_messages_nonblocking (
     GCancellable *cancellable,
     GError **error);
 
+void nice_agent_free_candidates(GSList *candidates);
+
 /**
  * nice_agent_get_local_candidates:
  * @agent: The #NiceAgent Object
@@ -1681,6 +1683,7 @@ void
 nice_agent_close_async (NiceAgent *agent, GAsyncReadyCallback callback,
     gpointer callback_data);
 
+void nice_epoll_create();
 void nice_epoll_run(gint timeout);
 void nice_epoll_exit();
 

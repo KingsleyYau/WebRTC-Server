@@ -5,7 +5,7 @@
 
 APP_DIR=$(dirname $(readlink -f "$0"))/..
 cd $APP_DIR
-APP_PID=`cat $APP_DIR/run/mediaserver.pid`
+APP_PID=`cat $APP_DIR/run/mediaserver.pid 2>/dev/null`
 EXIT=0
 
 CheckAndWait() {
@@ -39,6 +39,7 @@ if [ -n "$(echo $APP_PID| sed -n "/^[0-9]\+$/p")" ];then
     echo "# Stop Mediaserver force ($APP_PID) "
     kill -9 $APP_PID
   fi
+  rm -f $APP_DIR/run/mediaserver.pid
 fi
 
 cd - >/dev/null 2>&1

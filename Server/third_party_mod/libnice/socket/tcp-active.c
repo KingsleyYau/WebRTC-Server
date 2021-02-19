@@ -146,7 +146,7 @@ socket_close (NiceSocket *sock)
    * Add Debug Log
    * Add by Max 2020/12/04
    */
-  nice_debug ("Socket %p(FD %d): [TCP/ACTIVE] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
+  nice_debug ("Socket %p(fd %d): [TCP/ACTIVE] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
 
   if (priv->context)
     g_main_context_unref (priv->context);

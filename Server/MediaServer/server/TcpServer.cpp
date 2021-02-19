@@ -444,11 +444,11 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 	socklen_t iAddrLen = sizeof(struct sockaddr);
 	while ( (clientfd = accept(w->fd, (struct sockaddr *)&addr, &iAddrLen)) < 0 ) {
 		int errNo = errno;
-		if ( errNo == EAGAIN || errNo == EWOULDBLOCK ) {
+		if ( errNo == EAGAIN || errNo == EWOULDBLOCK || errNo == EINTR ) {
 			LogAync(
 					LOG_DEBUG,
 					"TcpServer::IOHandleAccept( "
-					"[errno == EAGAIN ||errno == EWOULDBLOCK] "
+					"[EAGAIN || EWOULDBLOCK || EINTR]"
 //					"fd : %d "
 					")"
 //					w->fd

@@ -99,6 +99,8 @@ typedef enum
   NICE_CANDIDATE_TYPE_RELAYED,
 } NiceCandidateType;
 
+static const char *CandidateTypeName[] = {"host", "srflx", "prflx", "relay"};
+
 /**
  * NiceCandidateTransport:
  * @NICE_CANDIDATE_TRANSPORT_UDP: UDP transport

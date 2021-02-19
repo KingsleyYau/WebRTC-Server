@@ -44,7 +44,6 @@
 # include "config.h"
 #endif
 
-
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -56,318 +55,318 @@
 #include <unistd.h>
 #endif
 
+static void socket_close(NiceSocket *sock);
+static gint socket_recv_messages(NiceSocket *sock,
+		NiceInputMessage *recv_messages, guint n_recv_messages);
+static gint socket_send_messages(NiceSocket *sock, const NiceAddress *to,
+		const NiceOutputMessage *messages, guint n_messages);
+static gint socket_send_messages_reliable(NiceSocket *sock,
+		const NiceAddress *to, const NiceOutputMessage *messages,
+		guint n_messages);
+static gboolean socket_is_reliable(NiceSocket *sock);
+static gboolean socket_can_send(NiceSocket *sock, NiceAddress *addr);
+static void socket_set_writable_callback(NiceSocket *sock,
+		NiceSocketWritableCb callback, gpointer user_data);
 
-static void socket_close (NiceSocket *sock);
-static gint socket_recv_messages (NiceSocket *sock,
-    NiceInputMessage *recv_messages, guint n_recv_messages);
-static gint socket_send_messages (NiceSocket *sock, const NiceAddress *to,
-    const NiceOutputMessage *messages, guint n_messages);
-static gint socket_send_messages_reliable (NiceSocket *sock,
-    const NiceAddress *to, const NiceOutputMessage *messages, guint n_messages);
-static gboolean socket_is_reliable (NiceSocket *sock);
-static gboolean socket_can_send (NiceSocket *sock, NiceAddress *addr);
-static void socket_set_writable_callback (NiceSocket *sock,
-    NiceSocketWritableCb callback, gpointer user_data);
+struct UdpBsdSocketPrivate {
+	GMutex mutex;
 
-struct UdpBsdSocketPrivate
-{
-  GMutex mutex;
-
-  /* protected by mutex */
-  NiceAddress niceaddr;
-  GSocketAddress *gaddr;
+	/* protected by mutex */
+	NiceAddress niceaddr;
+	GSocketAddress *gaddr;
 };
 
 NiceSocket *
-nice_udp_bsd_socket_new (NiceAddress *addr)
-{
-  union {
-    struct sockaddr_storage storage;
-    struct sockaddr addr;
-  } name;
-  NiceSocket *sock = g_slice_new0 (NiceSocket);
-  GSocket *gsock = NULL;
-  gboolean gret = FALSE;
-  GSocketAddress *gaddr;
-  struct UdpBsdSocketPrivate *priv;
+nice_udp_bsd_socket_new(NiceAddress *addr) {
+	union {
+		struct sockaddr_storage storage;
+		struct sockaddr addr;
+	} name;
+	NiceSocket *sock = g_slice_new0(NiceSocket);
+	GSocket *gsock = NULL;
+	gboolean gret = FALSE;
+	GSocketAddress *gaddr;
+	struct UdpBsdSocketPrivate *priv;
 
-  if (addr != NULL) {
-    nice_address_copy_to_sockaddr(addr, &name.addr);
-  } else {
-    memset (&name, 0, sizeof (name));
-    name.storage.ss_family = AF_UNSPEC;
-  }
+	if (addr != NULL) {
+		nice_address_copy_to_sockaddr(addr, &name.addr);
+	} else {
+		memset(&name, 0, sizeof(name));
+		name.storage.ss_family = AF_UNSPEC;
+	}
 
-  if (name.storage.ss_family == AF_UNSPEC || name.storage.ss_family == AF_INET) {
-    gsock = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM,
-        G_SOCKET_PROTOCOL_UDP, NULL);
-    name.storage.ss_family = AF_INET;
+	if (name.storage.ss_family == AF_UNSPEC || name.storage.ss_family == AF_INET) {
+		gsock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM,
+				G_SOCKET_PROTOCOL_UDP, NULL);
+		name.storage.ss_family = AF_INET;
 #ifdef HAVE_SA_LEN
     name.storage.ss_len = sizeof (struct sockaddr_in);
 #endif
-  } else if (name.storage.ss_family == AF_INET6) {
-    gsock = g_socket_new (G_SOCKET_FAMILY_IPV6, G_SOCKET_TYPE_DATAGRAM,
-        G_SOCKET_PROTOCOL_UDP, NULL);
-    name.storage.ss_family = AF_INET6;
+	} else if (name.storage.ss_family == AF_INET6) {
+		gsock = g_socket_new(G_SOCKET_FAMILY_IPV6, G_SOCKET_TYPE_DATAGRAM,
+				G_SOCKET_PROTOCOL_UDP, NULL);
+		name.storage.ss_family = AF_INET6;
 #ifdef HAVE_SA_LEN
     name.storage.ss_len = sizeof (struct sockaddr_in6);
 #endif
-  }
+	}
 
-  if (gsock == NULL) {
-    g_slice_free (NiceSocket, sock);
-    return NULL;
-  }
+	if (gsock == NULL) {
+		g_slice_free(NiceSocket, sock);
+		return NULL;
+	}
 
-  /* GSocket: All socket file descriptors are set to be close-on-exec. */
-  g_socket_set_blocking (gsock, false);
-  gaddr = g_socket_address_new_from_native (&name.addr, sizeof (name));
-  if (gaddr != NULL) {
-    gret = g_socket_bind (gsock, gaddr, FALSE, NULL);
-    g_object_unref (gaddr);
-  }
+	/* GSocket: All socket file descriptors are set to be close-on-exec. */
+	g_socket_set_blocking(gsock, false);
+	gaddr = g_socket_address_new_from_native(&name.addr, sizeof(name));
+	if (gaddr != NULL) {
+		gret = g_socket_bind(gsock, gaddr, FALSE, NULL);
+		g_object_unref(gaddr);
+	}
 
-  if (gret == FALSE) {
-    g_slice_free (NiceSocket, sock);
-    g_socket_close (gsock, NULL);
-    g_object_unref (gsock);
-    return NULL;
-  }
+	if (gret == FALSE) {
+		g_slice_free(NiceSocket, sock);
+		g_socket_close(gsock, NULL);
+		g_object_unref(gsock);
+		return NULL;
+	}
 
-  gaddr = g_socket_get_local_address (gsock, NULL);
-  if (gaddr == NULL ||
-      !g_socket_address_to_native (gaddr, &name.addr, sizeof(name), NULL)) {
-    g_slice_free (NiceSocket, sock);
-    g_socket_close (gsock, NULL);
-    g_object_unref (gsock);
-    return NULL;
-  }
+	gaddr = g_socket_get_local_address(gsock, NULL);
+	if (gaddr == NULL
+			|| !g_socket_address_to_native(gaddr, &name.addr, sizeof(name),
+					NULL)) {
+		g_slice_free(NiceSocket, sock);
+		g_socket_close(gsock, NULL);
+		g_object_unref(gsock);
+		return NULL;
+	}
 
-  g_object_unref (gaddr);
+	g_object_unref(gaddr);
 
-  nice_address_set_from_sockaddr (&sock->addr, &name.addr);
+	nice_address_set_from_sockaddr(&sock->addr, &name.addr);
 
-  priv = sock->priv = g_slice_new0 (struct UdpBsdSocketPrivate);
-  nice_address_init (&priv->niceaddr);
+	priv = sock->priv = g_slice_new0 (struct UdpBsdSocketPrivate);
+	nice_address_init(&priv->niceaddr);
 
-  sock->type = NICE_SOCKET_TYPE_UDP_BSD;
-  sock->fileno = gsock;
-  sock->send_messages = socket_send_messages;
-  sock->send_messages_reliable = socket_send_messages_reliable;
-  sock->recv_messages = socket_recv_messages;
-  sock->is_reliable = socket_is_reliable;
-  sock->can_send = socket_can_send;
-  sock->set_writable_callback = socket_set_writable_callback;
-  sock->close = socket_close;
+	sock->type = NICE_SOCKET_TYPE_UDP_BSD;
+	sock->fileno = gsock;
+	sock->send_messages = socket_send_messages;
+	sock->send_messages_reliable = socket_send_messages_reliable;
+	sock->recv_messages = socket_recv_messages;
+	sock->is_reliable = socket_is_reliable;
+	sock->can_send = socket_can_send;
+	sock->set_writable_callback = socket_set_writable_callback;
+	sock->close = socket_close;
 
-  g_mutex_init (&priv->mutex);
+	g_mutex_init(&priv->mutex);
 
-  /**
-   * Add Debug Log
-   * Add by Max 2019/08/26
-   */
-  nice_debug ("Socket %p(FD %d): [UDP/BSD] Create", sock, g_socket_get_fd(sock->fileno));
+	/**
+	 * Add Debug Log
+	 * Add by Max 2019/08/26
+	 */
+	nice_debug("Socket %p(fd %d): [UDP/BSD] Create", sock,
+			g_socket_get_fd(sock->fileno));
 
-  return sock;
+	return sock;
 }
 
-static void
-socket_close (NiceSocket *sock)
-{
-  struct UdpBsdSocketPrivate *priv = sock->priv;
+static void socket_close(NiceSocket *sock) {
+	struct UdpBsdSocketPrivate *priv = sock->priv;
 
-  /**
-   * Add Debug Log
-   * Add by Max 2019/08/26
-   */
-  nice_debug ("Socket %p(FD %d): [UDP/BSD] Close", sock, g_socket_get_fd(sock->fileno));
+	/**
+	 * Add Debug Log
+	 * Add by Max 2019/08/26
+	 */
+	nice_debug("Socket %p(fd %d): [UDP/BSD] Close", sock,
+			g_socket_get_fd(sock->fileno));
 
-  g_clear_object (&priv->gaddr);
-  g_mutex_clear (&priv->mutex);
-  g_slice_free (struct UdpBsdSocketPrivate, sock->priv);
-  sock->priv = NULL;
+	g_clear_object(&priv->gaddr);
+	g_mutex_clear(&priv->mutex);
+	g_slice_free (struct UdpBsdSocketPrivate, sock->priv);
+	sock->priv = NULL;
 
-  if (sock->fileno) {
-    g_socket_close (sock->fileno, NULL);
-    g_object_unref (sock->fileno);
-    sock->fileno = NULL;
-  }
+	if (sock->fileno) {
+		g_socket_close(sock->fileno, NULL);
+		g_object_unref(sock->fileno);
+		sock->fileno = NULL;
+	}
 }
 
-static gint
-socket_recv_messages (NiceSocket *sock,
-    NiceInputMessage *recv_messages, guint n_recv_messages)
-{
-  guint i;
-  gboolean error = FALSE;
+static gint socket_recv_messages(NiceSocket *sock,
+		NiceInputMessage *recv_messages, guint n_recv_messages) {
+	guint i;
+	gboolean error = FALSE;
 
-  /* Make sure socket has not been freed: */
-  g_assert (sock->priv != NULL);
+	/* Make sure socket has not been freed: */
+	g_assert(sock->priv != NULL);
 
-  /* Read messages into recv_messages until one fails or would block, or we
-   * reach the end. */
-  for (i = 0; i < n_recv_messages; i++) {
-    NiceInputMessage *recv_message = &recv_messages[i];
-    GSocketAddress *gaddr = NULL;
-    GError *gerr = NULL;
-    gssize recvd;
-    gint flags = G_SOCKET_MSG_NONE;
+	/* Read messages into recv_messages until one fails or would block, or we
+	 * reach the end. */
+	for (i = 0; i < n_recv_messages; i++) {
+		NiceInputMessage *recv_message = &recv_messages[i];
+		GSocketAddress *gaddr = NULL;
+		GError *gerr = NULL;
+		gssize recvd;
+		gint flags = G_SOCKET_MSG_NONE;
 
-    recvd = g_socket_receive_message (sock->fileno,
-        (recv_message->from != NULL) ? &gaddr : NULL,
-        recv_message->buffers, recv_message->n_buffers, NULL, NULL,
-        &flags, NULL, &gerr);
+		recvd = g_socket_receive_message(sock->fileno,
+				(recv_message->from != NULL) ? &gaddr : NULL,
+				recv_message->buffers, recv_message->n_buffers, NULL, NULL,
+				&flags, NULL, &gerr);
+		/**
+		 * Add Debug Log
+		 * Add by Max 2020/12/04
+		 */
+		nice_debug("Socket %p(fd %d): [UDP/BSD] Recv, ret %d", sock,
+				g_socket_get_fd(sock->fileno), recvd);
 
-    if (recvd < 0) {
-      /* Handle ECONNRESET here as if it were EWOULDBLOCK; see
-       * https://phabricator.freedesktop.org/T121 */
-      if (g_error_matches (gerr, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) ||
-          g_error_matches (gerr, G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED))
-        recvd = 0;
-      else if (g_error_matches (gerr, G_IO_ERROR, G_IO_ERROR_MESSAGE_TOO_LARGE))
-        recvd = input_message_get_size (recv_message);
-      else
-        error = TRUE;
+		if (recvd < 0) {
+			/* Handle ECONNRESET here as if it were EWOULDBLOCK; see
+			 * https://phabricator.freedesktop.org/T121 */
+			if (g_error_matches(gerr, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)
+					|| g_error_matches(gerr, G_IO_ERROR,
+							G_IO_ERROR_CONNECTION_CLOSED))
+				recvd = 0;
+			else if (g_error_matches(gerr, G_IO_ERROR,
+					G_IO_ERROR_MESSAGE_TOO_LARGE))
+				recvd = input_message_get_size(recv_message);
+			else
+				error = TRUE;
 
-      g_error_free (gerr);
-    }
+			g_error_free(gerr);
+		}
 
-    recv_message->length = MAX (recvd, 0);
+		recv_message->length = MAX(recvd, 0);
 
-    if (recvd > 0 && recv_message->from != NULL && gaddr != NULL) {
-      union {
-        struct sockaddr_storage storage;
-        struct sockaddr addr;
-      } sa;
+		if (recvd > 0 && recv_message->from != NULL && gaddr != NULL) {
+			union {
+				struct sockaddr_storage storage;
+				struct sockaddr addr;
+			} sa;
 
-      g_socket_address_to_native (gaddr, &sa.addr, sizeof (sa), NULL);
-      nice_address_set_from_sockaddr (recv_message->from, &sa.addr);
-    }
+			g_socket_address_to_native(gaddr, &sa.addr, sizeof(sa), NULL);
+			nice_address_set_from_sockaddr(recv_message->from, &sa.addr);
+		}
 
-    if (gaddr != NULL)
-      g_object_unref (gaddr);
+		if (gaddr != NULL)
+			g_object_unref(gaddr);
 
-    /* Return early on error or EWOULDBLOCK. */
-    if (recvd <= 0)
-      break;
-  }
+		/* Return early on error or EWOULDBLOCK. */
+		if (recvd <= 0)
+			break;
+	}
 
-  /* Was there an error processing the first message? */
-  if (error && i == 0)
-    return -1;
+	/* Was there an error processing the first message? */
+	if (error && i == 0)
+		return -1;
 
-  return i;
+	return i;
 }
 
-static gssize
-socket_send_message (NiceSocket *sock, const NiceAddress *to,
-    const NiceOutputMessage *message)
-{
-  struct UdpBsdSocketPrivate *priv = sock->priv;
-  GError *child_error = NULL;
-  gssize len;
-  GSocketAddress *gaddr = NULL;
+static gssize socket_send_message(NiceSocket *sock, const NiceAddress *to,
+		const NiceOutputMessage *message) {
+	struct UdpBsdSocketPrivate *priv = sock->priv;
+	GError *child_error = NULL;
+	gssize len;
+	GSocketAddress *gaddr = NULL;
 
-  /* Make sure socket has not been freed: */
-  g_assert (sock->priv != NULL);
+	/* Make sure socket has not been freed: */
+	g_assert(sock->priv != NULL);
 
-  g_mutex_lock (&priv->mutex);
-  if (!nice_address_is_valid (&priv->niceaddr) ||
-      !nice_address_equal (&priv->niceaddr, to)) {
-    union {
-      struct sockaddr_storage storage;
-      struct sockaddr addr;
-    } sa;
+	g_mutex_lock(&priv->mutex);
+	if (!nice_address_is_valid(&priv->niceaddr)
+			|| !nice_address_equal(&priv->niceaddr, to)) {
+		union {
+			struct sockaddr_storage storage;
+			struct sockaddr addr;
+		} sa;
 
-    g_clear_object (&priv->gaddr);
+		g_clear_object(&priv->gaddr);
 
-    nice_address_copy_to_sockaddr (to, &sa.addr);
-    gaddr = g_socket_address_new_from_native (&sa.addr, sizeof(sa));
-    if (gaddr)
-      priv->gaddr = g_object_ref (gaddr);
+		nice_address_copy_to_sockaddr(to, &sa.addr);
+		gaddr = g_socket_address_new_from_native(&sa.addr, sizeof(sa));
+		if (gaddr)
+			priv->gaddr = g_object_ref(gaddr);
 
-    if (gaddr == NULL) {
-      g_mutex_unlock (&priv->mutex);
-      return -1;
-    }
+		if (gaddr == NULL) {
+			g_mutex_unlock(&priv->mutex);
+			return -1;
+		}
 
-    priv->niceaddr = *to;
-  } else {
-    if (priv->gaddr)
-      gaddr = g_object_ref (priv->gaddr);
-  }
-  g_mutex_unlock (&priv->mutex);
+		priv->niceaddr = *to;
+	} else {
+		if (priv->gaddr)
+			gaddr = g_object_ref(priv->gaddr);
+	}
+	g_mutex_unlock(&priv->mutex);
 
-  len = g_socket_send_message (sock->fileno, gaddr, message->buffers,
-      message->n_buffers, NULL, 0, G_SOCKET_MSG_NONE, NULL, &child_error);
+	len = g_socket_send_message(sock->fileno, gaddr, message->buffers,
+			message->n_buffers, NULL, 0, G_SOCKET_MSG_NONE, NULL, &child_error);
+	/**
+	 * Add Debug Log
+	 * Add by Max 2020/12/04
+	 */
+	nice_debug("Socket %p(fd %d): [UDP/BSD] Send, ret %d", sock,
+			g_socket_get_fd(sock->fileno), len);
 
-  g_clear_object (&gaddr);
+	g_clear_object(&gaddr);
 
-  if (len < 0) {
-    if (g_error_matches (child_error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
-      len = 0;
-    } else {
-      nice_debug_verbose ("%s: udp-bsd socket %p: error: %s", G_STRFUNC, sock,
-          child_error->message);
-    }
+	if (len < 0) {
+		if (g_error_matches(child_error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+			len = 0;
+		} else {
+			nice_debug_verbose("%s: udp-bsd socket %p: error: %s", G_STRFUNC,
+					sock, child_error->message);
+		}
 
-    g_error_free (child_error);
-  }
+		g_error_free(child_error);
+	}
 
-  return len;
+	return len;
 }
 
-static gint
-socket_send_messages (NiceSocket *sock, const NiceAddress *to,
-    const NiceOutputMessage *messages, guint n_messages)
-{
-  guint i;
+static gint socket_send_messages(NiceSocket *sock, const NiceAddress *to,
+		const NiceOutputMessage *messages, guint n_messages) {
+	guint i;
 
-  /* Make sure socket has not been freed: */
-  g_assert (sock->priv != NULL);
+	/* Make sure socket has not been freed: */
+	g_assert(sock->priv != NULL);
 
-  for (i = 0; i < n_messages; i++) {
-    const NiceOutputMessage *message = &messages[i];
-    gssize len;
+	for (i = 0; i < n_messages; i++) {
+		const NiceOutputMessage *message = &messages[i];
+		gssize len;
 
-    len = socket_send_message (sock, to, message);
+		len = socket_send_message(sock, to, message);
 
-    if (len < 0) {
-      /* Error. */
-      if (i > 0)
-        break;
-      return len;
-    } else if (len == 0) {
-      /* EWOULDBLOCK. */
-      break;
-    }
-  }
+		if (len < 0) {
+			/* Error. */
+			if (i > 0)
+				break;
+			return len;
+		} else if (len == 0) {
+			/* EWOULDBLOCK. */
+			break;
+		}
+	}
 
-  return i;
+	return i;
 }
 
-static gint
-socket_send_messages_reliable (NiceSocket *sock, const NiceAddress *to,
-    const NiceOutputMessage *messages, guint n_messages)
-{
-  return -1;
+static gint socket_send_messages_reliable(NiceSocket *sock,
+		const NiceAddress *to, const NiceOutputMessage *messages,
+		guint n_messages) {
+	return -1;
 }
 
-static gboolean
-socket_is_reliable (NiceSocket *sock)
-{
-  return FALSE;
+static gboolean socket_is_reliable(NiceSocket *sock) {
+	return FALSE;
 }
 
-static gboolean
-socket_can_send (NiceSocket *sock, NiceAddress *addr)
-{
-  return TRUE;
+static gboolean socket_can_send(NiceSocket *sock, NiceAddress *addr) {
+	return TRUE;
 }
 
-static void
-socket_set_writable_callback (NiceSocket *sock,
-    NiceSocketWritableCb callback, gpointer user_data)
-{
+static void socket_set_writable_callback(NiceSocket *sock,
+		NiceSocketWritableCb callback, gpointer user_data) {
 }
 

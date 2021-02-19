@@ -113,15 +113,15 @@ bool Parse(int argc, char *argv[]) {
 	return true;
 }
 
-void SignalFunc(int sign_no) {
-	switch(sign_no) {
+void SignalFunc(int signal) {
+	switch(signal) {
 	case SIGCHLD:{
 		int status;
 		int pid = 0;
 		while (true) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
-				printf("# main( waitpid : %d ) \n", pid);
+				printf("# main( Wait Pid : %d ) \n", pid);
 				MainLoop::GetMainLoop()->Call(pid);
 			} else {
 				break;
@@ -131,16 +131,16 @@ void SignalFunc(int sign_no) {
 	case SIGQUIT:
 	case SIGTERM:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Exit Signal : %d )", sign_no
+				LOG_ALERT, "main( Get Exit Signal, signal : %d )", signal
 				);
-		gMediaServer.Exit(sign_no);
+		gMediaServer.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	default:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Error Signal : %d )", sign_no
+				LOG_ALERT, "main( Get Error Signal, signal : %d )", signal
 				);
-		gMediaServer.Exit(sign_no);
+		gMediaServer.Exit(signal);
 		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		exit(0);

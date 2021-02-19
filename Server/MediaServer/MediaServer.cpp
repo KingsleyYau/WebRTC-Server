@@ -658,18 +658,18 @@ bool MediaServer::Stop() {
 	return true;
 }
 
-void MediaServer::Exit(int sign_no) {
+void MediaServer::Exit(int signal) {
 	pid_t pid = getpid();
 	mRunning = false;
 
 	LogAyncUnSafe(
 			LOG_ALERT,
 			"MediaServer::Exit( "
-			"sign_no : %d, "
+			"signal : %d, "
 			"pid : %d, "
 			"mPidFilePath : %s "
 			")",
-			sign_no,
+			signal,
 			pid,
 			mPidFilePath.c_str()
 			);
@@ -1216,10 +1216,6 @@ void MediaServer::OnWebRTCClose(WebRTC *rtc) {
 	}
 
 	mWebRTCMap.Unlock();
-
-//	if( bFound ) {
-//		mWSServer.Disconnect(hdl);
-//	}
 }
 
 void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& addr, const string& userAgent) {
@@ -1245,9 +1241,9 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 	mServerMutex.unlock();
 
 	// Create UUID
-	uuid_t uuid;
+	uuid_t uuid = {0};
 	uuid_generate(uuid);
-	char uuid_str[64];
+	char uuid_str[64] = {0};
 	uuid_unparse_upper(uuid, uuid_str);
 
 	LogAync(
@@ -1376,8 +1372,6 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 			);
 
 	if ( rtc ) {
-//		rtc->Stop();
-//		mWebRTCList.PushBack(rtc);
 		mWebRTCRecycleList.PushBack(rtc);
 	}
 
@@ -1389,6 +1383,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string& str) {
 	bool bFlag = false;
 	bool bRespond = true;
+	bool bParse = false;
 
 	Json::Value reqRoot;
 	Json::Reader reader;
@@ -1396,6 +1391,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	Json::Value resRoot;
 	Json::Value resData = Json::Value::null;
 	Json::FastWriter writer;
+	string res;
 
 	mCountMutex.lock();
 	mTotal++;
@@ -1413,7 +1409,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 			);
 
 	// Parse Json
-	bool bParse = reader.parse(str, reqRoot, false);
+	bParse = reader.parse(str, reqRoot, false);
 	if ( bParse && mRunning ) {
 		if( reqRoot.isObject() ) {
 			resRoot["id"] = reqRoot["id"];
@@ -1709,7 +1705,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	}
 
 	resRoot["data"] = resData;
-	string res = writer.write(resRoot);
+	res = writer.write(resRoot);
 
 	if ( bRespond ) {
 		mWSServer.SendText(hdl, res);
@@ -1727,16 +1723,16 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					hdl.lock().get(),
 					str.c_str()
 					);
-			LogAync(
-					LOG_WARNING,
-					"MediaServer::OnWSMessage( "
-					"event : [Websocket-请求出错], "
-					"hdl : %p, "
-					"res : %s "
-					")",
-					hdl.lock().get(),
-					res.c_str()
-					);
+//			LogAync(
+//					LOG_WARNING,
+//					"MediaServer::OnWSMessage( "
+//					"event : [Websocket-请求出错], "
+//					"hdl : %p, "
+//					"res : %s "
+//					")",
+//					hdl.lock().get(),
+//					res.c_str()
+//					);
 		}
 
 		mWSServer.Disconnect(hdl);

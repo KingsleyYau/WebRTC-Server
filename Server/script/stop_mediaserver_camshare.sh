@@ -39,6 +39,7 @@ if [ -n "$(echo $APP_PID| sed -n "/^[0-9]\+$/p")" ];then
     echo "# Stop Mediaserver(Camshare) force ($APP_PID) "
     kill -9 $APP_PID
   fi
+  rm -f $APP_DIR/run/mediaserver_camshare.pid
 fi
 
 cd - >/dev/null 2>&1

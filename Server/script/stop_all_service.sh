@@ -10,6 +10,7 @@ echo "# Deamon stoping......"
 PID=`cat $APP_DIR/run/deamon.pid 2>/dev/null`
 if [ ! $PID == "" ];then
   kill -9 $PID
+  rm -f $APP_DIR/run/deamon.pid
 fi
 echo "# Deamon stop OK"
 

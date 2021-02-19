@@ -219,7 +219,7 @@ bool WebRTC::Start(
 
 	// Start Modules
 	bFlag &= ParseRemoteSdp(sdp);
-	bFlag &= mIceClient.Start(bControlling);
+	bFlag &= mIceClient.Start("mediaserver", bControlling);
 	bFlag &= mDtlsSession.Start();
 
 	if( bFlag ) {
@@ -277,7 +277,6 @@ bool WebRTC::Start(
 		bFlag &= mRtpDstAudioClient.Start(NULL, 0, NULL, 0);
 		bFlag &= mRtpDstVideoClient.Start(NULL, 0, NULL, 0);
 	}
-
 
 	LogAync(
 			LOG_NOTICE,
@@ -890,13 +889,19 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 				"this : %p, "
 				"[Fail], "
 				"rtmpUrl : %s, "
+				"err : %d, "
 				"sdp : \n%s"
 				")",
 				this,
 				mRtmpUrl.c_str(),
+				err,
 				sdp.c_str()
 				);
 		mLastErrorCode = RequestErrorType_WebRTC_No_Candidate_Info_Found_Fail;
+	}
+
+	if (session) {
+		sdp_session_destroy(session);
 	}
 
 	return bFlag;
@@ -1786,7 +1791,6 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //			size,
 //			(unsigned char)data[0]
 //			);
-
 	bool bFlag = false;
 
 	char pkt[RTP_MAX_LEN] = {0};

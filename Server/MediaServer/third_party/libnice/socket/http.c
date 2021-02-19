@@ -173,6 +173,15 @@ nice_http_socket_new (NiceSocket *base_socket,
     }
   }
 
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [HTTP] Create, Base Socket %p(FD %d)",
+		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, (priv->base_socket && priv->base_socket->fileno) ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
+
   return sock;
 }
 
@@ -181,6 +190,11 @@ static void
 socket_close (NiceSocket *sock)
 {
   HttpPriv *priv = sock->priv;
+
+  nice_debug ("Socket %p(FD %d): [HTTP] Close, Base Socket %p(FD %d)",
+		  sock, (sock && sock->fileno) ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, (priv->base_socket && priv->base_socket->fileno) ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
 
   if (priv->base_socket)
     nice_socket_free (priv->base_socket);

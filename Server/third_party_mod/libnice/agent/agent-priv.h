@@ -319,6 +319,7 @@ void nice_debug_init (void);
 
 #define MAX_EVENTS 65535
 GSource *sources[65535];
+GMutex sources_mutex;
 
 typedef struct IOSource {
     GSource source;
@@ -330,18 +331,18 @@ typedef struct IOSource {
 
 int nice_epoll_fd();
 
-#define nice_debug(fmt, ...) nice_debug_imp(__FILE__, __LINE__, fmt, ## __VA_ARGS__)
-#define nice_debug_verbose(fmt, ...) nice_debug_verbose_imp(__FILE__, __LINE__, fmt, ## __VA_ARGS__)
+#define nice_debug(fmt, ...) nice_debug_imp(__FILE__, __LINE__, G_STRFUNC, fmt, ## __VA_ARGS__)
+#define nice_debug_verbose(fmt, ...) nice_debug_verbose_imp(__FILE__, __LINE__, G_STRFUNC, fmt, ## __VA_ARGS__)
 #ifdef NDEBUG
 static inline gboolean nice_debug_is_enabled (void) { return FALSE; }
 static inline gboolean nice_debug_is_verbose (void) { return FALSE; }
-static inline void nice_debug_imp (const char *file, int line, const char *fmt, ...) { }
-static inline void nice_debug_verbose_imp (const char *file, int line, const char *fmt, ...) { }
+static inline void nice_debug_imp (const char *file, int line, const char *func, const char *fmt, ...) { }
+static inline void nice_debug_verbose_imp (const char *file, int line, const char *func, const char *fmt, ...) { }
 #else
 gboolean nice_debug_is_enabled (void);
 gboolean nice_debug_is_verbose (void);
-void nice_debug_imp (const char *file, int line, const char *fmt, ...) G_GNUC_PRINTF (3, 4);
-void nice_debug_verbose_imp (const char *file, int line, const char *fmt, ...) G_GNUC_PRINTF (3, 4);
+void nice_debug_imp (const char *file, int line, const char *func, const char *fmt, ...) G_GNUC_PRINTF (4, 5);
+void nice_debug_verbose_imp (const char *file, int line, const char *func, const char *fmt, ...) G_GNUC_PRINTF (4, 5);
 #endif
 
 #if !GLIB_CHECK_VERSION(2, 59, 0)

@@ -262,18 +262,17 @@ nice_interfaces_get_local_ips (gboolean include_loopback)
     /* Convert to a string. */
     addr_string = sockaddr_to_string (ifa->ifa_addr);
     if (addr_string == NULL) {
-      nice_debug ("Failed to convert address to string for interface ‘%s’.",
+    	nice_debug_verbose ("Failed to convert address to string for interface ‘%s’",
           ifa->ifa_name);
       continue;
     }
 
-    nice_debug ("Interface:  %s", ifa->ifa_name);
-    nice_debug ("IP Address: %s", addr_string);
+    nice_debug ("Interface '%s' [%s]", ifa->ifa_name, addr_string);
     if ((ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
       if (include_loopback) {
         loopbacks = add_ip_to_list (loopbacks, addr_string, TRUE);
       } else {
-        nice_debug ("Ignoring loopback interface");
+        nice_debug ("Ignoring loopback interface '%s' [%s]", ifa->ifa_name, addr_string);
         g_free (addr_string);
       }
 #ifdef IGNORED_IFACE_PREFIX

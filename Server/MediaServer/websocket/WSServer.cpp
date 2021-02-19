@@ -75,7 +75,7 @@ bool WSServer::Start(int port, int maxConnection) {
         // Set logging settings
     	mServer.set_access_channels(log::alevel::none);
 //    	mServer.clear_access_channels(log::alevel::frame_payload);
-    	mServer.set_error_channels(log::alevel::none);
+    	mServer.set_error_channels(log::elevel::none);
 
         // Initialize Asio
     	mServer.init_asio();
@@ -233,7 +233,7 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
 			LOG_DEBUG,
 			"WSServer::SendText( "
 			"hdl : %p, "
-			"ip : %s, "
+			"addr : %s, "
 			"str(%u) : %s "
 			")",
 			hdl.lock().get(),
@@ -252,7 +252,7 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
     			"WSServer::SendText( "
 				"hdl : %p, "
     			"[Exception], "
-				"ip : %s, "
+				"addr : %s, "
     			"e : %s, "
 				"str : %s "
     			")",
@@ -269,24 +269,24 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
 void WSServer::Disconnect(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
-			LOG_DEBUG,
+			LOG_INFO,
 			"WSServer::Disconnect( "
 			"hdl : %p, "
-			"ip : %s "
+			"addr : %s "
 			")",
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
 
 	try {
-		mServer.close(hdl, 0, "Disconnect by server");
+		mServer.close(hdl, websocketpp::close::status::normal, "Disconnect by server");
 	} catch (websocketpp::exception const & e) {
 	    	LogAync(
 	    			LOG_INFO,
 	    			"WSServer::Disconnect( "
 					"hdl : %p, "
 	    			"[Exception], "
-					"ip : %s, "
+					"addr : %s, "
 	    			"e : %s "
 	    			")",
 					hdl.lock().get(),
@@ -300,7 +300,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 			"WSServer::Disconnect( "
 			"[Finish], "
 			"hdl : %p, "
-			"ip : %s "
+			"addr : %s "
 			")",
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
@@ -342,7 +342,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 //        			"WSServer::OnTlsInit( "
 //        			"[Error setting cipher list], "
 //        			"hdl : %p, "
-//        			"ip : %s "
+//        			"addr : %s "
 //        			")",
 //        			hdl.lock().get(),
 //        			conn->get_remote_endpoint().c_str()
@@ -354,7 +354,7 @@ void WSServer::Disconnect(connection_hdl hdl) {
 //    			"WSServer::OnTlsInit( "
 //				"hdl : %p, "
 //    			"[Exception], "
-//				"ip : %s, "
+//				"addr : %s, "
 //    			"e : %s "
 //    			")",
 //				hdl.lock().get(),
@@ -421,7 +421,7 @@ void WSServer::OnMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
 			LOG_DEBUG,
 			"WSServer::OnMessage( "
 			"hdl : %p, "
-			"ip : %s, "
+			"addr : %s, "
 			"opcode : 0x%x, "
 			"payload : %s "
 			")",

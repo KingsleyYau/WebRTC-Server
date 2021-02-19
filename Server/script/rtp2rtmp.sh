@@ -64,7 +64,7 @@ then
           -reorder_queue_size 2048 \
           -max_delay 3000000 \
           -i $SDP_FILE \
-          -vcodec libx264 -bsf:v h264_mp4toannexb -preset superfast -profile:v baseline -level 3.0 -g 12 \
+          -vcodec libx264 -preset ultrafast -profile:v baseline -level 3.0 -g 12 \
           -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &

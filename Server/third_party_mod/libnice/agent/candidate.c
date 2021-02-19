@@ -69,6 +69,9 @@ nice_candidate_new (NiceCandidateType type)
 
   candidate = g_slice_new0 (NiceCandidate);
   candidate->type = type;
+
+  nice_debug ("New candidate (%s) %p", CandidateTypeName[type], candidate);
+
   return candidate;
 }
 
@@ -78,20 +81,22 @@ nice_candidate_free (NiceCandidate *candidate)
 {
   /* better way of checking if socket is allocated? */
 
-  if (candidate->username)
-    g_free (candidate->username);
+	nice_debug("Free candidate %p", candidate);
 
-  if (candidate->password)
-    g_free (candidate->password);
+	if (candidate->username)
+		g_free (candidate->username);
 
-  // Add by Max 2019/08/05
-  if (candidate->ufrag)
-	  g_free (candidate->ufrag);
+	if (candidate->password)
+		g_free (candidate->password);
 
-  if (candidate->turn)
-    turn_server_unref (candidate->turn);
+	// Add by Max 2019/08/05
+	if (candidate->ufrag)
+		g_free (candidate->ufrag);
 
-  g_slice_free (NiceCandidate, candidate);
+	if (candidate->turn)
+		turn_server_unref (candidate->turn);
+
+	g_slice_free (NiceCandidate, candidate);
 }
 
 

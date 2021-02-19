@@ -61,8 +61,8 @@ public:
 	virtual ~MainLoop();
 
 	bool Start();
-	void Stop(int sign_no = SIGTERM);
-	void Exit(int sign_no = SIGTERM);
+	void Stop(int signal = SIGTERM);
+	void Exit(int signal = SIGTERM);
 
 	void Call(int pid);
 	void StartWatchChild(int pid, MainLoopCallback *cb);

@@ -160,6 +160,15 @@ nice_pseudossl_socket_new (NiceSocket *base_socket,
    * TCP base socket, which ignores the destination */
   nice_socket_send_reliable (priv->base_socket, NULL, len, buf);
 
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [PSEUDOSSL] Create, Base Socket %p(FD %d)",
+		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, (priv->base_socket && priv->base_socket->fileno) ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
+
   return sock;
 }
 
@@ -169,8 +178,19 @@ socket_close (NiceSocket *sock)
 {
   PseudoSSLPriv *priv = sock->priv;
 
-  if (priv->base_socket)
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug ("Socket %p(FD %d): [PSEUDOSSL] Close, Base Socket %p(FD %d)",
+		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+		  priv->base_socket, (priv->base_socket && priv->base_socket->fileno) ? g_socket_get_fd(priv->base_socket->fileno) : -1
+		  );
+
+  if (priv->base_socket) {
     nice_socket_free (priv->base_socket);
+    priv->base_socket = NULL;
+  }
 
   nice_socket_free_send_queue (&priv->send_queue);
 

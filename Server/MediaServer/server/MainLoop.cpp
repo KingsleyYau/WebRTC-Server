@@ -126,14 +126,14 @@ void MainLoop::Stop(int sign_no) {
 			);
 }
 
-void MainLoop::Exit(int sign_no) {
+void MainLoop::Exit(int signal) {
 	LogAyncUnSafe(
-			LOG_INFO, "MainLoop::Exit( signal : %d )", sign_no
+			LOG_INFO, "MainLoop::Exit( signal : %d )", signal
 			);
 	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 		MainLoopObj *obj = itr->second;
 		if ( !obj->isExit ) {
-			kill(obj->pid, sign_no);
+			kill(obj->pid, signal);
 		} else {
 			itr++;
 		}

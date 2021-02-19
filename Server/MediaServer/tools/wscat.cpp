@@ -115,7 +115,8 @@ int main(int argc, char *argv[]) {
 void SignalFunc(int sign_no) {
 	switch(sign_no) {
 	default:{
-		signal(sign_no, SIG_DFL);
+//		signal(sign_no, SIG_DFL);
+		exit(0);
 	}break;
 	}
 }

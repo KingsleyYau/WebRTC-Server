@@ -115,7 +115,7 @@ nice_udp_turn_over_tcp_socket_new (NiceSocket *base_socket,
    * Add Debug Log
    * Add by Max 2020/12/04
    */
-  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Create Base Socket %p(FD %d)",
+  nice_debug ("Socket %p(fd %d): [UDP-TURN-OVER-TCP] Create, Base Socket %p(fd %d)",
 		  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
 		  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
 		  );
@@ -135,7 +135,7 @@ socket_close (NiceSocket *sock)
    * Modify by Max 2020/12/04
    */
   if (priv->base_socket) {
-	  nice_debug ("Socket %p(FD %d): [UDP-TURN-OVER-TCP] Close Base Socket %p(FD %d)",
+	  nice_debug ("Socket %p(fd %d): [UDP-TURN-OVER-TCP] Close, Base Socket %p(fd %d)",
 			  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
 			  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1
 			  );
@@ -387,7 +387,6 @@ socket_send_message (NiceSocket *sock, const NiceAddress *to,
     local_bufs[j + offset].size = message->buffers[j].size;
   }
 
-
   if (reliable)
     ret = nice_socket_send_messages_reliable (priv->base_socket, to,
         &local_message, 1);
@@ -455,7 +454,9 @@ static gboolean
 socket_is_reliable (NiceSocket *sock)
 {
   TurnTcpPriv *priv = sock->priv;
-
+  if (!priv) {
+	  return FALSE;
+  }
   return nice_socket_is_reliable (priv->base_socket);
 }
 

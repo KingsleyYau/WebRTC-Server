@@ -121,6 +121,12 @@ public:
 	RequestErrorType GetLastErrorType();
 	string GetLastErrorMessage();
 
+	/**
+	 * 解析远程SDP
+	 * @param sdp 远程SDP
+	 */
+	bool ParseRemoteSdp(const string& sdp);
+
 private:
 	// SocketSender Implement
 	int SendData(const void *data, unsigned int len);
@@ -140,11 +146,6 @@ private:
 	// Recv Rtp Thread Proc
 	void RecvRtpThread();
 
-	/**
-	 * 解析远程SDP
-	 * @param sdp 远程SDP
-	 */
-	bool ParseRemoteSdp(const string& sdp);
 	/**
 	 * 创建本地转发的SDP
 	 * @return 本地转发的SDP

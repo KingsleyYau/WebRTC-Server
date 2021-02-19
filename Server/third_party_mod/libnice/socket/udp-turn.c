@@ -273,7 +273,9 @@ nice_udp_turn_socket_new (GMainContext *ctx, NiceAddress *addr,
    * Add Debug Log
    * Add by Max 2020/12/04
    */
-  nice_debug ("Socket %p(FD -1): [UDP/TURN] Create", sock);
+  nice_debug ("Socket %p(fd -1): [UDP/TURN] Create, Base Socket %p(fd %d)",
+		  sock,
+		  priv->base_socket, priv->base_socket->fileno ? g_socket_get_fd(priv->base_socket->fileno) : -1);
 
   return sock;
 }
@@ -290,7 +292,7 @@ socket_close (NiceSocket *sock)
    * Add Debug Log
    * Add by Max 2020/12/04
    */
-  nice_debug ("Socket %p(FD %d): [UDP/TURN] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
+  nice_debug ("Socket %p(fd %d): [UDP/TURN] Close", sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1);
 
   g_mutex_lock (&mutex);
 
@@ -1298,7 +1300,7 @@ nice_udp_turn_socket_parse_recv_message (NiceSocket *sock, NiceSocket **from_soc
   }
 
   /* Slow path. */
-  nice_debug_verbose ("%s: **WARNING: SLOW PATH**", G_STRFUNC);
+  nice_debug_verbose ("**WARNING: SLOW PATH**");
 
   buf = compact_input_message (message, &buf_len);
   len = nice_udp_turn_socket_parse_recv (sock, from_sock,

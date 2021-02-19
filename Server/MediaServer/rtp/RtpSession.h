@@ -27,7 +27,7 @@
 #include <rtp/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h>
 #include <rtp/include/receive_statistics_impl.h>
 #include <rtp/include/rtp_packet_history.h>
-
+#include <rtp/packet/rtp_packet_received.h>
 using namespace mediaserver::rtcp;
 
 #include <unistd.h>
@@ -327,6 +327,9 @@ private:
 	// RTP发包缓存模块
 	RtpPacketHistory video_packet_history_;
 	RtpPacketHistory audio_packet_history_;
+
+	// 用于解析接收的rtp包
+	RtpPacketReceived rtpPktCache;
 };
 
 } /* namespace mediaserver */

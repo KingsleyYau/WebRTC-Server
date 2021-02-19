@@ -18,7 +18,7 @@ CXXFLAGS 	+=	-std=c++11 -DLINUX -DFILE_JNI_LOG -DWEBRTC_POSIX -DWEBRTC_LINUX
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
 CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include \
 				-I../third_party/abseil-cpp -I../../third_party/abseil-cpp -I../../../third_party/abseil-cpp \
-				-I$(OPENSSL_INCLUDE)
+				-I$(BUILD_PATH_INCLUDE)
 				
 OBJS		+=  api/transport/network_types.o api/transport/field_trial_based_config.o \
 				api/units/data_rate.o api/units/data_size.o api/units/frequency.o api/units/timestamp.o \
