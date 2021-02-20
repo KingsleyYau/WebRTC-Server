@@ -163,3 +163,16 @@ https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/i
 [nice](https://github.com/libnice/libnice)</br>
 [srtp](https://github.com/cisco/libsrtp)</br>
 [websocket](https://github.com/zaphoyd/websocketpp)</br>
+
+### Third Party Modification
+#### libnice
+- 修复timer使用不当导致crash
+- 修复内存泄漏
+- 增加TCP的epoll支持
+
+#### websocketapp
+- 修复内存泄漏
+- 开放devel日志
+
+#### libsdp
+- 修改当sdp中其中一个candidate解析失败时候则跳过, 并继续下一个(原来为直接返回解析失败)
