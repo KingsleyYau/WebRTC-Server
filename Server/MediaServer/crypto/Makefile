@@ -16,8 +16,8 @@ endif
 
 CXXFLAGS 	+=	-DLINUX -DFILE_JNI_LOG
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
-CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/crypto/include \
-				-I$(OPENSSL_INCLUDE)
+CXXFLAGS 	+=	-I. -I.. -I../third_party \
+				-I$(BUILD_PATH_INCLUDE)
 
 OBJS 		+=	Crypto.o
 		
