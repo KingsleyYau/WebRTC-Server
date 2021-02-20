@@ -167,7 +167,7 @@ https://github.com/KingsleyYau/WebRTC-Server/blob/master/Server/sig/src/static/i
 ### Third Party Modification
 #### libnice
 - 修复timer使用不当导致crash
-- 修复内存泄漏
+- 修复内存泄漏(主要为g_socket_source回调中销毁该source, timer没有对应unref, 被外部获取candidate列表后没有对应释放函数等)
 - 增加TCP的epoll支持
 
 #### websocketapp
