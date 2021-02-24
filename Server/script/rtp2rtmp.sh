@@ -58,23 +58,29 @@ CPU=$(($(cat /dev/urandom 2>/dev/null | head -n 10 | cksum | awk -F ' ' '{print 
 #if [ "1" -eq "1" ]
 if [ "$TRANSCODE" -eq "1" ]
 then
-  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 10M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 2048 \
           -reorder_queue_size 2048 \
           -max_delay 3000000 \
           -i $SDP_FILE \
+          -max_muxing_queue_size 1024 \
+          -map 0:v \
+          -map 0:a \
           -vcodec libx264 -preset ultrafast -profile:v baseline -level 3.0 -g 12 \
           -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \
           >$LOG_FILE 2>&1 &
 else
-  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 3M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
+  taskset -c $CPU $FFMPEG -probesize 180000 -analyzeduration 10M -protocol_whitelist "file,http,https,rtp,rtcp,udp,tcp,tls" \
           -v error \
           -thread_queue_size 2048 \
           -reorder_queue_size 2048 \
           -max_delay 3000000 \
           -i $SDP_FILE \
+          -max_muxing_queue_size 1024 \
+          -map 0:v \
+          -map 0:a \
           -vcodec copy -bsf:v h264_mp4toannexb \
           -acodec libfdk_aac -strict -2 -ar 44100 -ac 1 \
           -f flv $RTMP_URL \

@@ -56,6 +56,7 @@ private:
 	WebRTC *mContainer;
 };
 
+static bool gDropAudioBeforeVideo = true;
 WebRTC::WebRTC()
 :mClientMutex(KMutex::MutexType_Recursive),
  mParamMutex(KMutex::MutexType_Recursive),
@@ -139,6 +140,10 @@ bool WebRTC::GobalInit(
 	}
 
 	return bFlag;
+}
+
+void WebRTC::SetDropAudioBeforeVideo(bool bFlag) {
+	gDropAudioBeforeVideo = bFlag;
 }
 
 void WebRTC::SetCallback(WebRTCCallback *callback, ForkNotice *forkNotice) {
@@ -1919,7 +1924,28 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //					);
 
 			if( ssrc == mAudioSSRC ) {
-				mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
+				if ( gDropAudioBeforeVideo ) {
+					if ( mRtpSession.IsReceivedVideo() ) {
+						mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
+					} else {
+//						LogAync(
+//								LOG_INFO,
+//								"WebRTC::OnIceRecvData( "
+//								"this : %p, "
+//								"[Drop Audio Before Video], "
+//								"ssrc : %u, "
+//								"mAudioSSRC : %u, "
+//								"mVideoSSRC : %u "
+//								")",
+//								this,
+//								ssrc,
+//								mAudioSSRC,
+//								mVideoSSRC
+//								);
+					}
+				} else {
+					mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
+				}
 			} else if ( ssrc == mVideoSSRC ) {
 				mRtpDstVideoClient.SendRtpPacket(pkt, pktSize);
 			}

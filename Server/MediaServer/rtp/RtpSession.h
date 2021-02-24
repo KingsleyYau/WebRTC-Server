@@ -130,6 +130,11 @@ public:
 	 */
 	bool SendRtcpPacket(void *pkt, unsigned int& pktSize);
 
+	/**
+	 * 是否已经接收过视频帧
+	 */
+	bool IsReceivedVideo();
+
 private:
 	/**
 	 * Send Picture Loss Indication(PLI)
@@ -274,6 +279,8 @@ private:
 	unsigned int mFirSeq;
 	// 收到的完整视频帧数量
 	unsigned int mVideoRecvFrameCount;
+	// 是否已经接收过视频帧
+	bool mIsVideoReceived;
 
 	//////////////////////////////////////////////////////////////////////////
 	/**

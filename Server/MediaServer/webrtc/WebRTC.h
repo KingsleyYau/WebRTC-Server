@@ -97,6 +97,8 @@ public:
 			const string& turnShareSecret
 			);
 
+	static void SetDropAudioBeforeVideo(bool bFlag);
+
 public:
 	bool Init(
 			const string& rtp2RtmpShellFilePath,

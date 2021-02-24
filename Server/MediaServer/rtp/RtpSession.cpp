@@ -190,6 +190,7 @@ void RtpSession::Reset() {
 	mVideoPLITimestamp = 0;
 	mVideoSSRC = 0;
 	mFirSeq = 0;
+	mIsVideoReceived = false;
 
 	// Audio
 	mAudioSSRC = 0;
@@ -540,12 +541,17 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 					rtpPktCache.Clear();
 					// 到达时间
 					rtpPktCache.set_arrival_time_ms(recvTime);
-					// 采集频率
 					if (IsVideoPkt(ssrc)) {
+						// 采集频率
 						rtpPktCache.set_payload_type_frequency(kVideoPayloadTypeFrequency);
+
 					}
 					bool bFlag = rtpPktCache.Parse((const uint8_t *) pkt, pktSize);
 					if (bFlag) {
+						if (IsVideoPkt(ssrc)) {
+							// 标记首个视频帧
+							mIsVideoReceived = true;
+						}
 //						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
 //								"this : %p, "
 //								"[%s], "
@@ -855,6 +861,10 @@ bool RtpSession::SendRtcpPacket(void *pkt, unsigned int& pktSize) {
 	}
 
 	return bFlag;
+}
+
+bool RtpSession::IsReceivedVideo() {
+	return mIsVideoReceived;
 }
 
 bool RtpSession::SendRtcpPli(unsigned int media_ssrc) {

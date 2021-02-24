@@ -329,6 +329,7 @@ bool MediaServer::Start() {
 		printf("# MediaServer(WebRTC) start Fail. \n");
 		return false;
 	}
+	WebRTC::SetDropAudioBeforeVideo(mWebRTCVSync);
 
 	mServerMutex.lock();
 	if( mRunning ) {
@@ -547,6 +548,7 @@ bool MediaServer::LoadConfig() {
 			mTurnPassword = conf.GetPrivate("WEBRTC", "TURNPASSWORD", "123");
 			mTurnShareSecret = conf.GetPrivate("WEBRTC", "TURNSHARESECRET", "");
 			mTurnClientTTL = atoi(conf.GetPrivate("WEBRTC", "TURNCLIENTTTL", "600").c_str());
+			mWebRTCVSync = atoi(conf.GetPrivate("WEBRTC", "VSYNC", "1").c_str());
 
 			// RTP参数
 			int pli_interval_max = atoi(conf.GetPrivate("RTP", "RTP_PLI_MAX_INTERVAL", "3").c_str());
@@ -589,6 +591,8 @@ bool MediaServer::ReloadLogConfig() {
 			mWebRTCRtp2RtmpBaseRecordUrl = conf.GetPrivate("WEBRTC", "RTP2RTMPBASERECORDURL", "");
 			mWebRTCRtmp2RtpShellFilePath = conf.GetPrivate("WEBRTC", "RTMP2RTPSHELL", "script/rtmp2rtp.sh");
 			mWebRTCRtmp2RtpBaseUrl = conf.GetPrivate("WEBRTC", "RTMP2RTPBASEURL", "");
+			mWebRTCVSync = atoi(conf.GetPrivate("WEBRTC", "VSYNC", "1").c_str());
+			WebRTC::SetDropAudioBeforeVideo(mWebRTCVSync);
 
 			// RTP参数
 			int pli_interval_max = atoi(conf.GetPrivate("RTP", "RTP_PLI_MAX_INTERVAL", "3").c_str());

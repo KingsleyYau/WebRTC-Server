@@ -331,6 +331,8 @@ private:
 	string mWebRTCRtmp2RtpShellFilePath;
 	// 执行转发RTP的地址
 	string mWebRTCRtmp2RtpBaseUrl;
+	// 是否等待视频帧才开始转发
+	bool mWebRTCVSync;
 
 	// DTLS证书路径
 	string mWebRTCDtlsCertPath;
