@@ -19,11 +19,11 @@ PID=run/mediaserver_test.pid
 # 日志配置
 [LOG]
 # 日志级别(0-6, 0:关闭 1:系统错误 2:程序错误 3:警告 4:业务流程 5:详细信息 6:火力全开(所有数据包和变量))
-LOGLEVEL=4
+LOGLEVEL=5
 # 日志路径
-LOGDIR=log/mediaserver_test
+LOGDIR=log/mediaserver
 # 调试模式(0:关闭, 1:开启)
-DEBUGMODE=1
+DEBUGMODE=0
 
 # WebRTC配置
 [WEBRTC]
@@ -42,6 +42,8 @@ RTMP2RTPBASEURL=rtmp://127.0.0.1:4000/cdn_standard
 # 证书路径
 DTLSCER=/app/live/mediaserver/etc/webrtc_dtls.crt
 DTLSKEY=/app/live/mediaserver/etc/webrtc_dtls.key
+# 是否等待视频帧才转发
+VSYNC=1
 
 # 需要绑定的本地IP(可选,空则自动选择)
 ICELOCALIP=192.168.88.133
