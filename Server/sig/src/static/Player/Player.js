@@ -117,8 +117,7 @@ p.decode(<binary>);
 
             if (!buffer || !self.render) {
                 return;
-            }
-            ;
+            };
 
             self.renderFrame({
                 canvasObj: self.canvasObj,

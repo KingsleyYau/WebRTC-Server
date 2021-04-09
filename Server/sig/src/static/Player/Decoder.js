@@ -10534,33 +10534,35 @@
                                                     r = c[e + 1248 >> 2] | 0;
                                                     if (l >>> 0 >= r >>> 0) {
                                                         q = (c[e + 1276 >> 2] | 0) == 0;
-                                                        do do if (q) {
-                                                            o = c[e + 1220 >> 2] | 0;
-                                                            p = 0;
-                                                            m = 2147483647;
-                                                            n = 0;
-                                                            do {
-                                                                if (c[o + (p * 40 | 0) + 24 >> 2] | 0) {
-                                                                    Wa = c[o + (p * 40 | 0) + 16 >> 2] | 0;
-                                                                    Xa = (Wa | 0) < (m | 0);
-                                                                    m = Xa ? Wa : m;
-                                                                    n = Xa ? o + (p * 40 | 0) | 0 : n
-                                                                }
-                                                                p = p + 1 | 0
-                                                            } while (p >>> 0 <= r >>> 0);
-                                                            if (!n) break;
-                                                            Xa = c[e + 1236 >> 2] | 0;
-                                                            Wa = c[e + 1232 >> 2] | 0;
-                                                            c[Wa + (Xa << 4) >> 2] = c[n >> 2];
-                                                            c[Wa + (Xa << 4) + 12 >> 2] = c[n + 36 >> 2];
-                                                            c[Wa + (Xa << 4) + 4 >> 2] = c[n + 28 >> 2];
-                                                            c[Wa + (Xa << 4) + 8 >> 2] = c[n + 32 >> 2];
-                                                            c[e + 1236 >> 2] = Xa + 1;
-                                                            c[n + 24 >> 2] = 0;
-                                                            if (c[n + 20 >> 2] | 0) break;
-                                                            l = l + -1 | 0;
-                                                            c[e + 1264 >> 2] = l
-                                                        } while (0); while (l >>> 0 >= r >>> 0)
+                                                        do {
+                                                            do if (q) {
+                                                                o = c[e + 1220 >> 2] | 0;
+                                                                p = 0;
+                                                                m = 2147483647;
+                                                                n = 0;
+                                                                do {
+                                                                    if (c[o + (p * 40 | 0) + 24 >> 2] | 0) {
+                                                                        Wa = c[o + (p * 40 | 0) + 16 >> 2] | 0;
+                                                                        Xa = (Wa | 0) < (m | 0);
+                                                                        m = Xa ? Wa : m;
+                                                                        n = Xa ? o + (p * 40 | 0) | 0 : n
+                                                                    }
+                                                                    p = p + 1 | 0
+                                                                } while (p >>> 0 <= r >>> 0);
+                                                                if (!n) break;
+                                                                Xa = c[e + 1236 >> 2] | 0;
+                                                                Wa = c[e + 1232 >> 2] | 0;
+                                                                c[Wa + (Xa << 4) >> 2] = c[n >> 2];
+                                                                c[Wa + (Xa << 4) + 12 >> 2] = c[n + 36 >> 2];
+                                                                c[Wa + (Xa << 4) + 4 >> 2] = c[n + 28 >> 2];
+                                                                c[Wa + (Xa << 4) + 8 >> 2] = c[n + 32 >> 2];
+                                                                c[e + 1236 >> 2] = Xa + 1;
+                                                                c[n + 24 >> 2] = 0;
+                                                                if (c[n + 20 >> 2] | 0) break;
+                                                                l = l + -1 | 0;
+                                                                c[e + 1264 >> 2] = l
+                                                            } while (0);
+                                                        } while (l >>> 0 >= r >>> 0)
                                                     }
                                                     n = c[e + 1220 >> 2] | 0;
                                                     c[n + (r * 40 | 0) + 20 >> 2] = 1;
@@ -16667,19 +16669,20 @@
              * Add by Max 2020/07/13
              * @type {{displayHeight: number, displayWidth: number, width: number, height: number}}
              */
-            this.pictureInfo
-                = {
-                width:0,
-                height:0,
-                displayWidth:0,
-                displayHeight:0,
+            // this.pictureInfo = {
+            //     width:0,
+            //     height:0,
+            //     displayWidth:0,
+            //     displayHeight:0,
+            // };
+            this.pictureInfo = {
             };
 
             this.asmInstance;
-            this.decodeWidth;
-            this.decodeHeight;
-            this.displayWidth;
-            this.displayHeight;
+            this.decodeWidth = 0;
+            this.decodeHeight = 0;
+            this.displayWidth = 0;
+            this.displayHeight = 0;
 
             var fakeWindow = {};
 
@@ -16702,15 +16705,15 @@
                     /**
                      * Add by Max 2020/07/10
                      */
-                    let newDisplayWidth = width;
-                    let newDisplayHeight = height;
+                    var newDisplayWidth = width;
+                    var newDisplayHeight = height;
                     if ( this.pictureInfo.displayWidth != 0 && this.pictureInfo.displayHeight != 0 ) {
                         newDisplayWidth = this.pictureInfo.displayWidth;
                         newDisplayHeight = this.pictureInfo.displayHeight;
                     }
 
-                    if (!this.asmInstance || this.decodeWidth != width || this.decodeHeight != width ) {
-                        console.log("decoder.onPicFun(), [New Decode Size], displaySize:" + width + "x" + height);
+                    if (!this.asmInstance || this.decodeWidth != width || this.decodeHeight != height ) {
+                        console.log("decoder.onPicFun(), [New Decode Size], " + this.decodeWidth + "x" + this.decodeHeight + " => " + width + "x" + height);
                         this.decodeWidth = width;
                         this.decodeHeight = height;
                         // 用显示的宽高创建buffer
@@ -16718,7 +16721,7 @@
                     }
 
                     if (!this.asmInstance || this.displayWidth != newDisplayWidth || this.displayHeight != newDisplayHeight) {
-                        console.log("decoder.onPicFun(), [New Picture Size], displaySize:" + newDisplayWidth + "x" + newDisplayHeight);
+                        console.log("decoder.onPicFun(), [New Picture Size], " + this.displayWidth + "x" + this.displayHeight + " => " + newDisplayWidth + "x" + newDisplayHeight);
                         this.displayWidth = newDisplayWidth;
                         this.displayHeight = newDisplayHeight;
                     }
@@ -16837,11 +16840,11 @@
              */
             function UE(buffer, len, startBit) {
                 // 计算0bit的个数
-                let zeroNum = 0;
+                var zeroNum = 0;
                 while (startBit < len * 8) {
-                    let index = Math.floor(startBit / 8);
-                    let byte = buffer[index];
-                    let check = (0x80 >> (startBit % 8));
+                    var index = Math.floor(startBit / 8);
+                    var byte = buffer[index];
+                    var check = (0x80 >> (startBit % 8));
                     if (byte & check) {
                         break;
                     }
@@ -16850,22 +16853,24 @@
                 }
                 startBit++;
 
-                let ret = 0;
-                for (let i = 0; i < zeroNum; i++) {
+                var ret = 0;
+                for (var i = 0; i < zeroNum; i++) {
                     ret <<= 1;
-                    let index = Math.floor(startBit / 8);
-                    let byte = buffer[index];
-                    let check = (0x80 >> (startBit % 8));
+                    var index = Math.floor(startBit / 8);
+                    var byte = buffer[index];
+                    var check = (0x80 >> (startBit % 8));
                     if (byte & check) {
                         ret += 1;
                     }
                     startBit++;
                 }
 
-                let result = {
-                    value: (1 << zeroNum) - 1 + ret,
-                    startBit: startBit,
+                var result = {
+                    // value: (1 << zeroNum) - 1 + ret,
+                    // startBit: startBit,
                 };
+                result.value = (1 << zeroNum) - 1 + ret;
+                result.startBit = startBit;
 
                 return result;
             }
@@ -16875,17 +16880,19 @@
              * 有符号的指数哥伦布编码
              */
             function SE(buffer, len, startBit) {
-                let ue = UE(buffer, len, startBit);
-                let ueVal = ue.value;
-                let k = ueVal;
-                let value = Math.ceil(k / 2);
+                var ue = UE(buffer, len, startBit);
+                var ueVal = ue.value;
+                var k = ueVal;
+                var value = Math.ceil(k / 2);
                 if (ueVal % 2 == 0)
                     value = -value;
 
-                let result = {
-                    value: value,
-                    startBit: ue.startBit,
+                var result = {
+                    // value: value,
+                    // startBit: ue.startBit,
                 };
+                result.value = value;
+                result.startBit = ue.startBit;
 
                 return result;
             }
@@ -16895,23 +16902,25 @@
              * 长度为N个bit的无符号数字
              */
             function U(bitCount, buffer, startBit) {
-                let ret = 0;
-                for (let i = 0; i < bitCount; i++) {
+                var ret = 0;
+                for (var i = 0; i < bitCount; i++) {
                     ret <<= 1;
 
-                    let index = Math.floor(startBit / 8);
-                    let byte = buffer[index];
-                    let check = (0x80 >> (startBit % 8));
+                    var index = Math.floor(startBit / 8);
+                    var byte = buffer[index];
+                    var check = (0x80 >> (startBit % 8));
                     if (byte & check) {
                         ret += 1;
                     }
                     startBit++;
                 }
 
-                let result = {
-                    value: ret,
-                    startBit: startBit,
+                var result = {
+                    // value: ret,
+                    // startBit: startBit,
                 };
+                result.value = ret;
+                result.startBit = startBit;
 
                 return result;
             }
@@ -16920,35 +16929,35 @@
              * Add by Max 2020/07/10
              */
             var getPictureInfo = function (buffer) {
-                let info = this.pictureInfo;
-                let startCode = [0x0, 0x0, 0x0, 0x01];
-                for (let i = 0; i < buffer.length - 5; i++) {
+                var info = this.pictureInfo;
+                var startCode = [0x0, 0x0, 0x0, 0x01];
+                for (var i = 0; i < buffer.length - 5; i++) {
                     if (
                         buffer[i] == startCode[0] &&
                         buffer[i + 1] == startCode[1] &&
                         buffer[i + 2] == startCode[2] &&
                         buffer[i + 3] == startCode[3]
                     ) {
-                        let type = buffer[i + 4] & 0x0F;
+                        var type = buffer[i + 4] & 0x0F;
                         // console.log(Date.now() + ", docoder.getPictureInfo(), frame:" + type);
                         if (type == 7) {
-                            let startBit = 0;
-                            let lastByte = buffer.length - i;
-                            let sps = buffer.slice(i + 4 + 1, buffer.length - i - 1);
-                            let result = {};
+                            var startBit = 0;
+                            var lastByte = buffer.length - i;
+                            var sps = buffer.slice(i + 4 + 1, buffer.length - i - 1);
+                            var result = {};
                             result = U(8, sps, startBit);
-                            let profile_idc = result.value;
+                            var profile_idc = result.value;
                             result = U(1, sps, result.startBit);
                             result = U(1, sps, result.startBit);
                             result = U(1, sps, result.startBit);
                             result = U(1, sps, result.startBit);
                             result = U(4, sps, result.startBit);
                             result = U(8, sps, result.startBit);
-                            let level_idc = result.value;
+                            var level_idc = result.value;
                             result = UE(sps, lastByte, result.startBit);
-                            let seq_parameter_set_id = result.value;
+                            var seq_parameter_set_id = result.value;
 
-                            let chroma_format_idc = -1;
+                            var chroma_format_idc = -1;
                             if (profile_idc == 100 || profile_idc == 110 ||
                                 profile_idc == 122 || profile_idc == 244 || profile_idc == 44 ||
                                 profile_idc == 83 || profile_idc == 86 || profile_idc == 118 ||
@@ -16963,16 +16972,16 @@
                                 result = UE(sps, lastByte, result.startBit);
                                 result = U(1, sps, result.startBit);
                                 result = U(1, sps, result.startBit);
-                                let seq_scaling_matrix_present_flag = result.value;
+                                var seq_scaling_matrix_present_flag = result.value;
                                 if (seq_scaling_matrix_present_flag) {
                                     result = U(8, sps, result.startBit);
                                 }
                             }
 
                             result = UE(sps, lastByte, result.startBit);
-                            let log2_max_frame_num_minus4 = result.value;
+                            var log2_max_frame_num_minus4 = result.value;
                             result = UE(sps, lastByte, result.startBit);
-                            let pic_order_cnt_type = result.value;
+                            var pic_order_cnt_type = result.value;
                             if (pic_order_cnt_type == 0) {
                                 result = UE(sps, lastByte, result.startBit);
                             } else if (pic_order_cnt_type == 1) {
@@ -16985,19 +16994,19 @@
                             result = UE(sps, lastByte, result.startBit);
                             result = U(1, sps, result.startBit);
                             result = UE(sps, lastByte, result.startBit);
-                            let pic_width_in_mbs_minus1 = result.value;
+                            var pic_width_in_mbs_minus1 = result.value;
                             result = UE(sps, lastByte, result.startBit);
-                            let pic_height_in_map_units_minus1 = result.value;
+                            var pic_height_in_map_units_minus1 = result.value;
                             result = U(1, sps, result.startBit);
-                            let frame_mbs_only_flag = result.value;
+                            var frame_mbs_only_flag = result.value;
                             if (!frame_mbs_only_flag) {
                                 result = U(1, sps, result.startBit);
                             }
                             result = U(1, sps, result.startBit);
                             result = U(1, sps, result.startBit);
 
-                            let width = (pic_width_in_mbs_minus1 + 1) * 16;
-                            let height = (pic_height_in_map_units_minus1 + 1) * 16;
+                            var width = (pic_width_in_mbs_minus1 + 1) * 16;
+                            var height = (pic_height_in_map_units_minus1 + 1) * 16;
                             height *= (2 - frame_mbs_only_flag);
 
                             info.width = width;
@@ -17005,11 +17014,11 @@
                             info.displayWidth = width;
                             info.displayHeight = height;
 
-                            let frame_crop_left_offset = 0;
-                            let frame_crop_right_offset = 0;
-                            let frame_crop_top_offset = 0;
-                            let frame_crop_bottom_offset = 0;
-                            let frame_cropping_flag = result.value;
+                            var frame_crop_left_offset = 0;
+                            var frame_crop_right_offset = 0;
+                            var frame_crop_top_offset = 0;
+                            var frame_crop_bottom_offset = 0;
+                            var frame_cropping_flag = result.value;
                             if (frame_cropping_flag) {
                                 result = UE(sps, lastByte, result.startBit);
                                 frame_crop_left_offset = result.value;
@@ -17020,8 +17029,8 @@
                                 result = UE(sps, lastByte, result.startBit);
                                 frame_crop_bottom_offset = result.value;
 
-                                let crop_unit_x = 0;
-                                let crop_unit_y = 0;
+                                var crop_unit_x = 0;
+                                var crop_unit_y = 0;
                                 if ( chroma_format_idc == -1 ) {
                                     // baseline
                                     crop_unit_x = 2;
@@ -17048,12 +17057,12 @@
                                 info.displayHeight = height - crop_unit_y * (frame_crop_top_offset + frame_crop_bottom_offset);
                             }
 
-                            console.log(Date.now() + ", " +
-                                "docoder.getPictureInfo(), " +
-                                "profile_idc:" + profile_idc + ', ' +
-                                "decodeVideoSize: " + info.width + "x" + info.height + ', ' +
-                                "displayVideoSize: " + info.displayWidth + "x" + info.displayHeight
-                            );
+                            // console.log(Date.now(),
+                            //     "docoder.getPictureInfo(), [Recv Key Frame], ",
+                            //     "profile_idc:" + profile_idc,
+                            //     "decodeVideoSize:" + info.width + "x" + info.height,
+                            //     "displayVideoSize:" + info.displayWidth + "x" + info.displayHeight
+                            // );
 
                             break;
                         }
@@ -17164,7 +17173,7 @@
                     /**
                      * Add by Max 2020/07/13
                      */
-                    // this.pcitureInfo = getPictureInfo(typedAr);
+                    this.pcitureInfo = getPictureInfo(typedAr);
                     // collect infos
                     if (parInfo) {
                         this.infoAr.push(parInfo);

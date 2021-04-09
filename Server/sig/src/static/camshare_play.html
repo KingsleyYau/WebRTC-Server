@@ -11,6 +11,7 @@
     var info = ""
     var running = true;
     var client;
+    var show_log = false;
 
     var statistics = {
         h264NaluRecvTime: 0,
@@ -79,7 +80,7 @@
         $('#video').append(player.canvas);
         player.onRenderFrameComplete = function onRenderFrameComplete(frame) {
             var now = Date.now();
-            console.log(now + ", player.onRenderFrameComplete(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + frame.width + ", height:" + frame.height);
+            // console.log(now + ", player.onRenderFrameComplete(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + frame.width + ", height:" + frame.height);
         }
         player.onPictureDecoded = function onPictureDecoded(buffer, width, height, infos) {
             var s = statistics;
@@ -89,7 +90,9 @@
             if (!s.videoDecodeStartTimeAvg) {
                 s.videoDecodeStartTimeAvg = now;
             }
-            console.log(now + ", player.onPictureDecoded(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + width + ", height:" + height);
+            if (show_log) {
+                console.log(now + ", player.onPictureDecoded(), frame:" + statistics.videoDecodedCountAvg  + ", width:" + width + ", height:" + height);
+            }
 
             var videoElapsedTime = now - s.videoDecodeStartTimeAvg;
             s.elapsed = videoElapsedTime / 1000;
@@ -146,7 +149,9 @@
             }
             statistics.h264NaluRecvTime = now;
             statistics.h264NaluRecvCount++;
-            console.log(now + ", client.onmessage(), frame:" + statistics.h264NaluRecvCount + ", size:" +messageData.byteLength + ", delta:" + delta);
+            if ( show_log ) {
+                console.log(now + ", client.onmessage(), frame:" + statistics.h264NaluRecvCount + ", size:" + messageData.byteLength + ", delta:" + delta);
+            }
             // console.log(messageData.toString(16));
             player.decode(messageData);
 //		setTimeout(
@@ -164,15 +169,21 @@
             console.log(url + " closed : " + e);
             reset();
 
-            setTimeout(function () {
-                if ( running ) {
-                    play();
-                }
-            }, 5000);
+            if ( running ) {
+                setTimeout(function () {
+                    if ( running && client.readyState != 1 ) {
+                        play();
+                    }
+                }, 10000);
+            }
         }
     };
 
     function onload() {
+        $("[id=show_log]").change(function() {
+            show_log = $("[id=show_log]").attr('checked');
+        });
+
         $("[id=playBtn]").click(function () {
             $("[id=playBtn]").attr("disabled", 'true');
             $("[id=stopBtn]").removeAttr("disabled");
@@ -185,6 +196,7 @@
             $("[id=playBtn]").removeAttr("disabled");
             running = false;
             client.close();
+            client = null;
         });
 
         $("[id=playBtn]").attr("disabled", 'true');
@@ -200,9 +212,9 @@
 </p>
 <div id="logtxt" style="height:30px; width:500px;"></div>
 <div>
-Room: <input id="room" type="text" name="" style="width:480px"
-       value="WW0"/><br>
+Room: <input id="room" type="text" name="" style="width:480px" value="WW0"/>
 </div>
+<div>Show log:<input id="show_log" type="checkbox"></div>
 <button id="playBtn">Play</button>
 <button id="stopBtn">Stop</button>
 </body>
