@@ -46,6 +46,76 @@
         }
     }
 
+    async function compressImage(file, quality) {
+        return new Promise((resolve, reject) => {
+            // 图片小于1M不压缩
+            if (file.size < Math.pow(1024, 2)) {
+                resolve(file);
+            }
+            //默认0.5倍压缩
+            quality = quality || 0.5;
+
+            //保存文件名，后边用到
+            var name = file.name;
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (e) {
+                var src = e.target.result;
+
+                var img = new Image();
+                img.src = src;
+                img.onload = function (e) {
+                    var w = img.width;
+                    var h = img.height;
+                    //生成canvas
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    // 创建属性节点
+                    var anw = document.createAttribute("width");
+                    anw.nodeValue = w;
+                    var anh = document.createAttribute("height");
+                    anh.nodeValue = h;
+                    canvas.setAttributeNode(anw);
+                    canvas.setAttributeNode(anh);
+
+                    //铺底色 PNG转JPEG时透明区域会变黑色
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(0, 0, w, h);
+
+                    ctx.drawImage(img, 0, 0, w, h);
+                    // quality值越小，所绘制出的图像越模糊
+                    var base64 = canvas.toDataURL('image/jpeg', quality); //图片格式jpeg或webp可以选0-1质量区间
+
+                    // 返回base64转blob的值
+                    console.log('\u539F\u56FE' + (src.length / 1024).toFixed(2) + 'kb', '\u65B0\u56FE' + (base64.length / 1024).toFixed(2) + 'kb');
+                    //去掉url的头，并转换为byte
+                    var bytes = window.atob(base64.split(',')[1]);
+                    //处理异常,将ascii码小于0的转换为大于0
+                    var ab = new ArrayBuffer(bytes.length);
+                    var ia = new Uint8Array(ab);
+                    for (var i = 0; i < bytes.length; i++) {
+                        ia[i] = bytes.charCodeAt(i);
+                    }
+                    //通过Blob生成新图片文件对象
+                    file = new Blob([ab], { type: 'image/jpeg' });
+                    //这里需要重新设置文件名
+                    file.name = name;
+
+                    resolve(file);
+                };
+                img.onerror = function (e) {
+                    console.error(e)
+                    reject(e)
+                };
+            };
+            reader.onerror = function (e) {
+                console.error(e)
+                reject(e)
+            };
+        })
+
+    };
+
     function onload() {
         $("[id=img_file]").change(function (e) {
             files = e.target.files
@@ -59,43 +129,46 @@
         $("[id=btn_submit]").click(function (e) {
             files = $("[id=img_file]")[0].files
             if (files.length) {
-                $("[id=upload_progress]").html('')
+                file = files[0]
+                compressImage(file).then((file) => {
+                    $("[id=upload_progress]").html('')
 
-                let formData = new FormData()
-                formData.append('upload_file', files[0], files[0].name)
+                    let formData = new FormData()
+                    formData.append('upload_file', file, file.name)
 
-                let req = new XMLHttpRequest();
-                req.open("POST", "/upload");
-                req.onload = function (e) {
-                    if (req.readyState === 4 && req.status === 200) {
-                        if (req.status === 200) {
-                            let json = JSON.parse(req.responseText);
-                            console.log('response:', json);
-                            if (json.errno == 0) {
-                                $("[id=img_upload_photo]").attr('src', json.data.photo);
-                                $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
-                                $("[id=upload_progress]").html('Finish')
-                            } else {
-                                $("[id=upload_progress]").html(json.errmsg)
+                    let req = new XMLHttpRequest();
+                    req.open("POST", "/upload");
+                    req.onload = function (e) {
+                        if (req.readyState === 4 && req.status === 200) {
+                            if (req.status === 200) {
+                                let json = JSON.parse(req.responseText);
+                                console.log('response:', json);
+                                if (json.errno == 0) {
+                                    $("[id=img_upload_photo]").attr('src', json.data.photo);
+                                    $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
+                                    $("[id=upload_progress]").html('Finish')
+                                } else {
+                                    $("[id=upload_progress]").html(json.errmsg)
+                                }
                             }
                         }
                     }
-                }
-                req.upload.onprogress = function(e) {
-                    console.log((e.loaded / e.total) * 100 + '%')
-                    $("[id=upload_progress]").html('Upload ' + (e.loaded / e.total) * 100 + '%')
-                }
+                    req.upload.onprogress = function(e) {
+                        console.log((e.loaded / e.total) * 100 + '%')
+                        $("[id=upload_progress]").html('Upload ' + (e.loaded / e.total) * 100 + '%')
+                    }
 
-                req.upload.onloadend = function(e) {
-                    $("[id=upload_progress]").html('Uploaded, Waiting for process...')
+                    req.upload.onloadend = function(e) {
+                        $("[id=upload_progress]").html('Uploaded, Waiting for process...')
 
-                }
+                    }
 
-                req.upload.onerror = function(e) {
-                    $("[id=upload_progress]").html('Upload Fail')
-                }
+                    req.upload.onerror = function(e) {
+                        $("[id=upload_progress]").html('Upload Fail')
+                    }
 
-                req.send(formData);
+                    req.send(formData);
+                });
             }
         });
     }
