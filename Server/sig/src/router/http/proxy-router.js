@@ -17,6 +17,8 @@ const Fs = require('fs');
 const Path = require('path');
 const Url = require('url');
 const Exec = require('child_process');
+const formidable = require('formidable');
+const mime = require('mime-types')
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -236,10 +238,10 @@ proxyRouter.all('/nodes_dbsize', async (ctx, next) => {
 
 proxyRouter.all('/rnd', async (ctx, next) => {
     let respond = {
-        "errno":0,
-        "errmsg":"",
-        "res":-2,
-        "userId":ctx.session.sessionId,
+        errno:0,
+        errmsg:"",
+        res:-2,
+        userId:ctx.session.sessionId,
     }
 
     let start = process.uptime() * 1000;
@@ -277,11 +279,18 @@ proxyRouter.all('/rnd', async (ctx, next) => {
     ctx.body = respond;
 });
 
-proxyRouter.all('/test', async (ctx, next) => {
+const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
+// const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
+proxyRouter.all('/upload', async (ctx, next) => {
     let respond = {
-        "errno":0,
-        "errmsg":"",
-        "userId":ctx.session.sessionId,
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
     }
 
     let start = process.uptime() * 1000;
@@ -289,6 +298,42 @@ proxyRouter.all('/test', async (ctx, next) => {
     respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
+    var form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = Path.join(__dirname + "../../../static/upload");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            let filepath = files.upload_file.path;
+            dir = Path.dirname(filepath)
+            basename = Path.basename(filepath)
+            basename_pre = basename.split('.')[0];
+
+            upload_path = "/upload/";
+            upload_file = upload_path + basename;
+            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
+            Exec.execSync(P2C + filepath)
+
+            photo_path = Path.join(dir, basename_pre + "_photo.png");
+            cartoon_path = Path.join(dir, basename_pre + "_cartoon.png");
+
+            data = Fs.readFileSync(photo_path);
+            data = new Buffer(data).toString('base64');
+            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+
+            data = Fs.readFileSync(cartoon_path);
+            data = new Buffer(data).toString('base64');
+            cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+
+            Exec.execSync('rm -rf ' + photo_path  + ' && ' + 'rm -rf ' + cartoon_path)
+
+            resolve();
+        })
+    })
 
     ctx.body = respond;
 });

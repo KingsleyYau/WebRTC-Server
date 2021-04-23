@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style id="compiled-css" type="text/css">
+        .display-flex {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .div-size {
+            width: 240px;
+            background-size: contain;
+            background-position: center;
+        }
+    </style>
+</head>
+
+<title>Photo2Cartoon Page</title>
+<script src="jquery.min.js"></script>
+<script>
+    IsNull = function(obj) {
+        if( typeof(obj)!="undefined" && obj!=null ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function previewFile(file) {
+        let reader
+        if (file) {
+            // 创建流对象
+            reader = new FileReader()
+            reader.readAsDataURL(file)
+        }
+        // 捕获 转换完毕
+        reader.onload = function(e) {
+            // 转换后的base64就在e.target.result里面,直接放到img标签的src属性即可
+            src = e.target.result
+            $("[id=img_preview]").attr('src', src);
+        }
+    }
+
+    function onload() {
+        $("[id=img_file]").change(function (e) {
+            files = e.target.files
+            if (files.length) {
+                previewFile(files[0])
+            } else {
+
+            }
+        });
+
+        $("[id=btn_submit]").click(function (e) {
+            files = $("[id=img_file]")[0].files
+            if (files.length) {
+                $("[id=upload_progress]").html('')
+
+                let formData = new FormData()
+                formData.append('upload_file', files[0], files[0].name)
+
+                let req = new XMLHttpRequest();
+                req.open("POST", "/upload");
+                req.onload = function (e) {
+                    if (req.readyState === 4 && req.status === 200) {
+                        if (req.status === 200) {
+                            let json = JSON.parse(req.responseText);
+                            console.log('response:', json);
+                            $("[id=upload_path]").html(json.data.path)
+                            $("[id=img_upload_photo]").attr('src', json.data.photo);
+                            $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
+                        }
+                    }
+                }
+                req.upload.onprogress = function(e) {
+                    console.log((e.loaded / e.total) * 100 + '%')
+                    $("[id=upload_progress]").html((e.loaded / e.total) * 100 + '%')
+                }
+
+                req.upload.onloadend = function(e) {
+
+                }
+                req.send(formData);
+            }
+        });
+    }
+</script>
+<body onload="onload()">
+<div>
+    <input id='img_file' type="file" class="file" name="file" />
+    <button id="btn_submit">submit</button>
+    <lable id="upload_progress"></lable>
+</div>
+<div id='' class="" style="display: block;">
+    <lable id="upload_path"></lable>
+</div>
+<div class="display-flex">
+    <div class="div-size">
+        <img id="img_preview" src="" style="height: 240px;" />
+    </div>
+    <div class="div-size">
+        <img id="img_upload_photo" src="" style="height: 240px" />
+    </div>
+    <div class="div-size">
+        <img id="img_upload_cartoon" src="" style="height: 240px" />
+    </div>
+</div>
+</body>
+</html>
