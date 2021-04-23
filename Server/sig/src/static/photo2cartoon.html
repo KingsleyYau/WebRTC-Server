@@ -77,12 +77,18 @@
                 }
                 req.upload.onprogress = function(e) {
                     console.log((e.loaded / e.total) * 100 + '%')
-                    $("[id=upload_progress]").html((e.loaded / e.total) * 100 + '%')
+                    $("[id=upload_progress]").html('Upload ' + (e.loaded / e.total) * 100 + '%')
                 }
 
                 req.upload.onloadend = function(e) {
+                    $("[id=upload_progress]").html('Uploaded, Waiting for process...')
 
                 }
+
+                req.upload.onerror = function(e) {
+                    $("[id=upload_progress]").html('Upload Fail')
+                }
+
                 req.send(formData);
             }
         });
