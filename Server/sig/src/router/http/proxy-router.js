@@ -279,8 +279,8 @@ proxyRouter.all('/rnd', async (ctx, next) => {
     ctx.body = respond;
 });
 
-// const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
-const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
+const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
+// const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
 proxyRouter.all('/upload', async (ctx, next) => {
     let respond = {
         errno:0,
