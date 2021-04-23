@@ -279,8 +279,8 @@ proxyRouter.all('/rnd', async (ctx, next) => {
     ctx.body = respond;
 });
 
-const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
-// const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
+// const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
+const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
 proxyRouter.all('/upload', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -313,25 +313,32 @@ proxyRouter.all('/upload', async (ctx, next) => {
             upload_path = "/upload/";
             upload_file = upload_path + basename;
             Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
-            Exec.execSync(P2C + filepath)
 
-            photo_path = Path.join(dir, basename_pre + "_photo.png");
-            cartoon_path = Path.join(dir, basename_pre + "_cartoon.png");
+            try {
+                Exec.execSync(P2C + filepath)
 
-            data = Fs.readFileSync(photo_path);
-            data = new Buffer(data).toString('base64');
-            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                photo_path = Path.join(dir, basename_pre + "_photo.png");
+                cartoon_path = Path.join(dir, basename_pre + "_cartoon.png");
 
-            data = Fs.readFileSync(cartoon_path);
-            data = new Buffer(data).toString('base64');
-            cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+                data = Fs.readFileSync(photo_path);
+                data = new Buffer(data).toString('base64');
+                photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
 
-            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                data = Fs.readFileSync(cartoon_path);
+                data = new Buffer(data).toString('base64');
+                cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
 
-            Exec.execSync('rm -rf ' + photo_path  + ' && ' + 'rm -rf ' + cartoon_path)
+                respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+                respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
 
-            resolve();
+                Exec.execSync('rm -rf ' + photo_path  + ' && ' + 'rm -rf ' + cartoon_path)
+                resolve();
+
+            } catch (e) {
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                reject(e);
+            }
         })
     })
 

@@ -2,6 +2,8 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">-->
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0" />
     <title>Photo2Cartoon</title>
     <style id="compiled-css" type="text/css">
         .display-flex {
@@ -69,9 +71,13 @@
                         if (req.status === 200) {
                             let json = JSON.parse(req.responseText);
                             console.log('response:', json);
-                            $("[id=upload_path]").html(json.data.path)
-                            $("[id=img_upload_photo]").attr('src', json.data.photo);
-                            $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
+                            if (json.errno == 0) {
+                                $("[id=img_upload_photo]").attr('src', json.data.photo);
+                                $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
+                                $("[id=upload_progress]").html('Finish')
+                            } else {
+                                $("[id=upload_progress]").html(json.errmsg)
+                            }
                         }
                     }
                 }
