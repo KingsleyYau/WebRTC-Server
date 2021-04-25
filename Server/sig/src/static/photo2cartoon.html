@@ -42,14 +42,14 @@
         reader.onload = function(e) {
             // 转换后的base64就在e.target.result里面,直接放到img标签的src属性即可
             src = e.target.result
-            $("[id=img_preview]").attr('src', src);
+            // $("[id=img_preview]").attr('src', src);
         }
     }
 
     async function compressImage(file, quality) {
         return new Promise((resolve, reject) => {
             // 图片小于1M不压缩
-            if (file.size < Math.pow(1024, 2)) {
+            if (file.size < Math.pow(1024, 2) / 2.0) {
                 resolve(file);
             }
             //默认0.5倍压缩
