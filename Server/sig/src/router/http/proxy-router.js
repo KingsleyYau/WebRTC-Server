@@ -348,14 +348,14 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 Exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
                 Exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
 
-                resolve();
-
             } catch (e) {
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', Fail');
-                reject(e);
+                // reject(e);
             }
+            resolve();
+
         })
     })
 
