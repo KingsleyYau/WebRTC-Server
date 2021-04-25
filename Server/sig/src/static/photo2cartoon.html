@@ -42,7 +42,7 @@
         reader.onload = function(e) {
             // 转换后的base64就在e.target.result里面,直接放到img标签的src属性即可
             src = e.target.result
-            // $("[id=img_preview]").attr('src', src);
+            $("[id=img_preview]").attr('src', src);
         }
     }
 
