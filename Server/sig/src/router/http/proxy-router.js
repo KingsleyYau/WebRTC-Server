@@ -350,7 +350,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
 
             } catch (e) {
                 respond.errno = 1;
-                respond.errmsg = "Process fail, " + e.toString();
+                respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
                 // reject(e);
             }

@@ -60,7 +60,7 @@ class HttpService {
             // 所有中间件处理完成
 
             let json = JSON.stringify(ctx.response._body);
-            let desc = (json.length < 1024)?json:json.substring(0, 1023)+'...';
+            let desc = (json.length < 2046)?json:json.substring(0, 2045)+'...';
             Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + desc);
         });
 
