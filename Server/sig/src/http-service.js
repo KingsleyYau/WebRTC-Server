@@ -59,7 +59,9 @@ class HttpService {
             await next();
             // 所有中间件处理完成
 
-            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + JSON.stringify(ctx.response._body));
+            let json = JSON.stringify(ctx.response._body);
+            let desc = (json.length < 1024)?json:json.substring(0, 1023)+'...';
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + desc);
         });
 
         // 增加路由
