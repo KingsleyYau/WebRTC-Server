@@ -116,68 +116,77 @@
 
     };
 
+    function submit(file) {
+        compressImage(file).then((file) => {
+            $("[id=upload_progress]").html('')
+
+            let formData = new FormData()
+            formData.append('upload_file', file, file.name)
+
+            let req = new XMLHttpRequest();
+            req.open("POST", "/upload");
+            req.onload = function (e) {
+                if (req.readyState === 4 && req.status === 200) {
+                    if (req.status === 200) {
+                        let json = JSON.parse(req.responseText);
+                        console.log('response:', json);
+                        if (json.errno == 0) {
+                            $("[id=img_upload_photo]").attr('src', json.data.photo);
+                            $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
+                            $("[id=upload_progress]").html('Finish')
+                        } else {
+                            $("[id=upload_progress]").html(json.errmsg)
+                        }
+                    }
+                }
+            }
+            req.onerror = function (e) {
+                $("[id=upload_progress]").html('Upload Fail, ', e)
+            }
+
+            req.upload.onprogress = function(e) {
+                console.log((e.loaded / e.total) * 100 + '%')
+                $("[id=upload_progress]").html('Upload ' + (e.loaded / e.total) * 100 + '%')
+            }
+
+            req.upload.onloadend = function(e) {
+                $("[id=upload_progress]").html('Uploaded, Waiting for process...')
+            }
+
+            req.upload.onerror = function(e) {
+                $("[id=upload_progress]").html('Upload Fail, ', e)
+            }
+
+            req.send(formData);
+        });
+    }
+
     function onload() {
         $("[id=img_file]").change(function (e) {
+            // files = $("[id=img_file]")[0].files
             files = e.target.files
+            $("[id=img_upload_photo]").removeAttr('src');
+            $("[id=img_upload_cartoon]").removeAttr('src');
             if (files.length) {
                 previewFile(files[0])
+                submit(files[0])
             } else {
 
             }
         });
 
         $("[id=btn_submit]").click(function (e) {
-            files = $("[id=img_file]")[0].files
-            if (files.length) {
-                file = files[0]
-                compressImage(file).then((file) => {
-                    $("[id=upload_progress]").html('')
-
-                    let formData = new FormData()
-                    formData.append('upload_file', file, file.name)
-
-                    let req = new XMLHttpRequest();
-                    req.open("POST", "/upload");
-                    req.onload = function (e) {
-                        if (req.readyState === 4 && req.status === 200) {
-                            if (req.status === 200) {
-                                let json = JSON.parse(req.responseText);
-                                console.log('response:', json);
-                                if (json.errno == 0) {
-                                    $("[id=img_upload_photo]").attr('src', json.data.photo);
-                                    $("[id=img_upload_cartoon]").attr('src', json.data.cartoon);
-                                    $("[id=upload_progress]").html('Finish')
-                                } else {
-                                    $("[id=upload_progress]").html(json.errmsg)
-                                }
-                            }
-                        }
-                    }
-                    req.upload.onprogress = function(e) {
-                        console.log((e.loaded / e.total) * 100 + '%')
-                        $("[id=upload_progress]").html('Upload ' + (e.loaded / e.total) * 100 + '%')
-                    }
-
-                    req.upload.onloadend = function(e) {
-                        $("[id=upload_progress]").html('Uploaded, Waiting for process...')
-
-                    }
-
-                    req.upload.onerror = function(e) {
-                        $("[id=upload_progress]").html('Upload Fail')
-                    }
-
-                    req.send(formData);
-                });
-            }
+            submit();
         });
     }
 </script>
 <body onload="onload()">
 <div>
     <input id='img_file' type="file" class="file" name="file" />
-    <button id="btn_submit">submit</button>
+    <!--<button id="btn_submit">submit</button>-->
+</div>
     <lable id="upload_progress"></lable>
+<div>
 </div>
 <div id='' class="" style="display: block;">
     <lable id="upload_path"></lable>

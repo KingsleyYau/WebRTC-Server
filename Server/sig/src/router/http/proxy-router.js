@@ -303,6 +303,20 @@ proxyRouter.all('/upload', async (ctx, next) => {
     form.uploadDir = Path.join(__dirname + "../../../static/upload");
     form.keepExtensions = true;//保留后缀
     form.maxFieldsSize = 2 * 1024 * 1024;
+
+    Fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
+        }
+    });
+
+    cartoon_dir = Path.join(form.uploadDir, "cartoon");
+    Fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
+        }
+    });
+
     await new Promise(function(resolve, reject) {
         form.parse(ctx.req, function (err, fields, files) {
             let filepath = files.upload_file.path;
@@ -331,7 +345,9 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
                 respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
 
-                Exec.execSync('rm -rf ' + photo_path  + ' && ' + 'rm -rf ' + cartoon_path)
+                Exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
+                Exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
+
                 resolve();
 
             } catch (e) {
