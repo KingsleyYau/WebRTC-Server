@@ -354,9 +354,10 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
                 // reject(e);
-            }
-            resolve();
 
+            } finally {
+                resolve();
+            }
         })
     })
 
