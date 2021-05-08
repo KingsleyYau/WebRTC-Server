@@ -319,16 +319,16 @@ proxyRouter.all('/upload', async (ctx, next) => {
 
     await new Promise(function(resolve, reject) {
         form.parse(ctx.req, function (err, fields, files) {
-            let filepath = files.upload_file.path;
-            dir = Path.dirname(filepath)
-            basename = Path.basename(filepath)
-            basename_pre = basename.split('.')[0];
-
-            upload_path = "/upload/";
-            upload_file = upload_path + basename;
-            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
-
             try {
+                let filepath = files.upload_file.path;
+                dir = Path.dirname(filepath)
+                basename = Path.basename(filepath)
+                basename_pre = basename.split('.')[0];
+
+                upload_path = "/upload/";
+                upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
+                
                 Exec.execSync(P2C + filepath)
 
                 photo_path = Path.join(dir, basename_pre + "_photo.png");
