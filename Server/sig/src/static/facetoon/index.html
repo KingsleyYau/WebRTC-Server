@@ -148,53 +148,51 @@
             document.getElementById('pre').onclick = prevImage;
 
             //自动播放
-            var timer = setInterval(nextImage, 5000);
+            var timer = setInterval(nextImage, 3000);
 
-            box.onmouseover = function () {
-                clearInterval(timer);
-            }
-
-            //移出时，重新开始定时器
-            box.onmouseout = function () {
-                timer = setInterval(nextImage, 5000);
-            }
+            // box.onmouseover = function () {
+            //     clearInterval(timer);
+            // }
+            //
+            // //移出时，重新开始定时器
+            // box.onmouseout = function () {
+            //     timer = setInterval(nextImage, 3000);
+            // }
         }
 
 
     </script>
 </head>
 <body id="wrapper" class="banner">
-<!--<div id="wrapper" class="banner">-->
-    <div style="text-align:center;margin:50px"><h3>人像卡通化</h3></div>
-    <div class="box">
-        <div class="content">
-            <div><img src="img/C_00.PNG" alt=""/></div>
-            <div><img src="img/C_01.PNG" alt=""/></div>
-            <div><img src="img/C_02.PNG" alt=""/></div>
-            <div><img src="img/C_03.PNG" alt=""/></div>
-            <div><img src="img/C_04.PNG" alt=""/></div>
-        </div>
-        <div class="control">
-        </div>
+<div style="text-align:center;margin:50px"><h3>人像卡通化</h3></div>
+<div class="box">
+    <div class="content">
+        <div><img src="img/C_00.PNG" alt=""/></div>
+        <div><img src="img/C_01.PNG" alt=""/></div>
+        <div><img src="img/C_02.PNG" alt=""/></div>
+        <div><img src="img/C_03.PNG" alt=""/></div>
+        <div><img src="img/C_04.PNG" alt=""/></div>
+    </div>
+    <div class="control">
+    </div>
 
-        <span id="pre"></span>
-        <span id="next"></span>
-    </div>
-    <div style="text-align:center">
-        <a href="https://itunes.apple.com/cn/app/id477927812" id="" target="_blank">
-            <img src="img/app_store.png" alt=""/>
-        </a>
-    </div>
-    <div style="text-align:center">
-        <a href="terms.html" id="" target="_blank">
-            Term of use
-        </a>
-    </div>
-    <div style="text-align:center">
-        <a href="policy.html" id="" target="_blank">
-            Private Policy
-        </a>
-    </div>
-<!--</div>-->
+    <span id="pre"></span>
+    <span id="next"></span>
+</div>
+<div style="text-align:center">
+    <a href="https://itunes.apple.com/cn/app/id477927812" id="" target="_blank">
+        <img src="img/app_store.png" alt=""/>
+    </a>
+</div>
+<div style="text-align:center">
+    <a href="terms.html" id="" target="_blank">
+        Term of use
+    </a>
+</div>
+<div style="text-align:center">
+    <a href="policy.html" id="" target="_blank">
+        Private Policy
+    </a>
+</div>
 </body>
 </html>
