@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0" />
-<title>Cartoon</title>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0"/>
+<title>MaxZoon</title>
 
 <head>
-    <style id="compiled-css" type="text/css">
-        .crop {
-            overflow: hidden;
-            display: block;
-            height: 360px;
-        }
-    </style>
 </head>
 
 <script src="jquery.min.js"></script>
@@ -23,11 +16,11 @@
         m.innerHTML = msg;
         m.style.cssText = "font-family:siyuan;max-width:60%;min-width: 150px;padding:10px 14px;word-wrap:break-word;color: rgb(255, 255, 255);line-height: 25px;text-align: left;border-radius: 4px;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 999999;background: rgba(0, 0, 0,.7);font-size: 16px;";
         document.body.appendChild(m);
-        setTimeout(function() {
+        setTimeout(function () {
             var d = 0.5;
             m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
             m.style.opacity = '0';
-            setTimeout(function() {
+            setTimeout(function () {
                 document.body.removeChild(m)
             }, d * 1000);
         }, duration);
@@ -45,7 +38,6 @@
 
 <body>
 <div id="">
-    <img id="" src="img/cartoon.png">
 </div>
 </body>
 </html>
