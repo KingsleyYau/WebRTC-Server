@@ -148,7 +148,7 @@
             document.getElementById('pre').onclick = prevImage;
 
             //自动播放
-            var timer = setInterval(nextImage, 2000);
+            var timer = setInterval(nextImage, 5000);
 
             box.onmouseover = function () {
                 clearInterval(timer);
@@ -156,7 +156,7 @@
 
             //移出时，重新开始定时器
             box.onmouseout = function () {
-                timer = setInterval(nextImage, 2000);
+                timer = setInterval(nextImage, 5000);
             }
         }
 
