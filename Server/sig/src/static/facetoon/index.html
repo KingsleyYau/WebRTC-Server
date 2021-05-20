@@ -43,8 +43,7 @@
             }, 10);
         }
 
-        //实现轮播图
-        window.onload = function () {
+        function onload() {
             var box = document.getElementsByClassName('box')[0];
             var contentBox = document.getElementsByClassName('content')[0];
             var controlBox = document.getElementsByClassName('control')[0];
@@ -160,6 +159,9 @@
             // }
         }
 
+        document.addEventListener("DOMContentLoaded", function () {
+            onload();
+        });
 
     </script>
 </head>
