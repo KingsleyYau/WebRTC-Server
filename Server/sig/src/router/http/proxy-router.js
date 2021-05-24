@@ -13,18 +13,18 @@ const Common = require('../../lib/common');
 // Model的Keys
 const DBModelKeys = require('../../db/model-keys');
 
-const Fs = require('fs');
-const Path = require('path');
-const Url = require('url');
-const Exec = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const url = require('url');
+const exec = require('child_process');
 const formidable = require('formidable');
-const mime = require('mime-types')
+const mime = require('mime-types');
 
 function readDirSync(path, httpPath){
     let json = [];
-    let pa = Fs.readdirSync(path);
+    let pa = fs.readdirSync(path);
     pa.forEach(function(file, index){
-        let info = Fs.statSync(path + "/" + file)
+        let info = fs.statSync(path + "/" + file)
         if( info.isDirectory() ){
             // readDirSync(path + "/"+ file);
         } else {
@@ -63,7 +63,7 @@ proxyRouter.all('/verify/v1/start', async (ctx, next) => {
 proxyRouter.all('/sync', async (ctx, next) => {
     let respond;
 
-    Exec.exec('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
+    exec.exec('cd /root/Github/LiveServer/doc && ./autologin.sh && ./preview_8899.sh', (err, stdout, stderr) => {
         if ( err || stderr ) {
             respond = stdout;
         } else {
@@ -162,7 +162,7 @@ proxyRouter.all('/get', async (ctx, next) => {
         user_id:ctx.session.sessionId,
     }
 
-    let url = Url.parse(decodeURI(ctx.originalUrl.toLowerCase()),true);
+    let url = url.parse(decodeURI(ctx.originalUrl.toLowerCase()),true);
     let user_id = url.query.user_id;
     let start = process.uptime() * 1000;
     // 可以在这里增加hash filter, 减少缓存穿透
@@ -300,18 +300,18 @@ proxyRouter.all('/upload', async (ctx, next) => {
     // ctx.session.data = new Array(1e7).join('*');
     var form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
-    form.uploadDir = Path.join(__dirname + "../../../static/upload");
+    form.uploadDir = path.join(__dirname + "../../../static/upload");
     form.keepExtensions = true;//保留后缀
     form.maxFieldsSize = 2 * 1024 * 1024;
 
-    Fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
         if (err) {
             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
         }
     });
 
-    cartoon_dir = Path.join(form.uploadDir, "cartoon");
-    Fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
+    cartoon_dir = path.join(form.uploadDir, "cartoon");
+    fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
         if (err) {
             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
         }
@@ -322,32 +322,32 @@ proxyRouter.all('/upload', async (ctx, next) => {
             upload_file = "";
             try {
                 let filepath = files.upload_file.path;
-                dir = Path.dirname(filepath)
-                basename = Path.basename(filepath)
+                dir = path.dirname(filepath)
+                basename = path.basename(filepath)
                 basename_pre = basename.split('.')[0];
 
                 upload_path = "/upload/";
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
-                Exec.execSync(P2C + filepath)
+                exec.execSync(P2C + filepath)
 
-                photo_path = Path.join(dir, basename_pre + "_photo.png");
-                cartoon_path = Path.join(dir, basename_pre + "_cartoon.png");
+                photo_path = path.join(dir, basename_pre + "_photo.png");
+                cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
 
-                data = Fs.readFileSync(photo_path);
+                data = fs.readFileSync(photo_path);
                 data = new Buffer(data).toString('base64');
                 photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
 
-                data = Fs.readFileSync(cartoon_path);
+                data = fs.readFileSync(cartoon_path);
                 data = new Buffer(data).toString('base64');
                 cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
 
                 respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
                 respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
 
-                Exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
-                Exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
+                exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
 
             } catch (e) {
                 respond.errno = 1;
@@ -360,6 +360,33 @@ proxyRouter.all('/upload', async (ctx, next) => {
             }
         })
     })
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/tv_list', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+        }
+    }
+
+    await new Promise(function(resolve, reject) {
+        let relativePath = Common.AppGlobalVar.rootPath + '/static/files/tv_list.json';
+        fs.readFile(relativePath, 'utf8', function (err, filedata) {
+            if (err) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-tv-list], ' + err);
+                respond.errmsg = err;
+                respond.errno = 1;
+            } else {
+                let fileobj = JSON.parse(filedata);
+                respond.data = JSON.parse(filedata);
+            }
+            resolve();
+        });
+    });
 
     ctx.body = respond;
 });
