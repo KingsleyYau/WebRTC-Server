@@ -33,3 +33,9 @@
 *.DS_Store
 
 Server/build
+Server/sig/etc/m.maxzoon.cn.zip
+Server/sig/etc/m.maxzoon.cn/server.crt
+Server/sig/etc/m.maxzoon.cn/server.key
+Server/sig/etc/maxzoon.cn/server.crt
+Server/sig/etc/maxzoon.cn/server.key
+Server/sig/etc/www.maxzoon.cn.zip
