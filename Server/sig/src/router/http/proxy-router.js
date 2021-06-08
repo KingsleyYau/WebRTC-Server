@@ -408,4 +408,9 @@ proxyRouter.all('/gc', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.get('/', async (ctx, next) => {
+    ctx.status = 302;
+    ctx.redirect('/facetoon/index.html');
+});
+
 module.exports = proxyRouter;
