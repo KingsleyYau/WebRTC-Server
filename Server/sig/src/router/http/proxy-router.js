@@ -326,11 +326,17 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 basename = path.basename(filepath)
                 basename_pre = basename.split('.')[0];
 
+                let align_face = 1;
+                if( fields.align_face == "0" ) {
+                    align_face = 0;
+                }
+
                 upload_path = "/upload/";
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
-                exec.execSync(P2C + filepath)
+                let cmd = P2C + filepath + " --align_face " + align_face
+                exec.execSync(cmd)
 
                 photo_path = path.join(dir, basename_pre + "_photo.png");
                 cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
