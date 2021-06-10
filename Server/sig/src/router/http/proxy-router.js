@@ -370,6 +370,77 @@ proxyRouter.all('/upload', async (ctx, next) => {
     ctx.body = respond;
 });
 
+const REALSR = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python realsr_arg.py --input_image '
+// const REALSR = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python realsr_arg.py --input_image '
+proxyRouter.all('/upload_realsr', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    var form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_realsr");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload_realsr], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                dir = path.dirname(filepath)
+                basename = path.basename(filepath)
+                basename_pre = basename.split('.')[0];
+                basename_ext = basename.split('.')[1];
+
+                upload_path = "/upload_realsr/";
+                upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload_realsr], ' + upload_file);
+
+                let cmd = REALSR + filepath
+                exec.execSync(cmd)
+
+                photo_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
+
+                data = fs.readFileSync(photo_path);
+                data = new Buffer(data).toString('base64');
+                photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+
+                respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+
+            } catch (e) {
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload_realsr], ' + upload_file + ', ' + e.toString());
+                // reject(e);
+
+            } finally {
+                resolve();
+            }
+        })
+    })
+
+    ctx.body = respond;
+});
+
 proxyRouter.all('/tv_list', async (ctx, next) => {
     let respond = {
         errno: 0,
