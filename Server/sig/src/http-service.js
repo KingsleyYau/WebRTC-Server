@@ -53,7 +53,11 @@ class HttpService {
                 ctx.session.count++;
             }
 
-            Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + ctx.req.method + ', ' + JSON.stringify(ctx.req.headers));
+            let ip = ctx.req.headers["x-orig-ip"];
+            if (Common.isNull(ip)) {
+                ip = ctx.request.ip;
+            }
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + ctx.req.method + ', ' + JSON.stringify(ctx.req.headers));
 
             // 等待其他中间件处理的异步返回
             await next();
@@ -61,7 +65,7 @@ class HttpService {
 
             let json = JSON.stringify(ctx.response._body);
             let desc = (json.length < 2046)?json:json.substring(0, 2045)+'...';
-            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ctx.request.url + ', ' + desc);
+            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + desc);
         });
 
         // 增加路由
