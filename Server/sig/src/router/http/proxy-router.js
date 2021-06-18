@@ -509,7 +509,7 @@ function readDiscoveryDirSync(path, httpPath, page){
             let relativePath = httpPath + "/" + file;
             // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
 
-            let rex = /.*(.jpg|.jpeg|.png)/;
+            let rex = /.*(.jpg|.jpeg|.png|.mp4)/;
             let bFlag = rex.test(relativePath.toLowerCase());
             if ( bFlag ) {
                 json.push(relativePath);
