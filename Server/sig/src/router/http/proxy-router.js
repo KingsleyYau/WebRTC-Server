@@ -498,7 +498,7 @@ function readDiscoveryDirSync(path, httpPath, page){
                 time:fs.statSync(path + "/" + v).mtime.getTime()
             };
         })
-        .sort(function(a, b) { return a.time - b.time; })
+        .sort(function(a, b) { return b.time - a.time; })
         .map(function(v) { return v.name; })
         .slice((page - 1) * 24, (page) * 24);
 
