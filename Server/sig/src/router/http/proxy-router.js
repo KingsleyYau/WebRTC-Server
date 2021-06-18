@@ -281,6 +281,7 @@ proxyRouter.all('/rnd', async (ctx, next) => {
 
 const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py --input_image '
 // const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py --input_image '
+// const P2C = 'source /root/miniconda2/bin/activate pd && cd /root/Max/project/ && python p2c_arg.py --input_image '
 proxyRouter.all('/upload', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -351,6 +352,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
 
                 respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
                 respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                respond.data.file_id = basename_pre.split('_')[1];
 
                 exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
                 exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
@@ -372,6 +374,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
 
 const REALSR = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python realsr_arg.py --input_image '
 // const REALSR = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python realsr_arg.py --input_image '
+// const REALSR = 'source /root/miniconda2/bin/activate pd && cd /root/Max/project/ && python realsr_arg.py --input_image '
 proxyRouter.all('/upload_realsr', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -437,6 +440,72 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
             }
         })
     })
+
+    ctx.body = respond;
+});
+
+function shuffle(arr) {
+    for (let i = arr.length; i; i--){
+        let j = Math.floor(Math.random() * i);
+        [arr[i - 1], arr[j]] = [arr[j], arr[i - 1]];
+    }
+    return arr;
+}
+
+function readDirRndImageSync(path, httpPath){
+    let json = [];
+    let pa = shuffle(fs.readdirSync(path)).slice(-20);
+    pa.forEach(function(file, index){
+        let info = fs.statSync(path + "/" + file)
+        if( info.isDirectory() ){
+            // readDirSync(path + "/"+ file);
+        } else {
+            let absolutePath = path + "/" + file;
+            let relativePath = httpPath + "/" + file;
+            // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
+
+            let rex = /.*(.jpg|.jpeg|.png)/;
+            let bFlag = rex.test(relativePath);
+            if ( bFlag ) {
+                json.push(relativePath);
+            }
+        }
+    })
+    return json;
+}
+proxyRouter.all('/gallery', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+    let asiame = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/asiame", "asiame");
+    let charmdate = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/charmdate", "charmdate");
+
+    respond.data.datalist = shuffle(asiame.concat(charmdate));
+    ctx.body = respond;
+});
+
+proxyRouter.all('/share_cartoon', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+        }
+    }
+
+    let query = ctx.query
+    // if (query.cartoon_id) {
+    //     uploadDir = path.join(__dirname + "../../../static/upload");
+    //     cartoon_dir = path.join(uploadDir, "cartoon");
+    //     share_dir = path.join(uploadDir, "share");
+    //
+    //     photo_path = path.join(dir, basename_pre + "_cartoon." + basename_ext);
+    // }
 
     ctx.body = respond;
 });
