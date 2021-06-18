@@ -389,8 +389,6 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
     }
 
     let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
     var form = new formidable.IncomingForm();
@@ -441,6 +439,8 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
             }
         })
     })
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -550,8 +550,6 @@ proxyRouter.all('/share_discovery', async (ctx, next) => {
     }
 
     let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     var form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
@@ -570,6 +568,8 @@ proxyRouter.all('/share_discovery', async (ctx, next) => {
             resolve();
         });
     });
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
