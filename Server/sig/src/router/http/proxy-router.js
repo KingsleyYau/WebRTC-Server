@@ -32,8 +32,8 @@ function readDirSync(path, httpPath){
             let relativePath = httpPath + "/" + file;
             // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
 
-            let rex = /.*(.jpg)/;
-            let bFlag = rex.test(relativePath);
+            let rex = /.*(.jpg|.jpeg|.png)/;
+            let bFlag = rex.test(relativePath.toLowerCase());
             if ( bFlag ) {
                 json.push(relativePath);
             }
@@ -465,7 +465,7 @@ function readDirRndImageSync(path, httpPath){
             // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
 
             let rex = /.*(.jpg|.jpeg|.png)/;
-            let bFlag = rex.test(relativePath);
+            let bFlag = rex.test(relativePath.toLowerCase());
             if ( bFlag ) {
                 json.push(relativePath);
             }
@@ -473,6 +473,7 @@ function readDirRndImageSync(path, httpPath){
     })
     return json;
 }
+
 proxyRouter.all('/gallery', async (ctx, next) => {
     let respond = {
         errno: 0,
@@ -489,7 +490,34 @@ proxyRouter.all('/gallery', async (ctx, next) => {
     ctx.body = respond;
 });
 
-proxyRouter.all('/share_cartoon', async (ctx, next) => {
+function readDiscoveryDirSync(path, httpPath){
+    let json = [];
+    let pa = shuffle(fs.readdirSync(path)).slice(-20);
+    pa.forEach(function(file, index){
+        let info = fs.statSync(path + "/" + file)
+        if( info.isDirectory() ) {
+            let dir_json = readDirSync(path + "/" + file, httpPath + "/" + file);
+            json.push(dir_json);
+        }
+    })
+    return json;
+}
+
+proxyRouter.all('/discovery', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+    let discovery = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/upload_discovery", "upload_discovery");
+    respond.data.datalist = shuffle(discovery);
+    ctx.body = respond;
+});
+
+proxyRouter.all('/share_discovery', async (ctx, next) => {
     let respond = {
         errno: 0,
         errmsg: "",
@@ -498,14 +526,27 @@ proxyRouter.all('/share_cartoon', async (ctx, next) => {
         }
     }
 
-    let query = ctx.query
-    // if (query.cartoon_id) {
-    //     uploadDir = path.join(__dirname + "../../../static/upload");
-    //     cartoon_dir = path.join(uploadDir, "cartoon");
-    //     share_dir = path.join(uploadDir, "share");
-    //
-    //     photo_path = path.join(dir, basename_pre + "_cartoon." + basename_ext);
-    // }
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    var form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_discovery");
+    form.keepExtensions = true;
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-share_discovery], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            resolve();
+        });
+    });
 
     ctx.body = respond;
 });
