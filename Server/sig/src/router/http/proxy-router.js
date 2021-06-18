@@ -19,6 +19,7 @@ const url = require('url');
 const exec = require('child_process');
 const formidable = require('formidable');
 const mime = require('mime-types');
+const querystring = require('querystring');
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -457,9 +458,7 @@ function readDirRndImageSync(path, httpPath){
     let pa = shuffle(fs.readdirSync(path)).slice(-20);
     pa.forEach(function(file, index){
         let info = fs.statSync(path + "/" + file)
-        if( info.isDirectory() ){
-            // readDirSync(path + "/"+ file);
-        } else {
+        if( info.isFile() ){
             let absolutePath = path + "/" + file;
             let relativePath = httpPath + "/" + file;
             // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
@@ -490,14 +489,31 @@ proxyRouter.all('/gallery', async (ctx, next) => {
     ctx.body = respond;
 });
 
-function readDiscoveryDirSync(path, httpPath){
+function readDiscoveryDirSync(path, httpPath, page){
     let json = [];
-    let pa = shuffle(fs.readdirSync(path)).slice(-20);
+    let pa = fs.readdirSync(path)
+        .map(function(v) {
+            return {
+                name:v,
+                time:fs.statSync(path + "/" + v).mtime.getTime()
+            };
+        })
+        .sort(function(a, b) { return a.time - b.time; })
+        .map(function(v) { return v.name; })
+        .slice((page - 1) * 24, (page) * 24);
+
     pa.forEach(function(file, index){
         let info = fs.statSync(path + "/" + file)
-        if( info.isDirectory() ) {
-            let dir_json = readDirSync(path + "/" + file, httpPath + "/" + file);
-            json.push(dir_json);
+        if( info.isFile() ){
+            let absolutePath = path + "/" + file;
+            let relativePath = httpPath + "/" + file;
+            // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
+
+            let rex = /.*(.jpg|.jpeg|.png)/;
+            let bFlag = rex.test(relativePath.toLowerCase());
+            if ( bFlag ) {
+                json.push(relativePath);
+            }
         }
     })
     return json;
@@ -512,8 +528,15 @@ proxyRouter.all('/discovery', async (ctx, next) => {
             datalist:[]
         }
     }
-    let discovery = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/upload_discovery", "upload_discovery");
-    respond.data.datalist = shuffle(discovery);
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+
+    let discovery = readDiscoveryDirSync(Common.AppGlobalVar.rootPath + "/static/upload_discovery", "upload_discovery", page);
+    respond.data.datalist = discovery;
     ctx.body = respond;
 });
 
