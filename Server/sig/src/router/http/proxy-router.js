@@ -455,7 +455,7 @@ function shuffle(arr) {
 
 function readDirRndImageSync(path, httpPath){
     let json = [];
-    let pa = shuffle(fs.readdirSync(path)).slice(-20);
+    let pa = shuffle(fs.readdirSync(path)).slice(-10);
     pa.forEach(function(file, index){
         let info = fs.statSync(path + "/" + file)
         if( info.isFile() ){
@@ -482,10 +482,11 @@ proxyRouter.all('/gallery', async (ctx, next) => {
             datalist:[]
         }
     }
-    let asiame = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/asiame", "asiame");
-    let charmdate = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/charmdate", "charmdate");
+    let asiame = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/asiame", "gallery_files/asiame");
+    let charmdate = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate");
+    let artist = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/artist", "gallery_files/artist");
 
-    respond.data.datalist = shuffle(asiame.concat(charmdate));
+    respond.data.datalist = shuffle(asiame.concat(charmdate, artist));
     ctx.body = respond;
 });
 
