@@ -337,7 +337,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
-                let cmd = P2C + ' --input_path ' + filepath + " --align_face " + align_face
+                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face
                 exec.execSync(cmd)
 
                 photo_path = path.join(dir, basename_pre + "_photo.png");
@@ -417,7 +417,7 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload_realsr], ' + upload_file);
 
-                let cmd = REALSR + ' --input_path ' + filepath
+                let cmd = REALSR + ' --input_image ' + filepath
                 exec.execSync(cmd)
 
                 photo_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
