@@ -8,6 +8,8 @@ const Router = require('koa-router');
 
 // 项目公共库
 const Common = require('../../lib/common');
+const AppConfig = require('../../config/app-config');
+
 // Redis
 // const redisClient = require('../../lib/redis-connector').RedisConnector.getInstance();
 // Model的Keys
@@ -280,9 +282,7 @@ proxyRouter.all('/rnd', async (ctx, next) => {
     ctx.body = respond;
 });
 
-const P2C = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python p2c_arg.py'
-// const P2C = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python p2c_arg.py'
-// const P2C = 'source /root/miniconda2/bin/activate pd && cd /root/Max/project/ && python p2c_arg.py'
+const P2C = AppConfig.python.pd + ' && python p2c_arg.py'
 proxyRouter.all('/upload', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -373,9 +373,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
     ctx.body = respond;
 });
 
-const REALSR = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python realsr_arg.py'
-// const REALSR = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python realsr_arg.py'
-// const REALSR = 'source /root/miniconda2/bin/activate pd && cd /root/Max/project/ && python realsr_arg.py'
+const REALSR = AppConfig.python.pd + ' && python realsr_arg.py'
 proxyRouter.all('/upload_realsr', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -445,9 +443,125 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
     ctx.body = respond;
 });
 
-const BIG_MOUTH = 'source /root/miniconda3/bin/activate pd && cd /root/project/ && python bigmouth_arg.py'
-// const BIG_MOUTH = 'source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd && python bigmouth_arg.py'
-// const BIG_MOUTH = 'source /root/miniconda2/bin/activate pd && cd /root/Max/project/ && python bigmouth_arg.py'
+proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
+    token = Math.random().toString(36).substr(2).toLocaleUpperCase();
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            token:token
+        }
+    }
+
+    let start = process.uptime() * 1000;
+
+    // ctx.session.data = new Array(1e7).join('*');
+    var form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_realsr");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                dir = path.dirname(filepath)
+                basename = path.basename(filepath)
+                basename_pre = basename.split('.')[0];
+                basename_ext = basename.split('.')[1];
+
+                upload_path = "upload_realsr";
+                upload_file = path.join(upload_path, basename);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file);
+
+                output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
+                progress_path = path.join(dir, token + ".txt");
+                relative_path = path.join(upload_path, basename_pre + "_realsr." + basename_ext);
+
+                obj = {
+                    progress:0,
+                    path:relative_path,
+                }
+
+                let json = JSON.stringify(obj);
+                fs.writeFile(progress_path, json, e => {
+                    if (!e) {
+                        let cmd = REALSR + ' --input_image ' + filepath + ' --progress_path ' + progress_path
+                        exec.exec(cmd, function(error, stdout, stderr) {
+                            if(error) {
+                                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + error.toString());
+                                fs.unlink(progress_path);
+                            }
+                        });
+                    } else {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
+                    }
+                })
+
+            } catch (e) {
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
+                // reject(e);
+
+            } finally {
+                resolve();
+            }
+        })
+    })
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/query_realsr', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            path: "",
+            progress:0
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    token = "";
+    if (!Common.isNull(params.token)) {
+        token = params.token;
+    }
+
+    if (token.length > 0) {
+        dir = path.join(__dirname, "../../static/upload_realsr");
+        progress_path = path.join(dir, token + ".txt");
+        await new Promise(function(resolve, reject) {
+            fs.readFile(progress_path, 'utf8', (err, data) => {
+                if (!err) {
+                    obj = JSON.parse(data);
+                    respond.data = obj;
+                } else {
+                    Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-query_realsr], ' + token + ', ' + err);
+                    respond.errno = -1;
+                    respond.errmsg = 'No such file.';
+                }
+                resolve();
+            });
+        });
+    }
+    ctx.body = respond;
+});
+
+const BIG_MOUTH = AppConfig.python.pd + ' && python bigmouth_arg.py'
 proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
     token = Math.random().toString(36).substr(2).toLocaleUpperCase();
     let respond = {
@@ -484,8 +598,8 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                 basename_pre = basename.split('.')[0];
                 basename_ext = basename.split('.')[1];
 
-                upload_path = "upload_bigmouth/";
-                upload_file = upload_path + basename;
+                upload_path = "upload_bigmouth";
+                upload_file = path.join(upload_path, basename);
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file);
 
                 output_path = path.join(dir, basename_pre + "_bigmouth." + basename_ext);

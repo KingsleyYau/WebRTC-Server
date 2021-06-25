@@ -29,6 +29,10 @@ const AppConfig = {
         host: 'wss://127.0.0.1',     // 服务ip地址
         port: 9777                 // 端口
     },
+    exAppFlv:{
+        host: 'wss://127.0.0.1',     // 服务ip地址
+        port: 9779                 // 端口
+    },
     proxy:{
         port: 9081,                             // 端口
         proxyHost: 'ws://192.168.88.133:9881',   // 代理服务ip地址
@@ -38,6 +42,11 @@ const AppConfig = {
         'turn://198.211.27.71:3478?transport=udp',
         // 'turn://192.168.88.133:3478',
     ],
+    python:{
+        pd: "source /root/miniconda3/bin/activate pd && cd /root/project",
+        // pd: "source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd",
+        // pd: "source /root/miniconda2/bin/activate pd && cd /root/Max/project",
+    },
 }
 
 module.exports = AppConfig;
