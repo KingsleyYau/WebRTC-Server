@@ -12,6 +12,7 @@ const Koa = require('koa');
 const Range = require('koa-range');
 // 静态资源
 const Serve = require('koa-static');
+const BodyParser = require('koa-bodyparser');
 // 公共库
 const Fs = require('fs');
 const Path = require('path');
@@ -41,7 +42,7 @@ class HttpService {
 
         // 使用session中间件
         this.app.use(Session.getSession());
-
+        this.app.use(BodyParser());
         // 增加公共处理
         this.app.use(async function httpMethod(ctx, next) {
             if( Common.isNull(ctx.session.sessionId) ) {
@@ -64,8 +65,12 @@ class HttpService {
             // 所有中间件处理完成
 
             let json = JSON.stringify(ctx.response._body);
-            let desc = (json.length < 2046)?json:json.substring(0, 2045)+'...';
-            Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + desc);
+            try {
+                let desc = (json.length < 2046)?json:json.substring(0, 2045)+'...';
+                Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + desc);
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-response, ' +  ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + e.toString());
+            }
         });
 
         // 增加路由

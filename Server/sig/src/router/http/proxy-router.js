@@ -9,6 +9,7 @@ const Router = require('koa-router');
 // 项目公共库
 const Common = require('../../lib/common');
 const AppConfig = require('../../config/app-config');
+const apns = require('../../lib/apns').Apns.getInstance();
 
 // Redis
 // const redisClient = require('../../lib/redis-connector').RedisConnector.getInstance();
@@ -473,6 +474,8 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             upload_file = "";
             try {
+                let device_token = ctx.req.headers["device_token"];
+
                 let filepath = files.upload_file.path;
                 dir = path.dirname(filepath)
                 basename = path.basename(filepath)
@@ -481,7 +484,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
 
                 upload_path = "upload_realsr";
                 upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', device_token:' + device_token);
 
                 output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
                 progress_path = path.join(dir, token + ".txt");
@@ -496,12 +499,17 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
                         let cmd = REALSR + ' --input_image ' + filepath + ' --progress_path ' + progress_path
-                        exec.exec(cmd, function(error, stdout, stderr) {
+                        child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
                                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + error.toString());
                                 fs.unlink(progress_path);
+                            } else {
+                                if( device_token != "" ) {
+                                    apns.send([device_token], "Congratulation! You have an new facetoon.");
+                                }
                             }
                         });
+                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + cmd + ", pid:" +  child.pid);
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
                     }
@@ -850,6 +858,34 @@ proxyRouter.all('/gc', async (ctx, next) => {
     // Heapdump.writeSnapshot('./heapsnapshot/heapsnapshot-' + Date.now());
     let end = process.uptime() * 1000;
     respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/update_phone_info', async (ctx, next) => {
+    let respond = {
+        "errno":0,
+        "errmsg":"",
+        "userId":ctx.session.sessionId,
+    }
+    obj = JSON.parse(ctx.request.rawBody.toLowerCase());
+
+    dir = path.join(__dirname, "../../static/api/phone_info");
+    fs.mkdir(dir, { recursive: true }, (e) => {
+        if (e) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], e:' + e);
+        }
+    });
+
+    if (!Common.isNull(obj.device_token) && obj.device_token.length > 0) {
+        fname = path.join(dir, obj.device_token + ".json");
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], ' + fname);
+        fs.writeFile(fname, ctx.request.rawBody, e => {
+            if (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], e:' + e);
+            }
+        });
+    }
 
     ctx.body = respond;
 });
