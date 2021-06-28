@@ -505,7 +505,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                                 fs.unlink(progress_path);
                             } else {
                                 if( device_token != "" ) {
-                                    apns.send([device_token], "Congratulation! You have an new supervision photo.");
+                                    apns.send([device_token], "Congratulation! You have a new supervision photo.");
                                 }
                             }
                         });
@@ -629,7 +629,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                                 fs.unlink(progress_path);
                             } else {
                                 if( device_token != "" ) {
-                                    apns.send([device_token], "Congratulation! You have an new bigmouth video.");
+                                    apns.send([device_token], "Congratulation! You have a new bigmouth video.");
                                 }
                             }
                         });
