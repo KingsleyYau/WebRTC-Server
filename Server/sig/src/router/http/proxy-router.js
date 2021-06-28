@@ -474,7 +474,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             upload_file = "";
             try {
-                let device_token = ctx.req.headers["device_token"];
+                let device_token = ctx.req.headers["device-token"];
 
                 let filepath = files.upload_file.path;
                 dir = path.dirname(filepath)
@@ -505,7 +505,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                                 fs.unlink(progress_path);
                             } else {
                                 if( device_token != "" ) {
-                                    apns.send([device_token], "Congratulation! You have an new facetoon.");
+                                    apns.send([device_token], "Congratulation! You have an new supervision photo.");
                                 }
                             }
                         });
@@ -600,6 +600,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             upload_file = "";
             try {
+                let device_token = ctx.req.headers["device-token"];
                 let filepath = files.upload_file.path;
                 dir = path.dirname(filepath)
                 basename = path.basename(filepath)
@@ -622,12 +623,17 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
                         let cmd = BIG_MOUTH + ' --input_path ' + filepath + ' --progress_path ' + progress_path
-                        exec.exec(cmd, function(error, stdout, stderr) {
+                        child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
                                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + error.toString());
                                 fs.unlink(progress_path);
+                            } else {
+                                if( device_token != "" ) {
+                                    apns.send([device_token], "Congratulation! You have an new bigmouth video.");
+                                }
                             }
                         });
+                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + cmd + ", pid:" +  child.pid);
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + e.toString());
                     }
