@@ -24,18 +24,18 @@ class Apns {
     send(tokens, body) {
         let note = new apn.Notification({
             alert: {
-                body : "Congratulation! You have an new facetoon.",
+                body : body,
             },
             badge : 1,
         });
         note.topic = "net.maxzoon.ai.Cartoon"
 
-        Common.log('http', 'info', `Apns sending: ${note.compile()} to ${tokens}`);
+        Common.log('http', 'info', `Apns sending: ${note.compile()} to [${tokens}]`);
         this.service.send(note, tokens).then( result => {
             if (result.failed.length > 0) {
-                Common.log('http', 'warn', `Apns sending result: ${result.sent.length} / ${tokens.length}, ${result.failed[0].response.reason}`);
+                Common.log('http', 'warn', `Apns sending fail: ${result.sent.length} / ${tokens.length}, ${result.failed[0].response.reason}, ${result.failed[0].status}`);
             } else {
-                Common.log('http', 'info', `Apns sending result: ${tokens.length}, `);
+                Common.log('http', 'info', `Apns sending success: [${tokens}]`);
             }
         });
     }
