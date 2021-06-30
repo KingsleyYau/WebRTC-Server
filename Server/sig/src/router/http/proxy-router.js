@@ -344,7 +344,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
                 let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
-                exec.execSync(cmd)
+                // exec.execSync(cmd)
 
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
