@@ -334,39 +334,54 @@ proxyRouter.all('/upload', async (ctx, next) => {
                     align_face = 0;
                 }
 
+                let style = 0;
+                if( !Common.isNull(fields.style)  ) {
+                    style = fields.style;
+                }
+
                 upload_path = "/upload/";
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
-                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face
+                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
                 exec.execSync(cmd)
 
-                photo_path = path.join(dir, basename_pre + "_photo.png");
-                cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
+                child = exec.exec(cmd, function(error, stdout, stderr) {
+                    if(error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
+                    } else {
+                        photo_path = path.join(dir, basename_pre + "_photo.png");
+                        cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
 
-                data = fs.readFileSync(photo_path);
-                data = new Buffer(data).toString('base64');
-                photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                        if (style == 0) {
+                            data = fs.readFileSync(photo_path);
+                            data = new Buffer(data).toString('base64');
+                            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
+                        }
 
-                data = fs.readFileSync(cartoon_path);
-                data = new Buffer(data).toString('base64');
-                cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+                        data = fs.readFileSync(cartoon_path);
+                        data = new Buffer(data).toString('base64');
+                        cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
 
-                respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-                respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
-                respond.data.file_id = basename_pre.split('_')[1];
+                        respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                        respond.data.file_id = basename_pre.split('_')[1];
 
-                exec.execSync('mv ' + photo_path  + ' ' + cartoon_dir)
-                exec.execSync('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                        exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                    }
+                    resolve();
+                });
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
                 // reject(e);
-
-            } finally {
                 resolve();
+            } finally {
+                // resolve();
             }
         })
     })
@@ -474,7 +489,11 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             upload_file = "";
             try {
-                let device_token = ctx.req.headers["device-token"];
+
+                let device_token = "";
+                if ( !Common.isNull(ctx.req.headers["device-token"]) ) {
+                    device_token = ctx.req.headers["device-token"];
+                }
 
                 let filepath = files.upload_file.path;
                 dir = path.dirname(filepath)
@@ -484,7 +503,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
 
                 upload_path = "upload_realsr";
                 upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', device_token:' + device_token);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file);
 
                 output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
                 progress_path = path.join(dir, token + ".txt");
@@ -513,16 +532,16 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
                     }
+                    resolve();
                 })
 
             } catch (e) {
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
-                // reject(e);
-
-            } finally {
                 resolve();
+            } finally {
+                // resolve();
             }
         })
     })
@@ -559,6 +578,135 @@ proxyRouter.all('/api/query_realsr', async (ctx, next) => {
                     respond.data = obj;
                 } else {
                     Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-query_realsr], ' + token + ', ' + err);
+                    respond.errno = -1;
+                    respond.errmsg = 'No such file.';
+                }
+                resolve();
+            });
+        });
+    }
+    ctx.body = respond;
+});
+
+const TOON_VIDEO = AppConfig.python.pd + ' && python p2c_video.py'
+proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
+    token = Math.random().toString(36).substr(2).toLocaleUpperCase();
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            token:token
+        }
+    }
+
+    let start = process.uptime() * 1000;
+
+    // ctx.session.data = new Array(1e7).join('*');
+    var form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_toon_video");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+
+                let device_token = "";
+                if ( !Common.isNull(ctx.req.headers["device-token"]) ) {
+                    device_token = ctx.req.headers["device-token"];
+                }
+
+                let filepath = files.upload_file.path;
+                dir = path.dirname(filepath)
+                basename = path.basename(filepath)
+                basename_pre = basename.split('.')[0];
+                basename_ext = basename.split('.')[1];
+
+                upload_path = "upload_toon_video";
+                upload_file = path.join(upload_path, basename);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file);
+
+                progress_path = path.join(dir, token + ".txt");
+                relative_path = path.join(upload_path, basename_pre + "_cartoon." + basename_ext);
+
+                obj = {
+                    progress:0,
+                    path:relative_path,
+                }
+
+                let json = JSON.stringify(obj);
+                fs.writeFile(progress_path, json, e => {
+                    if (!e) {
+                        let cmd = TOON_VIDEO + ' --input_path ' + filepath + ' --progress_path ' + progress_path
+                        child = exec.exec(cmd, function(error, stdout, stderr) {
+                            if(error) {
+                                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + error.toString());
+                                fs.unlink(progress_path);
+                            } else {
+                                if( device_token != "" ) {
+                                    apns.send([device_token], "Congratulation! You have a new toon video.");
+                                }
+                            }
+                        });
+                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + cmd + ", pid:" +  child.pid);
+                    } else {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + e.toString());
+                    }
+                    resolve();
+                })
+
+            } catch (e) {
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + e.toString());
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/query_toon_video', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            path: "",
+            progress:0
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    token = "";
+    if (!Common.isNull(params.token)) {
+        token = params.token;
+    }
+
+    if (token.length > 0) {
+        dir = path.join(__dirname, "../../static/upload_toon_video");
+        progress_path = path.join(dir, token + ".txt");
+        await new Promise(function(resolve, reject) {
+            fs.readFile(progress_path, 'utf8', (err, data) => {
+                if (!err) {
+                    obj = JSON.parse(data);
+                    respond.data = obj;
+                } else {
+                    Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-upload_toon_video], ' + token + ', ' + err);
                     respond.errno = -1;
                     respond.errmsg = 'No such file.';
                 }
@@ -637,16 +785,17 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + e.toString());
                     }
+                    resolve();
                 })
 
             } catch (e) {
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + e.toString());
-                // reject(e);
+                resolve();
 
             } finally {
-                resolve();
+                // resolve();
             }
         })
     })
