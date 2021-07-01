@@ -352,25 +352,26 @@ proxyRouter.all('/upload', async (ctx, next) => {
                     if(error) {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
                     } else {
-                        data = fs.readFileSync(photo_path);
-                        data = new Buffer(data).toString('base64');
-                        photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
-                        respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-
-                        data = fs.readFileSync(cartoon_path);
-                        data = new Buffer(data).toString('base64');
-                        cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
-
-                        respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
-                        respond.data.file_id = basename_pre.split('_')[1];
-
                         try {
+                            data = fs.readFileSync(photo_path);
+                            data = new Buffer(data).toString('base64');
+                            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+
+                            data = fs.readFileSync(cartoon_path);
+                            data = new Buffer(data).toString('base64');
+                            cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+                            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                            respond.data.file_id = basename_pre.split('_')[1];
+
                             exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
                             exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
                         } catch (e) {
                             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
+                            respond.errno = 1;
+                            respond.errmsg = e.toString();
                         }
-
                     }
                     resolve();
                 });
