@@ -353,13 +353,11 @@ proxyRouter.all('/upload', async (ctx, next) => {
                         photo_path = path.join(dir, basename_pre + "_photo.png");
                         cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
 
-                        if (style == 0) {
-                            data = fs.readFileSync(photo_path);
-                            data = new Buffer(data).toString('base64');
-                            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
-                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
-                        }
+                        data = fs.readFileSync(photo_path);
+                        data = new Buffer(data).toString('base64');
+                        photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                        respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+                        exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
 
                         data = fs.readFileSync(cartoon_path);
                         data = new Buffer(data).toString('base64');
@@ -633,7 +631,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
 
                 upload_path = "upload_toon_video";
                 upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file);
 
                 progress_path = path.join(dir, token + ".txt");
                 relative_path = path.join(upload_path, basename_pre + "_cartoon." + basename_ext);
@@ -649,17 +647,20 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                         let cmd = TOON_VIDEO + ' --input_path ' + filepath + ' --progress_path ' + progress_path
                         child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
-                                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + error.toString());
-                                fs.unlink(progress_path);
+                                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + error.toString());
+                                fs.unlink(progress_path, (e) => {
+
+                                    }
+                                );
                             } else {
                                 if( device_token != "" ) {
                                     apns.send([device_token], "Congratulation! You have a new toon video.");
                                 }
                             }
                         });
-                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + cmd + ", pid:" +  child.pid);
+                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + cmd + ", pid:" +  child.pid);
                     } else {
-                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + e.toString());
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + e.toString());
                     }
                     resolve();
                 })
@@ -667,7 +668,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
             } catch (e) {
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_videor], ' + upload_file + ', ' + e.toString());
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + e.toString());
                 resolve();
             } finally {
                 // resolve();
