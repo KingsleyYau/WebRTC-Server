@@ -343,21 +343,19 @@ proxyRouter.all('/upload', async (ctx, next) => {
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
+                photo_path = path.join(dir, basename_pre + "_photo.png");
+                cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
+
                 let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
                 // exec.execSync(cmd)
-
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
                     } else {
-                        photo_path = path.join(dir, basename_pre + "_photo.png");
-                        cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
-
                         data = fs.readFileSync(photo_path);
                         data = new Buffer(data).toString('base64');
                         photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
                         respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-                        exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
 
                         data = fs.readFileSync(cartoon_path);
                         data = new Buffer(data).toString('base64');
@@ -366,7 +364,13 @@ proxyRouter.all('/upload', async (ctx, next) => {
                         respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
                         respond.data.file_id = basename_pre.split('_')[1];
 
-                        exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                        try {
+                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
+                            exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                        } catch (e) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
+                        }
+
                     }
                     resolve();
                 });
