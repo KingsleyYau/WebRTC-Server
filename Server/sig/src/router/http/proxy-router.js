@@ -301,7 +301,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
     respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
-    var form = new formidable.IncomingForm();
+    let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
     form.uploadDir = path.join(__dirname + "../../../static/upload");
     form.keepExtensions = true;//保留后缀
@@ -313,7 +313,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
         }
     });
 
-    cartoon_dir = path.join(form.uploadDir, "cartoon");
+    let cartoon_dir = path.join(form.uploadDir, "cartoon");
     fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
         if (err) {
             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
@@ -325,9 +325,9 @@ proxyRouter.all('/upload', async (ctx, next) => {
             upload_file = "";
             try {
                 let filepath = files.upload_file.path;
-                dir = path.dirname(filepath)
-                basename = path.basename(filepath)
-                basename_pre = basename.split('.')[0];
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
 
                 let align_face = 1;
                 if( fields.align_face == "0" ) {
@@ -339,12 +339,12 @@ proxyRouter.all('/upload', async (ctx, next) => {
                     style = fields.style;
                 }
 
-                upload_path = "/upload/";
-                upload_file = upload_path + basename;
+                let upload_path = "/upload/";
+                let upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file);
 
-                photo_path = path.join(dir, basename_pre + "_photo.png");
-                cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
+                let photo_path = path.join(dir, basename_pre + "_photo.png");
+                let cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
 
                 let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
                 // exec.execSync(cmd)
@@ -353,14 +353,14 @@ proxyRouter.all('/upload', async (ctx, next) => {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
                     } else {
                         try {
-                            data = fs.readFileSync(photo_path);
+                            let data = fs.readFileSync(photo_path);
                             data = new Buffer(data).toString('base64');
-                            photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                            let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
                             respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
 
                             data = fs.readFileSync(cartoon_path);
                             data = new Buffer(data).toString('base64');
-                            cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
 
                             respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
                             respond.data.file_id = basename_pre.split('_')[1];
@@ -370,7 +370,7 @@ proxyRouter.all('/upload', async (ctx, next) => {
                         } catch (e) {
                             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], ' + upload_file + ', ' + e.toString());
                             respond.errno = 1;
-                            respond.errmsg = e.toString();
+                            respond.errmsg = e.message;
                         }
                     }
                     resolve();
@@ -476,7 +476,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
     let start = process.uptime() * 1000;
 
     // ctx.session.data = new Array(1e7).join('*');
-    var form = new formidable.IncomingForm();
+    let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
     form.uploadDir = path.join(__dirname + "../../../static/upload_realsr");
     form.keepExtensions = true;//保留后缀
@@ -499,18 +499,18 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                 }
 
                 let filepath = files.upload_file.path;
-                dir = path.dirname(filepath)
-                basename = path.basename(filepath)
-                basename_pre = basename.split('.')[0];
-                basename_ext = basename.split('.')[1];
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+                let basename_ext = basename.split('.')[1];
 
-                upload_path = "upload_realsr";
-                upload_file = path.join(upload_path, basename);
+                let upload_path = "upload_realsr";
+                let upload_file = path.join(upload_path, basename);
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file);
 
-                output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
-                progress_path = path.join(dir, token + ".txt");
-                relative_path = path.join(upload_path, basename_pre + "_realsr." + basename_ext);
+                let output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
+                let progress_path = path.join(dir, token + ".txt");
+                let relative_path = path.join(upload_path, basename_pre + "_realsr." + basename_ext);
 
                 obj = {
                     progress:0,
@@ -565,19 +565,19 @@ proxyRouter.all('/api/query_realsr', async (ctx, next) => {
         }
     }
 
-    params = querystring.parse(ctx.querystring);
-    token = "";
+    let params = querystring.parse(ctx.querystring);
+    let token = "";
     if (!Common.isNull(params.token)) {
         token = params.token;
     }
 
     if (token.length > 0) {
-        dir = path.join(__dirname, "../../static/upload_realsr");
-        progress_path = path.join(dir, token + ".txt");
+        let dir = path.join(__dirname, "../../static/upload_realsr");
+        let progress_path = path.join(dir, token + ".txt");
         await new Promise(function(resolve, reject) {
             fs.readFile(progress_path, 'utf8', (err, data) => {
                 if (!err) {
-                    obj = JSON.parse(data);
+                    let obj = JSON.parse(data);
                     respond.data = obj;
                 } else {
                     Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-query_realsr], ' + token + ', ' + err);
@@ -606,7 +606,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
     let start = process.uptime() * 1000;
 
     // ctx.session.data = new Array(1e7).join('*');
-    var form = new formidable.IncomingForm();
+    let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
     form.uploadDir = path.join(__dirname + "../../../static/upload_toon_video");
     form.keepExtensions = true;//保留后缀
@@ -629,19 +629,19 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                 }
 
                 let filepath = files.upload_file.path;
-                dir = path.dirname(filepath)
-                basename = path.basename(filepath)
-                basename_pre = basename.split('.')[0];
-                basename_ext = basename.split('.')[1];
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+                let basename_ext = basename.split('.')[1];
 
-                upload_path = "upload_toon_video";
-                upload_file = path.join(upload_path, basename);
+                let upload_path = "upload_toon_video";
+                let upload_file = path.join(upload_path, basename);
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file);
 
-                progress_path = path.join(dir, token + ".txt");
-                relative_path = path.join(upload_path, basename_pre + "_cartoon." + basename_ext);
+                let progress_path = path.join(dir, token + ".txt");
+                let relative_path = path.join(upload_path, basename_pre + "_cartoon." + basename_ext);
 
-                obj = {
+                let obj = {
                     progress:0,
                     path:relative_path,
                 }
@@ -650,7 +650,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
                         let cmd = TOON_VIDEO + ' --input_path ' + filepath + ' --progress_path ' + progress_path
-                        child = exec.exec(cmd, function(error, stdout, stderr) {
+                        let child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
                                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + error.toString());
                                 fs.unlink(progress_path, (e) => {
@@ -697,19 +697,19 @@ proxyRouter.all('/api/query_toon_video', async (ctx, next) => {
         }
     }
 
-    params = querystring.parse(ctx.querystring);
-    token = "";
+    let params = querystring.parse(ctx.querystring);
+    let token = "";
     if (!Common.isNull(params.token)) {
         token = params.token;
     }
 
     if (token.length > 0) {
-        dir = path.join(__dirname, "../../static/upload_toon_video");
-        progress_path = path.join(dir, token + ".txt");
+        let dir = path.join(__dirname, "../../static/upload_toon_video");
+        let progress_path = path.join(dir, token + ".txt");
         await new Promise(function(resolve, reject) {
             fs.readFile(progress_path, 'utf8', (err, data) => {
                 if (!err) {
-                    obj = JSON.parse(data);
+                    let obj = JSON.parse(data);
                     respond.data = obj;
                 } else {
                     Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-upload_toon_video], ' + token + ', ' + err);
@@ -725,7 +725,7 @@ proxyRouter.all('/api/query_toon_video', async (ctx, next) => {
 
 const BIG_MOUTH = AppConfig.python.pd + ' && python bigmouth_arg.py'
 proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
-    token = Math.random().toString(36).substr(2).toLocaleUpperCase();
+    let token = Math.random().toString(36).substr(2).toLocaleUpperCase();
     let respond = {
         errno:0,
         errmsg:"",
@@ -738,7 +738,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
     let start = process.uptime() * 1000;
 
     // ctx.session.data = new Array(1e7).join('*');
-    var form = new formidable.IncomingForm();
+    let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
     form.uploadDir = path.join(__dirname + "../../../static/upload_bigmouth");
     form.keepExtensions = true;//保留后缀
@@ -756,20 +756,20 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
             try {
                 let device_token = ctx.req.headers["device-token"];
                 let filepath = files.upload_file.path;
-                dir = path.dirname(filepath)
-                basename = path.basename(filepath)
-                basename_pre = basename.split('.')[0];
-                basename_ext = basename.split('.')[1];
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+                let basename_ext = basename.split('.')[1];
 
-                upload_path = "upload_bigmouth";
-                upload_file = path.join(upload_path, basename);
+                let upload_path = "upload_bigmouth";
+                let upload_file = path.join(upload_path, basename);
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file);
 
-                output_path = path.join(dir, basename_pre + "_bigmouth." + basename_ext);
-                progress_path = path.join(dir, token + ".txt");
-                relative_path = path.join(upload_path, basename_pre + "_bigmouth." + basename_ext);
+                let output_path = path.join(dir, basename_pre + "_bigmouth." + basename_ext);
+                let progress_path = path.join(dir, token + ".txt");
+                let relative_path = path.join(upload_path, basename_pre + "_bigmouth." + basename_ext);
 
-                obj = {
+                let obj = {
                     progress:0,
                     path:relative_path,
                 }
@@ -777,7 +777,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
                         let cmd = BIG_MOUTH + ' --input_path ' + filepath + ' --progress_path ' + progress_path
-                        child = exec.exec(cmd, function(error, stdout, stderr) {
+                        let child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
                                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + error.toString());
                                 fs.unlink(progress_path);
@@ -823,19 +823,19 @@ proxyRouter.all('/api/query_bigmouth', async (ctx, next) => {
         }
     }
 
-    params = querystring.parse(ctx.querystring);
-    token = "";
+    let params = querystring.parse(ctx.querystring);
+    let token = "";
     if (!Common.isNull(params.token)) {
         token = params.token;
     }
 
     if (token.length > 0) {
-        dir = path.join(__dirname, "../../static/upload_bigmouth");
-        progress_path = path.join(dir, token + ".txt");
+        let dir = path.join(__dirname, "../../static/upload_bigmouth");
+        let progress_path = path.join(dir, token + ".txt");
         await new Promise(function(resolve, reject) {
             fs.readFile(progress_path, 'utf8', (err, data) => {
                 if (!err) {
-                    obj = JSON.parse(data);
+                    let obj = JSON.parse(data);
                     respond.data = obj;
                 } else {
                     Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-query_bigmouth], ' + token + ', ' + err);
