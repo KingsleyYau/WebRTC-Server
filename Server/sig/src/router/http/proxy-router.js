@@ -1081,9 +1081,8 @@ proxyRouter.all('/api/update_phone_info', async (ctx, next) => {
 });
 
 proxyRouter.get('/', async (ctx, next) => {
-    // ctx.status = 302;
-    // ctx.redirect('/h5games/index.html');
-    ctx.body = "";
+    ctx.status = 302;
+    ctx.redirect('/h5games/index.html');
 });
 
 module.exports = proxyRouter;
