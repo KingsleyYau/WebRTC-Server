@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> -->
+<meta charset="utf-8">
+<meta http-equiv="pragma" content="no-cache"> 
+<meta http-equiv="Cache-Control" content="no-store, must-revalidate"> 
+<meta http-equiv="expires" content="0">
+<title>Funny Game - www.maxzoon.cn</title>
+<meta name="keywords" content="h5小游戏,热门游戏,休闲游戏,娱乐游戏,微信游戏,朋友圈游戏,小游戏,html5游戏,移动轻游戏平台,中国最大的移动轻游戏平台">
+<meta name="description" content="h5游戏频道为您免费提供休闲娱乐">
+<meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1.0, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="css/comm.css">
+<link rel="icon" href="favicon.ico">
+<link rel="shortcut icon" href="favicon.png" type="image/png"/>
+<style>
+#fix_footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	background-color: #191919;
+	color: #ffffff;
+	height: 55px;
+	width: 100%;
+	font-size: 14px;
+	-moz-box-shadow: 0px 0px 11px #191919;
+	-webkit-box-shadow: 0px 0px 11px #191919;
+	box-shadow: 0px 0px 11px #191919;
+}
+#fix_footer_menu{
+	border-right: 1px solid rgba(0, 0, 0, 0.4);
+	background: rgba(0, 0, 0, 0.1);
+	font-family: 黑体;
+}
+#fix_footer_menu_on {
+	border-right: 1px solid rgba(0, 0, 0, 0.4);
+	background: rgba(0, 0, 0, 0.3);
+	font-family: 黑体;
+	background: #202020; 
+}
+</style>
+<!-- <script>
+document.domain = 'www.57jrw.com';
+</script> -->
+</head>
+
+<body>
+<article class="content">
+    <section class="app-intro">
+        <ul class="mod-app-intro game_list" id="j_game_list">
+        </ul>
+    </section>
+</article>
+
+<script language="javascript">
+var Game = {
+	request: function(name) {
+		var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+		var r = window.location.search.substr(1).match(reg);
+		if (r != null) return unescape(r[2]); return null;
+	}
+}
+
+var i = 0;
+var base = 'games';
+var games = new Array();
+
+games[i] = new Array();
+games[i].name = "<b>跳跳方块</b>";
+games[i].type = "冒险游戏";
+games[i].score = 99;
+games[i].icon = base + "/ttfk/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ttfk/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>变形机大乱斗</b>";
+games[i].type = "射击游戏";
+games[i].score = 98;
+games[i].icon =  base + "/bxdld/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/bxdld/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>4+1游戏</b>";
+games[i].type = "休闲游戏";
+games[i].score = 96;
+games[i].icon = base + "/sjy/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/sjy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>越野飘移</b>";
+games[i].type = "冒险游戏";
+games[i].score = 98;
+games[i].icon = base + "/yypy/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/yypy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>虐心火箭侠</b>";
+games[i].type = "冒险游戏";
+games[i].score = 96;
+games[i].icon = base + "/nxhjx/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/nxhjx/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>闪躲高手</b>";
+games[i].type = "动作游戏";
+games[i].score = 97;
+games[i].icon = base + "/sdgs/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/sdgs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>无敌忍者</b>";
+games[i].type = "动作游戏";
+games[i].score = 95;
+games[i].icon = base + "/wdrz/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/wdrz/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>18禁不禁，涨姿势</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/zzs/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zzs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>滚蛋专家</b>";
+games[i].type = "冒险游戏";
+games[i].score = 97;
+games[i].icon = base + "/gdzj/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/gdzj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>雪球打雪砖</b>";
+games[i].type = "休闲游戏";
+games[i].score = 99;
+games[i].icon = base + "/xqdxz/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xqdxz/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>电光波波球</b>";
+games[i].type = "休闲游戏";
+games[i].score = 96;
+games[i].icon = base + "/dgbbq/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/dgbbq/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>保卫小羊</b>";
+games[i].type = "休闲游戏";
+games[i].score = 96;
+games[i].icon = base + "/bwxy/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/bwxy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>一笔连成</b>";
+games[i].type = "益智游戏";
+games[i].score = 98;
+games[i].icon = base + "/ybh/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ybh/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>消灭星星</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/xmxx/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xmxx/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>勇往直前</b>";
+games[i].type = "冒险游戏";
+games[i].score = 95;
+games[i].icon = base + "/ywzq/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ywzq/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>小红帽怒闯丛林</b>";
+games[i].type = "射击游戏";
+games[i].score = 99;
+games[i].icon = base + "/xhmnccl/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xhmnccl/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>欢乐洗苹果</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/hlxpg/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hlxpg/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>小小白日梦</b>";
+games[i].type = "动作游戏";
+games[i].score = 98;
+games[i].icon = base + "/xxbrm/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xxbrm/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>火柴人大逃亡</b>";
+games[i].type = "冒险游戏";
+games[i].score = 96;
+games[i].icon = base + "/hcrdtw/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hcrdtw/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>难控独轮车</b>";
+games[i].type = "休闲游戏";
+games[i].score = 97;
+games[i].icon = base + "/nkdlc/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/nkdlc/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>虐心弹跳球</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/nxttq/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/nxttq/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>元旦烟花之夜</b>";
+games[i].type = "休闲游戏";
+games[i].score = 95;
+games[i].icon = base + "/ydyhzy/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ydyhzy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>来帮贪官数两亿</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/lbtgsq/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/lbtgsq/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>做自己不解释</b>";
+games[i].type = "冒险游戏";
+games[i].score = 98;
+games[i].icon = base + "/wjswbjs/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/wjswbjs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>终极平衡挑战</b>";
+games[i].type = "休闲游戏";
+games[i].score = 96;
+games[i].icon = base + "/zjtzph/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zjtzph/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>圣诞节消消看</b>";
+games[i].type = "休闲游戏";
+games[i].score = 98;
+games[i].icon = base + "/breaker/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/breaker/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>圣诞树堆积</b>";
+games[i].type = "休闲游戏";
+games[i].score = 96;
+games[i].icon = base + "/sds/icon.jpg";
+games[i].ishot = true;
+games[i].src = base + "/sds/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>圣诞芭比</b>";
+games[i].type = "休闲游戏";
+games[i].score = 94;
+games[i].icon = base + "/sdbb/img/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/sdbb/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>打葡萄</b>";
+games[i].type = "休闲游戏";
+games[i].score = 95;
+games[i].icon = base + "/dpt/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/dpt/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>阿狸农场</b>";
+games[i].type = "休闲游戏";
+games[i].score = 94;
+games[i].icon = base + "/alnc/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/alnc/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>勇闯马路</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/ycml/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ycml/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>旋转吧大宝剑</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/xzbdbj/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xzbdbj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>火箭冲冲冲</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/hjccc/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hjccc/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>小鸡小鸡2</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/xjj2/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xjj2/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>酷跑历险记</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/kplxj/img/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/kplxj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>泡泡龙</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/ppl/res/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ppl/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>地精飞天记</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/djftj/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/djftj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>手撕鬼子</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/ssgz/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ssgz/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>投篮高手</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/tlgs/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/tlgs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>卡通飞行</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/ktfx/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ktfx/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>欢乐钓鱼</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/hldy/style/img_d/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hldy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>生死忍者</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/ssrz/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ssrz/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>经典赛车</b>";
+games[i].type = "休闲游戏";
+games[i].score = 88;
+games[i].icon = base + "/jdsc/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/jdsc/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>钻钱眼儿</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/zqye/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zqye/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>明星投资人</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/mxtzr/content/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mxtzr/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>高尔夫花园</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/gefhy/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/gefhy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>数字闯关</b>";
+games[i].type = "休闲游戏";
+games[i].score = 89;
+games[i].icon = base + "/szcg/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/szcg/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>尼玛快跑</b>";
+games[i].type = "休闲游戏";
+games[i].score = 89;
+games[i].icon = base + "/nmkp/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/nmkp/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>3D反恐英雄</b>";
+games[i].type = "射击游戏";
+games[i].score = 95;
+games[i].icon = base + "/3dcs/images/icon1.png";
+games[i].ishot = true;
+games[i].src = base + "/3dcs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>疯狂猜水果</b>";
+games[i].type = "休闲游戏";
+games[i].score = 89;
+games[i].icon = base + "/fkcsg/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/fkcsg/index.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=red>胸口碎大石</font></b>";
+games[i].type = "动作游戏";
+games[i].score = 93;
+games[i].icon = base + "/xksds/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xksds/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=red>植物大战僵尸</font></b>";
+games[i].type = "动作游戏";
+games[i].score = 91;
+games[i].icon = base + "/zwdzjs/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zwdzjs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>空中大作战</b>";
+games[i].type = "动作游戏";
+games[i].score = 91;
+games[i].icon = base + "/djz/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/djz/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "影子传说";
+games[i].type = "动作游戏";
+games[i].score = 81;
+games[i].icon = base + "/yzcs/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/yzcs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>足球大狮</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/zqds/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zqds/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>纸飞机</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/zfj/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/zfj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>美女拼图</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/mspt/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mspt/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "像素小鸟";
+games[i].type = "动作游戏";
+games[i].score = 82;
+games[i].icon = base + "/xsxn/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xsxn/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>宠物大营救</b>";
+games[i].type = "休闲游戏";
+games[i].score = 87;
+games[i].icon = base + "/cwdyj/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/cwdyj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "雷霆X战机";
+games[i].type = "射击游戏";
+games[i].score = 92;
+games[i].icon = base + "/ltzj/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ltzj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>五子棋</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/wzq/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/wzq/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>时空游侠</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/skyx/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/skyx/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>超级马里奥</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/cjmla/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/cjmla/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>气球砰砰砰</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/qqppp/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/qqppp/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>萌娃在哪儿</b>";
+games[i].type = "休闲游戏";
+games[i].score = 87;
+games[i].icon = base + "/mwzne/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mwzne/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>英雄难过美人关</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/mrg/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mrg/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>淘金豆</b>";
+games[i].type = "休闲游戏";
+games[i].score = 86;
+games[i].icon = base + "/tjd/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/tjd/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>能打多少次</b>";
+games[i].type = "休闲游戏";
+games[i].score = 94;
+games[i].icon = base + "/nddsc/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/nddsc/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>火贱奔月</b>";
+games[i].type = "休闲游戏";
+games[i].score = 93;
+games[i].icon = base + "/hjby/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hjby/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>一线连</b>";
+games[i].type = "休闲游戏";
+games[i].score = 91;
+games[i].icon = base + "/yxl/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/yxl/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>一个都不能死 - 噩梦版</b>";
+games[i].type = "动作游戏";
+games[i].score = 82;
+games[i].icon = base + "/bns3/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/bns3/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>麻将连连看</b>";
+games[i].type = "休闲游戏";
+games[i].score = 85;
+games[i].icon = base + "/mjllk/res/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mjllk/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>你的童年让狗吃了吗</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/hytn/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/hytn/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>监狱风云</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/jyfy/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/jyfy/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=red>摩天大楼</font></b>";
+games[i].type = "休闲游戏";
+games[i].score = 87;
+games[i].icon = base + "/mtl/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/mtl/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>摇摆直升机-神经猫版</b>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/ybzsj/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/ybzsj/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=red>神枪手</font></b>";
+games[i].type = "休闲游戏";
+games[i].score = 88;
+games[i].icon = base + "/sqs/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/sqs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>明星冰桶挑战</b>";
+games[i].type = "休闲游戏";
+games[i].score = 92;
+games[i].icon = base + "/bingtong/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/bingtong/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "3D熊出没";
+games[i].type = "动作游戏";
+games[i].score = 85;
+games[i].icon = base + "/xcm/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/xcm/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b>哥挺住18秒</b>";
+games[i].type = "休闲游戏";
+games[i].score = 87;
+games[i].icon = base + "/18m/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/18m/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<font color=>抛鸡蛋</font>";
+games[i].type = "休闲游戏";
+games[i].score = 90;
+games[i].icon = base + "/eggs/images/icon.jpg";
+games[i].ishot = true;
+games[i].src = base + "/eggs/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=#cd0e5e>美女啵一个</font></b>";
+games[i].type = "休闲游戏";
+games[i].score = 85;
+games[i].icon = base + "/kissme/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/kissme/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "<b><font color=red>看你有多色</font></b>";
+games[i].type = "测试游戏";
+games[i].score = 85;
+games[i].icon = base + "/yds/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/yds/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "神经猫II-基友猫";
+games[i].type = "智力游戏";
+games[i].score = 82;
+games[i].icon = base + "/shenjingmao2/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/shenjingmao2/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "小呀小苹果";
+games[i].type = "动作游戏";
+games[i].score = 83;
+games[i].icon = base + "/apple/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/apple/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "我要飞的更高";
+games[i].type = "动作游戏";
+games[i].score = 78;
+games[i].icon = base + "/high/images/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/high/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "激光防御";
+games[i].type = "射击游戏";
+games[i].score = 85;
+games[i].icon = base + "/jgfx/static/icon.png";
+games[i].ishot = true;
+games[i].src = base + "/jgfx/demo.html";
+
+i++;
+games[i] = new Array();
+games[i].name = "2048程序猿版";
+games[i].score = 76;
+games[i].ishot = true;
+games[i].type= "休闲益智";
+games[i].icon = base + "/2048/images/icon.png";
+games[i].src = base + "/2048/demo.html";
+console.log(games.length)
+
+// 洗牌算法
+var cloneArr = games.concat();
+var len = cloneArr.length;
+for (var i = 0; i < len; i++) {
+	var index = Math.floor(Math.random() * cloneArr.length);
+	var temp = cloneArr[index];
+	cloneArr[index] = cloneArr[i];
+	cloneArr[i] = temp;
+}
+
+
+// 页面渲染
+function draw() {
+	var str = "";
+	for (var i = 0;i < cloneArr.length; i++) {
+		var gtype = cloneArr[i].type;
+		if (!gtype) gtype = "休闲竞技";
+		var score = cloneArr[i].score;
+		if (!score) score = 60;		
+		str += "<li><figure><img src='" + cloneArr[i].icon + "'/><figcaption><h3 class='tit'>" + cloneArr[i].name + "</h3><p>" + gtype + " 好评" + score + "%</p><p><span>" + (10000 + parseInt(Math.random() * 100000)) + "人玩过</span></p></figcaption><span class='btn btn-g' data-url='" + cloneArr[i].src + "' onclick=window.location.href='" + cloneArr[i].src + "'>开始玩</span></figure></li>";
+	}
+	document.getElementById("j_game_list").innerHTML = str;
+
+}
+draw();
+
+</script>
+<footer class="footer" id="j_foot_nav" style="display: block;">
+	<menu class="d-menu" style="display:none;"></menu>
+    <div class="ft-copy">
+    	<p><span>©2021 Funny Game www.maxzoon.cn</span></p>
+    </div>
+</footer>
+
+<div class="btn-top" id="j_back_top" title="返回顶部">
+	<img src="images/top.png" width="40" height="40" />
+</div>
+
+<!-- The core Firebase JS SDK is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+<script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-analytics.js"></script>
+
+<script>
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    var firebaseConfig = {
+        apiKey: "AIzaSyBe7vpzJjqXaE7EkkFELIqaRdDo4PUQKuM",
+        authDomain: "maxzoon-57c4c.firebaseapp.com",
+        projectId: "maxzoon-57c4c",
+        storageBucket: "maxzoon-57c4c.appspot.com",
+        messagingSenderId: "579995832541",
+        appId: "1:579995832541:web:61596f6d731f7685174b34",
+        measurementId: "G-YKM74EB5KM"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+</script>
+</body>
+</html>
