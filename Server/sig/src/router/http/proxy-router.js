@@ -895,7 +895,8 @@ proxyRouter.all('/gallery', async (ctx, next) => {
     ctx.body = respond;
 });
 
-function readDiscoveryDirSync(path, httpPath, page){
+function readDirSyncSortByDate(path, httpPath, page, page_size){
+    page_size=page_size||12
     let json = [];
     let pa = fs.readdirSync(path)
         .map(function(v) {
@@ -906,7 +907,7 @@ function readDiscoveryDirSync(path, httpPath, page){
         })
         .sort(function(a, b) { return b.time - a.time; })
         .map(function(v) { return v.name; })
-        .slice((page - 1) * 24, (page) * 24);
+        .slice((page - 1) * page_size, (page) * page_size);
 
     pa.forEach(function(file, index){
         let info = fs.statSync(path + "/" + file)
@@ -940,8 +941,12 @@ proxyRouter.all('/discovery', async (ctx, next) => {
     if (!Common.isNull(params.page)) {
         page = params.page;
     }
+    page_size = 24;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
 
-    let discovery = readDiscoveryDirSync(Common.AppGlobalVar.rootPath + "/static/upload_discovery", "upload_discovery", page);
+    let discovery = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/upload_discovery", "upload_discovery", page, page_size);
     respond.data.datalist = discovery;
     ctx.body = respond;
 });
@@ -1005,6 +1010,107 @@ proxyRouter.all('/api/wav2lip_list', async (ctx, next) => {
         });
     });
 
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/gallery_dubnitskiy', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 12;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    // let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", page, page_size);
+    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/dubnitskiy_gallery/image", "gallery_files/dubnitskiy_gallery/image", page, page_size);
+    respond.data.datalist = datalist;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/gallery_cd', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 12;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", page, page_size);
+    respond.data.datalist = datalist;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/gallery_ame', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 12;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/asiame", "gallery_files/asiame", page, page_size);
+    respond.data.datalist = datalist;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/gallery_artist', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 12;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/artist", "gallery_files/artist", page, page_size);
+    respond.data.datalist = datalist;
     ctx.body = respond;
 });
 
