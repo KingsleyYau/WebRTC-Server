@@ -887,11 +887,45 @@ proxyRouter.all('/gallery', async (ctx, next) => {
             datalist:[]
         }
     }
-    let asiame = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/asiame", "gallery_files/asiame", 6);
-    let charmdate = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", 6);
-    let artist = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/artist", "gallery_files/artist", 20);
 
-    respond.data.datalist = shuffle(asiame.concat(charmdate, artist));
+
+    let categories = listDir(Common.AppGlobalVar.rootPath + "/static/facetoon/gallery");
+    let categories_size = categories.length;
+    let categories_real_size = categories_size;
+
+    let category_item_count = Math.ceil(24 / categories_size);
+    let use_categories = [];
+    for(i = 0; i < categories_size; i++) {
+        let item = categories[i];
+        let items = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/facetoon/gallery/" + item, "facetoon/gallery/" + item, category_item_count);
+        if (items.length > 0) {
+            use_categories.push(true);
+        } else {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/gallery], ' + item + ' is empty.');
+            use_categories.push(false);
+            categories_real_size--;
+        }
+    }
+
+    category_item_count = Math.ceil(24 / categories_real_size);
+    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/gallery], page_item_count:' + category_item_count);
+    for(i = 0; i < categories_size; i++) {
+        if (use_categories[i]) {
+            let item = categories[i];
+            let items = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/facetoon/gallery/" + item, "facetoon/gallery/" + item, category_item_count);
+            respond.data.datalist = respond.data.datalist.concat(items);
+        }
+    }
+
+    respond.data.datasize = respond.data.datalist.length;
+    respond.data.datalist = shuffle(respond.data.datalist);
+
+    // let asiame = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/asiame", "gallery_files/asiame", 4);
+    // let charmdate = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", 4);
+    // let cathrynli = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/cathrynli", "gallery_files/cathrynli", 4);
+    // let artist = readDirRndImageSync(Common.AppGlobalVar.rootPath + "/static/gallery_files/artist", "gallery_files/artist", 12);
+
+    // respond.data.datalist = shuffle(asiame.concat(charmdate, cathrynli, artist));
     ctx.body = respond;
 });
 
@@ -916,10 +950,37 @@ function readDirSyncSortByDate(path, httpPath, page, page_size){
             let relativePath = httpPath + "/" + file;
             // console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
 
-            let rex = /.*(.jpg|.jpeg|.png|.mp4)/;
+            let rex = /.*(.jpg|.jpeg|.png|.mp4|.mov)/;
             let bFlag = rex.test(relativePath.toLowerCase());
             if ( bFlag ) {
                 json.push(relativePath);
+            }
+        }
+    })
+    return json;
+}
+
+function listDir(path){
+    let json = [];
+    let pa = fs.readdirSync(path)
+        .map(function(v) {
+            return {
+                name:v,
+                time:fs.statSync(path + "/" + v).mtime.getTime()
+            };
+        })
+        .sort(function(a, b) { return b.time - a.time; })
+        .map(function(v) { return v.name; });
+
+    pa.forEach(function(file, index){
+        let info = fs.statSync(path + "/" + file);
+        if( info.isDirectory() ) {
+            let absolutePath = path + "/" + file;
+            let rex = /^[^\.]/;
+            let bFlag = rex.test(file.toLowerCase());
+            // console.log("file:", file, "bFlag:", bFlag);
+            if ( bFlag ) {
+                json.push(file);
             }
         }
     })
@@ -1013,7 +1074,22 @@ proxyRouter.all('/api/wav2lip_list', async (ctx, next) => {
     ctx.body = respond;
 });
 
-proxyRouter.all('/api/gallery_dubnitskiy', async (ctx, next) => {
+proxyRouter.all('/api/maser/discovery_category', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    let categories = listDir(Common.AppGlobalVar.rootPath + "/static/maser/gallery");
+    respond.data.datalist = categories;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/maser/discovery', async (ctx, next) => {
     let respond = {
         errno: 0,
         errmsg: "",
@@ -1028,14 +1104,77 @@ proxyRouter.all('/api/gallery_dubnitskiy', async (ctx, next) => {
     if (!Common.isNull(params.page)) {
         page = params.page;
     }
-    page_size = 12;
+    page_size = 24;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+    category = '';
+    if (!Common.isNull(params.category)) {
+        category = params.category;
+    }
+
+    if (category.length == 0) {
+        let categories = listDir(Common.AppGlobalVar.rootPath + "/static/maser/gallery");
+        let categories_size = categories.length;
+        let categories_real_size = categories_size;
+
+        let category_item_count = Math.ceil(page_size / categories_size);
+        let use_categories = [];
+        for(i = 0; i < categories_size; i++) {
+            let item = categories[i];
+            let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/gallery/" + item, "maser/gallery/" + item, page, category_item_count);
+            if (items.length > 0) {
+                use_categories.push(true);
+            } else {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/maser/discovery], ' + item + ' is empty.');
+                use_categories.push(false);
+                categories_real_size--;
+            }
+        }
+
+        category_item_count = Math.ceil(page_size / categories_real_size);
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/maser/discovery], page_item_count:' + category_item_count);
+        for(i = 0; i < categories_size; i++) {
+            if (use_categories[i]) {
+                let item = categories[i];
+                let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/gallery/" + item, "maser/gallery/" + item, page, category_item_count);
+                respond.data.datalist = respond.data.datalist.concat(items);
+            }
+        }
+    } else {
+        let item = category;
+        let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/gallery/" + item, "maser/gallery/" + item, page, page_size);
+        respond.data.datalist = respond.data.datalist.concat(items);
+    }
+    respond.data.datasize = respond.data.datalist.length;
+    respond.data.datalist = shuffle(respond.data.datalist);
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/maser/dubnitskiy', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 24;
     if (!Common.isNull(params.page_size)) {
         page_size = params.page_size;
     }
 
-    // let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", page, page_size);
-    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/dubnitskiy_gallery/image", "gallery_files/dubnitskiy_gallery/image", page, page_size);
-    respond.data.datalist = datalist;
+    let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/dubnitskiy/image", "maser/dubnitskiy/image", page, page_size);
+    respond.data.datalist = items;
+
     ctx.body = respond;
 });
 
@@ -1114,25 +1253,26 @@ proxyRouter.all('/api/gallery_artist', async (ctx, next) => {
     ctx.body = respond;
 });
 
-proxyRouter.all('/tv_list', async (ctx, next) => {
+proxyRouter.all('/api/maser/proxy', async (ctx, next) => {
     let respond = {
         errno: 0,
         errmsg: "",
         userId: ctx.session.sessionId,
         data: {
+            datalist:[]
         }
     }
 
     await new Promise(function(resolve, reject) {
-        let relativePath = Common.AppGlobalVar.rootPath + '/static/files/tv_list.json';
+        let relativePath = Common.AppGlobalVar.rootPath + '/static/maser/proxy.json';
         fs.readFile(relativePath, 'utf8', function (err, filedata) {
             if (err) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-tv-list], ' + err);
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/maser/proxy], ' + err);
                 respond.errmsg = err;
                 respond.errno = 1;
             } else {
                 let fileobj = JSON.parse(filedata);
-                respond.data = JSON.parse(filedata);
+                respond.data.datalist = JSON.parse(filedata);
             }
             resolve();
         });

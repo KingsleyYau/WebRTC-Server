@@ -1,0 +1,90 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.box {
+    width: 300px;
+    height: 320px;
+    margin: 10px auto;
+    overflow: hidden;
+    position: relative;
+}
+
+.content {
+    width: 300px;
+    height: 300px;
+    overflow: hidden;
+    position: relative;
+}
+
+.content div {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.content div img {
+    width: 300px;
+    height: 300px;
+}
+
+.control {
+    width: 300px;
+    height: 20px;
+    background-color: #333;
+    text-align: center;
+}
+
+.control-bar {
+    display: inline-block;
+    width: 24px;
+    height: 5px;
+    background: url(../img/icon.png) no-repeat -24px -790px;
+    margin: 8px 2px 0 2px;
+    cursor: pointer;
+}
+
+.control .control-bar:hover {
+    background: url('../img/icon.png') no-repeat -24px -770px;
+}
+
+.control .control-bar.current {
+    background: url('../img/icon.png') no-repeat 0 -770px;
+}
+
+#pre, #next {
+    position: absolute;
+    top: 50%;
+    margin-top: -35px;
+    width: 20px;
+    height: 34px;
+    background-color: pink;
+    cursor: pointer;
+}
+
+#pre {
+    left: 3px;
+    background: url(../img/icon.png) no-repeat 0 0;
+}
+
+#next {
+    right: 3px;
+    background: url(../img/icon.png) no-repeat -9px -45px;
+}
+
+#wrapper {
+    width: 100%;
+    position: relative;
+}
+
+.banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    /*background-color: #3592d5;*/
+    /*background-image: -moz-linear-gradient(-8deg, rgb(124, 214, 243) 0%, rgb(66, 159, 219) 40%, rgb(8, 103, 195) 100%);*/
+    /*background-image: -webkit-linear-gradient(-8deg, rgb(124, 214, 243) 0%, rgb(66, 159, 219) 40%, rgb(8, 103, 195) 100%);*/
+    /*background-image: -ms-linear-gradient(-8deg, rgb(124, 214, 243) 0%, rgb(66, 159, 219) 40%, rgb(8, 103, 195) 100%);*/
+    position: relative;
+}

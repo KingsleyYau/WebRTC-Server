@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+    <title>Maser</title>
+    <link rel="shortcut icon" href="favicon.ico"/>
+    <link rel="stylesheet" href="css/index.css"/>
+    <script>
+        // 封装好的获取属性函数
+        function getStyle(element, styleName) {
+            if (element.currentStyle) {
+                return element.currentStyle[styleName];
+            } else {
+                var computedStyle = window.getComputedStyle(element, null);
+                return computedStyle[styleName];
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            onload();
+        });
+
+    </script>
+</head>
+<body id="wrapper" class="banner">
+<div style="text-align:center;margin:20px"><h3>Maser</h3></div>
+<div class="box">
+    <div class="content">
+        <div><img src="img/logo.png" alt=""/></div>
+    </div>
+</div>
+<div style="text-align:center">
+    <a href="https://itunes.apple.com/cn/app/1579990950" id="" target="_blank">
+        <img src="img/app_store.png" alt=""/>
+    </a>
+</div>
+<div style="text-align:center;margin:20px">
+    <p>
+    <a href="terms.html" id="" target="_blank">
+        Term of use
+    </a>
+        &nbsp;&&nbsp;
+    <a href="policy.html" id="" target="_blank">
+        Private Policy
+    </a>
+    </p>
+</div>
+<script src="https://maxzoon.cn/js/firebase.js"></script>
+<div style="text-align:center;">
+    <p id="copyright"></p>
+    <a id="icp" href="https://beian.miit.gov.cn"></a>
+</div>
+<script type="text/javascript">
+    !(function () {
+        var copyright = document.getElementById('copyright');
+        copyright && (copyright.innerHTML = '©' + (new Date()).getFullYear() + ' Maxzoon 版权所有');
+        var icp = document.getElementById('icp');
+        icp && (icp.innerHTML = '粤ICP备2021072382号');
+    })();
+</script>
+</body>
+</html>
