@@ -629,6 +629,11 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                     device_token = ctx.req.headers["device-token"];
                 }
 
+                let style = 1;
+                if( !Common.isNull(fields.style)  ) {
+                    style = fields.style;
+                }
+
                 let filepath = files.upload_file.path;
                 let dir = path.dirname(filepath)
                 let basename = path.basename(filepath)
@@ -650,7 +655,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                 let json = JSON.stringify(obj);
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
-                        let cmd = TOON_VIDEO + ' --input_path ' + filepath + ' --progress_path ' + progress_path
+                        let cmd = TOON_VIDEO + ' --input_path ' + filepath + ' --progress_path ' + progress_path + ' --style ' + style
                         let child = exec.exec(cmd, function(error, stdout, stderr) {
                             if(error) {
                                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + error.toString());
@@ -1177,6 +1182,43 @@ proxyRouter.all('/api/maser/dubnitskiy', async (ctx, next) => {
 
     ctx.body = respond;
 });
+
+proxyRouter.all('/api/maser/camshare', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 24;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    await new Promise(function(resolve, reject) {
+        exec.exec('/root/Max/project/sync_camshare.sh', (err, stdout, stderr) => {
+            if ( err || stderr ) {
+                respond.errno = -1;
+                respond.errmsg = stderr;
+            }
+            resolve();
+        })
+    });
+
+    let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/camshare", "maser/camshare", page, page_size);
+    respond.data.datalist = items;
+
+    ctx.body = respond;
+});
+
 
 proxyRouter.all('/api/gallery_cd', async (ctx, next) => {
     let respond = {
