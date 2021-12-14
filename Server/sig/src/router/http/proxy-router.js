@@ -463,6 +463,293 @@ proxyRouter.all('/upload_realsr', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.all('/api/upload', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], err:' + err);
+        }
+    });
+
+    let cartoon_dir = path.join(form.uploadDir, "cartoon");
+    fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+
+                let align_face = 1;
+                if( fields.align_face == "0" ) {
+                    align_face = 0;
+                }
+
+                let style = 0;
+                if( !Common.isNull(fields.style)  ) {
+                    style = fields.style;
+                }
+
+                let upload_path = "/upload/";
+                let upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file);
+
+                let photo_path = path.join(dir, basename_pre + "_photo.png");
+                let cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
+
+                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
+                // exec.execSync(cmd)
+                child = exec.exec(cmd, function(error, stdout, stderr) {
+                    if(error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
+                        respond.errno = 1;
+                        respond.errmsg = error.message;
+                    } else {
+                        try {
+                            let data = fs.readFileSync(photo_path);
+                            data = new Buffer(data).toString('base64');
+                            let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+
+                            data = fs.readFileSync(cartoon_path);
+                            data = new Buffer(data).toString('base64');
+                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+                            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                            respond.data.file_id = basename_pre.split('_')[1];
+
+                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
+                            exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
+                        } catch (e) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + e.toString());
+                            respond.errno = 1;
+                            respond.errmsg = e.message;
+                        }
+                    }
+                    resolve();
+                });
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ", pid:" +  child.pid);
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + e.toString());
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+
+    ctx.body = respond;
+});
+
+const SEG = AppConfig.python.pd + ' && python seg_arg.py'
+proxyRouter.all('/api/upload_seg', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_seg");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+
+                let align_face = 1;
+                if( fields.align_face == "0" ) {
+                    align_face = 0;
+                }
+
+                let upload_path = "/upload_seg/";
+                let upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
+
+                let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
+
+                let cmd = SEG + ' --input_image ' + filepath + " --align_face " + align_face
+                // exec.execSync(cmd)
+                child = exec.exec(cmd, function(error, stdout, stderr) {
+                    if(error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + error.toString());
+                        respond.errno = 1;
+                        respond.errmsg = error.message;
+                    } else {
+                        try {
+                            let data = fs.readFileSync(cartoon_path);
+                            data = new Buffer(data).toString('base64');
+                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+                            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                            respond.data.file_id = basename_pre.split('_')[1];
+
+                        } catch (e) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + e.toString());
+                            respond.errno = 1;
+                            respond.errmsg = e.message;
+                        }
+                    }
+                    resolve();
+                });
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd + ", pid:" +  child.pid);
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + e.toString());
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+
+    ctx.body = respond;
+});
+
+const CIYUN = AppConfig.python.pd + ' && python ciyun_arg.py'
+proxyRouter.all('/api/upload_wordcloud', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_wordcloud");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+
+                let upload_path = "/upload_wordcloud/";
+                let upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file);
+
+                let cartoon_path = path.join(dir, basename_pre + "_ciyun.jpg");
+
+                let cmd = CIYUN + ' --input_image ' + filepath
+                // exec.execSync(cmd)
+                child = exec.exec(cmd, function(error, stdout, stderr) {
+                    if(error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file + ', ' + error.toString());
+                        respond.errno = 1;
+                        respond.errmsg = error.message;
+                    } else {
+                        try {
+                            let data = fs.readFileSync(cartoon_path);
+                            data = new Buffer(data).toString('base64');
+                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+                            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
+                            respond.data.file_id = basename_pre.split('_')[1];
+
+                        } catch (e) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file + ', ' + e.toString());
+                            respond.errno = 1;
+                            respond.errmsg = e.message;
+                        }
+                    }
+                    resolve();
+                });
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + cmd + ", pid:" +  child.pid);
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file + ', ' + e.toString());
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+
+    ctx.body = respond;
+});
+
 proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
     token = Math.random().toString(36).substr(2).toLocaleUpperCase();
     let respond = {
@@ -503,11 +790,9 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                 let dir = path.dirname(filepath)
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
-                let basename_ext = basename.split('.')[1];
+                let basename_ext = 'jpg';//basename.split('.')[1];
 
-                let upload_path = "upload_realsr";
-                let upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + filepath);
 
                 let output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
                 let progress_path = path.join(dir, token + ".txt");
@@ -793,7 +1078,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                                 }
                             }
                         });
-                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + cmd + ", pid:" +  child.pid);
+                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + cmd + ", pid:" +  child.pid);
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + e.toString());
                     }
@@ -1189,7 +1474,7 @@ proxyRouter.all('/api/maser/camshare', async (ctx, next) => {
         errmsg: "",
         userId: ctx.session.sessionId,
         data: {
-            datalist:[]
+            datalist: []
         }
     }
 
@@ -1203,95 +1488,21 @@ proxyRouter.all('/api/maser/camshare', async (ctx, next) => {
         page_size = params.page_size;
     }
 
-    await new Promise(function(resolve, reject) {
-        exec.exec('/root/Max/project/sync_camshare.sh', (err, stdout, stderr) => {
-            if ( err || stderr ) {
-                respond.errno = -1;
-                respond.errmsg = stderr;
-            }
-            resolve();
-        })
-    });
+    if (page == 1) {
+        await new Promise(function (resolve, reject) {
+            exec.exec('/root/Max/project/sync_camshare.sh', (err, stdout, stderr) => {
+                if (err || stderr) {
+                    respond.errno = -1;
+                    respond.errmsg = stderr;
+                }
+                resolve();
+            })
+        });
+    }
 
     let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/camshare", "maser/camshare", page, page_size);
     respond.data.datalist = items;
 
-    ctx.body = respond;
-});
-
-
-proxyRouter.all('/api/gallery_cd', async (ctx, next) => {
-    let respond = {
-        errno: 0,
-        errmsg: "",
-        userId: ctx.session.sessionId,
-        data: {
-            datalist:[]
-        }
-    }
-
-    params = querystring.parse(ctx.querystring);
-    page = 1;
-    if (!Common.isNull(params.page)) {
-        page = params.page;
-    }
-    page_size = 12;
-    if (!Common.isNull(params.page_size)) {
-        page_size = params.page_size;
-    }
-
-    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/charmdate", "gallery_files/charmdate", page, page_size);
-    respond.data.datalist = datalist;
-    ctx.body = respond;
-});
-
-proxyRouter.all('/api/gallery_ame', async (ctx, next) => {
-    let respond = {
-        errno: 0,
-        errmsg: "",
-        userId: ctx.session.sessionId,
-        data: {
-            datalist:[]
-        }
-    }
-
-    params = querystring.parse(ctx.querystring);
-    page = 1;
-    if (!Common.isNull(params.page)) {
-        page = params.page;
-    }
-    page_size = 12;
-    if (!Common.isNull(params.page_size)) {
-        page_size = params.page_size;
-    }
-
-    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/asiame", "gallery_files/asiame", page, page_size);
-    respond.data.datalist = datalist;
-    ctx.body = respond;
-});
-
-proxyRouter.all('/api/gallery_artist', async (ctx, next) => {
-    let respond = {
-        errno: 0,
-        errmsg: "",
-        userId: ctx.session.sessionId,
-        data: {
-            datalist:[]
-        }
-    }
-
-    params = querystring.parse(ctx.querystring);
-    page = 1;
-    if (!Common.isNull(params.page)) {
-        page = params.page;
-    }
-    page_size = 12;
-    if (!Common.isNull(params.page_size)) {
-        page_size = params.page_size;
-    }
-
-    let datalist = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/gallery_files/artist", "gallery_files/artist", page, page_size);
-    respond.data.datalist = datalist;
     ctx.body = respond;
 });
 
@@ -1336,6 +1547,51 @@ proxyRouter.all('/gc', async (ctx, next) => {
     // Heapdump.writeSnapshot('./heapsnapshot/heapsnapshot-' + Date.now());
     let end = process.uptime() * 1000;
     respond.time = end - start + 'ms';
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/search_image', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            imageUrl:"",
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_search");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/search_image], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            let filepath = files.upload_file.path;
+            let dir = path.dirname(filepath)
+            let basename = path.basename(filepath)
+            let basename_pre = basename.split('.')[0];
+
+            let upload_path = "/upload_search/";
+            let upload_file = upload_path + basename;
+            respond.data.imageUrl = upload_file;
+            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/search_image], ' + upload_file);
+            resolve();
+        })
+    })
 
     ctx.body = respond;
 });
