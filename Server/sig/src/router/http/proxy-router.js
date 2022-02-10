@@ -284,185 +284,6 @@ proxyRouter.all('/rnd', async (ctx, next) => {
 });
 
 const P2C = AppConfig.python.pd + ' && python p2c_arg.py'
-proxyRouter.all('/upload', async (ctx, next) => {
-    let respond = {
-        errno:0,
-        errmsg:"",
-        userId:ctx.session.sessionId,
-        data:{
-            path:"",
-            photo:"",
-            cartoon:""
-        }
-    }
-
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
-
-    // ctx.session.data = new Array(1e7).join('*');
-    let form = new formidable.IncomingForm();
-    form.encoding = 'utf-8';
-    form.uploadDir = path.join(__dirname + "../../../static/upload");
-    form.keepExtensions = true;//保留后缀
-    form.maxFieldsSize = 2 * 1024 * 1024;
-
-    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
-        if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
-        }
-    });
-
-    let cartoon_dir = path.join(form.uploadDir, "cartoon");
-    fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
-        if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload], err:' + err);
-        }
-    });
-
-    await new Promise(function(resolve, reject) {
-        form.parse(ctx.req, function (err, fields, files) {
-            upload_file = "";
-            try {
-                let filepath = files.upload_file.path;
-                let dir = path.dirname(filepath)
-                let basename = path.basename(filepath)
-                let basename_pre = basename.split('.')[0];
-
-                let align_face = 1;
-                if( fields.align_face == "0" ) {
-                    align_face = 0;
-                }
-
-                let style = 0;
-                if( !Common.isNull(fields.style)  ) {
-                    style = fields.style;
-                }
-
-                let upload_path = "/upload/";
-                let upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/upload], ' + upload_file);
-
-                let photo_path = path.join(dir, basename_pre + "_photo.png");
-                let cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
-
-                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
-                // exec.execSync(cmd)
-                child = exec.exec(cmd, function(error, stdout, stderr) {
-                    if(error) {
-                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/upload], ' + upload_file + ', ' + error.toString());
-                        respond.errno = 1;
-                        respond.errmsg = error.message;
-                    } else {
-                        try {
-                            let data = fs.readFileSync(photo_path);
-                            data = new Buffer(data).toString('base64');
-                            let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
-                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-
-                            data = fs.readFileSync(cartoon_path);
-                            data = new Buffer(data).toString('base64');
-                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
-
-                            respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
-                            respond.data.file_id = basename_pre.split('_')[1];
-
-                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
-                            exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
-                        } catch (e) {
-                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/upload], ' + upload_file + ', ' + e.toString());
-                            respond.errno = 1;
-                            respond.errmsg = e.message;
-                        }
-                    }
-                    resolve();
-                });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/upload], ' + cmd + ", pid:" +  child.pid);
-
-            } catch (e) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/upload], ' + upload_file + ', ' + e.toString());
-                respond.errno = 1;
-                respond.errmsg = "Process fail";
-                // reject(e);
-                resolve();
-            } finally {
-                // resolve();
-            }
-        })
-    })
-
-    ctx.body = respond;
-});
-
-const REALSR = AppConfig.python.pd + ' && python realsr_arg.py'
-proxyRouter.all('/upload_realsr', async (ctx, next) => {
-    let respond = {
-        errno:0,
-        errmsg:"",
-        userId:ctx.session.sessionId,
-        data:{
-            path:"",
-            photo:"",
-            cartoon:""
-        }
-    }
-
-    let start = process.uptime() * 1000;
-
-    // ctx.session.data = new Array(1e7).join('*');
-    var form = new formidable.IncomingForm();
-    form.encoding = 'utf-8';
-    form.uploadDir = path.join(__dirname + "../../../static/upload_realsr");
-    form.keepExtensions = true;//保留后缀
-    form.maxFieldsSize = 2 * 1024 * 1024;
-
-    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
-        if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload_realsr], err:' + err);
-        }
-    });
-
-    await new Promise(function(resolve, reject) {
-        form.parse(ctx.req, function (err, fields, files) {
-            upload_file = "";
-            try {
-                let filepath = files.upload_file.path;
-                dir = path.dirname(filepath)
-                basename = path.basename(filepath)
-                basename_pre = basename.split('.')[0];
-                basename_ext = basename.split('.')[1];
-
-                upload_path = "/upload_realsr/";
-                upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-upload_realsr], ' + upload_file);
-
-                let cmd = REALSR + ' --input_image ' + filepath
-                exec.execSync(cmd)
-
-                photo_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
-
-                data = fs.readFileSync(photo_path);
-                data = new Buffer(data).toString('base64');
-                photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
-
-                respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
-
-            } catch (e) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-upload_realsr], ' + upload_file + ', ' + e.toString());
-                respond.errno = 1;
-                respond.errmsg = "Process fail";
-
-            } finally {
-                resolve();
-            }
-        })
-    })
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
-
-    ctx.body = respond;
-});
-
 proxyRouter.all('/api/upload', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -522,8 +343,8 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                 let upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file);
 
-                let photo_path = path.join(dir, basename_pre + "_photo.png");
-                let cartoon_path = path.join(dir, basename_pre + "_cartoon.png");
+                let photo_path = path.join(dir, basename_pre + "_photo.jpg");
+                let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
                 let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
                 // exec.execSync(cmd)
@@ -750,6 +571,7 @@ proxyRouter.all('/api/upload_wordcloud', async (ctx, next) => {
     ctx.body = respond;
 });
 
+const REALSR = AppConfig.python.pd + ' && python realsr_arg.py'
 proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
     token = Math.random().toString(36).substr(2).toLocaleUpperCase();
     let respond = {
