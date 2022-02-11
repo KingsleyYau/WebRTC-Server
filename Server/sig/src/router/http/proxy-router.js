@@ -322,11 +322,19 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
 
     await new Promise(function(resolve, reject) {
         form.parse(ctx.req, function (err, fields, files) {
-            upload_file = "";
+            let cmd = ""
+            let upload_file = "";
             try {
-                let filepath = files.upload_file.path;
-                let dir = path.dirname(filepath)
-                let basename = path.basename(filepath)
+                let upload_file_path = files.upload_file.path;
+                if (!Common.isNull(files.upload_file)) {
+                    upload_file_path = files.upload_file.path;
+                }
+                let style_file_path = "";
+                if (!Common.isNull(files.style_file)) {
+                    style_file_path = files.style_file.path;
+                }
+                let dir = path.dirname(upload_file_path)
+                let basename = path.basename(upload_file_path)
                 let basename_pre = basename.split('.')[0];
 
                 let align_face = 1;
@@ -335,21 +343,24 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                 }
 
                 let style = 0;
-                if( !Common.isNull(fields.style)  ) {
+                if( !Common.isNull(fields.style) ) {
                     style = fields.style;
                 }
 
                 let upload_path = "/upload/";
-                let upload_file = upload_path + basename;
+                upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
-                let cmd = P2C + ' --input_image ' + filepath + " --align_face " + align_face + ' --style ' + style
+                cmd = P2C + ' --input_image ' + upload_file_path + " --align_face " + align_face + ' --style ' + style
+                if (style == 4 && style_file_path.length > 0) {
+                    cmd += ' --style_image ' + style_file_path
+                }
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
-                    if(error) {
+                    if (error) {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
                         respond.errno = 1;
                         respond.errmsg = error.message;
@@ -380,7 +391,7 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + e.toString());
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ', file:' + upload_file + ', ' + e.toString());
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 // reject(e);
