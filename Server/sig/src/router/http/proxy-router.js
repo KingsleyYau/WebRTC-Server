@@ -449,13 +449,34 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     align_face = 0;
                 }
 
+                let keep_face_bg = 0;
+                if( fields.keep_face_bg == "1" ) {
+                    keep_face_bg = 1;
+                }
+
+                let fit_size = 0;
+                if( fields.fit_size == "1" ) {
+                    fit_size = 1;
+                }
+
+                let enhance_only = 0;
+                if( fields.enhance_only == "1" ) {
+                    enhance_only = 1;
+                }
+
+                let enhance_face_only = 0;
+                if( fields.enhance_face_only == "1" ) {
+                    enhance_face_only = 1;
+                }
+
                 let upload_path = "/upload_seg/";
                 let upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
 
+                let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --align_face " + align_face
+                let cmd = SEG + ' --input_image ' + filepath + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_face_bg " + keep_face_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
@@ -641,17 +662,21 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                 fs.writeFile(progress_path, json, e => {
                     if (!e) {
                         let cmd = REALSR + ' --input_image ' + filepath + ' --progress_path ' + progress_path
-                        child = exec.exec(cmd, function(error, stdout, stderr) {
-                            if(error) {
-                                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + error.toString());
-                                fs.unlink(progress_path);
-                            } else {
-                                if( device_token != "" ) {
-                                    apns.send([device_token], "Congratulation! You have a new supervision photo.");
+                        try {
+                            child = exec.exec(cmd, function (error, stdout, stderr) {
+                                if (error) {
+                                    Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + upload_file + ', ' + error.toString());
+                                    fs.unlink(progress_path);
+                                } else {
+                                    if (device_token != "") {
+                                        apns.send([device_token], "Congratulation! You have a new supervision photo.");
+                                    }
                                 }
-                            }
-                        });
-                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + cmd + ", pid:" +  child.pid);
+                            });
+                            Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + cmd + ", pid:" + child.pid);
+                        } catch (e) {
+                            Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], Fail, ' + cmd + ", pid:" + child.pid + ', e:' + e.toString());
+                        }
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
                     }
