@@ -342,6 +342,11 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                     align_face = 0;
                 }
 
+                let keep_body = 0;
+                if( fields.keep_body == "1" ) {
+                    keep_body = 1;
+                }
+
                 let style = 0;
                 if( !Common.isNull(fields.style) ) {
                     style = fields.style;
@@ -354,7 +359,7 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
-                cmd = P2C + ' --input_image ' + upload_file_path + " --align_face " + align_face + ' --style ' + style
+                cmd = P2C + ' --input_image ' + upload_file_path + " --align_face " + align_face + " --keep_body " + keep_body + ' --style ' + style
                 if (style == 4 && style_file_path.length > 0) {
                     cmd += ' --style_image ' + style_file_path
                 }
@@ -366,10 +371,14 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                         respond.errmsg = error.message;
                     } else {
                         try {
-                            let data = fs.readFileSync(photo_path);
-                            data = new Buffer(data).toString('base64');
-                            let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
-                            respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+                            if (fs.existsSync(photo_path)) {
+                                let data = fs.readFileSync(photo_path);
+                                data = new Buffer(data).toString('base64');
+                                let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                                respond.data.photo = photo_base64//upload_path + basename_pre + "_photo.png";
+
+                                exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
+                            }
 
                             data = fs.readFileSync(cartoon_path);
                             data = new Buffer(data).toString('base64');
@@ -378,7 +387,6 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                             respond.data.cartoon = cartoon_base64//upload_path + basename_pre + "_cartoon.png";
                             respond.data.file_id = basename_pre.split('_')[1];
 
-                            exec.exec('mv ' + photo_path  + ' ' + cartoon_dir)
                             exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
                         } catch (e) {
                             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + e.toString());
@@ -444,9 +452,9 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
 
-                let align_face = 1;
-                if( fields.align_face == "0" ) {
-                    align_face = 0;
+                let crop_face = 1;
+                if( fields.crop_face == "0" ) {
+                    crop_face = 0;
                 }
 
                 let keep_face_bg = 0;
@@ -476,7 +484,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_face_bg " + keep_face_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_face_bg " + keep_face_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
