@@ -347,6 +347,11 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                     keep_body = 1;
                 }
 
+                let smooth = 0;
+                if( fields.smooth == "1" ) {
+                    smooth = 1;
+                }
+
                 let style = 0;
                 if( !Common.isNull(fields.style) ) {
                     style = fields.style;
@@ -359,7 +364,7 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
-                cmd = P2C + ' --input_image ' + upload_file_path + " --align_face " + align_face + " --keep_body " + keep_body + ' --style ' + style
+                cmd = P2C + ' --input_image ' + upload_file_path + ' --style ' + style + " --align_face " + align_face + " --keep_body " + keep_body + " --smooth " + smooth
                 if (style == 4 && style_file_path.length > 0) {
                     cmd += ' --style_image ' + style_file_path
                 }
