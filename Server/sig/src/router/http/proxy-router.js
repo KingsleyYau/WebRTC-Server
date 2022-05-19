@@ -284,7 +284,7 @@ proxyRouter.all('/rnd', async (ctx, next) => {
 });
 
 const P2C = AppConfig.python.pd + ' && python p2c_arg.py'
-proxyRouter.all('/api/upload', async (ctx, next) => {
+proxyRouter.all('/api/upload_toon', async (ctx, next) => {
     let respond = {
         errno:0,
         errmsg:"",
@@ -309,14 +309,14 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
 
     fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
         if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], err:' + err);
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], err:' + err);
         }
     });
 
     let cartoon_dir = path.join(form.uploadDir, "cartoon");
     fs.mkdir(cartoon_dir, { recursive: true }, (err) => {
         if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], err:' + err);
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], err:' + err);
         }
     });
 
@@ -352,6 +352,11 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
                     smooth = 1;
                 }
 
+                let face_size = "default";
+                if( fields.small_face == "1" ) {
+                    face_size = "small";
+                }
+
                 let style = 0;
                 if( !Common.isNull(fields.style) ) {
                     style = fields.style;
@@ -359,19 +364,19 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
 
                 let upload_path = "/upload/";
                 upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
-                cmd = P2C + ' --input_image ' + upload_file_path + ' --style ' + style + " --align_face " + align_face + " --keep_body " + keep_body + " --smooth " + smooth
+                cmd = P2C + ' --input_image ' + upload_file_path + ' --style ' + style + " --align_face " + align_face + " --keep_body " + keep_body + " --smooth " + smooth + " --face_size " + face_size
                 if (style == 4 && style_file_path.length > 0) {
                     cmd += ' --style_image ' + style_file_path
                 }
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if (error) {
-                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + error.toString());
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file + ', ' + error.toString());
                         respond.errno = 1;
                         respond.errmsg = error.message;
                     } else {
@@ -394,17 +399,17 @@ proxyRouter.all('/api/upload', async (ctx, next) => {
 
                             exec.exec('mv ' + cartoon_path  + ' ' + cartoon_dir)
                         } catch (e) {
-                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + upload_file + ', ' + e.toString());
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file + ', ' + e.toString());
                             respond.errno = 1;
                             respond.errmsg = e.message;
                         }
                     }
                     resolve();
                 });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload], ' + cmd + ', file:' + upload_file + ', ' + e.toString());
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ', file:' + upload_file + ', ' + e.toString());
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 // reject(e);
@@ -482,6 +487,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     enhance_face_only = 1;
                 }
 
+                let face_size = "default";
+                if( fields.small_face == "1" ) {
+                    face_size = "small";
+                }
+
                 let upload_path = "/upload_seg/";
                 let upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
@@ -489,7 +499,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
@@ -517,6 +527,97 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + e.toString());
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+
+    ctx.body = respond;
+});
+
+const PHOTO_TOOL = AppConfig.python.pd + ' && python photo_arg.py'
+proxyRouter.all('/api/upload_photo', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            path:"",
+            photo:"",
+            cartoon:""
+        }
+    }
+
+    let start = process.uptime() * 1000;
+    let end = process.uptime() * 1000;
+    respond.time = end - start + 'ms';
+
+    // ctx.session.data = new Array(1e7).join('*');
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_photo");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            upload_file = "";
+            try {
+                let filepath = files.upload_file.path;
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+
+                let style = 0;
+                if( !Common.isNull(fields.style) ) {
+                    style = fields.style;
+                }
+
+                let upload_path = "/upload_photo/";
+                let upload_file = upload_path + basename;
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
+
+                let cartoon_path = path.join(dir, basename_pre + "_result.jpg");
+
+                let cmd = PHOTO_TOOL + ' --input_image ' + filepath + " --style " + style
+                // exec.execSync(cmd)
+                child = exec.exec(cmd, function(error, stdout, stderr) {
+                    if(error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file + ', ' + error.toString());
+                        respond.errno = 1;
+                        respond.errmsg = error.message;
+                    } else {
+                        try {
+                            let data = fs.readFileSync(cartoon_path);
+                            data = new Buffer(data).toString('base64');
+                            let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+
+                            respond.data.cartoon = cartoon_base64;
+                            respond.data.file_id = basename_pre.split('_')[1];
+
+                        } catch (e) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file + ', ' + e.toString());
+                            respond.errno = 1;
+                            respond.errmsg = e.message;
+                        }
+                    }
+                    resolve();
+                });
+                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + cmd + ", pid:" +  child.pid);
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file + ', ' + e.toString());
                 respond.errno = 1;
                 respond.errmsg = "Process fail";
                 // reject(e);
@@ -1174,7 +1275,7 @@ proxyRouter.all('/discovery', async (ctx, next) => {
     ctx.body = respond;
 });
 
-proxyRouter.all('/share_discovery', async (ctx, next) => {
+proxyRouter.all('/api/maser/share_discovery', async (ctx, next) => {
     let respond = {
         errno: 0,
         errmsg: "",
@@ -1193,7 +1294,7 @@ proxyRouter.all('/share_discovery', async (ctx, next) => {
 
     fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
         if (err) {
-            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-share_discovery], err:' + err);
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/maser/share_discovery], err:' + err);
         }
     });
 
