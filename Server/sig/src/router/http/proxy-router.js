@@ -579,7 +579,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
 
-                let style = 0;
+                let style = 'deoldfy';
                 if( !Common.isNull(fields.style) ) {
                     style = fields.style;
                 }
@@ -588,6 +588,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                 let upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
 
+                let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_result.jpg");
 
                 let cmd = PHOTO_TOOL + ' --input_image ' + filepath + " --style " + style
@@ -599,6 +600,13 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                         respond.errmsg = error.message;
                     } else {
                         try {
+                            if (fs.existsSync(photo_path)) {
+                                let data = fs.readFileSync(photo_path);
+                                data = new Buffer(data).toString('base64');
+                                let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+                                respond.data.photo = photo_base64;
+                            }
+
                             let data = fs.readFileSync(cartoon_path);
                             data = new Buffer(data).toString('base64');
                             let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
@@ -780,7 +788,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                             child = exec.exec(cmd, function (error, stdout, stderr) {
                                 if (error) {
                                     Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + upload_file + ', ' + error.toString());
-                                    fs.unlink(progress_path);
+
                                 } else {
                                     if (device_token != "") {
                                         apns.send([device_token], "Congratulation! You have a new supervision photo.");
@@ -790,6 +798,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                             Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + cmd + ", pid:" + child.pid);
                         } catch (e) {
                             Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], Fail, ' + cmd + ", pid:" + child.pid + ', e:' + e.toString());
+                            fs.unlink(progress_path);
                         }
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + upload_file + ', ' + e.toString());
