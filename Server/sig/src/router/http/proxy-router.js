@@ -605,11 +605,21 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                                 data = new Buffer(data).toString('base64');
                                 let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
                                 respond.data.photo = photo_base64;
+                                if (style == 'photopen') {
+                                    fs.unlink(photo_path, (e) => {
+
+                                    });
+                                }
                             }
 
                             let data = fs.readFileSync(cartoon_path);
                             data = new Buffer(data).toString('base64');
                             let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
+                            if (style == 'photopen') {
+                                fs.unlink(cartoon_path, (e) => {
+
+                                });
+                            }
 
                             respond.data.cartoon = cartoon_base64;
                             respond.data.file_id = basename_pre.split('_')[1];
@@ -620,6 +630,12 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                             respond.errmsg = e.message;
                         }
                     }
+                    if (style == 'photopen') {
+                        fs.unlink(filepath, (e) => {
+
+                        });
+                    }
+
                     resolve();
                 });
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + cmd + ", pid:" +  child.pid);
