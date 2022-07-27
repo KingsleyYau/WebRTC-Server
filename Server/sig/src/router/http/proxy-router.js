@@ -487,6 +487,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     enhance_face_only = 1;
                 }
 
+                let keep_body = 1;
+                if( fields.keep_body == "0" ) {
+                    keep_body = 0;
+                }
+
                 let face_size = "default";
                 if( fields.small_face == "1" ) {
                     face_size = "small";
@@ -499,7 +504,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
