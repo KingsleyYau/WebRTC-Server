@@ -362,6 +362,11 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
                     style = fields.style;
                 }
 
+                let toon_type = 'facetoon';
+                if( !Common.isNull(fields.toon_type) ) {
+                    toon_type = fields.toon_type;
+                }
+
                 let upload_path = "/upload/";
                 upload_file = upload_path + basename;
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
@@ -369,7 +374,7 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
 
-                cmd = P2C + ' --input_image ' + upload_file_path + ' --style ' + style + " --align_face " + align_face + " --keep_body " + keep_body + " --smooth " + smooth + " --face_size " + face_size
+                cmd = P2C + ' --input_image ' + upload_file_path + ' --toon_type ' + toon_type + ' --style ' + style + " --align_face " + align_face + " --keep_body " + keep_body + " --smooth " + smooth + " --face_size " + face_size
                 if (style == 4 && style_file_path.length > 0) {
                     cmd += ' --style_image ' + style_file_path
                 }
@@ -492,6 +497,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     keep_body = 0;
                 }
 
+                let smooth = 1;
+                if( fields.smooth == "0" ) {
+                    smooth = 0;
+                }
+
                 let face_size = "default";
                 if( fields.small_face == "1" ) {
                     face_size = "small";
@@ -504,7 +514,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
