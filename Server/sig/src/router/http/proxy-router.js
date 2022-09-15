@@ -589,24 +589,49 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             upload_file = "";
             try {
-                let filepath = files.upload_file.path;
-                let dir = path.dirname(filepath)
-                let basename = path.basename(filepath)
-                let basename_pre = basename.split('.')[0];
+                let dir = ""
+                let basename = ""
+                let basename_pre = ""
+                let upload_path = "/upload_photo/"
+                let upload_file = ""
+                let photo_path = ""
+                let cartoon_path = ""
+                let filepath = ""
+                if (!Common.isNull(files.upload_file)) {
+                    filepath = files.upload_file.path;
+                }
 
                 let style = 'deoldfy';
                 if( !Common.isNull(fields.style) ) {
                     style = fields.style;
                 }
 
-                let upload_path = "/upload_photo/";
-                let upload_file = upload_path + basename;
+                let input_text = '""';
+                if( !Common.isNull(fields.input_text) ) {
+                    input_text = fields.input_text;
+                }
+
+                if (filepath.length > 0) {
+                    dir = path.dirname(filepath)
+                    basename = path.basename(filepath)
+                    basename_pre = basename.split('.')[0];
+                    upload_file = upload_path + basename;
+                    photo_path = path.join(dir, basename_pre + "_photo.jpg");
+                    cartoon_path = path.join(dir, basename_pre + "_result.jpg");
+                } else {
+                    dir = form.uploadDir;
+                    cartoon_path = path.join(dir, input_text + ".jpg");
+                }
+
                 Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
-
-                let photo_path = path.join(dir, basename_pre + "_photo.jpg");
-                let cartoon_path = path.join(dir, basename_pre + "_result.jpg");
-
-                let cmd = PHOTO_TOOL + ' --input_image ' + filepath + " --style " + style
+                let cmd = PHOTO_TOOL + " --style " + style
+                if (filepath.length > 0) {
+                    cmd += ' --input_image ' + filepath;
+                }
+                if (input_text.length > 0) {
+                    cmd += ' --input_text ' + input_text;
+                    cmd += ' --output_path ' + cartoon_path
+                }
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
@@ -620,7 +645,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                                 data = new Buffer(data).toString('base64');
                                 let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
                                 respond.data.photo = photo_base64;
-                                if (style == 'photopen') {
+                                if (style == 'photopen' || style == 'ernie_vilg') {
                                     fs.unlink(photo_path, (e) => {
 
                                     });
@@ -630,7 +655,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                             let data = fs.readFileSync(cartoon_path);
                             data = new Buffer(data).toString('base64');
                             let cartoon_base64 = 'data:' + mime.lookup(cartoon_path) + ';base64,' + data;
-                            if (style == 'photopen') {
+                            if (style == 'photopen' || style == 'ernie_vilg') {
                                 fs.unlink(cartoon_path, (e) => {
 
                                 });
