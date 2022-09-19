@@ -618,12 +618,13 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                     upload_file = upload_path + basename;
                     photo_path = path.join(dir, basename_pre + "_photo.jpg");
                     cartoon_path = path.join(dir, basename_pre + "_result.jpg");
+                    // Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
                 } else {
                     dir = form.uploadDir;
                     cartoon_path = path.join(dir, input_text + ".jpg");
+                    // Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + input_text);
                 }
 
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
                 let cmd = PHOTO_TOOL + " --style " + style
                 if (filepath.length > 0) {
                     cmd += ' --input_image ' + filepath;
@@ -634,7 +635,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                 }
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
-                    if(error) {
+                    if (error) {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file + ', ' + error.toString());
                         respond.errno = 1;
                         respond.errmsg = error.message;
@@ -670,7 +671,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                             respond.errmsg = e.message;
                         }
                     }
-                    if (style == 'photopen') {
+                    if (style == 'photopen' || style == 'ernie_vilg') {
                         fs.unlink(filepath, (e) => {
 
                         });
