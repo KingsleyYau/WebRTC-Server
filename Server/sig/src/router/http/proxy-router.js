@@ -131,8 +131,6 @@ proxyRouter.all('/set', async (ctx, next) => {
     //     respond.errmsg = err;
     // });
 
-    let start = process.uptime() * 1000;
-
     // 随机增加时间, 防止雪崩
     let timeRnd = Math.floor(Math.random() * 30);
     // 因为使用集群, 必须保证key的hash在同一个slot, 否则不能使用事务
@@ -152,8 +150,6 @@ proxyRouter.all('/set', async (ctx, next) => {
     //     Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-set], err:' + err);
     //     respond.errmsg = err;
     // });
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -168,21 +164,18 @@ proxyRouter.all('/get', async (ctx, next) => {
 
     let url = url.parse(decodeURI(ctx.originalUrl.toLowerCase()),true);
     let user_id = url.query.user_id;
-    let start = process.uptime() * 1000;
     // 可以在这里增加hash filter, 减少缓存穿透
     await redisClient.client.multi().
     hgetall(
         'hash_user_online_' + user_id
     ).exec().then( (res) => {
         let all = JSON.stringify(res);
-        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-get], res:' + all);
+        Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-get], res:' + all);
         respond.res = res;
     }).catch( (err) => {
         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-get], err:' + err);
         respond.errmsg = err;
     });
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -195,7 +188,6 @@ proxyRouter.all('/nodes', async (ctx, next) => {
         "userId":ctx.session.sessionId,
     }
 
-    let start = process.uptime() * 1000;
     let nodes = redisClient.client.nodes('slave');
     await Promise.all(
         nodes.map(function (node) {
@@ -211,8 +203,6 @@ proxyRouter.all('/nodes', async (ctx, next) => {
     ).then( (res) => {
         respond.res = res;
     });
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -225,7 +215,6 @@ proxyRouter.all('/nodes_dbsize', async (ctx, next) => {
         "userId":ctx.session.sessionId,
     }
 
-    let start = process.uptime() * 1000;
     let nodes = redisClient.client.nodes('slave');
     await Promise.all(
         nodes.map(function (node) {
@@ -234,8 +223,6 @@ proxyRouter.all('/nodes_dbsize', async (ctx, next) => {
     ).then( (res) => {
         respond.res = res;
     });
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -247,8 +234,6 @@ proxyRouter.all('/rnd', async (ctx, next) => {
         res:-2,
         userId:ctx.session.sessionId,
     }
-
-    let start = process.uptime() * 1000;
 
     // 可以在这里增加hash filter, 减少缓存穿透
     let nodes = redisClient.client.nodes('slave');
@@ -263,22 +248,19 @@ proxyRouter.all('/rnd', async (ctx, next) => {
     });
 
     if ( cursor > -1 ) {
-        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-rnd], index:' + index + ', cursor:'+ cursor);
+        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-rnd], index:' + index + ', cursor:'+ cursor);
         await nodes[index].multi().
         scan(
             cursor, 'match', 'hash_user_online_*', 'count', 10
         ).exec().then( (res) => {
             let all = JSON.stringify(res);
-            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-rnd], res:' + all);
+            Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-rnd], res:' + all);
             respond.res = res;
         }).catch( (err) => {
             Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-rnd], err:' + err);
             respond.errmsg = err;
         });
     }
-
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -295,10 +277,6 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
             cartoon:""
         }
     }
-
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
@@ -369,7 +347,7 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
 
                 let upload_path = "/upload/";
                 upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
@@ -411,7 +389,7 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
                     }
                     resolve();
                 });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ', file:' + upload_file + ', ' + e.toString());
@@ -440,10 +418,6 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
             cartoon:""
         }
     }
-
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
@@ -509,7 +483,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
 
                 let upload_path = "/upload_seg/";
                 let upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
@@ -538,7 +512,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     }
                     resolve();
                 });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + e.toString());
@@ -567,10 +541,6 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
             cartoon:""
         }
     }
-
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
@@ -618,11 +588,11 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
                     upload_file = upload_path + basename;
                     photo_path = path.join(dir, basename_pre + "_photo.jpg");
                     cartoon_path = path.join(dir, basename_pre + "_result.jpg");
-                    // Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
+                    // Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file);
                 } else {
                     dir = form.uploadDir;
                     cartoon_path = path.join(dir, input_text + ".jpg");
-                    // Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + input_text);
+                    // Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + input_text);
                 }
 
                 let cmd = PHOTO_TOOL + " --style " + style
@@ -679,7 +649,7 @@ proxyRouter.all('/api/upload_photo', async (ctx, next) => {
 
                     resolve();
                 });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_photo], ' + upload_file + ', ' + e.toString());
@@ -709,10 +679,6 @@ proxyRouter.all('/api/upload_wordcloud', async (ctx, next) => {
         }
     }
 
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
-
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
@@ -737,7 +703,7 @@ proxyRouter.all('/api/upload_wordcloud', async (ctx, next) => {
 
                 let upload_path = "/upload_wordcloud/";
                 let upload_file = upload_path + basename;
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file);
 
                 let cartoon_path = path.join(dir, basename_pre + "_ciyun.jpg");
 
@@ -765,7 +731,7 @@ proxyRouter.all('/api/upload_wordcloud', async (ctx, next) => {
                     }
                     resolve();
                 });
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_wordcloud], ' + upload_file + ', ' + e.toString());
@@ -793,8 +759,6 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
             token:token
         }
     }
-
-    let start = process.uptime() * 1000;
 
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
@@ -825,7 +789,7 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                 let basename_pre = basename.split('.')[0];
                 let basename_ext = 'jpg';//basename.split('.')[1];
 
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + filepath);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_realsr], ' + filepath);
 
                 let upload_path = "/upload_realsr";
                 let output_path = path.join(dir, basename_pre + "_realsr." + basename_ext);
@@ -852,9 +816,9 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
                                     }
                                 }
                             });
-                            Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + cmd + ", pid:" + child.pid);
+                            Common.log('http', 'debug', '[' + ctx.session.sessionId + ']-/api/upload_realsr], ' + cmd + ", pid:" + child.pid);
                         } catch (e) {
-                            Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/upload_realsr], Fail, ' + cmd + ", pid:" + child.pid + ', e:' + e.toString());
+                            Common.log('http', 'debug', '[' + ctx.session.sessionId + ']-/api/upload_realsr], Fail, ' + cmd + ", pid:" + child.pid + ', e:' + e.toString());
                             fs.unlink(progress_path);
                         }
                     } else {
@@ -873,8 +837,6 @@ proxyRouter.all('/api/upload_realsr', async (ctx, next) => {
             }
         })
     })
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -928,8 +890,6 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
         }
     }
 
-    let start = process.uptime() * 1000;
-
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
@@ -966,7 +926,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
 
                 let upload_path = "upload_toon_video";
                 let upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file);
 
                 let progress_path = path.join(dir, token + ".txt");
                 let relative_path = path.join(upload_path, basename_pre + "_cartoon." + basename_ext);
@@ -993,7 +953,7 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
                                 }
                             }
                         });
-                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + cmd + ", pid:" +  child.pid);
+                        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + cmd + ", pid:" +  child.pid);
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon_video], ' + upload_file + ', ' + e.toString());
                     }
@@ -1010,8 +970,6 @@ proxyRouter.all('/api/upload_toon_video', async (ctx, next) => {
             }
         })
     })
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -1065,8 +1023,6 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
         }
     }
 
-    let start = process.uptime() * 1000;
-
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
@@ -1093,7 +1049,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
 
                 let upload_path = "upload_bigmouth";
                 let upload_file = path.join(upload_path, basename);
-                Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file);
 
                 let output_path = path.join(dir, basename_pre + "_bigmouth." + basename_ext);
                 let progress_path = path.join(dir, token + ".txt");
@@ -1117,7 +1073,7 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
                                 }
                             }
                         });
-                        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + cmd + ", pid:" +  child.pid);
+                        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + cmd + ", pid:" +  child.pid);
                     } else {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_bigmouth], ' + upload_file + ', ' + e.toString());
                     }
@@ -1135,9 +1091,6 @@ proxyRouter.all('/api/upload_bigmouth', async (ctx, next) => {
             }
         })
     })
-
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -1237,7 +1190,7 @@ proxyRouter.all('/gallery', async (ctx, next) => {
     }
 
     category_item_count = Math.ceil(24 / categories_real_size);
-    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/gallery], page_item_count:' + category_item_count);
+    Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/gallery], page_item_count:' + category_item_count);
     for(i = 0; i < categories_size; i++) {
         if (use_categories[i]) {
             let item = categories[i];
@@ -1369,8 +1322,6 @@ proxyRouter.all('/api/maser/share_discovery', async (ctx, next) => {
             resolve();
         });
     });
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -1462,7 +1413,7 @@ proxyRouter.all('/api/maser/discovery', async (ctx, next) => {
         }
 
         category_item_count = Math.ceil(page_size / categories_real_size);
-        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/maser/discovery], page_item_count:' + category_item_count);
+        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/maser/discovery], page_item_count:' + category_item_count);
         for(i = 0; i < categories_size; i++) {
             if (use_categories[i]) {
                 let item = categories[i];
@@ -1584,8 +1535,6 @@ proxyRouter.all('/gc', async (ctx, next) => {
     gc();
     // const Heapdump = require('heapdump');
     // Heapdump.writeSnapshot('./heapsnapshot/heapsnapshot-' + Date.now());
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     ctx.body = respond;
 });
@@ -1599,10 +1548,6 @@ proxyRouter.all('/api/search_image', async (ctx, next) => {
             imageUrl:"",
         }
     }
-
-    let start = process.uptime() * 1000;
-    let end = process.uptime() * 1000;
-    respond.time = end - start + 'ms';
 
     // ctx.session.data = new Array(1e7).join('*');
     let form = new formidable.IncomingForm();
@@ -1627,7 +1572,7 @@ proxyRouter.all('/api/search_image', async (ctx, next) => {
             let upload_path = "/upload_search/";
             let upload_file = upload_path + basename;
             respond.data.imageUrl = upload_file;
-            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/search_image], ' + upload_file);
+            Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/search_image], ' + upload_file);
             resolve();
         })
     })
@@ -1652,7 +1597,7 @@ proxyRouter.all('/api/update_phone_info', async (ctx, next) => {
 
     if (!Common.isNull(obj.device_token) && obj.device_token.length > 0) {
         fname = path.join(dir, obj.device_token + ".json");
-        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], ' + fname);
+        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], ' + fname);
         fs.writeFile(fname, ctx.request.rawBody, e => {
             if (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/update_phone_info], e:' + e);

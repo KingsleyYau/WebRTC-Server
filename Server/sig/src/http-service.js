@@ -60,16 +60,19 @@ class HttpService {
             }
             Common.log('http', 'info','[' + ctx.session.sessionId + ']-request,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + ctx.req.method + ', ' + JSON.stringify(ctx.req.headers));
 
+            let start = process.uptime() * 1000;
             // 等待其他中间件处理的异步返回
             await next();
             // 所有中间件处理完成
 
-            let json = JSON.stringify(ctx.response._body);
             try {
-                let desc = (json.length < 2046)?json:json.substring(0, 2045)+'...';
-                Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + desc);
+                let end = process.uptime() * 1000;
+                ctx.response._body.time = end - start + 'ms';
+                let json = JSON.stringify(ctx.response._body);
+                let desc = (json.length < 1024)?json:json.substring(0, 1024)+'...';
+                Common.log('http', 'info','[' + ctx.session.sessionId + ']-response,' + ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + ctx.req.method + ', ' + desc);
             } catch (e) {
-                Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-response, ' +  ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + e.toString());
+                Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-response, ' +  ' (' + ctx.session.count + '), ' + ip + ', ' + ctx.request.url + ', ' + ctx.req.method + ', ' + e.toString());
             }
         });
 
