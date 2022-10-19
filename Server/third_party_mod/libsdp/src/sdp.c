@@ -2308,11 +2308,11 @@ int sdp_description_read(const char *session_desc, struct sdp_session **ret_obj)
 
 			if (media) {
 				ret = sdp_media_attr_add_existing(media, attr);
+				ULOGD("media_attr_add attr:%p, attr->key:%s, attr->value:%s, ret:%d", attr, attr->key, attr->value, ret);
 				if (ret < 0)
 					goto error;
 			} else {
-				ret = sdp_session_attr_add_existing(session,
-								    attr);
+				ret = sdp_session_attr_add_existing(session, attr);
 				if (ret < 0)
 					goto error;
 			}

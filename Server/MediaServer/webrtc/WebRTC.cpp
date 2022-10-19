@@ -57,6 +57,10 @@ private:
 };
 
 static bool gDropAudioBeforeVideo = true;
+static void sdp_log_func(const char *file, int line, int level, const char *buffer) {
+	LogManager::GetLogManager()->Log(file, line, level-1, "%s", buffer);
+}
+
 WebRTC::WebRTC()
 :mClientMutex(KMutex::MutexType_Recursive),
  mParamMutex(KMutex::MutexType_Recursive),
@@ -125,9 +129,14 @@ bool WebRTC::GobalInit(
 		) {
 	bool bFlag = true;
 
-	bFlag &= IceClient::GobalInit(stunServerIp, localIp, useShareSecret, turnUserName, turnPassword, turnShareSecret);
-	bFlag &= DtlsSession::GobalInit(certPath, keyPath);
-	bFlag &= RtpSession::GobalInit();
+	ulog_set_func(mediaserver::sdp_log_func);
+	bFlag = IceClient::GobalInit(stunServerIp, localIp, useShareSecret, turnUserName, turnPassword, turnShareSecret);
+	if (bFlag) {
+		bFlag = DtlsSession::GobalInit(certPath, keyPath);
+	}
+	if (bFlag) {
+		bFlag = RtpSession::GobalInit();
+	}
 
 	if ( !bFlag ) {
 		LogAync(
@@ -212,7 +221,6 @@ bool WebRTC::Start(
 		) {
 	bool bFlag = true;
 
-
 	mClientMutex.lock();
 	if( mRunning ) {
 		Stop();
@@ -223,9 +231,13 @@ bool WebRTC::Start(
 	mIsPull = isPull;
 
 	// Start Modules
-	bFlag &= ParseRemoteSdp(sdp);
-	bFlag &= mIceClient.Start("mediaserver", bControlling);
-	bFlag &= mDtlsSession.Start();
+	bFlag = ParseRemoteSdp(sdp);
+	if (bFlag) {
+		bFlag = mIceClient.Start("mediaserver", bControlling);
+	}
+	if (bFlag) {
+		bFlag = mDtlsSession.Start();
+	}
 
 	if( bFlag ) {
 		// 启动DTLS协商线程

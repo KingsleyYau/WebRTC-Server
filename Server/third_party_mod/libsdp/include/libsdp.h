@@ -49,6 +49,7 @@ extern "C" {
 
 #include <list.h>
 
+#include <ulog.h>
 
 enum sdp_media_type {
 	SDP_MEDIA_TYPE_AUDIO = 0,
@@ -182,7 +183,7 @@ struct sdp_payload {
 	char *fmtp;
 };
 
-#define SDP_MAX_PAYLOAD_TYPE_COUNT 32
+#define SDP_MAX_PAYLOAD_TYPE_COUNT 64
 struct sdp_media {
 	enum sdp_media_type type;
 	char *media_title;
@@ -343,6 +344,8 @@ sdp_rtcp_xr_rtt_report_mode_str(enum sdp_rtcp_xr_rtt_report_mode val);
 
 SDP_API const char *sdp_time_format_str(enum sdp_time_format val);
 
+// Add by Max 2022/10/19
+SDP_API void ulog_set_func(SDP_LOG_FUNC_IMP logImp);
 
 static inline int sdp_time_us_to_npt(uint64_t time_us,
 				     struct sdp_time_npt *time_npt)
