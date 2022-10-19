@@ -597,7 +597,7 @@ bool MediaServer::ReloadLogConfig() {
 			// RTP参数
 			int pli_interval_max = atoi(conf.GetPrivate("RTP", "RTP_PLI_MAX_INTERVAL", "3").c_str());
 			int auto_bitrate = atoi(conf.GetPrivate("RTP", "RTP_AUTO_BITRATE", "1").c_str());
-			int video_min_bitrate = atoi(conf.GetPrivate("RTP", "RTP_MIN_VIDEO_BPS", "2000000").c_str());
+			int video_min_bitrate = atoi(conf.GetPrivate("RTP", "RTP_MIN_VIDEO_BPS", "200000").c_str());
 			int video_max_bitrate = atoi(conf.GetPrivate("RTP", "RTP_MAX_VIDEO_BPS", "1000000").c_str());
 			int rtp_test = atoi(conf.GetPrivate("RTP", "RTP_TEST", "0").c_str());
 			RtpSession::SetGobalParam(pli_interval_max, auto_bitrate, video_min_bitrate, video_max_bitrate, rtp_test);
@@ -1229,7 +1229,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 		LogAync(
 				LOG_ERR,
 				"MediaServer::OnWSOpen( "
-				"event : [Websocket-新连接, 服务器启动中, 断开], "
+				"event : [Websocket-新连接, 服务器未启动, 断开], "
 				"hdl : %p, "
 				"addr : %s, "
 				"connectTime : %lld, "
@@ -1312,7 +1312,7 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 				LOG_ERR,
 				"MediaServer::OnWSClose( "
 				"event : [Websocket-断开, 服务器未启动], "
-				"hdl : %p, "
+				"hdl : %p "
 				")",
 				hdl.lock().get()
 				);
@@ -1628,6 +1628,24 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 						}
 					}
 				} else if ( mExtSetStatusPath.length() > 0 && route == "imRTC/login" ) {
+					string param = "";
+					if ( reqRoot["req_data"].isObject() ) {
+						Json::Value reqData = reqRoot["req_data"];
+						if ( reqData["param"].isString() ) {
+							param = reqData["param"].asString();
+						}
+					}
+					LogAync(
+							LOG_NOTICE,
+							"MediaServer::OnWSMessage( "
+							"event : [Websocket-请求-外部登录], "
+							"hdl : %p, "
+							"param : %u "
+							")",
+							hdl.lock().get(),
+							param.c_str()
+							);
+
 					// Start External Login
 					mWebRTCMap.Lock();
 					WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
