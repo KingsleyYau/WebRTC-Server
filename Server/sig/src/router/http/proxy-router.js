@@ -170,7 +170,7 @@ proxyRouter.all('/get', async (ctx, next) => {
         'hash_user_online_' + user_id
     ).exec().then( (res) => {
         let all = JSON.stringify(res);
-        Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-get], res:' + all);
+        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-get], res:' + all);
         respond.res = res;
     }).catch( (err) => {
         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-get], err:' + err);
@@ -347,7 +347,7 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
 
                 let upload_path = "/upload/";
                 upload_file = upload_path + basename;
-                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_cartoon.jpg");
@@ -389,7 +389,7 @@ proxyRouter.all('/api/upload_toon', async (ctx, next) => {
                     }
                     resolve();
                 });
-                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_toon], ' + cmd + ', file:' + upload_file + ', ' + e.toString());
@@ -483,7 +483,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
 
                 let upload_path = "/upload_seg/";
                 let upload_file = upload_path + basename;
-                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
 
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
@@ -512,7 +512,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     }
                     resolve();
                 });
-                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd + ", pid:" +  child.pid);
+                Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd + ", pid:" +  child.pid);
 
             } catch (e) {
                 Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + e.toString());
@@ -1607,6 +1607,46 @@ proxyRouter.all('/api/update_phone_info', async (ctx, next) => {
 
     ctx.body = respond;
 });
+
+
+
+const ROK_STOP = 'ps -ef | grep "rok.sh" | grep -v grep | awk \'{print $2}\' | xargs -I {} kill -9 {}\;'
+// const ROK_TOOLS = '/Users/max/Documents/Project/Demo/python/pd/input/tmp/rok.sh '
+const ROK_TOOLS = AppConfig.python.sh + 'rok.sh '
+proxyRouter.all('/api/rank_queue', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], body:' + ctx.request.rawBody.toLowerCase());
+    exec.execSync(ROK_STOP);
+    exec.exec(ROK_TOOLS + ' \'' + ctx.request.rawBody + '\'', (err, stdout, stderr) => {
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], stdout:' + stdout);
+    });
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rank_queue_stop', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue_stop], body:' + ctx.request.rawBody.toLowerCase());
+    exec.exec(ROK_STOP, (err, stdout, stderr) => {
+        Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue_stop], stdout:' + stdout);
+        respond.errmsg = stdout;
+    });
+
+    ctx.body = respond;
+});
+
 
 proxyRouter.get('/', async (ctx, next) => {
     ctx.status = 302;
