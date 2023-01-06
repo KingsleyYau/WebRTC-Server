@@ -1432,6 +1432,84 @@ proxyRouter.all('/api/maser/discovery', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.all('/api/maser/movie_category', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    let categories = listDir(Common.AppGlobalVar.rootPath + "/static/upload_movie");
+    respond.data.datalist = categories;
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/maser/movie', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 24;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+    category = '';
+    if (!Common.isNull(params.category)) {
+        category = params.category;
+    }
+
+    if (category.length == 0) {
+        let categories = listDir(Common.AppGlobalVar.rootPath + "/static/upload_movie");
+        let categories_size = categories.length;
+        let categories_real_size = categories_size;
+
+        let category_item_count = Math.ceil(page_size / categories_size);
+        let use_categories = [];
+        for(i = 0; i < categories_size; i++) {
+            let item = categories[i];
+            let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/upload_movie/" + item, "/upload_movie/" + item, page, category_item_count);
+            if (items.length > 0) {
+                use_categories.push(true);
+            } else {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/maser/movie], ' + item + ' is empty.');
+                use_categories.push(false);
+                categories_real_size--;
+            }
+        }
+
+        category_item_count = Math.ceil(page_size / categories_real_size);
+        Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/maser/movie], page_item_count:' + category_item_count);
+        for(i = 0; i < categories_size; i++) {
+            if (use_categories[i]) {
+                let item = categories[i];
+                let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/upload_movie/" + item, "/upload_movie/" + item, page, category_item_count);
+                respond.data.datalist = respond.data.datalist.concat(items);
+            }
+        }
+    } else {
+        let item = category;
+        let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/upload_movie/" + item, "/upload_movie/" + item, page, page_size);
+        respond.data.datalist = respond.data.datalist.concat(items);
+    }
+    respond.data.datasize = respond.data.datalist.length;
+    respond.data.datalist = shuffle(respond.data.datalist);
+
+    ctx.body = respond;
+});
+
 proxyRouter.all('/api/maser/dubnitskiy', async (ctx, next) => {
     let respond = {
         errno: 0,
@@ -1621,7 +1699,7 @@ proxyRouter.all('/api/rank_queue', async (ctx, next) => {
         data:{
         }
     }
-    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], body:' + ctx.request.rawBody.toLowerCase());
+    Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], body:' + ctx.request.rawBody);
     exec.execSync(ROK_STOP);
     exec.exec(ROK_TOOLS + ' \'' + ctx.request.rawBody + '\'', (err, stdout, stderr) => {
         Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], stdout:' + stdout);
