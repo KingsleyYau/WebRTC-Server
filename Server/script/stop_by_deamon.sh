@@ -1,5 +1,5 @@
 #!/bin/sh
-# Start mediaserver shell
+# Stop mediaserver shell
 # Author: Max.Chiu
 # Date: 2019/12/11
 

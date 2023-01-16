@@ -53,6 +53,11 @@ function package_tar {
 	mkdir -p $DEST/var/ || return 1
 	#cp -rf conf/$ENV/var $DEST/ || return 1
 	
+	# Replace Custom Script
+	if [ -d "conf/$ENV/script" ]; then
+	  cp -rf conf/$ENV/script $DEST/ || return 1
+	fi
+	
 	# Clean index files
 	find $TMP/$ENV -name ".DS_Store" | xargs rm -rf || return 1
 	

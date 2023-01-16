@@ -617,11 +617,18 @@ bool MediaServer::IsRunning() {
 	return mRunning;
 }
 
-bool MediaServer::Stop() {
+bool MediaServer::Stop(int signal) {
+	pid_t pid = getpid();
 	LogAync(
 			LOG_ALERT,
-			"MediaServer::Stop("
-			")"
+			"MediaServer::Stop( "
+			"signal : %d, "
+			"pid : %d, "
+			"mPidFilePath : %s "
+			")",
+			signal,
+			pid,
+			mPidFilePath.c_str()
 			);
 
 	mServerMutex.lock();
@@ -632,20 +639,31 @@ bool MediaServer::Stop() {
 
 	mServerMutex.unlock();
 
-	if ( mPidFilePath.length() > 0 ) {
-		int ret = remove(mPidFilePath.c_str());
-		mPidFilePath = "";
-	}
-
 	// 停止监听socket
 	mAsyncIOServer.Stop();
 	// 停止监听Websocket
+	mWSServer.StopListening();
+
+	// 断开所有Websocket连接
+	mWebRTCMap.Lock();
+	for (WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
+		MediaClient *client = itr->second;
+		if ( client->connected ) {
+			mWSServer.Close(client->hdl);
+			client->connected = false;
+		}
+	}
+	mWebRTCMap.Unlock();
+
+	// 停止监听Websocket
 	mWSServer.Stop();
+
 	// 停止定时任务
 	mStateThread.Stop();
 	mTimeoutCheckThread.Stop();
 	mExtRequestThread.Stop();
 	mRecycleThread.Stop();
+
 	// 停止子进程监听循环
 	MainLoop::GetMainLoop()->Stop();
 
@@ -659,6 +677,11 @@ bool MediaServer::Stop() {
 
 	LogManager::GetLogManager()->Stop();
 
+	if ( mPidFilePath.length() > 0 ) {
+		int ret = remove(mPidFilePath.c_str());
+		mPidFilePath = "";
+	}
+
 	return true;
 }
 
@@ -670,18 +693,11 @@ void MediaServer::Exit(int signal) {
 			LOG_ALERT,
 			"MediaServer::Exit( "
 			"signal : %d, "
-			"pid : %d, "
-			"mPidFilePath : %s "
+			"pid : %d "
 			")",
 			signal,
-			pid,
-			mPidFilePath.c_str()
+			pid
 			);
-
-	if ( mPidFilePath.length() > 0 ) {
-		int ret = remove(mPidFilePath.c_str());
-		mPidFilePath = "";
-	}
 }
 
 /***************************** 定时任务 **************************************/
@@ -757,28 +773,52 @@ void MediaServer::ExtRequestHandle() {
 	while( IsRunning() ) {
 		bFlag = HandleExtForceSync(&httpClient);
 
-		ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
-		if ( item ) {
-			switch (item->type) {
-			case ExtRequestTypeLogin:{
-				HandleExtLogin(&httpClient, item);
-			}break;
-			case ExtRequestTypeLogout:{
-				HandleExtLogout(&httpClient, item);
-			}break;
-			default:break;
-			}
+		if (bFlag) {
+			miExtSyncStatusTime = 1;
+			ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
+			if (item) {
+				switch (item->type) {
+				case ExtRequestTypeLogin:{
+					HandleExtLogin(&httpClient, item);
+				}break;
+				case ExtRequestTypeLogout:{
+					HandleExtLogout(&httpClient, item);
+				}break;
+				default:break;
+				}
 
-			delete item;
+				delete item;
+			} else {
+				sleep(1);
+			}
 		} else {
 			sleep(miExtSyncStatusTime);
-			if ( !bFlag ) {
-				miExtSyncStatusTime++;
-				miExtSyncStatusTime = (miExtSyncStatusTime >= miExtSyncStatusMaxTime)?miExtSyncStatusMaxTime:miExtSyncStatusTime;
-			} else {
-				miExtSyncStatusTime = 1;
-			}
+			miExtSyncStatusTime++;
+			miExtSyncStatusTime = MIN(miExtSyncStatusTime, miExtSyncStatusMaxTime);
 		}
+
+//		ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
+//		if ( item ) {
+//			switch (item->type) {
+//			case ExtRequestTypeLogin:{
+//				HandleExtLogin(&httpClient, item);
+//			}break;
+//			case ExtRequestTypeLogout:{
+//				HandleExtLogout(&httpClient, item);
+//			}break;
+//			default:break;
+//			}
+//
+//			delete item;
+//		} else {
+//			sleep(miExtSyncStatusTime);
+//			if ( !bFlag ) {
+//				miExtSyncStatusTime++;
+//				miExtSyncStatusTime = (miExtSyncStatusTime >= miExtSyncStatusMaxTime)?miExtSyncStatusMaxTime:miExtSyncStatusTime;
+//			} else {
+//				miExtSyncStatusTime = 1;
+//			}
+//		}
 	}
 }
 
@@ -1745,16 +1785,6 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					hdl.lock().get(),
 					str.c_str()
 					);
-//			LogAync(
-//					LOG_WARNING,
-//					"MediaServer::OnWSMessage( "
-//					"event : [Websocket-请求出错], "
-//					"hdl : %p, "
-//					"res : %s "
-//					")",
-//					hdl.lock().get(),
-//					res.c_str()
-//					);
 		}
 
 		mWSServer.Disconnect(hdl);
@@ -1774,7 +1804,7 @@ void MediaServer::OnForkParent() {
 void MediaServer::OnForkChild() {
 //	// 停止监听Websocket
 //	mWSServer.OnForkChild();
-	// 停止监听socket
+	// 子进程停止监听socket
 	mAsyncIOServer.Close();
 }
 

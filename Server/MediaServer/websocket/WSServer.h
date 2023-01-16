@@ -46,6 +46,7 @@ public:
 
 public:
 	bool Start(int port, int maxConnection = 100);
+	void StopListening();
 	void Stop();
 
 	void OnForkBefore();
@@ -54,6 +55,7 @@ public:
 
 	bool SendText(connection_hdl hdl, const string& str);
 	void Disconnect(connection_hdl hdl);
+	void Close(connection_hdl hdl);
 
 	void SetCallback(WSServerCallback *callback);
 

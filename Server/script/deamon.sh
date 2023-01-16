@@ -39,17 +39,49 @@ function create_mail {
 
 
 IS_REBOOT=0
-MEDIASERVER_PID=`cat ./run/mediaserver.pid 2>/dev/null`
-TURNSERVER_PID=`cat ./run/turnserver.pid 2>/dev/null`
+#MEDIASERVER_PID=`cat ./run/mediaserver.pid 2>/dev/null`
+#TURNSERVER_PID=`cat ./run/turnserver.pid 2>/dev/null`
+MEDIASERVER_PID=`ps -ef | grep "mediaserver -f" | grep "mediaserver.config" | awk '{print $2}'`
+TURNSERVER_PID=`ps -ef | grep "turnserver -v -c" | grep "turnserver.conf" | awk '{print $2}'`
 
 print_log "#################################################################################### "
-export SERVER="127.0.0.1"
+# Show server status
+print_log "-------------------- [\033[32mnetstat\033[0m] --------------------"
+WSS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9081\|9083\|9082' | grep 'ESTABLISHED' | wc -l )
+WS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9881\|9883\|9981' | grep 'ESTABLISHED' | wc -l )
+print_log "WS:$WS_SOCKET WSS:$WSS_SOCKET " 
+TCP_SOCKET=$(netstat -anpt 2>/dev/null | grep 'turnserver' | wc -l)
+print_log "TCP Socket: $TCP_SOCKET" 
+UDP_SOCKET=$(netstat -anpu 2>/dev/null | grep 'mediaserver\|turnserver' | wc -l)
+print_log "UDP Socket: $UDP_SOCKET" 
+FFMPEG_SOCKET=$(netstat -anptu 2>/dev/null | grep 'ffmpeg' | wc -l)
+print_log "FFMPEG Socket: $FFMPEG_SOCKET" 
+TIME_WAIT=$(netstat -antlpu 2>/dev/null | grep -c 'TIME_WAIT')
+print_log "TIME_WAIT: $TIME_WAIT" 
+
+TOP_HEAD=$(top -b -n 3 | grep -A 5 "load average" | tail -n 6)
+SERVERS_STATUS=$(top -b -n 1 | grep 'turnserver\|mediaserver')
+print_log "-------------------- [\033[32mtop\033[0m] --------------------\n$TOP_HEAD\n\n$SERVERS_STATUS"
+
+
+print_log "-------------------- [\033[32mcheck server status\033[0m] --------------------"
+# Check Server Run Time
+MEDIASERVER_RUN_TIME=`ps -p $MEDIASERVER_PID -o etimes | grep -v ELAPSED | awk '{print $1}'`
+
+if [ $((MEDIASERVER_RUN_TIME)) -lt 300 ];then
+  print_log "Mediaserver is just started before $MEDIASERVER_RUN_TIME seconds, skip checks."
+  exit
+fi
+
 
 # Check server port status
+export SERVER="127.0.0.1"
 export TEST_REQ="{\"id\":0,\"route\":\"imRTC/sendPing\"}"
 export TEST_RES="{\"data\":null,\"errmsg\":\"\",\"errno\":0,\"id\":0,\"route\":\"imRTC/sendPing\"}"
 
-if [ $(($is_reboot)) == 0 ]; then
+
+# Check Mediaserver Server Websocket Port
+if [ $(($IS_REBOOT)) == 0 ]; then
   i=0;
   timeout=10;
   for ((i=0; i<3; i++))
@@ -70,6 +102,8 @@ if [ $(($is_reboot)) == 0 ]; then
   fi
 fi
 
+
+# Check Turn Server
 TURN_CONNECT=$(bash -c 'cat < /dev/null > /dev/tcp/${SERVER}/3478' 2>&1 | grep -v connect)
 if [ "$TURN_CONNECT" == "" ];then
   print_log "CHECK_TURN:[\033[32mOK\033[0m]"
@@ -79,28 +113,7 @@ else
 fi
 
 
-# Show server status
-print_log "-------------------- [\033[32mnetstat\033[0m] --------------------"
-WSS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9081\|9083\|9082' | grep 'ESTABLISHED' | wc -l )
-WS_SOCKET=$(netstat -anpt 2>/dev/null | grep '9881\|9883\|9981' | grep 'ESTABLISHED' | wc -l )
-print_log "WS:$WS_SOCKET WSS:$WSS_SOCKET " 
-TCP_SOCKET=$(netstat -anpt 2>/dev/null | grep 'turnserver' | wc -l)
-print_log "TCP Socket: $TCP_SOCKET" 
-UDP_SOCKET=$(netstat -anpu 2>/dev/null | grep 'mediaserver\|turnserver' | wc -l)
-print_log "UDP Socket: $UDP_SOCKET" 
-FFMPEG_SOCKET=$(netstat -anptu 2>/dev/null | grep 'ffmpeg' | wc -l)
-print_log "FFMPEG Socket: $FFMPEG_SOCKET" 
-TIME_WAIT=$(netstat -antlpu 2>/dev/null | grep -c 'TIME_WAIT')
-print_log "TIME_WAIT: $TIME_WAIT" 
-
-TOP_HEAD=$(top -b -n 3 | grep -A 5 "load average" | tail -n 5)
-SERVERS_STATUS=$(top -b -n 1 | grep 'turnserver\|mediaserver')
-print_log "-------------------- [\033[32mtop\033[0m] --------------------\n$TOP_HEAD\n\n$SERVERS_STATUS"
-
-
 # Reboot if needed
-#IS_REBOOT=1
-#echo "is_reboot: $is_reboot"
 if [ $(($IS_REBOOT)) -gt 0 ]; then
   REBOOT_TIME=$(date +%Y-%m-%d-%H-%M-%S)
   # print log

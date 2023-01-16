@@ -81,6 +81,7 @@ bool WSServer::Start(int port, int maxConnection) {
     	mServer.init_asio();
     	mRunning = true;
 
+    	// Set listen socket reuse
     	mServer.set_reuse_addr(true);
     	mServer.set_listen_backlog(maxConnection);
 
@@ -104,7 +105,7 @@ bool WSServer::Start(int port, int maxConnection) {
 
     } catch (websocketpp::exception const & e) {
     	LogAync(
-    			LOG_WARNING,
+    			LOG_ALERT,
     			"WSServer::Start( "
     			"[Exception], "
     			"e : %s "
@@ -113,9 +114,10 @@ bool WSServer::Start(int port, int maxConnection) {
     			);
     } catch (...) {
     	LogAync(
-    			LOG_WARNING,
+    			LOG_ALERT,
     			"WSServer::Start( "
-    			"[Unknow Exception] "
+    			"[Exception], "
+				"Unknow "
     			")"
     			);
     }
@@ -167,6 +169,42 @@ bool WSServer::Start(int port, int maxConnection) {
 	return bFlag;
 }
 
+void WSServer::StopListening() {
+	LogAync(
+			LOG_INFO,
+			"WSServer::StopListening("
+			")"
+			);
+
+	mServerMutex.lock();
+
+	if ( mRunning ) {
+		if( mServer.is_listening() ) {
+		    try {
+		    	mServer.stop_listening();
+		    } catch (websocketpp::exception const & e) {
+		    	LogAync(
+		    			LOG_INFO,
+		    			"WSServer::StopListening( "
+		    			"[Exception], "
+		    			"e : %s "
+		    			")",
+						e.what()
+		    			);
+		    }
+		}
+	}
+
+	mServerMutex.unlock();
+
+	LogAync(
+			LOG_INFO,
+			"WSServer::StopListening( "
+			"[OK] "
+			")"
+			);
+}
+
 void WSServer::Stop() {
 	LogAync(
 			LOG_INFO,
@@ -178,20 +216,20 @@ void WSServer::Stop() {
 
 	if ( mRunning ) {
 		mRunning = false;
-		if( mServer.is_listening() ) {
-		    try {
-		    	mServer.stop_listening();
-		    } catch (websocketpp::exception const & e) {
-		    	LogAync(
-		    			LOG_INFO,
-		    			"WSServer::Stop( "
-		    			"[Exception], "
-		    			"e : %s "
-		    			")",
-						e.what()
-		    			);
-		    }
-		}
+//		if( mServer.is_listening() ) {
+//		    try {
+//		    	mServer.stop_listening();
+//		    } catch (websocketpp::exception const & e) {
+//		    	LogAync(
+//		    			LOG_INFO,
+//		    			"WSServer::Stop( "
+//		    			"[Exception], "
+//		    			"e : %s "
+//		    			")",
+//						e.what()
+//		    			);
+//		    }
+//		}
 		/**
 		 * Must be call after mServer.init_asio()
 		 */
@@ -298,6 +336,32 @@ void WSServer::Disconnect(connection_hdl hdl) {
 	LogAync(
 			LOG_DEBUG,
 			"WSServer::Disconnect( "
+			"[Finish], "
+			"hdl : %p, "
+			"addr : %s "
+			")",
+			hdl.lock().get(),
+			conn->get_remote_endpoint().c_str()
+			);
+}
+
+void WSServer::Close(connection_hdl hdl) {
+	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
+	LogAync(
+			LOG_INFO,
+			"WSServer::Close( "
+			"hdl : %p, "
+			"addr : %s "
+			")",
+			hdl.lock().get(),
+			conn->get_remote_endpoint().c_str()
+			);
+
+	conn->close_without_reason();
+
+	LogAync(
+			LOG_DEBUG,
+			"WSServer::Close( "
 			"[Finish], "
 			"hdl : %p, "
 			"addr : %s "

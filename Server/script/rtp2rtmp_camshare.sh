@@ -7,7 +7,7 @@ APP_DIR=$(dirname $(readlink -f "$0"))/..
 FFMPEG=$APP_DIR/bin/ffmpeg
 
 function Usage {
-	echo "Usage : ./rtp2rtmp.sh rtp.sdp rtmp://192.168.88.17:19351/live/max0"
+  echo "Usage : ./rtp2rtmp.sh rtp.sdp rtmp://192.168.88.17:19351/live/max0"
 }
 
 SDP_FILE=""
@@ -62,7 +62,8 @@ then
           -reorder_queue_size 2048 \
           -max_delay 3000000 \
           -i $SDP_FILE \
-          -vcodec libx264 -preset ultrafast -profile:v baseline -level 3.0 -g 15 \
+          -r 8 \
+          -vcodec libx264 -preset ultrafast -profile:v baseline -level 3.0 -g 8 \
           -vf "scale=480:'trunc(ow*ih/iw/2)*2',crop=iw:'if(gt(ih,360),360,ih)':0:'if(gt(ih,360),(360-ih)/2,0)',pad=iw:iw*3/4:0:(oh-ih)/2" \
           -an \
           -f flv $RTMP_URL \

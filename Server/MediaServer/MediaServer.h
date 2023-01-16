@@ -10,6 +10,7 @@
 #define MEDIASERVER_H_
 
 #include <uuid/uuid.h>
+#include <signal.h>
 
 #include <Version.h>
 
@@ -173,7 +174,7 @@ public:
 	/**
 	 * 停止WebRTC媒体网关服务
 	 */
-	bool Stop();
+	bool Stop(int signal = SIGQUIT);
 	/**
 	 * 是否正在运行
 	 */

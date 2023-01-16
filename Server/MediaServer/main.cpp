@@ -133,17 +133,28 @@ void SignalFunc(int signal) {
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get Exit Signal, signal : %d )", signal
 				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
 		gMediaServer.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
-	default:{
+	case SIGKILL:
+	case SIGBUS:
+	case SIGSEGV:{
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get Error Signal, signal : %d )", signal
 				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
 		gMediaServer.Exit(signal);
-		MainLoop::GetMainLoop()->Exit(SIGTERM);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		exit(0);
+	}break;
+	default:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Other Signal, signal : %d )", signal
+				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		gMediaServer.Exit(signal);
+		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	}
 }
