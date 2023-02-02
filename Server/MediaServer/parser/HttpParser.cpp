@@ -27,27 +27,14 @@ namespace mediaserver {
 #define HTTP_HEADER_CONTENTTYPE_URLENCODED "application/x-www-form-urlencoded"
 #define HTTP_HEADER_AUTH "Authorization"
 
-HttpParser::HttpParser() {
+HttpParser::HttpParser():mClientMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
-	mHttpType = UNKNOW;
-	mRawFirstLine = "";
-	mPath = "";
-	miContentLength = -1;
-	mContentType = "";
-
-	mState = HttpState_UnKnow;
-	mpCallback = NULL;
-
 	mpBody = NULL;
-	miCurContentIndex = 0;
+	Reset();
 }
 
 HttpParser::~HttpParser() {
 	// TODO Auto-generated destructor stub
-	if( mpBody != NULL ) {
-		delete[] mpBody;
-		mpBody = NULL;
-	}
 }
 
 void HttpParser::SetCallback(HttpParserCallback* callback) {
@@ -57,10 +44,10 @@ void HttpParser::SetCallback(HttpParserCallback* callback) {
 int HttpParser::ParseData(char* buffer, int len) {
 	int ret = 0;
 	int last = len;
-	bool bContinue = true;
 
 	Lock();
-	while( bContinue ) {
+	mbContinue = true;
+	while( mbContinue ) {
 		switch( mState ) {
 		case HttpState_UnKnow : {
 			int lineNumber = 0;
@@ -72,7 +59,7 @@ int HttpParser::ParseData(char* buffer, int len) {
 			const char* header = buffer;
 			const char* sepHeader = strstr(buffer, HTTP_HEADER_SEP);
 			const char* sep = NULL;
-			if( sepHeader ) {
+			if (sepHeader) {
 				// 接收头部完成
 				mState = HttpState_Header;
 
@@ -80,8 +67,8 @@ int HttpParser::ParseData(char* buffer, int len) {
 				ret += sepHeader - buffer + strlen(HTTP_HEADER_SEP);
 
 				// Parse HTTP header line separator
-				while( true ) {
-					if( (sep = strstr(header, HTTP_LINE_SEP)) && (sep != (sepHeader + 2)) ) {
+				while (true) {
+					if ((sep = strstr(header, HTTP_LINE_SEP)) && (sep != (sepHeader + 2))) {
 						lineLen = sep - header;
 						if( lineLen < (int)(sizeof(line) - 1) ) {
 							memcpy(line, header, lineLen);
@@ -106,41 +93,51 @@ int HttpParser::ParseData(char* buffer, int len) {
 				}
 			}
 
-			if( mState == HttpState_Header) {
+			if (mState == HttpState_Header) {
 				// 解析头部完成
 				last = len - ret;
-				if( bFlag ) {
+				if (bFlag) {
 					// 解析第一行完成
 					if( mpCallback ) {
 						mpCallback->OnHttpParserHeader(this);
+					}
+					// 没有Content-Length, 重置解析
+					if (miContentLength == 0) {
+						Reset();
 					}
 				} else {
 					// 解析第一行错误
 					if( mpCallback ) {
 						mpCallback->OnHttpParserError(this);
 					}
+					Reset();
 				}
-			} else if( len > HTTP_URL_MAX_PATH ) {
+			} else if (len > HTTP_URL_MAX_PATH) {
 				// 头部超过限制 HTTP_URL_MAX_PATH
 				if( mpCallback ) {
 					mpCallback->OnHttpParserError(this);
 				}
+				Reset();
 			} else {
 				// 数据不够, 继续收数据
-				bContinue = false;
+				mbContinue = false;
 			}
 		}break;
 		case HttpState_Header:{
-			bContinue = false;
+			mbContinue = false;
 			// 接收头部完成, 继续接收body
-			if( miContentLength > 0 ) {
-				if( !mpBody ) {
+			if (miContentLength > 0) {
+				if (miCurContentIndex == 0) {
+					if (mpBody) {
+						delete[] mpBody;
+						mpBody = NULL;
+					}
 					mpBody = new char[miContentLength + 1];
 					memset(mpBody, '\0', miContentLength + 1);
 				}
 
 				int readLength = MIN(last, miContentLength - miCurContentIndex);
-				if( readLength > 0 ) {
+				if (readLength > 0) {
 					memcpy(mpBody + miCurContentIndex, buffer + ret, readLength);
 					miCurContentIndex += readLength;
 					ret += readLength;
@@ -153,32 +150,35 @@ int HttpParser::ParseData(char* buffer, int len) {
 						if( mpCallback ) {
 							mpCallback->OnHttpParserBody(this);
 						}
-					}
-				} else {
-					if( mpCallback ) {
-						mpCallback->OnHttpParserError(this);
+
+						Reset();
 					}
 				}
 
 			} else {
 				// 没有Content-Length的请求不解析, 并且数据过大
-				if ( ret > HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH ) {
-					if( mpCallback ) {
-						mpCallback->OnHttpParserError(this);
-					}
+//				if (ret > HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH) {
+//					if( mpCallback ) {
+//						mpCallback->OnHttpParserError(this);
+//					}
+//				}
+//				ret += last;
+
+				if( mpCallback ) {
+					mpCallback->OnHttpParserError(this);
 				}
-				ret += last;
+				Reset();
 			}
 		}break;
 		case HttpState_Body:{
-			bContinue = false;
+			mbContinue = false;
 			// 接收body完成还有数据, 出错
 			if( mpCallback ) {
 				mpCallback->OnHttpParserError(this);
 			}
 		}break;
 		default:{
-			bContinue = false;
+			mbContinue = false;
 			break;
 		}
 		}
@@ -186,6 +186,26 @@ int HttpParser::ParseData(char* buffer, int len) {
 	Unlock();
 
 	return ret;
+}
+
+void HttpParser::Reset() {
+	Lock();
+	mHttpType = UNKNOW;
+	mRawFirstLine = "";
+	mPath = "";
+	miContentLength = 0;
+	miCurContentIndex = 0;
+	mContentType = "";
+	mState = HttpState_UnKnow;
+	mbContinue = false;
+
+	if( mpBody != NULL ) {
+		delete[] mpBody;
+		mpBody = NULL;
+	}
+	Unlock();
+
+	DataParser::Reset();
 }
 
 string HttpParser::GetParam(const string& key)  {

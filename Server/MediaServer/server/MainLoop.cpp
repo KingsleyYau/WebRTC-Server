@@ -95,8 +95,10 @@ bool MainLoop::Start() {
 void MainLoop::Stop(int sign_no) {
 	LogAync(
 			LOG_INFO,
-			"MainLoop::Stop("
-			")"
+			"MainLoop::Stop( "
+			"signal : %d "
+			")",
+			sign_no
 			);
 
 	mRunningMutex.lock();
@@ -109,6 +111,11 @@ void MainLoop::Stop(int sign_no) {
 		mCallbackMap.Lock();
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 			MainLoopObj *obj = itr->second;
+			LogAyncUnSafe(
+					LOG_INFO, "MainLoop::Stop( kill -%d %d )",
+					signal,
+					obj->pid
+					);
 			kill(obj->pid, sign_no);
 			delete obj;
 			mCallbackMap.Erase(itr++);
@@ -130,13 +137,19 @@ void MainLoop::Exit(int signal) {
 	LogAyncUnSafe(
 			LOG_INFO, "MainLoop::Exit( signal : %d )", signal
 			);
-	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
+	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
 		MainLoopObj *obj = itr->second;
 		if ( !obj->isExit ) {
+			LogAyncUnSafe(
+					LOG_INFO, "MainLoop::Exit( kill -%d %d )",
+					signal,
+					obj->pid
+					);
 			kill(obj->pid, signal);
-		} else {
-			itr++;
 		}
+//		else {
+//			itr++;
+//		}
 	}
 }
 

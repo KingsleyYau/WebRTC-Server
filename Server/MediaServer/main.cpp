@@ -146,7 +146,13 @@ void SignalFunc(int signal) {
 		MainLoop::GetMainLoop()->Exit(SIGKILL);
 		gMediaServer.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();
-		exit(0);
+		/**
+		 * 不能调用exit()
+		 * 因为收到signal会进行中断，其他线程可能正在malloc()/free()，进行内核态的锁
+		 * 而调用exit()=>__run_exit_handlers()=>OPENSSL_CLEANUP()=>free()，则会导致死锁
+		 * exit()会写入缓冲区到内核, _exit()不会
+		 */
+		_exit(1);
 	}break;
 	default:{
 		LogAyncUnSafe(

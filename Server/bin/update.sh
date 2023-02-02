@@ -9,6 +9,7 @@ if [ ! "$1" == "" ]
 then
   DEMO=$1
 fi
+echo "# Updating(DEMO=$DEMO)"
 
 USERNAME=mediaserver
 CUR_DIR=$(dirname $(readlink -f "$0"))
@@ -29,8 +30,10 @@ echo -e "############## Updating mediaserver [\033[32mOK\033[0m] ##############"
 
 if [ "$DEMO" == 0 ]
 then
-  sudo yum install -y gdb
-  su -l mediaserver -c $DEST_PATH/script/restart_all_service.sh
+  #sudo yum install -y gdb
+  chown -R mediaserver:mediaserver $DEST_PATH || exit 1
+  su mediaserver -c $DEST_PATH/script/restart_all_service.sh
 else
   $DEST_PATH/script/restart_all_service.sh
+  $DEST_PATH/script/restart_test_service.sh
 fi

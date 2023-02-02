@@ -446,6 +446,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     crop_face = 0;
                 }
 
+                let align_face = 0;
+                if( fields.align_face == "1" ) {
+                    align_face = 1;
+                }
+
                 let keep_bg = 0;
                 if( fields.keep_bg == "1" ) {
                     keep_bg = 1;
@@ -488,7 +493,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
@@ -1701,9 +1706,20 @@ proxyRouter.all('/api/rank_queue', async (ctx, next) => {
     }
     Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], body:' + ctx.request.rawBody);
     exec.execSync(ROK_STOP);
+    await new Promise(function(resolve, reject) {
+        exec.exec(ROK_STOP, (err, stdout, stderr) => {
+            Common.log('http', 'info', '[' + ctx.session.sessionId + ']-/api/rank_queue], stdout:' + stdout);
+            respond.data = stdout;
+            resolve();
+        });
+    });
+    // await new Promise(function(resolve, reject) {
     exec.exec(ROK_TOOLS + ' \'' + ctx.request.rawBody + '\'', (err, stdout, stderr) => {
         Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rank_queue], stdout:' + stdout);
+        // respond.data = stdout;
+        // resolve();
     });
+    // });
 
     ctx.body = respond;
 });
@@ -1728,7 +1744,7 @@ proxyRouter.all('/api/rank_queue_stop', async (ctx, next) => {
 
 proxyRouter.get('/', async (ctx, next) => {
     ctx.status = 302;
-    ctx.redirect('/h5games/index.html');
+    ctx.redirect('/maser/index.html');
 });
 
 module.exports = proxyRouter;

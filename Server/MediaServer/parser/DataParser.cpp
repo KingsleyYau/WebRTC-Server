@@ -22,9 +22,15 @@ void DataParser::SetNextParser(IDataParser *parser) {
 }
 
 int DataParser::ParseData(char* buffer, int len) {
-	if( mParser != NULL ) {
+	if (mParser != NULL) {
 		return mParser->ParseData(buffer, len);
 	}
 	return len;
+}
+
+void DataParser::Reset() {
+	if (mParser != NULL) {
+		return mParser->Reset();
+	}
 }
 }

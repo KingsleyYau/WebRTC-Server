@@ -151,7 +151,7 @@ bool AsyncIOServer::Start(
 void AsyncIOServer::Stop() {
 	LogAync(
 			LOG_INFO,
-			"AsyncIOServer::Stop( "
+			"AsyncIOServer::Stop("
 			")"
 			);
 
@@ -580,24 +580,29 @@ bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 	if( client->recvHandleCount == 0 && client->disconnected && !client->closed ) {
 		client->closed = true;
 		Socket *socket = (Socket *)client->socket;
-		LogAync(
-				LOG_DEBUG,
-				"AsyncIOServer::ClientCloseIfNeed( "
-				"client : %p, "
-				"ip : %s, "
-				"port : %u "
-				")",
-				client,
-				socket->ip.c_str(),
-				socket->port
-				);
+		if (socket) {
+			LogAync(
+					LOG_DEBUG,
+					"AsyncIOServer::ClientCloseIfNeed( "
+					"client : %p, "
+					"ip : %s, "
+					"port : %u "
+					")",
+					client,
+					socket->ip.c_str(),
+					socket->port
+					);
+		}
 
 		if( mpAsyncIOServerCallback ) {
 			mpAsyncIOServerCallback->OnDisconnect(client);
 		}
 
-		// 关闭Socket
-		mTcpServer.Close(socket);
+		if (socket) {
+			// 关闭Socket
+			mTcpServer.Close(socket);
+			client->socket = NULL;
+		}
 
 		bFlag = true;
 	}

@@ -165,8 +165,6 @@ RtpSession::RtpSession() :
 	video_packet_history_.SetStorePacketsStatus(RtpPacketHistory::StorageMode::kStoreAndCull, kMinSendSidePacketHistorySize);
 	audio_packet_history_.SetStorePacketsStatus(RtpPacketHistory::StorageMode::kStoreAndCull, kMinSendSidePacketHistorySize);
 
-	rtpPktCache.IdentifyExtensions(mVideoExtensionMap);
-
 	Reset();
 }
 
@@ -537,16 +535,17 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 				bFlag = (status == srtp_err_status_ok);
 				if (bFlag) {
 //					RtpPacket rtpPkt;
-//					RtpPacketReceived rtpPkt(&mVideoExtensionMap);
-					rtpPktCache.Clear();
+					RtpPacketReceived rtpPkt(&mVideoExtensionMap);
+//					rtpPktCache.Clear();
+//					rtpPktCache.IdentifyExtensions(mVideoExtensionMap);
 					// 到达时间
-					rtpPktCache.set_arrival_time_ms(recvTime);
+					rtpPkt.set_arrival_time_ms(recvTime);
 					if (IsVideoPkt(ssrc)) {
 						// 采集频率
-						rtpPktCache.set_payload_type_frequency(kVideoPayloadTypeFrequency);
+						rtpPkt.set_payload_type_frequency(kVideoPayloadTypeFrequency);
 
 					}
-					bool bFlag = rtpPktCache.Parse((const uint8_t *) pkt, pktSize);
+					bool bFlag = rtpPkt.Parse((const uint8_t *) pkt, pktSize);
 					if (bFlag) {
 						if (IsVideoPkt(ssrc)) {
 							// 标记首个视频帧
@@ -568,7 +567,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 //								recvTime, pktSize,
 //								rtpPkt.marker_ ? ", [Mark] " : " ");
 						RTPHeader header;
-						rtpPktCache.GetHeader(&header);
+						rtpPkt.GetHeader(&header);
 						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
 								"this : %p, "
 								"[%s], "
@@ -585,19 +584,19 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								"%s"
 								")", this, PktTypeDesc(header.ssrc).c_str(),
 								header.ssrc, header.ssrc,
-								rtpPktCache.IsExtensionPacket(),
-								rtpPktCache.IsPadding(),
+								rtpPkt.IsExtensionPacket(),
+								rtpPkt.IsPadding(),
 								header.sequenceNumber,
 								header.timestamp,
 								header.extension.GetAbsoluteSendTimestamp().ms(),
 								recvTime,
-								rtpPktCache.payload_type_frequency(),
-								rtpPktCache.payload_size(),
-								rtpPktCache.padding_size(),
+								rtpPkt.payload_type_frequency(),
+								rtpPkt.payload_size(),
+								rtpPkt.padding_size(),
 								header.markerBit ? ", [Mark] " : " ");
 						if (bFlag) {
 							// 更新媒体流信息
-							UpdateStreamInfo(&rtpPktCache, recvTime, header);
+							UpdateStreamInfo(&rtpPkt, recvTime, header);
 						}
 					} else {
 						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
@@ -614,6 +613,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								ssrc, h->x, seq, ts, recvTime, size,
 								h->m ? ", [Mark] " : " ");
 					}
+					rtpPkt.Clear();
 				} else {
 					LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
 							"this : %p, "
@@ -631,7 +631,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 				}
 			}
 		} else {
-			LogAync(LOG_NOTICE, "RtpSession::RecvRtpPacket( "
+			LogAync(LOG_INFO, "RtpSession::RecvRtpPacket( "
 					"this : %p, "
 					"[Ignore frame before Handshake] "
 					")", this);
@@ -785,6 +785,7 @@ bool RtpSession::EnqueueRtpPacket(void *pkt, unsigned int& pktSize) {
 		}
 //		SendRtpPacket(pkt, pktSize);
 	}
+	rtpRecvPkt.Clear();
 
 	return bFlag;
 }

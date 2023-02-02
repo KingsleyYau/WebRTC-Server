@@ -617,12 +617,11 @@ bool MediaServer::IsRunning() {
 	return mRunning;
 }
 
-bool MediaServer::Stop(int signal) {
+bool MediaServer::Stop() {
 	pid_t pid = getpid();
 	LogAync(
 			LOG_ALERT,
 			"MediaServer::Stop( "
-			"signal : %d, "
 			"pid : %d, "
 			"mPidFilePath : %s "
 			")",
@@ -722,14 +721,33 @@ void MediaServer::StateHandle() {
 			mTotal = 0;
 			mCountMutex.unlock();
 
+			unsigned int iLoginCount = 0;
+			unsigned int iPushCount = 0;
+
+			mWebRTCMap.Lock();
+			for (WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
+				MediaClient *client = itr->second;
+				if (client->connected && client->logined) {
+					iLoginCount++;
+				}
+				if (client->startMediaTime > 0) {
+					iPushCount++;
+				}
+			}
+			mWebRTCMap.Unlock();
+
 			LogAync(
 					LOG_WARNING,
 					"MediaServer::StateHandle( "
 					"event : [状态服务], "
-					"过去%u秒共收到请求(Websocket) : %u个 "
+					"过去%u秒共收到请求(Websocket) : %u, "
+					"当前在线(Websocket) : %u, "
+					"当前推流(RTC) : %u "
 					")",
 					iStateTime,
-					iTotal
+					iTotal,
+					iLoginCount,
+					iPushCount
 					);
 
 			iStateTime = miStateTime;
@@ -1680,7 +1698,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							"MediaServer::OnWSMessage( "
 							"event : [Websocket-请求-外部登录], "
 							"hdl : %p, "
-							"param : %u "
+							"param : %s "
 							")",
 							hdl.lock().get(),
 							param.c_str()
@@ -1877,19 +1895,36 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 			}
 		}
 
-		LogAync(
-				LOG_NOTICE,
-				"MediaServer::HandleExtForceSync( "
-				"event : [外部同步在线状态-%s], "
-				"url : %s, "
-				"req : %s, "
-				"res : %s "
-				")",
-				FLAG_2_STRING(bFlag),
-				url.c_str(),
-				req.c_str(),
-				res
-				);
+		if (bFlag) {
+			LogAync(
+					LOG_NOTICE,
+					"MediaServer::HandleExtForceSync( "
+					"event : [外部同步在线状态-%s], "
+					"url : %s, "
+					"req : %s, "
+					"res : %s "
+					")",
+					FLAG_2_STRING(bFlag),
+					url.c_str(),
+					req.c_str(),
+					res
+					);
+		} else {
+			LogAync(
+					LOG_WARNING,
+					"MediaServer::HandleExtForceSync( "
+					"event : [外部同步在线状态-%s], "
+					"url : %s, "
+					"req : %s, "
+					"res : %s "
+					")",
+					FLAG_2_STRING(bFlag),
+					url.c_str(),
+					req.c_str(),
+					res
+					);
+		}
+
 	}
 
 	return bFlag;

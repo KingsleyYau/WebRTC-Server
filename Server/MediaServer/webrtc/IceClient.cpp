@@ -185,7 +185,7 @@ IceClient::~IceClient() {
 	Stop();
 }
 
-bool IceClient::Start(const string& name, bool bControlling) {
+bool IceClient::Start(const string& name, bool bControlling, bool bTcpForce) {
 	bool bFlag = false;
 
 	LogAync(
@@ -246,7 +246,7 @@ bool IceClient::Start(const string& name, bool bControlling) {
     // NAT网关不支持UPNP, 禁用
     g_object_set(mpAgent, "upnp", FALSE,  NULL);
     // 使用tcp
-    g_object_set(mpAgent, "ice-tcp", TRUE, NULL);
+    g_object_set(mpAgent, "ice-tcp", bTcpForce, NULL);
 	// 强制使用turn转发
     g_object_set(mpAgent, "force-relay", TRUE, NULL);
     // 保持心跳

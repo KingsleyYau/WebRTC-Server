@@ -15,7 +15,7 @@ else
 CXXFLAGS = -O2 -g
 endif
 
-CFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -DDISABLE_MD5=1
+CFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -DDISABLE_MD5=1 -DMG_ENABLE_HTTP_CGI=0
 CFLAGS +=	-I. -I.. -I../include
 
 OBJS = mongoose.o

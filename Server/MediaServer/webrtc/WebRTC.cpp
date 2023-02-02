@@ -233,7 +233,7 @@ bool WebRTC::Start(
 	// Start Modules
 	bFlag = ParseRemoteSdp(sdp);
 	if (bFlag) {
-		bFlag = mIceClient.Start("mediaserver", bControlling);
+		bFlag = mIceClient.Start("mediaserver", bControlling, true);
 	}
 	if (bFlag) {
 		bFlag = mDtlsSession.Start();
@@ -1090,7 +1090,7 @@ bool WebRTC::CreateLocalSdpFile() {
 	if ( bFlag ) {
 		LogAync(
 				LOG_NOTICE,
-				"WebRTC::CreateLocalSdp( "
+				"WebRTC::CreateLocalSdpFile( "
 				"this : %p, "
 				"[OK], "
 				"mSdpFilePath : %s, "
@@ -1103,7 +1103,7 @@ bool WebRTC::CreateLocalSdpFile() {
 	} else {
 		LogAync(
 				LOG_WARNING,
-				"WebRTC::CreateLocalSdp( "
+				"WebRTC::CreateLocalSdpFile( "
 				"this : %p, "
 				"[Fail], "
 				"mSdpFilePath : %s, "

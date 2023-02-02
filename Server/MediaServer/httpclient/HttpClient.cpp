@@ -64,7 +64,7 @@ HttpClient::HttpClient() {
 
 HttpClient::~HttpClient() {
 	// TODO Auto-generated destructor stub
-	Stop();
+	Close();
 	DestroyBuffer();
 }
 
@@ -73,7 +73,15 @@ void HttpClient::Stop() {
 	mbStop = true;
 }
 
-bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
+void HttpClient::Close() {
+	FileLog("httpclient", "HttpClient::Close()");
+	if( mpCURL != NULL ) {
+		curl_easy_cleanup(mpCURL);
+		mpCURL = NULL;
+	}
+}
+
+bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAfterRequest) {
 	FileLog("httpclient", "HttpClient::Request( url : %s, entiy : %p )",
 			url.c_str(), entiy);
 
@@ -115,6 +123,11 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
 	curl_easy_setopt(mpCURL, CURLOPT_PROGRESSFUNCTION, CurlProgress);
 	curl_easy_setopt(mpCURL, CURLOPT_PROGRESSDATA, this);
 
+	// tcp keep alive
+	curl_easy_setopt(mpCURL, CURLOPT_TCP_KEEPALIVE, 1L);
+	curl_easy_setopt(mpCURL, CURLOPT_TCP_KEEPIDLE, 10L);
+	curl_easy_setopt(mpCURL, CURLOPT_TCP_KEEPINTVL, 10L);
+
 	string host = mUrl;
 	std::size_t index = mUrl.find("http://");
 	if( index != string::npos ) {
@@ -133,15 +146,13 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
 	curl_easy_setopt(mpCURL, CURLOPT_CONNECTTIMEOUT, 20L);
 	// 设置不抛退出信号量
 	curl_easy_setopt(mpCURL, CURLOPT_NOSIGNAL, 1L);
-
-	// add by samson 2015-03-18 增加公共http User-Agent
+	// 设置User-Agent
 	curl_easy_setopt(mpCURL, CURLOPT_USERAGENT, USER_AGENT);
 
 	if( entiy != NULL ) {
 		if( !entiy->mIsGetMethod ) {
 			curl_easy_setopt(mpCURL, CURLOPT_POST, 1);
 		}
-
 	}
 
 	// 处理https
@@ -239,9 +250,8 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy) {
 	curl_easy_getinfo(mpCURL, CURLINFO_RESPONSE_CODE, &mHttpCode);
 	FileLog("httpclient", "HttpClient::Request( mHttpCode : %ld )", mHttpCode);
 
-	if( mpCURL != NULL ) {
-		curl_easy_cleanup(mpCURL);
-		mpCURL = NULL;
+	if( closeAfterRequest ) {
+		Close();
 	}
 
 	if( pList != NULL ) {
@@ -511,7 +521,13 @@ size_t HttpClient::CurlProgress(void *data, double downloadTotal, double downloa
 size_t HttpClient::HttpProgress(double downloadTotal, double downloadNow, double uploadTotal, double uploadNow) {
 	double totalTime = 0;
 	curl_easy_getinfo(mpCURL, CURLINFO_TOTAL_TIME, &totalTime);
-//	FileLog("httpclient", "HttpClient::HttpProgress( totalTime : %f second )", totalTime);
+	FileLog("httpclient", "HttpClient::HttpProgress( "
+			"totalTime : %.2f second, uploadTotal : %.2f, uploadNow : %.2f, "
+			"mdDownloadLastTime : %.2f second, mdDownloadLast : %.2f, downloadNow : %.2f "
+			")",
+			totalTime, uploadTotal, uploadNow,
+			mdDownloadLastTime, mdDownloadLast, downloadNow
+			);
 
 	// mark the upload progress
 	mdUploadTotal = uploadTotal;
@@ -519,16 +535,22 @@ size_t HttpClient::HttpProgress(double downloadTotal, double downloadNow, double
 
 	// waiting for upload finish, no upload timeout
 	if( uploadNow == uploadTotal ) {
-		if( downloadTotal != downloadNow && mdDownloadLast != -1 &&  mdDownloadLast == downloadNow ) {
+		if (mdDownloadLast == -1) {
+			// update download progress at the beginning
+			mdDownloadLast = downloadNow;
+			mdDownloadLastTime = totalTime;
+		}
+
+		if (mdDownloadLast == downloadNow) {
 			if( totalTime - mdDownloadLastTime > DWONLOAD_TIMEOUT ) {
 				// DWONLOAD_TIMEOUT no receive data, download timeout
-				FileLog("httpclient", "HttpClient::HttpProgress( download timeout )");
+				FileLog("httpclient", "HttpClient::HttpProgress( download timeout, timeout : %.2f seconds )", DWONLOAD_TIMEOUT);
 				mbStop = true;
 			}
 		} else {
-			// mark the download progress
-			mdDownloadLast = downloadNow;
+			// update download progress
 			mdDownloadLastTime = totalTime;
+			mdDownloadLast = downloadNow;
 		}
 	}
 

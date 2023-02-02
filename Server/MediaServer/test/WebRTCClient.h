@@ -80,8 +80,8 @@ public:
 			unsigned int rtpDstAudioPort = 10000
 			);
 	bool Start(
-			const string& sdp,
-			const string& name
+			const string sdp,
+			const string name
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);

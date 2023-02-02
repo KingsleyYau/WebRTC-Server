@@ -440,9 +440,9 @@ void RtpPacket::Clear() {
 	extensions_size_ = 0;
 	extension_entries_.clear();
 
-	memset(WriteAt(0), 0, kFixedHeaderSize);
-	buffer_.SetSize(kFixedHeaderSize);
-	WriteAt(0, kRtpVersion << 6);
+//	buffer_.SetSize(kFixedHeaderSize);
+//	memset(WriteAt(0), 0, kFixedHeaderSize);
+//	WriteAt(0, kRtpVersion << 6);
 }
 
 bool RtpPacket::ParseBuffer(const uint8_t* buffer, size_t size) {

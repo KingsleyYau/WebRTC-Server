@@ -19,6 +19,7 @@ using namespace std;
 // ThirdParty
 #include <json/json.h>
 // Common
+#include <common/Math.h>
 #include <common/LogManager.h>
 #include <common/Arithmetic.h>
 #include <common/StringHandle.h>
@@ -50,11 +51,11 @@ public:
 				buffer,
 				MAX_BUFFER_LEN - 1,
 				"HTTP/1.1 200 OK\r\n"
-				"Connection: close\r\n"
-//				"Content-Length: %d\r\n"
-				"Content-Type: text/html; charset=utf-8\r\n"
-				"\r\n"
-//				(int)body.size()
+				"Connection: keep-alive\r\n"
+				"Content-Length: %d\r\n"
+				"Content-Type: application/json; charset=utf-8\r\n"
+				"\r\n",
+				(int)body.length()
 				);
 		int len = strlen(buffer);
 		gServer.Send(client, buffer, len);
@@ -79,7 +80,7 @@ public:
 					LOG_WARNING,
 					"Send( "
 					"[Fail], "
-					"client : %p\n"
+					"client : %p,\n"
 					"%s%s\n"
 					")",
 					client,
@@ -90,7 +91,7 @@ public:
 			LogAync(
 					LOG_NOTICE,
 					"Send( "
-					"client : %p\n"
+					"client : %p,\n"
 					"%s%s\n"
 					")",
 					client,
@@ -103,7 +104,8 @@ public:
 	}
 
 	bool HttpParseRequestHeader(HttpParser* parser) {
-		bool bFlag = true;
+		bool bFlag = false;
+		char buffer[1024] = {0};
 
 		if ( parser->GetPath() == "/verify/v1/start" ) {
 			// 马上返回数据
@@ -126,27 +128,29 @@ public:
 			}
 
 			int success = ((gReqCount % 10)!=0);
-			char buffer[256] = {0};
 			snprintf(buffer, sizeof(buffer), "{\"errno\":0,\"errmsg\":\"\",\"data\":{\"success\":%d,\"userid\":\"max\"}}", success);
 			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/verify/v1/verifyrtmp" ) {
 			int success = ((gReqCount % 30)!=0);
-			char buffer[256] = {0};
 			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
 			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/verify/v1/shutdown" ) {
 			int success = ((gReqCount % 50)!=0);
-			char buffer[256] = {0};
 			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
 			HttpSendRespond(parser, buffer);
 		} else if ( parser->GetPath() == "/record/v1/record" ) {
 			int success = ((gReqCount % 50)!=0);
-			char buffer[256] = {0};
 			snprintf(buffer, sizeof(buffer), "{\"errno\":%d,\"errmsg\":\"\"}}", !success);
 			HttpSendRespond(parser, buffer);
+		} else if ( parser->GetPath() == "/keepalive" ) {
+			snprintf(buffer, sizeof(buffer), "{\"errno\":1,\"errmsg\":\"\",\"data\":\"%s\"}}", parser->GetRawFirstLine().c_str());
+			HttpSendRespond(parser, buffer);
+		}  else if ( parser->GetPath() == "/request/raw" ) {
+
 		} else {
 			bFlag = true;
-			HttpSendRespond(parser, "{\"errno\":1,\"errmsg\":\"\"}");
+			snprintf(buffer, sizeof(buffer), "{\"errno\":1,\"errmsg\":\"\"}}");
+			HttpSendRespond(parser, buffer);
 		}
 
 		return bFlag;
@@ -157,11 +161,14 @@ public:
 
 		LogAync(
 				LOG_NOTICE,
-				"Recv( "
+				"RecvHeader( "
 				"client : %p, "
+				"addr : [%s:%u], "
 				"%s "
 				")",
 				client,
+				client->socket->ip.c_str(),
+				client->socket->port,
 				parser->GetRawFirstLine().c_str()
 				);
 
@@ -173,12 +180,26 @@ public:
 	}
 
 	bool HttpParseRequestBody(HttpParser* parser) {
-		bool bFlag = true;
+		Client* client = (Client *)parser->custom;
 
-		{
-			// 未知命令
-//			HttpSendRespond(parser, "{\"errno\":1,\"errmsg\":\"\"}}");
-		}
+		LogAync(
+				LOG_NOTICE,
+				"RecvBody( "
+				"client : %p, "
+				"addr : [%s:%u], "
+				"%s, "
+				"%s "
+				")",
+				client,
+				client->socket->ip.c_str(),
+				client->socket->port,
+				parser->GetRawFirstLine().c_str(),
+				parser->GetBody()
+				);
+
+		bool bFlag = false;
+//		// 未知命令
+//		HttpSendRespond(parser, "{\"errno\":1,\"errmsg\":\"\"}}");
 
 		return bFlag;
 	}
@@ -199,11 +220,10 @@ public:
 				LOG_WARNING,
 				"OnHttpParserError( "
 				"client : %p, "
-				"%s "
+				"parser : %p "
 				")",
-				parser,
 				client,
-				parser->GetRawFirstLine().c_str()
+				parser
 				);
 
 		gServer.Disconnect(client);
@@ -219,13 +239,16 @@ public:
 		client->parser = parser;
 
 		LogAync(
-				LOG_INFO,
+				LOG_NOTICE,
 				"OnAccept( "
+				"client : %p, "
 				"parser : %p, "
-				"client : %p "
+				"addr : [%s:%u] "
 				")",
+				client,
 				parser,
-				client
+				client->socket->ip.c_str(),
+				client->socket->port
 				);
 		return true;
 	}
@@ -234,13 +257,16 @@ public:
 		HttpParser* parser = (HttpParser *)client->parser;
 
 		LogAync(
-				LOG_INFO,
+				LOG_NOTICE,
 				"OnDisconnect( "
+				"client : %p, "
 				"parser : %p, "
-				"client : %p "
+				"addr : [%s:%u] "
 				")",
+				client,
 				parser,
-				client
+				client->socket->ip.c_str(),
+				client->socket->port
 				);
 
 		if( parser ) {
@@ -250,9 +276,14 @@ public:
 	}
 } gAsyncIOServerCallbackImp;
 
-void SignalFunc(int sign_no);
+bool Parse(int argc, char *argv[]);
+void SignalFunc(int signal);
+int iLogLevel = LOG_NOTICE;
+
 int main(int argc, char *argv[]) {
 	printf("############## httpd ############## \n");
+	printf("# Build date : %s %s \n", __DATE__, __TIME__);
+	Parse(argc, argv);
 	srand(time(0));
 
 	/* Ignore */
@@ -283,12 +314,11 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGCHLD, &sa, 0);
 	srand(time(0));
 
-	LogManager::GetLogManager()->SetSTDMode(true);
 	LogManager::GetLogManager()->SetDebugMode(false);
-	LogManager::GetLogManager()->Start(LOG_NOTICE, "log");
+	LogManager::GetLogManager()->Start(iLogLevel, "log_httpd");
 
 	gServer.SetAsyncIOServerCallback(&gAsyncIOServerCallbackImp);
-	bool bFlag = gServer.Start(5555, 10000, 4);
+	bool bFlag = gServer.Start(80, 10000, 4);
 	while( bFlag && gServer.IsRunning() ) {
 		LogManager::GetLogManager()->LogFlushMem2File();
 		fflush(stdout);
@@ -298,15 +328,51 @@ int main(int argc, char *argv[]) {
 	return EXIT_SUCCESS;
 }
 
-void SignalFunc(int sign_no) {
-	switch(sign_no) {
-	default:{
-		LogAync(
-				LOG_ALERT, "main( Get signal : %d )", sign_no
+void SignalFunc(int signal) {
+	switch(signal) {
+	case SIGINT:
+	case SIGQUIT:
+	case SIGTERM: // can handle
+	case SIGKILL:
+	case SIGBUS:
+	case SIGSEGV:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Exit Signal, signal : %d )", signal
 				);
 		LogManager::GetLogManager()->LogFlushMem2File();
-		signal(sign_no, SIG_DFL);
-		kill(getpid(), sign_no);
+		exit(0);
+	}break;
+	default:{
+		LogAync(
+				LOG_ALERT, "main( Get signal : %d )", signal
+				);
+		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	}
+}
+
+bool Parse(int argc, char *argv[]) {
+	string key;
+	string value;
+
+	for( int i = 1; i < argc;) {
+		key = argv[i++];
+
+		if( key.compare("-v") == 0 ) {
+			if (i + 1 < argc) {
+				value = argv[i++];
+				iLogLevel = atoi(value.c_str());
+				iLogLevel = MIN(iLogLevel, LOG_DEBUG);
+				iLogLevel = MAX(iLogLevel, LOG_OFF);
+			}
+		} else if( key.compare("-d") == 0 ) {
+			LogManager::GetLogManager()->SetSTDMode(true);
+		}
+	}
+
+	printf("# Usage: ./httpd -v [LogLevel] \n");
+	printf("# Example: ./httpd -v 4 \n");
+	printf("# Config: [Log Level: %s]\n", LogManager::LogLevelDesc(iLogLevel).c_str());
+
+	return true;
 }

@@ -18,6 +18,7 @@ public:
 
 	void SetNextParser(IDataParser *parser);
 	virtual int ParseData(char* buffer, int len);
+	virtual void Reset();
 
 public:
 	void* custom;

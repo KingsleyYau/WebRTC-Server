@@ -16,6 +16,7 @@ public:
 	 *	return : -1:解析错误/解析使用长度
 	 */
 	virtual int ParseData(char* buffer, int len) = 0;
+	virtual void Reset() = 0;
 	virtual ~IDataParser(){};
 };
 }

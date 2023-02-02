@@ -1,0 +1,178 @@
+/*
+ * cam-pusher.cpp
+ *
+ *  Created on: 2015-1-14
+ *      Author: Max.Chiu
+ *      Email: Kingsleyyau@gmail.com
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+
+#include <string>
+using namespace std;
+
+#include "CamPusher.h"
+using namespace mediaserver;
+
+// Common
+#include <common/LogManager.h>
+
+char ws_host[128] = {"192.168.88.133:9883"};
+char turn[128] = {"192.168.88.133"};
+char interface[128] = {""};//{"192.168.88.134"};
+char name[128] = {"WW"};
+int iCurrent = 0;
+int iTotal = 1;
+int iReconnect = 0;
+double dPushRatio = 1;
+int iLogLevel = LOG_INFO;
+
+static CamPusher gTester;
+
+bool Parse(int argc, char *argv[]);
+void SignalFunc(int sign_no);
+
+int main(int argc, char *argv[]) {
+	printf("############## cam-pusher ############## \n");
+	Parse(argc, argv);
+	srand(time(0));
+
+	/* Ignore */
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGPIPE, &sa, 0);
+
+	/* Handle */
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SignalFunc;
+	sa.sa_flags = SA_RESTART;
+	sigemptyset(&sa.sa_mask);
+
+//	sigaction(SIGHUP, &sa, 0);
+	sigaction(SIGINT, &sa, 0); // Ctrl-C
+	sigaction(SIGQUIT, &sa, 0);
+	sigaction(SIGILL, &sa, 0);
+	sigaction(SIGABRT, &sa, 0);
+	sigaction(SIGFPE, &sa, 0);
+	sigaction(SIGBUS, &sa, 0);
+	sigaction(SIGSEGV, &sa, 0);
+	sigaction(SIGSYS, &sa, 0);
+	sigaction(SIGTERM, &sa, 0);
+	sigaction(SIGXCPU, &sa, 0);
+	sigaction(SIGXFSZ, &sa, 0);
+	// 回收子进程
+	sigaction(SIGCHLD, &sa, 0);
+
+	srand(time(0));
+
+	LogManager::GetLogManager()->Start(iLogLevel, "./log");
+//	LogManager::GetLogManager()->SetDebugMode(false);
+	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
+
+	WebRTCClient::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
+
+    string baseUrl = "ws://" + string(ws_host);
+    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect, dPushRatio);
+
+	while( bFlag && gTester.IsRunning() ) {
+		/* do nothing here */
+		fflush(stdout);
+		sleep(3);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+bool Parse(int argc, char *argv[]) {
+	string key;
+	string value;
+
+	for( int i = 1; i < argc;) {
+		key = argv[i++];
+
+		if( key.compare("-ws") == 0 ) {
+			value = argv[i++];
+			memset(ws_host, 0, sizeof(ws_host));
+			memcpy(ws_host, value.c_str(), value.length());
+		} else if( key.compare("-name") == 0 ) {
+			value = argv[i++];
+			memset(name, 0, sizeof(name));
+			memcpy(name, value.c_str(), value.length());
+		} else if( key.compare("-turn") == 0 ) {
+			value = argv[i++];
+			memset(turn, 0, sizeof(turn));
+			memcpy(turn, value.c_str(), value.length());
+		} else if( key.compare("-i") == 0 ) {
+			value = argv[i++];
+			memset(interface, 0, sizeof(interface));
+			memcpy(interface, value.c_str(), value.length());
+		} else if( key.compare("-n") == 0 ) {
+			value = argv[i++];
+			iTotal = atoi(value.c_str());
+		} else if( key.compare("-r") == 0 ) {
+			value = argv[i++];
+			iReconnect = atoi(value.c_str());
+		} else if( key.compare("-pr") == 0 ) {
+			value = argv[i++];
+			dPushRatio = atof(value.c_str());
+		}  else if( key.compare("-v") == 0 ) {
+			value = argv[i++];
+			iLogLevel = atoi(value.c_str());
+			iLogLevel = MIN(iLogLevel, LOG_DEBUG);
+			iLogLevel = MAX(iLogLevel, LOG_OFF);
+		} else if( key.compare("-d") == 0 ) {
+			LogManager::GetLogManager()->SetSTDMode(true);
+		}
+	}
+
+	printf("# Usage: ./cam-pusher -ws [WebsocketHost] -turn [TurnHost]  -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] -pr [Push Ratio(0.0-1.0)]  -v [LogLevel] \n");
+	printf("# Example: ./cam-pusher -ws 192.168.88.133:9883 -turn 192.168.88.133 -name tester -i 192.168.88.134 -n 1 -r 60 -pr 1.0 -v 4 \n");
+	printf("# Config: [ws: %s], [turn: %s], [name: %s], [interface: %s], [iTotal: %d], [iReconnect: %d], [Push Ratio: %.2f], [Log Level: %s]\n", ws_host, turn, name, interface, iTotal, iReconnect, dPushRatio, LogManager::LogLevelDesc(iLogLevel).c_str());
+
+	return true;
+}
+
+void SignalFunc(int signal) {
+	switch(signal) {
+	case SIGCHLD:{
+		int status;
+		int pid = 0;
+		while (true) {
+			int pid = waitpid(-1, &status, WNOHANG);
+			if ( pid > 0 ) {
+				printf("# main( waitpid : %d ) \n", pid);
+				MainLoop::GetMainLoop()->Call(pid);
+			} else {
+				break;
+			}
+		}
+	}break;
+	case SIGINT:
+	case SIGQUIT:
+	case SIGKILL:
+	case SIGBUS:
+	case SIGSEGV:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Error Signal, signal : %d )", signal
+				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		gTester.Exit(signal);
+		LogManager::GetLogManager()->LogFlushMem2File();
+		_exit(1);
+	}break;
+	default:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Other Signal, signal : %d )", signal
+				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		gTester.Exit(signal);
+		LogManager::GetLogManager()->LogFlushMem2File();
+	}break;
+	}
+}

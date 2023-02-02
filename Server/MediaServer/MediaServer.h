@@ -174,7 +174,7 @@ public:
 	/**
 	 * 停止WebRTC媒体网关服务
 	 */
-	bool Stop(int signal = SIGQUIT);
+	bool Stop();
 	/**
 	 * 是否正在运行
 	 */
