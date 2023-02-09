@@ -41,41 +41,41 @@ function package_update_tar {
   #cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
   #cp -rf script/rtmp2rtp.sh $DEST/script/ || return 1
   #cp -rf script/stop_turnserver.sh $DEST/script/ || return 1
-  cp -rf script/stop_mediaserver.sh $DEST/script/ || return 1
+  #cp -rf script/stop_mediaserver.sh $DEST/script/ || return 1
   #cp -rf script/stop_mediaserver_test.sh $DEST/script/ || return 1
   #cp -rf script/start_mediaserver_camshare.sh $DEST/script/ || return 1
-  cp -rf script/stop_mediaserver_camshare.sh $DEST/script/ || return 1
+  #cp -rf script/stop_mediaserver_camshare.sh $DEST/script/ || return 1
   #cp -rf script/restart_test_service.sh $DEST/script/ || return 1
-  cp -rf script/stop_test_service.sh $DEST/script || return 1
+  #cp -rf script/stop_test_service.sh $DEST/script || return 1
   #cp -rf script/restart_all_service.sh $DEST/script/ || return 1
   #cp -rf script/stop_all_service.sh $DEST/script/ || return 1
-  cp -rf script/deamon.sh $DEST/script/ || return 1
+  #cp -rf script/deamon.sh $DEST/script/ || return 1
   #cp -rf script/dump_thread_bt.init $DEST/script/ || return 1
   #cp -rf script/restart_by_deamon.sh $DEST/script/ || return 1
   #cp -rf script/stop_by_deamon.sh $DEST/script/ || return 1
 	
   # Replace Custom Script
-  if [ -f "conf/$ENV/script/deamon.sh" ]; then
-    cp -rf conf/$ENV/script/deamon.sh $DEST/script/ || return 1
-  fi
-  if [ -f "conf/$ENV/script/restart_by_deamon.sh" ]; then
-    cp -rf conf/$ENV/script/restart_by_deamon.sh $DEST/script/ || return 1
-  fi
-	if [ -f "conf/$ENV/script/stop_by_deamon.sh" ]; then
-    cp -rf conf/$ENV/script/stop_by_deamon.sh $DEST/script/ || return 1
-  fi
-  if [ -f "conf/$ENV/script/stop_all_service.sh" ]; then
-    cp -rf conf/$ENV/script/stop_all_service.sh $DEST/script/ || return 1
-  fi
-  if [ -f "conf/$ENV/script/restart_all_service.sh" ]; then
-    cp -rf conf/$ENV/script/restart_all_service.sh $DEST/script/ || return 1
-  fi
-  if [ -f "conf/$ENV/script/restart_test_service.sh" ]; then
-    cp -rf conf/$ENV/script/restart_test_service.sh $DEST/script/ || return 1
-  fi    
-  if [ -f "conf/$ENV/script/stop_test_service.sh" ]; then
-    cp -rf conf/$ENV/script/stop_test_service.sh $DEST/script/ || return 1
-  fi     
+  #if [ -f "conf/$ENV/script/deamon.sh" ]; then
+  #  cp -rf conf/$ENV/script/deamon.sh $DEST/script/ || return 1
+  #fi
+  #if [ -f "conf/$ENV/script/restart_by_deamon.sh" ]; then
+  #  cp -rf conf/$ENV/script/restart_by_deamon.sh $DEST/script/ || return 1
+  #fi
+	#if [ -f "conf/$ENV/script/stop_by_deamon.sh" ]; then
+  #  cp -rf conf/$ENV/script/stop_by_deamon.sh $DEST/script/ || return 1
+  #fi
+  #if [ -f "conf/$ENV/script/stop_all_service.sh" ]; then
+  #  cp -rf conf/$ENV/script/stop_all_service.sh $DEST/script/ || return 1
+  #fi
+  #if [ -f "conf/$ENV/script/restart_all_service.sh" ]; then
+  #  cp -rf conf/$ENV/script/restart_all_service.sh $DEST/script/ || return 1
+  #fi
+  #if [ -f "conf/$ENV/script/restart_test_service.sh" ]; then
+  #  cp -rf conf/$ENV/script/restart_test_service.sh $DEST/script/ || return 1
+  #fi    
+  #if [ -f "conf/$ENV/script/stop_test_service.sh" ]; then
+  #  cp -rf conf/$ENV/script/stop_test_service.sh $DEST/script/ || return 1
+  #fi     
   # Clean index files
   find tmp -name ".DS_Store" | xargs rm -rf || return 1
 	

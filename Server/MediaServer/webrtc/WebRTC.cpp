@@ -16,6 +16,7 @@
 #include <include/CommonHeader.h>
 
 // Common
+#include <common/Arithmetic.h>
 #include <common/LogManager.h>
 #include <common/StringHandle.h>
 #include <common/CommonFunc.h>
@@ -1799,21 +1800,29 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //			"streamId : %u, "
 //			"componentId : %u, "
 //			"size : %d, "
-//			"data[0] : 0x%X "
+//			"data : %p, "
+//			"data[0] : 0x%X, "
+//			"data[1] : 0x%X, "
+//			"rtmpUrl : %s "
 //			")",
 //			this,
 //			ice,
 //			streamId,
 //			componentId,
 //			size,
-//			(unsigned char)data[0]
+//			data,
+//			(unsigned char)data[0],
+//			(unsigned char)data[1],
+//			mRtmpUrl.c_str()
 //			);
 	bool bFlag = false;
 
 	char pkt[RTP_MAX_LEN] = {0};
 	unsigned int pktSize = size;
 
-	if ( size > RTP_MAX_LEN ) {
+	if (size > RTP_MAX_LEN) {
+//		Arithmetic ari;
+//		string hex = ari.AsciiToHexWithSep(data, size);
 		LogAync(
 				LOG_NOTICE,
 				"WebRTC::OnIceRecvData( "
@@ -1825,6 +1834,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				"size : %d, "
 				"data[0] : 0x%X, "
 				"rtmpUrl : %s "
+//				"hex : %s "
 				")",
 				this,
 				ice,
@@ -1833,16 +1843,17 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				size,
 				(unsigned char)data[0],
 				mRtmpUrl.c_str()
+//				hex.c_str()
 				);
 		return;
 	}
 
-	if( DtlsSession::IsDTLS(data, size) ) {
+	if(DtlsSession::IsDTLS(data, size)) {
 		bFlag = mDtlsSession.RecvFrame(data, size);
 		if( bFlag ) {
 			// Check Handshake status
 			DtlsSessionStatus status = mDtlsSession.GetDtlsSessionStatus();
-			if( status == DtlsSessionStatus_HandshakeDone ) {
+			if (status == DtlsSessionStatus_HandshakeDone) {
 				LogAync(
 						LOG_NOTICE,
 						"WebRTC::OnIceRecvData( "
@@ -1861,7 +1872,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 						);
 
 				bool bStart = false;
-				if( StartRtpTransform() ) {
+				if (StartRtpTransform()) {
 					char localKey[SRTP_MASTER_LENGTH];
 					int localSize = 0;
 					mDtlsSession.GetClientKey(localKey, localSize);
@@ -1885,7 +1896,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 					}
 				}
 
-				if ( bStart ) {
+				if (bStart) {
 					if( mpWebRTCCallback ) {
 						mpWebRTCCallback->OnWebRTCStartMedia(this);
 					}
@@ -1896,7 +1907,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 					}
 				}
 
-			} else if ( status == DtlsSessionStatus_Alert ) {
+			} else if (status == DtlsSessionStatus_Alert) {
 				LogAync(
 						LOG_NOTICE,
 						"WebRTC::OnIceRecvData( "
@@ -1911,14 +1922,14 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //				mRtpDstAudioClient.Stop();
 //				mRtpDstVideoClient.Stop();
 
-				if( mpWebRTCCallback ) {
+				if (mpWebRTCCallback) {
 					mpWebRTCCallback->OnWebRTCClose(this);
 				}
 			}
 		}
-	} else if( RtpSession::IsRtp(data, size) ) {
+	} else if (RtpSession::IsRtp(data, size)) {
 		bFlag = mRtpSession.RecvRtpPacket(data, size, pkt, pktSize);
-		if( bFlag ) {
+		if (bFlag) {
 			unsigned int ssrc = RtpSession::GetRtpSSRC(pkt, pktSize);
 //			LogAync(
 //					LOG_DEBUG,
@@ -1935,9 +1946,9 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //					mVideoSSRC
 //					);
 
-			if( ssrc == mAudioSSRC ) {
-				if ( gDropAudioBeforeVideo ) {
-					if ( mRtpSession.IsReceivedVideo() ) {
+			if (ssrc == mAudioSSRC) {
+				if (gDropAudioBeforeVideo) {
+					if (mRtpSession.IsReceivedVideo()) {
 						mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
 					} else {
 //						LogAync(
@@ -1958,13 +1969,13 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				} else {
 					mRtpDstAudioClient.SendRtpPacket(pkt, pktSize);
 				}
-			} else if ( ssrc == mVideoSSRC ) {
+			} else if (ssrc == mVideoSSRC) {
 				mRtpDstVideoClient.SendRtpPacket(pkt, pktSize);
 			}
 		}
-	} else if( RtpSession::IsRtcp(data, size) ){
+	} else if (RtpSession::IsRtcp(data, size)) {
 		bFlag = mRtpSession.RecvRtcpPacket(data, size, pkt, pktSize);
-		if( bFlag ) {
+		if (bFlag) {
 			unsigned int ssrc = RtpSession::GetRtcpSSRC(pkt, pktSize);
 //			LogAync(
 //					LOG_DEBUG,
@@ -1988,6 +1999,8 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 			}
 		}
 	} else {
+//		Arithmetic ari;
+//		string hex = ari.AsciiToHexWithSep(data, size);
 		LogAync(
 				LOG_NOTICE,
 				"WebRTC::OnIceRecvData( "
@@ -1999,6 +2012,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				"size : %d, "
 				"data[0] : 0x%X, "
 				"rtmpUrl : %s "
+//				"hex : %s "
 				")",
 				this,
 				ice,
@@ -2007,6 +2021,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 				size,
 				(unsigned char)data[0],
 				mRtmpUrl.c_str()
+//				hex.c_str()
 				);
 	}
 }

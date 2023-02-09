@@ -9,9 +9,9 @@
 export MAKE	:=	make
 
 #ifeq ($(RELEASE), 1)
-CXXFLAGS = -O3 
+#CXXFLAGS = -O3 
 #else
-#CXXFLAGS = -g
+CXXFLAGS = -g
 #endif
 
 CXXFLAGS += -std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX

@@ -684,17 +684,17 @@ bool MediaServer::Stop() {
 	return true;
 }
 
-void MediaServer::Exit(int signal) {
+void MediaServer::Exit(int sig) {
 	pid_t pid = getpid();
 	mRunning = false;
 
 	LogAyncUnSafe(
 			LOG_ALERT,
 			"MediaServer::Exit( "
-			"signal : %d, "
+			"sig : %d, "
 			"pid : %d "
 			")",
-			signal,
+			sig,
 			pid
 			);
 }
@@ -1566,6 +1566,20 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 							} else {
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
+								LogAync(
+										LOG_WARN,
+										"MediaServer::OnWSMessage( "
+										"event : [Websocket-请求-拉流-失败, 超过最大推流数量], "
+										"hdl : %p, "
+										"stream : %s, "
+										"serverId : %s, "
+										"rtmpUrl : %s "
+										")",
+										hdl.lock().get(),
+										stream.c_str(),
+										serverId.c_str(),
+										rtmpUrl.c_str()
+										);
 							}
 
 						} else {

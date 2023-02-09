@@ -21,6 +21,7 @@ using namespace mediaserver;
 
 // Common
 #include <common/LogManager.h>
+#include <include/CommonHeader.h>
 
 char ws_host[128] = {"192.168.88.133:9883"};
 char turn[128] = {"192.168.88.133"};
@@ -31,6 +32,7 @@ int iTotal = 1;
 int iReconnect = 0;
 double dPushRatio = 1;
 int iLogLevel = LOG_INFO;
+bool bTcpForce = false;
 
 static CamPusher gTester;
 
@@ -78,7 +80,7 @@ int main(int argc, char *argv[]) {
 	WebRTCClient::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
 
     string baseUrl = "ws://" + string(ws_host);
-    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect, dPushRatio);
+    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect, dPushRatio, bTcpForce);
 
 	while( bFlag && gTester.IsRunning() ) {
 		/* do nothing here */
@@ -121,19 +123,23 @@ bool Parse(int argc, char *argv[]) {
 		} else if( key.compare("-pr") == 0 ) {
 			value = argv[i++];
 			dPushRatio = atof(value.c_str());
-		}  else if( key.compare("-v") == 0 ) {
+			dPushRatio = MIN(1.0, dPushRatio);
+			dPushRatio = MAX(0, dPushRatio);
+		} else if( key.compare("-v") == 0 ) {
 			value = argv[i++];
 			iLogLevel = atoi(value.c_str());
 			iLogLevel = MIN(iLogLevel, LOG_DEBUG);
 			iLogLevel = MAX(iLogLevel, LOG_OFF);
+		} else if( key.compare("-t") == 0 ) {
+			bTcpForce = true;
 		} else if( key.compare("-d") == 0 ) {
 			LogManager::GetLogManager()->SetSTDMode(true);
 		}
 	}
 
-	printf("# Usage: ./cam-pusher -ws [WebsocketHost] -turn [TurnHost]  -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] -pr [Push Ratio(0.0-1.0)]  -v [LogLevel] \n");
-	printf("# Example: ./cam-pusher -ws 192.168.88.133:9883 -turn 192.168.88.133 -name tester -i 192.168.88.134 -n 1 -r 60 -pr 1.0 -v 4 \n");
-	printf("# Config: [ws: %s], [turn: %s], [name: %s], [interface: %s], [iTotal: %d], [iReconnect: %d], [Push Ratio: %.2f], [Log Level: %s]\n", ws_host, turn, name, interface, iTotal, iReconnect, dPushRatio, LogManager::LogLevelDesc(iLogLevel).c_str());
+	printf("# Usage: ./cam-pusher -ws [WebsocketHost] -turn [TurnHost]  -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] -pr [Push Ratio(0.0-1.0)] -t [Tcp Turn Force] -v [LogLevel] \n");
+	printf("# Example: ./cam-pusher -ws 192.168.88.133:9883 -turn 192.168.88.133 -name tester -i 192.168.88.134 -n 1 -r 60 -pr 1.0 -t -v 4 -d \n");
+	printf("# Config: [ws: %s], [turn: %s], [name: %s], [interface: %s], [iTotal: %d], [iReconnect: %d], [Push Ratio: %.2f], [Tcp Turn Force: %s], [Log Level: %s]\n", ws_host, turn, name, interface, iTotal, iReconnect, dPushRatio, BOOL_2_STRING(bTcpForce), LogManager::LogLevelDesc(iLogLevel).c_str());
 
 	return true;
 }
@@ -146,7 +152,9 @@ void SignalFunc(int signal) {
 		while (true) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
-				printf("# main( waitpid : %d ) \n", pid);
+				LogAyncUnSafe(
+						LOG_INFO, "main( waitpid : %d )", pid
+						);
 				MainLoop::GetMainLoop()->Call(pid);
 			} else {
 				break;
@@ -173,6 +181,7 @@ void SignalFunc(int signal) {
 		MainLoop::GetMainLoop()->Exit(SIGKILL);
 		gTester.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();
+		_exit(1);
 	}break;
 	}
 }

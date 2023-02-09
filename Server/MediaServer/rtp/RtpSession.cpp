@@ -288,7 +288,8 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey,
 	bool bFlag = false;
 
 	Arithmetic art;
-	LogAync(LOG_INFO, "RtpSession::Start( "
+	LogAync(LOG_INFO,
+			"RtpSession::Start( "
 			"this : %p, "
 			"localKey : %s, "
 			"remoteKey : %s "
@@ -684,7 +685,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	if (status == srtp_err_status_ok) {
 		if (mpRtpSender) {
 			sendSize = mpRtpSender->SendData((void *) pkt, pktSize);
-			if (sendSize == (int) pktSize) {
+			if (sendSize == (int)pktSize) {
 				bFlag = true;
 			}
 		} else {
@@ -703,7 +704,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 				"media_ssrc : 0x%08x(%u), "
 				"seq : %u, "
 				"ts : %u, "
-				"pktSize : %d,"
+				"pktSize : %d, "
 				"%s"
 				"sendSize : %d, "
 				"status : %d, "

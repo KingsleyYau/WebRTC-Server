@@ -86,13 +86,12 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 	LogAync(
 			LOG_INFO,
 			"TcpServer::Start( "
-			"port : %u, "
-			"maxConnection : %d, "
-			"ip : %s "
+			"addr : [%s:%u], "
+			"maxConnection : %d "
 			")",
+			ip,
 			port,
-			maxConnection,
-			ip
+			maxConnection
 			);
 
 	mServerMutex.lock();
@@ -110,13 +109,12 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 				LOG_ALERT,
 				"TcpServer::Start( "
 				"[Create socket error], "
-				"port : %d, "
-				"maxConnection : %d, "
-				"ip : %s "
+				"addr : [%s:%u], "
+				"maxConnection : %d "
 				")",
+				ip,
 				port,
-				maxConnection,
-				ip
+				maxConnection
 				);
 		bFlag = false;
 	}
@@ -145,13 +143,12 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 					LOG_ALERT,
 					"TcpServer::Start( "
 					"[Bind socket error], "
-					"port : %d, "
-					"maxConnection : %d, "
-					"ip : %s "
+					"addr : [%s:%u], "
+					"maxConnection : %d "
 					")",
+					ip,
 					port,
-					maxConnection,
-					ip
+					maxConnection
 					);
 			bFlag = false;
 		}
@@ -163,13 +160,12 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 					LOG_ALERT,
 					"TcpServer::Start( "
 					"[Listen socket error], "
-					"port : %d, "
-					"maxConnection : %d, "
-					"ip : %s "
+					"addr : [%s:%u], "
+					"maxConnection : %d "
 					")",
+					ip,
 					port,
-					maxConnection,
-					ip
+					maxConnection
 					);
 			bFlag = false;
 		}
@@ -187,14 +183,13 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 				LOG_DEBUG,
 				"TcpServer::Start( "
 				"[Create watchers OK], "
-				"port : %d, "
+				"addr : [%s:%u], "
 				"maxConnection : %d, "
-				"ip : %s, "
 				"mWatcherList : %d "
 				")",
+				ip,
 				port,
 				maxConnection,
-				ip,
 				mWatcherList.Size()
 				);
 	}
@@ -209,13 +204,12 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 			LogAync(
 					LOG_ALERT,
 					"TcpServer::Start( [Create IO thread Fail], "
-					"port : %d, "
-					"maxConnection : %d, "
-					"ip : %s "
+					"addr : [%s:%u], "
+					"maxConnection : %d "
 					")",
+					ip,
 					port,
-					maxConnection,
-					ip
+					maxConnection
 					);
 			bFlag = false;
 		}
@@ -226,26 +220,24 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 				LOG_INFO,
 				"TcpServer::Start( "
 				"[OK], "
-				"port : %d, "
-				"maxConnection : %d, "
-				"ip : %s "
+				"addr : [%s:%u], "
+				"maxConnection : %d "
 				")",
+				ip,
 				port,
-				maxConnection,
-				ip
+				maxConnection
 				);
 	} else {
 		LogAync(
 				LOG_ALERT,
 				"TcpServer::Start( "
 				"[Fail], "
-				"port : %d, "
-				"maxConnection : %d, "
-				"ip : %s "
+				"addr : [%s:%u], "
+				"maxConnection : %d "
 				")",
+				ip,
 				port,
-				maxConnection,
-				ip
+				maxConnection
 				);
 		Stop();
 	}
@@ -259,13 +251,12 @@ void TcpServer::Stop() {
 	LogAync(
 			LOG_INFO,
 			"TcpServer::Stop( "
-			"port : %u, "
+			"addr : [%s:%u], "
 			"maxConnection : %d, "
-			"ip : %s "
 			")",
+			mpSocket->ip.c_str(),
 			mpSocket->port,
-			miMaxConnection,
-			mpSocket->ip.c_str()
+			miMaxConnection
 			);
 
 	mServerMutex.lock();
@@ -304,13 +295,12 @@ void TcpServer::Stop() {
 			LOG_INFO,
 			"TcpServer::Stop( "
 			"[OK], "
-			"port : %u, "
-			"maxConnection : %d, "
-			"ip : %s "
+			"addr : [%s:%u], "
+			"maxConnection : %d "
 			")",
+			mpSocket->ip.c_str(),
 			mpSocket->port,
-			miMaxConnection,
-			mpSocket->ip.c_str()
+			miMaxConnection
 			);
 
 }
@@ -358,10 +348,13 @@ void TcpServer::Disconnect(Socket* socket) {
 			LOG_DEBUG,
 			"TcpServer::Disconnect( "
 			"fd : %d, "
-			"socket : %p "
+			"socket : %p, "
+			"addr : [%s:%u] "
 			")",
 			socket->fd,
-			socket
+			socket,
+			socket->ip.c_str(),
+			socket->port
 			);
 
 	// 断开连接
@@ -373,10 +366,13 @@ void TcpServer::DisconnectSync(Socket* socket) {
 			LOG_DEBUG,
 			"TcpServer::DisconnectSync( "
 			"fd : %d, "
-			"socket : %p "
+			"socket : %p, "
+			"addr : [%s:%u] "
 			")",
 			socket->fd,
-			socket
+			socket,
+			socket->ip.c_str(),
+			socket->port
 			);
 
 	// 马上断开, 停止监听epoll
@@ -391,10 +387,13 @@ void TcpServer::Close(Socket* socket) {
 			LOG_DEBUG,
 			"TcpServer::Close( "
 			"fd : %d, "
-			"socket : %p "
+			"socket : %p, "
+			"addr : [%s:%u] "
 			")",
 			socket->fd,
-			socket
+			socket,
+			socket->ip.c_str(),
+			socket->port
 			);
 
 	// 关掉连接socket

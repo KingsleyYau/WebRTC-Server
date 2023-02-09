@@ -131,7 +131,8 @@ bool WebRTCClient::Init(
 
 bool WebRTCClient::Start(
 		const string sdp,
-		const string name
+		const string name,
+		bool bTcpFoce
 		) {
 	bool bFlag = true;
 
@@ -142,9 +143,13 @@ bool WebRTCClient::Start(
 	mRunning = true;
 
 //	bFlag &= ParseRemoteSdp(sdp);
-	bFlag &= mIceClient.Start(name, true);
+	bFlag &= mIceClient.Start(name, true, bTcpFoce);
 	bFlag &= mDtlsSession.Start(false);
 	bFlag &= mRtpClient.Start(NULL, 0, NULL, 0);
+
+	// Hard code in shell
+	mRtpClient.SetAudioSSRC(0x12345679);
+	mRtpClient.SetVideoSSRC(0x12345678);
 
 	if( bFlag ) {
 		// 启动IO监听线程
@@ -161,17 +166,26 @@ bool WebRTCClient::Start(
 		}
 	}
 
-	LogAync(
-			LOG_INFO,
-			"WebRTCClient::Start( "
-			"this:%p, "
-			"[%s] "
-			")",
-			this,
-			FLAG_2_STRING(bFlag)
-			);
-
-	if( !bFlag ) {
+	if( bFlag ) {
+		LogAync(
+				LOG_INFO,
+				"WebRTCClient::Start( "
+				"this:%p, "
+				"[%s] "
+				")",
+				this,
+				FLAG_2_STRING(bFlag)
+				);
+	} else {
+		LogAync(
+				LOG_WARNING,
+				"WebRTCClient::Start( "
+				"this:%p, "
+				"[%s] "
+				")",
+				this,
+				FLAG_2_STRING(bFlag)
+				);
 		Stop();
 	}
 
@@ -495,6 +509,8 @@ bool WebRTCClient::ParseRemoteSdp(const string& sdp) {
 
 	if( bFlag ) {
 		mIceClient.SetRemoteSdp(sdp);
+	} else {
+
 	}
 
 	return bFlag;
@@ -610,7 +626,7 @@ void WebRTCClient::OnIceCandidateGatheringDone(IceClient *ice, const string& ip,
 	}
 
 	LogAync(
-			LOG_INFO,
+			LOG_DEBUG,
 			"WebRTCClient::OnIceCandidateGatheringDone( "
 			"this:%p, "
 			"ice:%p, "

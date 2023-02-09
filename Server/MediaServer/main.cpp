@@ -113,8 +113,8 @@ bool Parse(int argc, char *argv[]) {
 	return true;
 }
 
-void SignalFunc(int signal) {
-	switch(signal) {
+void SignalFunc(int sig) {
+	switch(sig) {
 	case SIGCHLD:{
 		int status;
 		int pid = 0;
@@ -128,27 +128,28 @@ void SignalFunc(int signal) {
 			}
 		}
 	}break;
+	case SIGINT:
 	case SIGQUIT:
 	case SIGTERM:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Exit Signal, signal : %d )", signal
+				LOG_ALERT, "main( Get Exit Signal, sig : %d )", sig
 				);
 		MainLoop::GetMainLoop()->Exit(SIGKILL);
-		gMediaServer.Exit(signal);
+		gMediaServer.Exit(sig);
 		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	case SIGKILL:
 	case SIGBUS:
 	case SIGSEGV:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Error Signal, signal : %d )", signal
+				LOG_ALERT, "main( Get Error Signal, sig : %d )", sig
 				);
 		MainLoop::GetMainLoop()->Exit(SIGKILL);
-		gMediaServer.Exit(signal);
+		gMediaServer.Exit(sig);
 		LogManager::GetLogManager()->LogFlushMem2File();
 		/**
 		 * 不能调用exit()
-		 * 因为收到signal会进行中断，其他线程可能正在malloc()/free()，进行内核态的锁
+		 * 因为收到sig会进行中断，其他线程可能正在malloc()/free()，进行内核态的锁
 		 * 而调用exit()=>__run_exit_handlers()=>OPENSSL_CLEANUP()=>free()，则会导致死锁
 		 * exit()会写入缓冲区到内核, _exit()不会
 		 */
@@ -156,10 +157,10 @@ void SignalFunc(int signal) {
 	}break;
 	default:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Other Signal, signal : %d )", signal
+				LOG_ALERT, "main( Get Other Signal, sig : %d )", sig
 				);
 		MainLoop::GetMainLoop()->Exit(SIGKILL);
-		gMediaServer.Exit(signal);
+		gMediaServer.Exit(sig);
 		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
 	}

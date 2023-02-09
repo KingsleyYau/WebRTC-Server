@@ -63,7 +63,7 @@ void* loop_thread(void *data) {
 
 void* niceLogFunc(const char *logBuffer) {
 	LogAync(
-			LOG_INFO,
+			LOG_DEBUG,
 			"IceClient::niceLogFunc( "
 			"[libnice], "
 			"%s "
@@ -111,11 +111,6 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 		gWorkerLoop[i] = g_main_loop_new(gWorkerContext[i], FALSE);
 		gWorkerLoopThread[i] = g_thread_new("IceWorker", &loop_thread, gWorkerLoop[i]);
 	}
-
-//	IceClient client;
-//	client.Start("IceClient Init");
-//	sleep(1);
-//	client.Stop();
 
 	return bFlag;
 }
@@ -192,8 +187,12 @@ bool IceClient::Start(const string& name, bool bControlling, bool bTcpForce) {
 			LOG_INFO,
 			"IceClient::Start( "
 			"this : %p "
+			"bControlling: %s, "
+			"bTcpForce: %s "
 			")",
-			this
+			this,
+			BOOL_2_STRING(bControlling),
+			BOOL_2_STRING(bTcpForce)
 			);
 
 	mClientMutex.lock();
@@ -298,9 +297,12 @@ bool IceClient::Start(const string& name, bool bControlling, bool bTcpForce) {
 
 		bFlag = true;
 	    // 使用tcp
-	    bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_TCP);
-//	    // 使用udp
-//		bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_UDP);
+		if (bTcpForce) {
+			bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_TCP);
+		} else {
+			// 使用udp
+			bFlag &= nice_agent_set_relay_info(mpAgent, streamId, componentId, gStunServerIp.c_str(), 3478, username.c_str(), password.c_str(), NICE_RELAY_TYPE_TURN_UDP);
+		}
 	    // 设置转发认证
 	    bFlag &= nice_agent_set_stream_name(mpAgent, streamId, "video");
 	    bFlag &= nice_agent_attach_recv(mpAgent, streamId, componentId, g_main_loop_get_context(loop), cb_nice_recv, this);

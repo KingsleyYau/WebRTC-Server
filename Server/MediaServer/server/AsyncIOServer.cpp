@@ -10,6 +10,7 @@
 
 // Common
 #include <common/CommonFunc.h>
+#include <include/CommonHeader.h>
 
 namespace mediaserver {
 class RecvRunnable : public KRunnable {
@@ -75,15 +76,14 @@ bool AsyncIOServer::Start(
 	LogAync(
 			LOG_INFO,
 			"AsyncIOServer::Start( "
-			"port : %u, "
+			"addr: [%s:%u], "
 			"maxConnection : %d, "
 			"iThreadCount : %d, "
-			"ip : %s "
 			")",
+			ip,
 			port,
 			maxConnection,
-			iThreadCount,
-			ip
+			iThreadCount
 			);
 
 	mServerMutex.lock();
@@ -116,30 +116,28 @@ bool AsyncIOServer::Start(
 				LOG_INFO,
 				"AsyncIOServer::Start( "
 				"[OK], "
-				"port : %d, "
+				"addr : [%s:%u], "
 				"maxConnection : %d, "
-				"iThreadCount : %d, "
-				"ip : %s "
+				"iThreadCount : %d "
 				")",
+				ip,
 				port,
 				maxConnection,
-				iThreadCount,
-				ip
+				iThreadCount
 				);
 	} else {
 		LogAync(
 				LOG_ALERT,
 				"AsyncIOServer::Start( "
 				"[Fail], "
-				"port : %d, "
+				"addr : [%s:%u], "
 				"maxConnection : %d, "
-				"iThreadCount : %d, "
-				"ip : %s "
+				"iThreadCount : %d "
 				")",
+				ip,
 				port,
 				maxConnection,
-				iThreadCount,
-				ip
+				iThreadCount
 				);
 		Stop();
 	}
@@ -207,22 +205,25 @@ void AsyncIOServer::Close() {
 }
 
 bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
-	LogAync(
-			LOG_INFO,
-			"AsyncIOServer::Send( "
-			"client : %p, "
-			"len : %d, "
-			"buf :\n%s\n"
-			")",
-			client,
-			len,
-			buf
-			);
 	bool bFlag = false;
 
 	if( client ) {
-		client->clientMutex.lock();
 		Socket *socket = (Socket *)client->socket;
+		LogAync(
+				LOG_INFO,
+				"AsyncIOServer::Send( "
+				"client : %p, "
+				"addr : [%s:%u], "
+				"len : %d, "
+				"buf :\n%s\n"
+				")",
+				client,
+				socket->ip.c_str(),
+				socket->port,
+				len,
+				buf
+				);
+		client->clientMutex.lock();
 		if( !client->disconnected ) {
 			bFlag = mTcpServer.Send(socket, buf, len);
 			if( !bFlag ) {
@@ -236,19 +237,18 @@ bool AsyncIOServer::Send(Client* client, const char* buf, int &len) {
 }
 
 void AsyncIOServer::Disconnect(Client* client) {
-	Socket *socket = (Socket *)client->socket;
-	LogAync(
-			LOG_INFO,
-			"AsyncIOServer::Disconnect( "
-			"client : %p, "
-			"ip : %s, "
-			"port : %u "
-			")",
-			client,
-			socket->ip.c_str(),
-			socket->port
-			);
 	if( client ) {
+		Socket *socket = (Socket *)client->socket;
+		LogAync(
+				LOG_INFO,
+				"AsyncIOServer::Disconnect( "
+				"client : %p, "
+				"addr : [%s:%u] "
+				")",
+				client,
+				socket->ip.c_str(),
+				socket->port
+				);
 		client->clientMutex.lock();
 		mTcpServer.Disconnect(socket);
 		client->clientMutex.unlock();
@@ -309,8 +309,7 @@ bool AsyncIOServer::OnAccept(Socket* socket) {
 				"AsyncIOServer::OnAccept( "
 				"client : %p, "
 				"socket : %p, "
-				"ip : %s, "
-				"port : %d, "
+				"addr : [%s:%u], "
 				"miConnection : %u "
 				")",
 				client,
@@ -352,7 +351,6 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 //		char buf[READ_BUFFER_SIZE];
 //		int len = sizeof(buf) - 1;
 		SocketStatus status = SocketStatusFail;
-		bool disconnect = false;
 
 		client->clientMutex.lock();
 		Buffer *buffer = client->GetBuffer();
@@ -373,8 +371,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						"[Buffer error, buffer is not enough], "
 						"client : %p, "
 						"socket : %p, "
-						"ip : %s, "
-						"port : %u "
+						"addr : [%s:%u] "
 						")",
 						client,
 						socket,
@@ -383,7 +380,9 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						);
 				// 同步断开连接, 并且关闭事件监听
 				mTcpServer.DisconnectSync(socket);
-				disconnect = true;
+
+				// 如果读出错, 断开连接
+				client->disconnected = true;
 				break;
 			}
 
@@ -399,8 +398,7 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						"[Read OK], "
 						"client : %p, "
 						"socket : %p, "
-						"ip : %s, "
-						"port : %u, "
+						"addr : [%s:%u], "
 						"freespace : %d, "
 						"len : %d, "
 						"buf :\n%s\n"
@@ -438,21 +436,19 @@ void AsyncIOServer::OnRecvEvent(Socket* socket) {
 						"[Read error], "
 						"client : %p, "
 						"socket : %p, "
-						"ip : %s, "
-						"port : %u "
+						"addr : [%s:%u] "
 						")",
 						client,
 						socket,
 						socket->ip.c_str(),
 						socket->port
 						);
-				disconnect = true;
+
+				// 如果读出错, 断开连接
+				client->disconnected = true;
 				break;
 			}
 		}
-
-		// 如果读出错, 断开连接
-		client->disconnected = disconnect;
 
 		bool bFlag = false;
 		bFlag = ClientCloseIfNeed(client);
@@ -487,8 +483,7 @@ void AsyncIOServer::OnDisconnect(Socket* socket) {
 				"AsyncIOServer::OnDisconnect( "
 				"client : %p, "
 				"socket : %p, "
-				"ip : %s, "
-				"port : %u, "
+				"addr : [%s:%u], "
 				"recvHandleCount : %d "
 				") \n",
 				client,
@@ -577,16 +572,33 @@ void AsyncIOServer::PushRecvHandle(Client* client) {
 
 bool AsyncIOServer::ClientCloseIfNeed(Client* client) {
 	bool bFlag = false;
+	Socket *socket = (Socket *)client->socket;
+
+	LogAync(
+			LOG_DEBUG,
+			"AsyncIOServer::ClientCloseIfNeed( "
+			"client : %p, "
+			"addr : [%s:%u], "
+			"recvHandleCount : %u, "
+			"disconnected : %s, "
+			"closed : %s "
+			")",
+			client,
+			socket->ip.c_str(),
+			socket->port,
+			client->recvHandleCount,
+			BOOL_2_STRING(client->disconnected),
+			BOOL_2_STRING(client->closed)
+			);
+
 	if( client->recvHandleCount == 0 && client->disconnected && !client->closed ) {
 		client->closed = true;
-		Socket *socket = (Socket *)client->socket;
 		if (socket) {
 			LogAync(
-					LOG_DEBUG,
+					LOG_INFO,
 					"AsyncIOServer::ClientCloseIfNeed( "
 					"client : %p, "
-					"ip : %s, "
-					"port : %u "
+					"addr : [%s:%u] "
 					")",
 					client,
 					socket->ip.c_str(),
@@ -617,15 +629,20 @@ void AsyncIOServer::DestroyClient(Client* client) {
 	mServerMutex.unlock();
 
 	// 归还内存
-	if( mClientIdleList.Size() <= (size_t)miMaxConnection ) {
+	int size = mClientIdleList.Size();
+	if( size <= (size_t)miMaxConnection ) {
 		// 空闲的缓存小于设定值
 		LogAync(
 				LOG_DEBUG,
 				"AsyncIOServer::DestroyClient( "
 				"[Return client to idle list], "
-				"client : %p "
+				"client : %p, "
+				"size : %d, "
+				"miMaxConnection : %d "
 				")",
-				client
+				client,
+				size,
+				miMaxConnection
 				);
 
 		mClientIdleList.PushBack(client);
@@ -635,9 +652,13 @@ void AsyncIOServer::DestroyClient(Client* client) {
 				LOG_WARNING,
 				"AsyncIOServer::DestroyClient( "
 				"[Delete extra client], "
-				"client : %p "
+				"client : %p, "
+				"size : %d, "
+				"miMaxConnection : %d "
 				")",
-				client
+				client,
+				size,
+				miMaxConnection
 				);
 
 		// 释放内存

@@ -29,7 +29,9 @@ public:
 	CamPusherImp();
 	~CamPusherImp();
 
-	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index, bool bReconnect = true, int reconnectMaxSeconds = 60, double pushRatio = 1.0);
+	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index,
+			bool bReconnect = true, int reconnectMaxSeconds = 60, double pushRatio = 1.0,
+			bool bTcpForce = false);
 	bool Start();
 	void Disconnect();
 	void Close();
@@ -65,6 +67,7 @@ public:
 	int reconnectSeconds;
 	int reconnectMaxSeconds;
 	double pushRatio;
+	bool bTcpForce;
 	bool bRunning;
 	KMutex mMutex;
 };
@@ -80,7 +83,7 @@ public:
 	virtual ~CamPusher();
 
 	bool Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount = 1, const string turnServer = "",
-			int iReconnect = 60, double pushRatio = 1.0);
+			int iReconnect = 60, double pushRatio = 1.0, bool bTcpForce = false);
 	void Stop();
 	bool IsRunning();
 	void Exit(int signal);

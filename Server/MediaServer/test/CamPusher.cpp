@@ -102,17 +102,20 @@ CamPusherImp::~CamPusherImp() {
 	free(mgr);
 }
 
-bool CamPusherImp::Init(mg_mgr *mgr, const string& url, const string& stream, int index, bool bReconnect, int reconnectMaxSeconds, double pushRatio) {
+bool CamPusherImp::Init(mg_mgr *mgr, const string& url, const string& stream, int index,
+		bool bReconnect, int reconnectMaxSeconds, double pushRatio,
+		bool bTcpForce) {
 //	this->mgr = mgr;
 	this->url = url;
 	this->stream = stream;
 	this->index = index;
 	this->bReconnect = bReconnect;
 	this->reconnectMaxSeconds = reconnectMaxSeconds;
+	this->reconnectSeconds = 0;
 	this->pushRatio = pushRatio;
 	this->pushRatio = MIN(1.0, this->pushRatio);
 	this->pushRatio = MAX(0, this->pushRatio);
-
+	this->bTcpForce = bTcpForce;
 	rtc.Init("./push.sh", "127.0.0.1", 10000 + index);
 	rtc.SetCallback(this);
 
@@ -122,14 +125,24 @@ bool CamPusherImp::Init(mg_mgr *mgr, const string& url, const string& stream, in
 string CamPusherImp::Desc() {
 	std::stringstream ss;
 	ss << "index:" << index
-			<< ", stream:" << stream.c_str()
+			<< ", stream:" << stream
+			<< ", tcp:" << string(BOOL_2_STRING(bTcpForce))
 			<< ", timeout:" << reconnectSeconds;
+	ss.setf(ios::fixed);
+	ss.precision(2);
+	ss << ", pushRatio:" << pushRatio;
+	ss.unsetf(ios_base::dec);
 	return ss.str();
 }
 
 bool CamPusherImp::Start() {
     bool bFlag = false;
-    reconnectSeconds = 30 + rand() % reconnectMaxSeconds;
+
+    if (reconnectMaxSeconds > 0) {
+    	reconnectSeconds = MAX(30, (rand() % reconnectMaxSeconds));
+    } else {
+    	reconnectSeconds = 0;
+    }
 
 	LogAync(
 			LOG_NOTICE,
@@ -195,6 +208,7 @@ bool CamPusherImp::Timeout() {
 	bool bFlag = false;
 	long long now = getCurrentTime();
 	if (bRunning &&
+			startTime > 0 &&
 			(now - startTime > reconnectSeconds * 1000)) {
 		bFlag = true;
 	}
@@ -208,7 +222,6 @@ void CamPusherImp::Disconnect() {
 				LOG_NOTICE,
 				"CamPusherImp::Disconnect( "
 				"this:%p, "
-				"[Websocket], "
 				"url:%s, "
 				"%s "
 				")",
@@ -228,7 +241,6 @@ void CamPusherImp::Close() {
 			LOG_NOTICE,
 			"CamPusherImp::Close( "
 			"this:%p, "
-			"[Websocket], "
 			"url:%s, "
 			"%s "
 			")",
@@ -256,13 +268,25 @@ void CamPusherImp::OnLogin(Json::Value resRoot, const string res) {
 		}
 
 		if (bPush) {
-			rtc.Start("", stream);
+			rtc.Start("", stream, bTcpForce);
+			LogAync(
+					LOG_NOTICE,
+					"CamPusherImp::OnLogin( "
+					"this:%p, "
+					"[Push], "
+					"url:%s, "
+					"%s "
+					")",
+					this,
+					url.c_str(),
+					Desc().c_str()
+					);
 		} else {
 			LogAync(
 					LOG_NOTICE,
 					"CamPusherImp::OnLogin( "
 					"this:%p, "
-					"[Just Online, Not Push Stream], "
+					"[No Push], "
 					"url:%s, "
 					"%s "
 					")",
@@ -321,7 +345,7 @@ void CamPusherImp::Login(const string user) {
 			);
 
 	mMutex.lock();
-	if( conn ) {
+	if (conn && bRunning) {
 		mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
 	}
 	mMutex.unlock();
@@ -380,7 +404,6 @@ void CamPusherImp::OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp)
 
 	reqRoot["id"] = "0";
 	reqRoot["route"] = "imRTC/sendSdpCall";
-
 	reqData["sdp"] = sdp;
 
 	char param[2046];
@@ -391,8 +414,22 @@ void CamPusherImp::OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp)
 
 	string req = writer.write(reqRoot);
 
+	LogAync(
+			LOG_NOTICE,
+			"CamPusherImp::OnWebRTCClientServerSdp( "
+			"this:%p, "
+			"url:%s, "
+			"%s, "
+			"sdp:%s"
+			")",
+			this,
+			url.c_str(),
+			Desc().c_str(),
+			sdp.c_str()
+			);
+
 	mMutex.lock();
-	if( conn ) {
+	if (conn && bRunning) {
 		mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
 	}
 	mMutex.unlock();
@@ -403,7 +440,7 @@ void CamPusherImp::OnWebRTCClientStartMedia(WebRTCClient *rtc) {
 			LOG_WARNING,
 			"CamPusherImp::OnWebRTCClientStartMedia( "
 			"this:%p, "
-			"[WebRTCClient-开始媒体传输], "
+			"[开始媒体传输], "
 			"rtc:%p, "
 			"%s "
 			")",
@@ -503,19 +540,37 @@ CamPusher::~CamPusher() {
 }
 
 bool CamPusher::Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount, const string turnServer,
-		int iReconnect, double pushRatio) {
+		int iReconnect, double pushRatio, bool bTcpForce) {
 	bool bFlag = true;
+
+	LogAync(
+			LOG_ALERT,
+			"CamPusher::Start( "
+			"############## CamPusher ############## "
+			")"
+			);
+
+	LogAync(
+			LOG_ALERT,
+			"CamPusher::Start( "
+			"Build date : %s %s "
+			")",
+			__DATE__,
+			__TIME__
+			);
 
 	LogAync(
 			LOG_ALERT,
 			"CamPusher::Start( "
 			"iMaxCount:%d, "
 			"iReconnect:%d, "
-			"pushRatio:%.2f "
+			"pushRatio:%.2f, "
+			"bTcpForce:%s "
 			")",
 			iMaxCount,
 			iReconnect,
-			pushRatio
+			pushRatio,
+			BOOL_2_STRING(bTcpForce)
 			);
 
 //	mg_mgr_init(&mMgr, NULL);
@@ -533,7 +588,7 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 		sprintf(indexStr, "%u", i);
 		string wholeStream = stream + indexStr;
 
-		tester->Init(&mMgr, mWebSocketServer, wholeStream, i, (miReconnect >= 0), miReconnect, pushRatio);
+		tester->Init(&mMgr, mWebSocketServer, wholeStream, i, (miReconnect >= 0), miReconnect, pushRatio, bTcpForce);
 		tester->Start();
 	}
 
@@ -604,14 +659,6 @@ void CamPusher::MainThread() {
 			);
 
 	long long lastTime = getCurrentTime();
-//	int second = (miReconnect > 0)?(rand() % miReconnect):0;
-//	LogAync(
-//			LOG_NOTICE,
-//			"CamPusher::MainThread( "
-//			"[Disconnect Client After %d seconds] "
-//			")",
-//			second
-//			);
 
 	while ( mRunning ) {
 //		mg_mgr_poll(&mMgr, 100);
@@ -619,16 +666,7 @@ void CamPusher::MainThread() {
 			CamPusherImp *tester = &mpTesterList[i];
 			tester->Poll();
 		}
-
-//		if ( miReconnect > 0 ) {
-//			if (now - lastTime > second * 1000) {
-//				// Update
-//				int clientIndex = rand() % miMaxCount;
-//				lastTime = now;
-//				second = rand() % miReconnect;
-//			}
-//		}
-//		Sleep(100);
+		Sleep(1);
 	}
 
 	LogAync(
@@ -649,16 +687,15 @@ void CamPusher::ReconnectThread() {
 			if (!tester->bRunning) {
 				tester->Close();
 
-				LogAync(
-						LOG_NOTICE,
-						"CamPusher::ReconnectThread( "
-						"[Reconnect Client], "
-						"%s "
-						")",
-						tester->Desc().c_str()
-						);
-
 				if (tester->bReconnect) {
+					LogAync(
+							LOG_NOTICE,
+							"CamPusher::ReconnectThread( "
+							"[Reconnect Client], "
+							"%s "
+							")",
+							tester->Desc().c_str()
+							);
 					tester->Start();
 				}
 			} else {
@@ -666,8 +703,8 @@ void CamPusher::ReconnectThread() {
 					if (tester->Timeout()) {
 						// Disconnect Client
 						LogAync(
-								LOG_NOTICE,
-								"CamPusher::Start( "
+								LOG_INFO,
+								"CamPusher::ReconnectThread( "
 								"[Disconnect Client For Timeout], "
 								"%s "
 								")",
@@ -679,7 +716,7 @@ void CamPusher::ReconnectThread() {
 			}
 
 		}
-		Sleep(100);
+		Sleep(1);
 	}
 
 	LogAync(
