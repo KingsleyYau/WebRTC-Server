@@ -42,7 +42,7 @@ bool Nack::Parse(const CommonHeader& packet) {
 	RTC_CHECK_EQ(packet.type(), kPacketType); RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
 
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kNackItemLength) {
-		LogAync(LOG_WARNING, "Pli::Parse( "
+		LogAync(LOG_WARN, "Pli::Parse( "
 				"this : %p, "
 				"[RTCP packet error, it is too small to be a valid Nack], "
 				"packet.payload_size_bytes() : %u "

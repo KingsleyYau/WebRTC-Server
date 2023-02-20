@@ -74,6 +74,18 @@ void* niceLogFunc(const char *logBuffer) {
 	return 0;
 }
 
+void* niceLogVerboseFunc(const char *logBuffer) {
+	LogAync(
+			LOG_DEBUG,
+			"IceClient::niceLogVerboseFunc( "
+			"[libnice], "
+			"%s "
+			")",
+			logBuffer
+			);
+	return 0;
+}
+
 static string gStunServerIp = "";
 static string gLocalIp = "";
 static bool gbUseSecret = false;
@@ -90,9 +102,12 @@ bool IceClient::GobalInit(const string& stunServerIp, const string& localIp, boo
 	gTurnPassword = turnPassword;
 	gTurnShareSecret = turnShareSecret;
 
-//	nice_debug_enable(TRUE);
-//	nice_debug_verbose_enable();
+	// ICE逻辑日志
+	nice_debug_enable(TRUE);
 	nice_debug_set_func((NICE_LOG_FUNC_IMP)&niceLogFunc);
+	// ICE收包日志
+	nice_debug_verbose_enable();
+	nice_debug_verbose_set_func((NICE_LOG_FUNC_IMP)&niceLogVerboseFunc);
 
 	g_networking_init();
 //	g_thread_init(NULL);
@@ -551,7 +566,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 //						);
 //			}
 //    		LogAync(
-//    				LOG_WARNING,
+//    				LOG_WARN,
 //    				"IceClient::ParseRemoteSdp( "
 //    				"this : %p, "
 //    				"candStr : %s"
@@ -564,7 +579,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
         bFlag = nice_agent_set_remote_credentials(mpAgent, streamId, ufrag, pwd);
         if( !bFlag ) {
     		LogAync(
-    				LOG_WARNING,
+    				LOG_WARN,
     				"IceClient::ParseRemoteSdp( "
     				"this : %p, "
     				"[nice_agent_set_remote_credentials Fail], "
@@ -583,7 +598,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
 
         if( !bFlag ) {
     		LogAync(
-    				LOG_WARNING,
+    				LOG_WARN,
     				"IceClient::ParseRemoteSdp( "
     				"this : %p, "
     				"[nice_agent_set_remote_candidates Fail], "
@@ -597,7 +612,7 @@ bool IceClient::ParseRemoteSdp(unsigned int streamId) {
         }
     } else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"IceClient::ParseRemoteSdp( "
 				"this : %p, "
 				"[nice_agent_parse_remote_stream_sdp Fail], "
@@ -778,7 +793,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 
 	if ( !bFlag ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"IceClient::OnCandidateGatheringDone( "
 				"this : %p, "
 				"[CandidateGathering Fail], "

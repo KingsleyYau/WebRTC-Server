@@ -110,7 +110,7 @@ void OveruseEstimator::Update(int64_t t_delta, double ts_delta, int size_delta,
 //		RTC_LOG(LS_ERROR)
 //				<< "The over-use estimator's covariance matrix is no longer "
 //						"semi-definite.";
-		LogAync(LOG_WARNING, "OveruseEstimator::Update( "
+		LogAync(LOG_WARN, "OveruseEstimator::Update( "
 				"this : %p, "
 				"[The over-use estimator's covariance matrix is no longer], "
 				"t_delta : %lld, "

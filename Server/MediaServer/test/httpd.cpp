@@ -77,7 +77,7 @@ public:
 
 		if( !bFlag ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"Send( "
 					"[Fail], "
 					"client : %p,\n"
@@ -217,7 +217,7 @@ public:
 		Client* client = (Client *)parser->custom;
 
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"OnHttpParserError( "
 				"client : %p, "
 				"parser : %p "

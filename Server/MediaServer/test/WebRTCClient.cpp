@@ -178,7 +178,7 @@ bool WebRTCClient::Start(
 				);
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"WebRTCClient::Start( "
 				"this:%p, "
 				"[%s] "
@@ -602,7 +602,7 @@ int WebRTCClient::SendData(const void *data, unsigned int len) {
 
 void WebRTCClient::OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"WebRTCClient::OnIceCandidateGatheringFail( "
 			"this:%p, "
 			"ice:%p, "
@@ -757,7 +757,7 @@ void WebRTCClient::OnIceRecvData(IceClient *ice, const char *data, unsigned int 
 
 	if ( size > RTP_MAX_LEN ) {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"WebRTCClient::OnIceRecvData( "
 				"this:%p, "
 				"[Unknow Data Format], "
@@ -816,7 +816,7 @@ void WebRTCClient::OnIceRecvData(IceClient *ice, const char *data, unsigned int 
 
 			} else if ( status == DtlsSessionStatus_Alert ) {
 				LogAync(
-						LOG_WARNING,
+						LOG_WARN,
 						"WebRTCClient::OnIceRecvData( "
 						"this:%p, "
 						"[DTLS Alert] "
@@ -851,7 +851,7 @@ void WebRTCClient::OnIceRecvData(IceClient *ice, const char *data, unsigned int 
 //		}
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"WebRTCClient::OnIceRecvData( "
 				"this:%p, "
 				"[Unknow Data Format], "

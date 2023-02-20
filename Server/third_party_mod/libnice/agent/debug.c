@@ -79,6 +79,11 @@ void nice_debug_set_func(NICE_LOG_FUNC_IMP logImp) {
 	gLogImp = logImp;
 }
 
+static NICE_LOG_FUNC_IMP gLogVerboseImp;
+void nice_debug_verbose_set_func(NICE_LOG_FUNC_IMP logImp) {
+	gLogVerboseImp = logImp;
+}
+
 static void
 stun_handler (const char *format, va_list ap) G_GNUC_PRINTF (1, 0);
 
@@ -179,13 +184,16 @@ void nice_debug_imp (const char *file, int line, const char *func, const char *f
 				line,
 				func
 				);
-        int start = strlen(logBuffer);
-        va_start (ap, fmt);
-        vsnprintf(logBuffer + start, sizeof(logBuffer) - 1 - start, fmt, ap);
-        va_end (ap);
+        int offset = strlen(logBuffer);
+        int len = sizeof(logBuffer) - 1 - offset;
+        if (offset < sizeof(logBuffer) - 1) {
+            va_start (ap, fmt);
+            int ret = vsnprintf(logBuffer + offset, len, fmt, ap);
+            va_end (ap);
 
-        if ( gLogImp ) {
-        	gLogImp(logBuffer);
+            if ( gLogImp ) {
+            	gLogImp(logBuffer);
+            }
         }
 	}
 }
@@ -199,14 +207,17 @@ void nice_debug_verbose_imp (const char *file, int line, const char *func, const
 				line,
 				func
 				);
-        int start = strlen(logBuffer);
-        va_start (ap, fmt);
-        vsnprintf(logBuffer + start, sizeof(logBuffer) - 1 - start, fmt, ap);
-		va_end (ap);
+        int offset = strlen(logBuffer);
+        int len = sizeof(logBuffer) - 1 - offset;
+        if (offset < sizeof(logBuffer) - 1) {
+            va_start (ap, fmt);
+            int ret = vsnprintf(logBuffer + offset, len, fmt, ap);
+            va_end (ap);
 
-		if ( gLogImp ) {
-			gLogImp(logBuffer);
-		}
+            if ( gLogVerboseImp ) {
+            	gLogVerboseImp(logBuffer);
+            }
+        }
 	}
 }
 #else

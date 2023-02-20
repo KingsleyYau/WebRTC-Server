@@ -622,7 +622,7 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 		        char error_string[200];
 		        ERR_error_string_n(ERR_get_error(), error_string, 200);
 		    	LogAync(
-		    			LOG_WARNING,
+		    			LOG_WARN,
 		    			"DtlsSession::RecvFrame( "
 		    			"this : %p, "
 						"[DTLS Handshake Error], "
@@ -765,7 +765,7 @@ void DtlsSession::CheckHandshake() {
 					);
         } else {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"DtlsSession::CheckHandshake( "
 					"this : %p, "
 					"[DTLS Handshake Fail], "

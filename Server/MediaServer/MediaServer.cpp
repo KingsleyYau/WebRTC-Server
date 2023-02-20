@@ -237,7 +237,7 @@ bool MediaServer::Start() {
 
 	// 内部服务(HTTP)参数
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::Start( "
 			"[内部服务(HTTP)], "
 			"miPort : %d, "
@@ -257,7 +257,7 @@ bool MediaServer::Start() {
 
 	// 媒体流服务(WebRTC)
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::Start( "
 			"[媒体流服务(WebRTC)], "
 			"mWebRTCPortStart : %u, "
@@ -299,7 +299,7 @@ bool MediaServer::Start() {
 
 	// 信令服务(Websocket)
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::Start( "
 			"[信令服务(Websocket)], "
 			"miWebsocketPort : %u, "
@@ -311,7 +311,7 @@ bool MediaServer::Start() {
 
 	// 日志参数
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::Start( "
 			"[日志服务], "
 			"miDebugMode : %d, "
@@ -517,7 +517,7 @@ bool MediaServer::LoadConfig() {
 		if ( conf.LoadConfFile() ) {
 			// 基本参数
 			miPort = atoi(conf.GetPrivate("BASE", "PORT", "9880").c_str());
-			miMaxClient = atoi(conf.GetPrivate("BASE", "MAXCLIENT", "100000").c_str());
+			miMaxClient = atoi(conf.GetPrivate("BASE", "MAXCLIENT", "100").c_str());
 			miMaxHandleThread = atoi(conf.GetPrivate("BASE", "MAXHANDLETHREAD", "2").c_str());
 			miMaxQueryPerThread = atoi(conf.GetPrivate("BASE", "MAXQUERYPERCOPY", "10").c_str());
 			miTimeout = atoi(conf.GetPrivate("BASE", "TIMEOUT", "10").c_str());
@@ -737,7 +737,7 @@ void MediaServer::StateHandle() {
 			mWebRTCMap.Unlock();
 
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"MediaServer::StateHandle( "
 					"event : [状态服务], "
 					"过去%u秒共收到请求(Websocket) : %u, "
@@ -765,7 +765,7 @@ void MediaServer::TimeoutCheckHandle() {
 			if ( client->IsTimeout() ) {
 				if ( client->connected ) {
 					LogAync(
-							LOG_WARNING,
+							LOG_WARN,
 							"MediaServer::TimeoutCheckHandle( "
 							"event : [超时处理服务:断开超时连接], "
 							"hdl : %p "
@@ -814,29 +814,6 @@ void MediaServer::ExtRequestHandle() {
 			miExtSyncStatusTime++;
 			miExtSyncStatusTime = MIN(miExtSyncStatusTime, miExtSyncStatusMaxTime);
 		}
-
-//		ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
-//		if ( item ) {
-//			switch (item->type) {
-//			case ExtRequestTypeLogin:{
-//				HandleExtLogin(&httpClient, item);
-//			}break;
-//			case ExtRequestTypeLogout:{
-//				HandleExtLogout(&httpClient, item);
-//			}break;
-//			default:break;
-//			}
-//
-//			delete item;
-//		} else {
-//			sleep(miExtSyncStatusTime);
-//			if ( !bFlag ) {
-//				miExtSyncStatusTime++;
-//				miExtSyncStatusTime = (miExtSyncStatusTime >= miExtSyncStatusMaxTime)?miExtSyncStatusMaxTime:miExtSyncStatusTime;
-//			} else {
-//				miExtSyncStatusTime = 1;
-//			}
-//		}
 	}
 }
 
@@ -944,7 +921,7 @@ void MediaServer::OnHttpParserError(HttpParser* parser) {
 	Client* client = (Client *)parser->custom;
 
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::OnHttpParserError( "
 			"parser : %p, "
 			"client : %p, "
@@ -962,13 +939,14 @@ void MediaServer::OnHttpParserError(HttpParser* parser) {
 
 /***************************** 内部服务(HTTP)接口 **************************************/
 bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
-	bool bFlag = true;
+	bool bFlag = false;
 
-	if( parser->GetPath() == "/reload" ) {
+	if( !strcasecmp(parser->GetPath().c_str(), "/reload") ) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
 	} else {
-		bFlag = false;
+		// 未知命令
+		bFlag = OnRequestUndefinedCommand(parser);
 	}
 
 	return bFlag;
@@ -991,74 +969,62 @@ bool MediaServer::HttpSendRespond(
 		) {
 	bool bFlag = false;
 	Client* client = (Client *)parser->custom;
-
-//	LogAync(
-//			LOG_INFO,
-//			"MediaServer::HttpSendRespond( "
-//			"event : [内部服务(HTTP)-返回请求到客户端], "
-//			"parser : %p, "
-//			"client : %p, "
-//			"respond : %p "
-//			")",
-//			parser,
-//			client,
-//			respond
-//			);
+	const string result = respond->Result();
 
 	// 发送头部
-	char buffer[MAX_BUFFER_LEN];
+	char header[MAX_BUFFER_LEN];
 	snprintf(
-			buffer,
+			header,
 			MAX_BUFFER_LEN - 1,
 			"HTTP/1.1 200 OK\r\n"
-			"Connection: close\r\n"
-			"Content-Type: text/html; charset=utf-8\r\n"
-			"\r\n"
+			"Connection:Keep-Alive\r\n"
+			"Content-Length: %d\r\n"
+			"Content-Type: application/json; charset=utf-8\r\n"
+			"\r\n",
+			(int)result.length()
 			);
-	int len = strlen(buffer);
 
-	mAsyncIOServer.Send(client, buffer, len);
+	int len = strlen(header);
+	bFlag = mAsyncIOServer.Send(client, header, len);
 
-	if( respond != NULL ) {
-		// 发送内容
-		bool more = false;
-		while( true ) {
-			len = respond->GetData(buffer, MAX_BUFFER_LEN, more);
-//			LogAync(
-//					LOG_WARNING,
-//					"MediaServer::HttpSendRespond( "
-//					"event : [内部服务(HTTP)-返回请求内容到客户端], "
-//					"parser : %p, "
-//					"client : %p, "
-//					"respond : %p, "
-//					"buffer : %s "
-//					")",
-//					parser,
-//					client,
-//					respond,
-//					buffer
-//					);
-
-			mAsyncIOServer.Send(client, buffer, len);
-
-			if( !more ) {
-				// 全部发送完成
-				bFlag = true;
-				break;
-			}
-		}
+	if (result.length() > 0) {
+		len = result.length();
+		bFlag = mAsyncIOServer.Send(client, result.c_str(), len);
 	}
 
-	if( !bFlag ) {
+	if (bFlag) {
 		LogAync(
-				LOG_WARNING,
+				LOG_INFO,
 				"MediaServer::HttpSendRespond( "
-				"event : [内部服务(HTTP)-返回请求到客户端-Fail], "
+				"event : [内部服务(HTTP)-返回请求到客户端], "
 				"parser : %p, "
-				"client : %p "
+				"client : %p, "
+				"respond : %p, "
+				"\n%s"
+				"%s"
 				")",
 				parser,
-				client
+				client,
+				respond,
+				header,
+				result.c_str()
+				);
+	} else {
+		LogAync(
+				LOG_WARN,
+				"MediaServer::HttpSendRespond( "
+				"event : [内部服务(HTTP)-返回请求到客户端-失败], "
+				"parser : %p, "
+				"client : %p, "
+				"respond : %p, "
+				"\n%s"
+				"%s"
+				")",
+				parser,
+				client,
+				respond,
+				header,
+				result.c_str()
 				);
 	}
 
@@ -1086,7 +1052,7 @@ void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 
 bool MediaServer::OnRequestUndefinedCommand(HttpParser* parser) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"MediaServer::OnRequestUndefinedCommand( "
 			"event : [内部服务(HTTP)-收到命令:未知命令], "
 			"parser : %p "
@@ -1217,7 +1183,7 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 		GetErrorObject(resRoot["errno"], resRoot["errmsg"], errType, errMsg);
 
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"MediaServer::OnWebRTCError( "
 				"event : [WebRTC-出错], "
 				"hdl : %p, "
@@ -1341,7 +1307,7 @@ void MediaServer::OnWSOpen(WSServer *server, connection_hdl hdl, const string& a
 
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"MediaServer::OnWSOpen( "
 				"event : [超过最大连接数, 断开连接], "
 				"hdl : %p, "
@@ -1556,7 +1522,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							}
 							mWebRTCMap.Unlock();
 
-							if ( rtc ) {
+							if (rtc) {
 								bFlag = rtc->Start(sdp, rtmpUrl);
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
@@ -1569,15 +1535,15 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 								LogAync(
 										LOG_WARN,
 										"MediaServer::OnWSMessage( "
-										"event : [Websocket-请求-拉流-失败, 超过最大推流数量], "
+										"event : [Websocket-请求-推流-失败, 超过最大推流数量], "
 										"hdl : %p, "
 										"stream : %s, "
-										"serverId : %s, "
+										"record : %d, "
 										"rtmpUrl : %s "
 										")",
 										hdl.lock().get(),
 										stream.c_str(),
-										serverId.c_str(),
+										record,
 										rtmpUrl.c_str()
 										);
 							}
@@ -1683,7 +1649,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							}
 							mWebRTCMap.Unlock();
 
-							if ( rtc ) {
+							if (rtc) {
 								bFlag = rtc->Start(sdp, rtmpUrl, true);
 								if ( bFlag ) {
 									resData["rtmpUrl"] = rtmpUrl;
@@ -1693,6 +1659,18 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 
 							} else {
 								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_WebRTC_No_More_WebRTC_Connection_Allow);
+								LogAync(
+										LOG_WARN,
+										"MediaServer::OnWSMessage( "
+										"event : [Websocket-请求-拉流-失败, 超过最大推流数量], "
+										"hdl : %p, "
+										"stream : %s, "
+										"rtmpUrl : %s "
+										")",
+										hdl.lock().get(),
+										stream.c_str(),
+										rtmpUrl.c_str()
+										);
 							}
 
 						} else {
@@ -1710,7 +1688,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					LogAync(
 							LOG_NOTICE,
 							"MediaServer::OnWSMessage( "
-							"event : [Websocket-请求-外部登录], "
+							"event : [Websocket-请求-设置在线状态], "
 							"hdl : %p, "
 							"param : %s "
 							")",
@@ -1808,7 +1786,7 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 	if ( !bFlag ) {
 		if ( bParse ) {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"MediaServer::OnWSMessage( "
 					"event : [Websocket-请求出错], "
 					"hdl : %p, "
@@ -1864,7 +1842,7 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 		reqRoot["params"] = Json::arrayValue;
 		mWebRTCMap.Lock();
 		// Pop All Logout Request
-		for(ExtRequestList::iterator itr =  mExtRequestList.Begin(); itr != mExtRequestList.End(); itr++) {
+		for(ExtRequestList::iterator itr = mExtRequestList.Begin(); itr != mExtRequestList.End(); itr++) {
 			ExtRequestItem *item = *itr;
 			if ( item->type == ExtRequestTypeLogout ) {
 				delete item;
@@ -1925,7 +1903,7 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 					);
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"MediaServer::HandleExtForceSync( "
 					"event : [外部同步在线状态-%s], "
 					"url : %s, "
@@ -1976,12 +1954,13 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 		}
 	}
 
+	bool sendLogout = false;
 	// Callback to client
 	mWebRTCMap.Lock();
 	MediaClientMap::iterator itr = mMediaClientMap.Find(item->uuid);
 	if ( itr != mMediaClientMap.End() ) {
 		MediaClient *client = itr->second;
-		if ( client->connected ) {
+		if (client->connected) {
 			string res = writer.write(resRoot);
 			mWSServer.SendText(client->hdl, res);
 
@@ -1993,20 +1972,43 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 				mWSServer.Disconnect(client->hdl);
 				client->connected = false;
 			}
+		} else {
+			LogAync(
+					LOG_NOTICE,
+					"MediaServer::HandleExtLogin( "
+					"event : [外部登录, 客户端连接已经断开-FIN], "
+					"uuid : %s, "
+					"param : %s "
+					")",
+					item->uuid.c_str(),
+					param.c_str()
+					);
+			sendLogout = true;
 		}
 	} else {
 		LogAync(
 				LOG_NOTICE,
 				"MediaServer::HandleExtLogin( "
-				"event : [外部登录, 客户端连接已经断开], "
+				"event : [外部登录, 客户端连接已经断开-Close_Wait], "
 				"uuid : %s, "
 				"param : %s "
 				")",
 				item->uuid.c_str(),
 				param.c_str()
 				);
+		sendLogout = true;
 	}
 	mWebRTCMap.Unlock();
+
+	if (sendLogout) {
+		// 重新插入下线通知
+		ExtRequestItem *logItem = new ExtRequestItem();
+		logItem->type = ExtRequestTypeLogout;
+		logItem->extParam = param;
+		logItem->uuid = item->uuid;
+		mExtRequestList.PushBack(logItem);
+	}
+
 }
 
 void MediaServer::HandleExtLogout(HttpClient* httpClient, ExtRequestItem *item) {
@@ -2034,9 +2036,21 @@ bool MediaServer::SendExtSetStatusRequest(
 
 	HttpEntiy httpEntiy;
 	httpEntiy.SetRawData(req);
-
 	string url = mExtSetStatusPath;
-	if ( httpClient->Request(url.c_str(), &httpEntiy) ) {
+
+	LogAync(
+			LOG_NOTICE,
+			"MediaServer::SendExtSetStatusRequest( "
+			"event : [外部%s], "
+			"url : %s, "
+			"req : %s "
+			")",
+			isLogin?"登录":"注销",
+			url.c_str(),
+			req.c_str()
+			);
+
+	if ( httpClient->Request(url.c_str(), &httpEntiy, false) ) {
 		httpCode = httpClient->GetRespondCode();
 		httpClient->GetBody(&res, respondSize);
 

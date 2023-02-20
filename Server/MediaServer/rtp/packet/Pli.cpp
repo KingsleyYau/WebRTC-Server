@@ -33,7 +33,7 @@ Pli::~Pli() = default;
 // FCI: no feedback control information.
 bool Pli::Parse(const CommonHeader& packet) {
 	if (packet.payload_size_bytes() < kCommonFeedbackLength) {
-		LogAync(LOG_WARNING, "Pli::Parse( "
+		LogAync(LOG_WARN, "Pli::Parse( "
 				"this : %p, "
 				"[RTCP packet error, it is too small to be a valid PLI], "
 				"packet.payload_size_bytes() : %u "

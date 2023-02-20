@@ -3081,7 +3081,7 @@ nice_agent_gather_candidates (
 
         if ((agent->use_ice_udp == FALSE && add_type == ADD_HOST_UDP) ||
             (agent->use_ice_tcp == FALSE && add_type != ADD_HOST_UDP)) {
-        	nice_debug ("Agent %p: Skip transport for host [%s]", agent, add_type, addr_string);
+        	nice_debug ("Agent %p: Skip transport type[%d] for host [%s]", agent, add_type, addr_string);
         	continue;
         }
 
@@ -5844,8 +5844,8 @@ static void agent_timeout_add_with_context_internal (NiceAgent *agent,
    * Add Debug Log
    * Add by Max 2019/08/30
    */
-  nice_debug ("Agent %p: [%s], main_context %p, out %p, function %p, user_data %p, source %p, interval %u",
-		  agent, name, agent->main_context, out, function, user_data, source, interval);
+  nice_debug ("Agent %p: [%s], new source main_context %p, function %p, user_data %p, source %p, interval %u",
+		  agent, name, agent->main_context, function, user_data, source, interval);
 
   g_source_set_name (source, name);
   data = timeout_data_new (agent, function, user_data, source);
@@ -6869,8 +6869,9 @@ void nice_epoll_run(gint timeout) {
 	while(true) {
 		int nfds = epoll_wait(epollfd, event, MAX_EVENTS, timeout);
 		if (nfds < 0) {
-			nice_debug ("nice_epoll_run epollfd(FD %d) error: %d", epollfd, errno);
+//			nice_debug_verbose ("nice_epoll_run epollfd(FD %d) error: %d", epollfd, errno);
 			if ( errno != EINTR ) {
+				nice_debug ("nice_epoll_run epollfd(FD %d) error: %d", epollfd, errno);
 				break;
 			}
 		}

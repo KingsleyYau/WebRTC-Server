@@ -22,14 +22,13 @@ namespace mediaserver {
 class CamPusher;
 
 class CamPusherImp : public WebRTCClientCallback {
-public:
-	static void Handle(struct mg_connection *nc, int ev, void *ev_data);
+	friend void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data);
 
 public:
 	CamPusherImp();
 	~CamPusherImp();
 
-	bool Init(mg_mgr *mgr, const string& url, const string& stream, int index,
+	bool Init(const string url, const string stream, int index,
 			bool bReconnect = true, int reconnectMaxSeconds = 60, double pushRatio = 1.0,
 			bool bTcpForce = false);
 	bool Start();
@@ -38,15 +37,15 @@ public:
 	void Stop();
 	void Poll();
 
-	void Login(const string user);
 	string Desc();
 	bool Timeout();
 
 public:
-	bool HandleRecvData(unsigned char *data, size_t size);
+	bool WSRecvData(unsigned char *data, size_t size);
 
 private:
 	void OnLogin(Json::Value resRoot, const string res = "");
+	void Login(const string user);
 
 public:
 	void OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp);
@@ -64,19 +63,26 @@ public:
 	int index;
 	bool bReconnect;
 	long long startTime;
+	long long loginTime;
+	long long loginDelta;
 	int reconnectSeconds;
 	int reconnectMaxSeconds;
 	double pushRatio;
 	bool bTcpForce;
 	bool bRunning;
+	bool bConnected;
+	bool bLogined;
+    bool bPushing;
 	KMutex mMutex;
 };
 
 class CamPusherRunnable;
 class CamPusherReconnectRunnable;
+class CamPusherStateRunnable;
 class CamPusher {
 	friend class CamPusherRunnable;
 	friend class CamPusherReconnectRunnable;
+	friend class CamPusherStateRunnable;
 
 public:
 	CamPusher();
@@ -94,6 +100,7 @@ private:
 private:
 	void MainThread();
 	void ReconnectThread();
+	void StateThread();
 
 private:
     mg_mgr mMgr;
@@ -110,6 +117,9 @@ private:
 
     CamPusherReconnectRunnable* mpReconnectRunnable;
 	KThread mReconnectThread;
+
+	CamPusherStateRunnable* mpStateRunnable;
+	KThread mStateThread;
 };
 
 } /* namespace mediaserver */

@@ -35,7 +35,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
 		}break;
         case MG_EV_WEBSOCKET_HANDSHAKE_DONE:{
         	LogAync(
-        			LOG_WARNING,
+        			LOG_WARN,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Handshake_Done], "
@@ -73,7 +73,7 @@ void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
         case MG_EV_CLOSE:{
             // Disconnect
         	LogAync(
-        			LOG_WARNING,
+        			LOG_WARN,
         			"Tester::Handle( "
 					"this : %p, "
 					"[Websocket-Close], "
@@ -145,7 +145,7 @@ bool Tester::Start() {
     }
 
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"Tester::Start( "
 			"this : %p, "
 			"[%s], "
@@ -163,7 +163,7 @@ bool Tester::Start() {
 
 void Tester::Disconnect() {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"Tester::Disconnect( "
 			"this : %p, "
 			"[Websocket], "
@@ -217,7 +217,7 @@ bool Tester::HandleRecvData(unsigned char *data, size_t size) {
 
 void Tester::OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp) {
 //	LogAync(
-//			LOG_WARNING,
+//			LOG_WARN,
 //			"Tester::OnWebRTCClientServerSdp( "
 //			"this : %p, "
 //			"rtc : %p, "
@@ -250,7 +250,7 @@ void Tester::OnWebRTCClientServerSdp(WebRTCClient *rtc, const string& sdp) {
 
 void Tester::OnWebRTCClientStartMedia(WebRTCClient *rtc) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"Tester::OnWebRTCClientStartMedia( "
 			"this : %p, "
 			"[WebRTCClient-开始媒体传输], "
@@ -265,7 +265,7 @@ void Tester::OnWebRTCClientStartMedia(WebRTCClient *rtc) {
 
 void Tester::OnWebRTCClientError(WebRTCClient *rtc, WebRTCClientErrorType errType, const string& errMsg) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"Tester::OnWebRTCClientError( "
 			"this : %p, "
 			"rtc : %p, "
@@ -286,7 +286,7 @@ void Tester::OnWebRTCClientError(WebRTCClient *rtc, WebRTCClientErrorType errTyp
 
 void Tester::OnWebRTCClientClose(WebRTCClient *rtc) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"Tester::OnWebRTCClientClose( "
 			"this : %p, "
 			"rtc : %p, "
@@ -414,7 +414,7 @@ void WebRTCTester::MainThread() {
 	long long lastTime = getCurrentTime();
 	int second = ( miReconnect > 0 )?(rand() % miReconnect):0;
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"WebRTCTester::MainThread( "
 			"[Disconnect Client After %d seconds] "
 			")",
@@ -433,7 +433,7 @@ void WebRTCTester::MainThread() {
 				second = rand() % miReconnect;
 
 				LogAync(
-						LOG_WARNING,
+						LOG_WARN,
 						"WebRTCTester::Start( "
 						"[Disconnect Client : %d, And Do It After %d seconds] "
 						")",

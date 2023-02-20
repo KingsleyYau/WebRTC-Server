@@ -1,34 +1,32 @@
 /*
  * BaseResultRespond.cpp
  *
- *  Created on: 2016-3-8
+ *  Created on: 2016年3月8日
  *      Author: Max.Chiu
- *      Email: Kingsleyyau@gmail.com
  */
 
 #include "BaseResultRespond.h"
+
 namespace mediaserver {
+
 BaseResultRespond::BaseResultRespond() {
 	// TODO Auto-generated constructor stub
-	mRet = true;
-	mErrMsg = "";
+	resRoot["ret"] = 1;
 }
 
 BaseResultRespond::~BaseResultRespond() {
 	// TODO Auto-generated destructor stub
 }
 
-int BaseResultRespond::GetData(char* buffer, int len, bool &more) {
-	int ret = 0;
-	more = false;
-
-	snprintf(buffer, len, "{\"ret\":%d, \"errmsg\":\"%s\"}", mRet, mErrMsg.c_str());
-	ret = strlen(buffer);
-	return ret;
+string BaseResultRespond::Result() {
+	Json::FastWriter writer;
+	string res = writer.write(resRoot);
+	return res;
 }
 
-void BaseResultRespond::SetParam(bool ret, const string& errMsg) {
-	mRet = ret;
-	mErrMsg = errMsg;
+void BaseResultRespond::SetParam(bool ret, string errmsg) {
+	resRoot["ret"] = int(ret);
+	resRoot["errmsg"] = errmsg;
 }
-}
+
+} /* namespace mediaserver */

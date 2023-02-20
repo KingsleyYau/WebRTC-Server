@@ -27,7 +27,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 	const uint8_t kVersion = 2;
 
 	if (size_bytes < kHeaderSizeBytes) {
-		LogAync(LOG_WARNING, "RtpPacket::Parse( "
+		LogAync(LOG_WARN, "RtpPacket::Parse( "
 				"this : %p, "
 				"[RTCP packet error, too little data], "
 				"size_bytes : %u "
@@ -37,7 +37,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 
 	uint8_t version = buffer[0] >> 6;
 	if (version != kVersion) {
-		LogAync(LOG_WARNING, "RtpPacket::Parse( "
+		LogAync(LOG_WARN, "RtpPacket::Parse( "
 				"this : %p, "
 				"[RTCP packet version error], "
 				"version : %u "
@@ -53,7 +53,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 	padding_size_ = 0;
 
 	if (size_bytes < kHeaderSizeBytes + payload_size_) {
-		LogAync(LOG_WARNING, "RtpPacket::Parse( "
+		LogAync(LOG_WARN, "RtpPacket::Parse( "
 				"this : %p, "
 				"[RTCP packet error, buffer too small], "
 				"size_bytes : %u, "
@@ -64,7 +64,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 
 	if (has_padding) {
 		if (payload_size_ == 0) {
-			LogAync(LOG_WARNING,
+			LogAync(LOG_WARN,
 					"RtpPacket::Parse( "
 							"this : %p, "
 							"[RTCP packet error. Invalid RTCP header: Padding bit set but 0 payload size specified.] "
@@ -74,7 +74,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 
 		padding_size_ = payload_[payload_size_ - 1];
 		if (padding_size_ == 0) {
-			LogAync(LOG_WARNING,
+			LogAync(LOG_WARN,
 					"RtpPacket::Parse( "
 							"this : %p, "
 							"[RTCP packet error. Invalid RTCP header: Padding bit set but 0 padding size specified.] "
@@ -82,7 +82,7 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size_bytes) {
 			return false;
 		}
 		if (padding_size_ > payload_size_) {
-			LogAync(LOG_WARNING,
+			LogAync(LOG_WARN,
 					"RtpPacket::Parse( "
 							"this : %p, "
 							"[RTCP packet error. Invalid RTCP header: Too many padding bytes.], "

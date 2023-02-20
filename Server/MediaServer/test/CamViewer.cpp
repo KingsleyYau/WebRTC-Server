@@ -150,7 +150,7 @@ bool CamViewerImp::Start() {
 
     if (!bFlag) {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"CamViewerImp::Start( "
 				"this : %p, "
 				"[%s], "

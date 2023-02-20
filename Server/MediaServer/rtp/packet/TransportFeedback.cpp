@@ -300,7 +300,7 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
 		delta = static_cast<int16_t>(delta_full);
 		// If larger than 16bit signed, we can't represent it - need new fb packet.
 		if (delta != delta_full) {
-			LogAync(LOG_WARNING, "TransportFeedback::AddReceivedPacket( "
+			LogAync(LOG_WARN, "TransportFeedback::AddReceivedPacket( "
 					"this : %p, "
 					"[Delta value too large ( >= 2^16 ticks )], "
 					"delta : %d, "
@@ -381,7 +381,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 	RTC_CHECK_EQ(packet.type(), kPacketType); RTC_CHECK_EQ(packet.fmt(), kFeedbackMessageType);
 
 	if (packet.payload_size_bytes() < kMinPayloadSizeBytes) {
-		LogAync(LOG_WARNING,
+		LogAync(LOG_WARN,
 				"TransportFeedback::Parse( "
 						"this : %p, "
 						"[RTCP packet error, it is too small to be a valid TransportFeedback], "
@@ -404,7 +404,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 	const size_t end_index = packet.payload_size_bytes();
 
 	if (status_count == 0) {
-		LogAync(LOG_WARNING, "TransportFeedback::Parse( "
+		LogAync(LOG_WARN, "TransportFeedback::Parse( "
 				"this : %p, "
 				"[RTCP packet error, Empty feedback messages not allowed] "
 				")", this);
@@ -415,7 +415,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 	delta_sizes.reserve(status_count);
 	while (delta_sizes.size() < status_count) {
 		if (index + kChunkSizeBytes > end_index) {
-			LogAync(LOG_WARNING, "TransportFeedback::Parse( "
+			LogAync(LOG_WARN, "TransportFeedback::Parse( "
 					"this : %p, "
 					"[RTCP packet error, Buffer overflow while parsing packet] "
 					")", this);
@@ -444,7 +444,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 	if (end_index >= index + recv_delta_size) {
 		for (size_t delta_size : delta_sizes) {
 			if (index + delta_size > end_index) {
-				LogAync(LOG_WARNING,
+				LogAync(LOG_WARN,
 						"TransportFeedback::Parse( "
 								"this : %p, "
 								"[RTCP packet error, Buffer overflow while parsing packet] "
@@ -478,7 +478,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 			}
 			case 3:
 				Clear();
-				LogAync(LOG_WARNING, "TransportFeedback::Parse( "
+				LogAync(LOG_WARN, "TransportFeedback::Parse( "
 						"this : %p, "
 						"[RTCP packet error, Invalid delta_size for seq_no %u] "
 						")", this, seq_no);
@@ -539,7 +539,7 @@ bool TransportFeedback::IsConsistent() const {
 		packet_size += kChunkSizeBytes;
 	}
 	if (num_seq_no_ != delta_sizes.size()) {
-		LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+		LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 				"this : %p, "
 				"[%d packets encoded. Expected %u] "
 				")", this, delta_sizes.size(), num_seq_no_);
@@ -551,7 +551,7 @@ bool TransportFeedback::IsConsistent() const {
 	for (DeltaSize delta_size : delta_sizes) {
 		if (delta_size > 0) {
 			if (packet_it == received_packets_.end()) {
-				LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+				LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 						"this : %p, "
 						"[Failed to find delta for seq_no], "
 						"seq_no : %u "
@@ -559,7 +559,7 @@ bool TransportFeedback::IsConsistent() const {
 				return false;
 			}
 			if (packet_it->sequence_number() != seq_no) {
-				LogAync(LOG_WARNING,
+				LogAync(LOG_WARN,
 						"TransportFeedback::IsConsistent( "
 								"this : %p, "
 								"[Expected to find delta for seq_no %u. Next delta is for %u] "
@@ -570,7 +570,7 @@ bool TransportFeedback::IsConsistent() const {
 			if (delta_size == 1
 					&& (packet_it->delta_ticks() < 0
 							|| packet_it->delta_ticks() > 0xff)) {
-				LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+				LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 						"this : %p, "
 						"[Delta %u seq_no %u doesn't fit into one byte] "
 						")", this, packet_it->delta_ticks(), seq_no);
@@ -585,21 +585,21 @@ bool TransportFeedback::IsConsistent() const {
 		++seq_no;
 	}
 	if (packet_it != received_packets_.end()) {
-		LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+		LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 				"this : %p, "
 				"[Unencoded delta for seq_no] "
 				")", this, packet_it->sequence_number());
 		return false;
 	}
 	if (timestamp_us != last_timestamp_us_) {
-		LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+		LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 				"this : %p, "
 				"[Last timestamp mismatch. Calculated: %u. Saved: %u] "
 				")", this, timestamp_us, last_timestamp_us_);
 		return false;
 	}
 	if (size_bytes_ != packet_size) {
-		LogAync(LOG_WARNING, "TransportFeedback::IsConsistent( "
+		LogAync(LOG_WARN, "TransportFeedback::IsConsistent( "
 				"this : %p, "
 				"[Rtcp packet size mismatch. Calculated:  %u. Saved: %u] "
 				")", this, packet_size, size_bytes_);

@@ -18,7 +18,8 @@ public:
 	BaseRawRespond();
 	virtual ~BaseRawRespond();
 
-	int GetData(char* buffer, int len, bool &more);
+	virtual string Result() override;
+
 	void SetParam(const string& raw);
 
 protected:

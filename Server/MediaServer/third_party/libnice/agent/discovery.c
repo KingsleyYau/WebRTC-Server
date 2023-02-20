@@ -286,27 +286,31 @@ static gboolean refresh_remove_async(NiceAgent *agent, CandidateRefresh *cand,
 			username, username_len, password, password_len,
 			agent_to_turn_compatibility(agent));
 
-	cand->destroy_cb = cb;
-	cand->destroy_cb_data = cb_data;
-
 	if (buffer_len > 0) {
 		int ret = agent_socket_send(cand->nicesock, &cand->server, buffer_len,
 				(gchar *) cand->stun_buffer);
-//		if ( ret < 0 ) {
-//			nice_debug(
-//					"Agent %p: Sending request to remove TURN allocation for refresh %p fail",
-//					agent, cand);
-//
-//			result = FALSE;
-//		} else {
-			stun_timer_start(&cand->timer, agent->stun_initial_timeout,
-					agent->stun_max_retransmissions);
+		if ( ret < 0 ) {
+			nice_debug(
+					"Agent %p: Sending request to remove TURN allocation for refresh %p fail",
+					agent, cand);
 
-//			agent_timeout_add_with_context(agent, &cand->tick_source,
-//					"TURN deallocate retransmission",
-//					stun_timer_remainder(&cand->timer),
-//					(NiceTimeoutLockedCallback) on_refresh_remove_timeout, cand);
-//		}
+			result = FALSE;
+		} else {
+			nice_debug(
+					"Agent %p: Sending request to remove TURN allocation for refresh %p",
+					agent, cand);
+
+			cand->destroy_cb = cb;
+			cand->destroy_cb_data = cb_data;
+
+//			stun_timer_start(&cand->timer, agent->stun_initial_timeout,
+//					agent->stun_max_retransmissions);
+			agent_timeout_add_with_context(agent, &cand->tick_source,
+					"TURN deallocate retransmission",
+					stun_timer_remainder(&cand->timer),
+					(NiceTimeoutLockedCallback) on_refresh_remove_timeout, cand);
+			result = TRUE;
+		}
 
 	}
 

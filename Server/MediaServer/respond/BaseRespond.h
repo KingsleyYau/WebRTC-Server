@@ -1,23 +1,21 @@
 /*
  * BaseRespond.h
  *
- *  Created on: 2016-3-11
+ *  Created on: 2016年3月11日
  *      Author: max
- *      Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RESPOND_BASERESPOND_H_
-#define RESPOND_BASERESPOND_H_
+#ifndef REQUEST_BASERESPOND_H_
+#define REQUEST_BASERESPOND_H_
 
 #include "IRespond.h"
-
 namespace mediaserver {
 class BaseRespond : public IRespond {
 public:
 	BaseRespond();
 	virtual ~BaseRespond();
 
-	int GetData(char* buffer, int len, bool &more);
+	virtual string Result() override;
 };
 }
-#endif /* RESPOND_BASERESPOND_H_ */
+#endif /* REQUEST_BASERESPOND_H_ */

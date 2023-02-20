@@ -54,7 +54,7 @@ bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, const string& rec
 					);
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"RtpRawClient::Init( "
 					"this : %p, "
 					"[Fail], "

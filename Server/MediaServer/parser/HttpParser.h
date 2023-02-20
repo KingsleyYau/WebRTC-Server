@@ -63,7 +63,7 @@ public:
 	string GetParam(const string& key);
 	string GetPath();
 	HttpType GetType();
-
+	int GetContentLength();
 	const char* GetBody();
 
 private:

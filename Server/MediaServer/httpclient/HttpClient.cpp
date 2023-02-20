@@ -521,13 +521,13 @@ size_t HttpClient::CurlProgress(void *data, double downloadTotal, double downloa
 size_t HttpClient::HttpProgress(double downloadTotal, double downloadNow, double uploadTotal, double uploadNow) {
 	double totalTime = 0;
 	curl_easy_getinfo(mpCURL, CURLINFO_TOTAL_TIME, &totalTime);
-	FileLog("httpclient", "HttpClient::HttpProgress( "
-			"totalTime : %.2f second, uploadTotal : %.2f, uploadNow : %.2f, "
-			"mdDownloadLastTime : %.2f second, mdDownloadLast : %.2f, downloadNow : %.2f "
-			")",
-			totalTime, uploadTotal, uploadNow,
-			mdDownloadLastTime, mdDownloadLast, downloadNow
-			);
+//	FileLog("httpclient", "HttpClient::HttpProgress( "
+//			"totalTime : %.2f second, uploadTotal : %.2f, uploadNow : %.2f, "
+//			"mdDownloadLastTime : %.2f second, mdDownloadLast : %.2f, downloadNow : %.2f "
+//			")",
+//			totalTime, uploadTotal, uploadNow,
+//			mdDownloadLastTime, mdDownloadLast, downloadNow
+//			);
 
 	// mark the upload progress
 	mdUploadTotal = uploadTotal;

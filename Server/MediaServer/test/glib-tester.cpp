@@ -48,6 +48,9 @@ KMutex gKMutex;
 #define MAX_LOG_BUFFER_LEN 10 * 1024
 GSource *sources[65535];
 
+bool gRunning[4];
+int gTotalTimes = 10000;
+
 void log(const char *format, ...) {
 	char logBuffer[MAX_LOG_BUFFER_LEN] = {0};
 	char bitBuffer[128] = {0};
@@ -183,8 +186,8 @@ void* deamon_thread(void *data) {
 }
 
 void* worker_thread(void *data) {
-	log("worker ", (int)syscall(SYS_gettid));
-	GMainLoop* loop = (GMainLoop *)data;
+	log("worker %d", (int)syscall(SYS_gettid));
+//	GMainLoop* loop = (GMainLoop *)data;
 
 //	GTask *task = g_task_new (NULL, NULL, task_finish, NULL);
 //	g_task_set_source_tag (task, (void *)loop_thread);
@@ -192,7 +195,7 @@ void* worker_thread(void *data) {
 //	g_task_run_in_thread(task, task_thread);
 //	g_object_unref (task);
 
-	GMainContext* ctx = g_main_loop_get_context(loop);
+//	GMainContext* ctx = g_main_loop_get_context(loop);
 //	GSource *source = g_timeout_source_new_seconds(1);
 //	g_source_set_name (source, "source1");
 //	g_source_set_callback(source, timeout_cb, NULL, (GDestroyNotify)timeout_data_destroy);
@@ -204,7 +207,40 @@ void* worker_thread(void *data) {
 //    g_source_attach(source, ctx);
 //    g_source_unref(source);
 
-    g_main_loop_run(loop);
+//    g_main_loop_run(loop);
+
+	bool *running = (bool *)data;
+    guint8 tmp[1024] = {0};
+    GOutputVector buffer = { tmp, sizeof(tmp) };
+
+	while (true) {
+		if (*running) {
+			for (int t = 0; t < gTotalTimes; t++) {
+				gssize ret = 0;
+				GError *gerr = NULL;
+
+				GSocket *gsock = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM,
+					G_SOCKET_PROTOCOL_TCP, NULL);
+				ret = g_socket_send_message(gsock, NULL, &buffer,
+						1, NULL, 0, G_SOCKET_MSG_NONE, NULL, &gerr);
+
+				log("worker %d, Socket %p(FD %d): Send, len %d, ret %d, errno %d, times %d\n",
+						(int)syscall(SYS_gettid),
+						gsock, g_socket_get_fd(gsock),
+						sizeof(tmp), ret, errno,
+						t);
+				if (gerr) {
+					g_error_free(gerr);
+				}
+
+				g_socket_close(gsock, NULL);
+				g_object_unref(gsock);
+			}
+			*running = false;
+		} else {
+			sleep(1);
+		}
+	}
 
     return 0;
 }
@@ -314,10 +350,10 @@ int main(int argc, char *argv[]) {
 
 	GMainContext* context1 = g_main_context_new();
 	GMainLoop *loop1 = g_main_loop_new (context1, FALSE);
-	GThread *thread1 = g_thread_new("worker-1", &worker_thread, loop1);
-//	GMainContext* context2 = g_main_context_new();
-//	GMainLoop *loop2 = g_main_loop_new (context2, FALSE);
-//	GThread *thread2 = g_thread_new("worker-2", &worker_thread, loop2);
+	GThread *thread1 = g_thread_new("worker-1", &worker_thread, &gRunning[0]);
+	GMainContext* context2 = g_main_context_new();
+	GMainLoop *loop2 = g_main_loop_new (context2, FALSE);
+	GThread *thread2 = g_thread_new("worker-2", &worker_thread, &gRunning[1]);
 //	GMainContext* context3 = g_main_context_new();
 //	GMainLoop *loop3 = g_main_loop_new (context3, FALSE);
 //	GThread *thread3 = g_thread_new("worker-3", &worker_thread, loop3);
@@ -338,113 +374,123 @@ int main(int argc, char *argv[]) {
 //    g_source_attach (source, context1);
 
 
-	// 创建socket
-    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    int flag = 1;
-    int ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
-    log("setsockopt listenfd(%d) %d", listenfd, ret);
-
-    // 绑定的地址
-    struct sockaddr_in server_addr = { 0 };
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12345);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-//    const char * const local_addr = "0.0.0.0";
-//    inet_aton (local_addr, &(server_addr.sin_addr));
-    ret = bind(listenfd, (const struct sockaddr *)&server_addr, sizeof (server_addr));
-    log("bind listenfd(%d) %d", listenfd, ret);
-    ret = set_non_blocking(listenfd);
-    ret = listen(listenfd, 1024);
-    log("listen listenfd(%d) %d", listenfd, ret);
-
-	// 创建epoll
-	struct epoll_event ev, event[MAX_EVENTS];
-    int epollfd = epoll_create1(EPOLL_CLOEXEC);
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = listenfd;
-	if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, listenfd, &ev ) == -1 ) {
-		log("poll_ctl listenfd(%d) error", listenfd);
-	    exit( EXIT_FAILURE );
-	}
-
-	while(true) {
-		int nfds = epoll_wait(epollfd, event, MAX_EVENTS, -1);
-	    for ( int i = 0; i < nfds; ++i ) {
-	    	uint32_t events = event[i].events;
-	    	if ( events & EPOLLERR || events & EPOLLHUP || (! events & EPOLLIN) ) {
-	    		if ( event[i].data.fd == listenfd ) {
-	    			log("epoll listenfd(%d) has error %d ", event[i].data.fd, events);
-	    			close (event[i].data.fd);
-	    			break;
-	    		} else {
-	    			log("epoll clientfd(%d) has error %d ", event[i].data.fd, events);
-	            	IOSource *source = (IOSource *)sources[event[i].data.fd];
-	    	        source->canRead = true;
-	    	        sources[event[i].data.fd] = NULL;
-	    			continue;
-	    		}
-	    	} else if ( event[i].data.fd == listenfd ) {
-                struct sockaddr in_addr = { 0 };
-                socklen_t in_addr_len = sizeof (in_addr);
-	            int clientfd = accept(listenfd, (struct sockaddr *) &in_addr, &in_addr_len);
-	            if ( clientfd == -1 ) {
-	            	log("accept error");
-	            	break;
-	                exit( EXIT_FAILURE );
-	            }
-	            log("accept clientfd(%d) ", clientfd);
-	            ret = set_non_blocking( clientfd );
-	            ev.events = EPOLLIN | EPOLLET;
-	            ev.data.fd = clientfd;
-	            if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, clientfd, &ev ) == -1 ) {
-	            	log("epoll_ctl clientfd(%d) ", clientfd);
-	                exit( EXIT_FAILURE );
-	            }
-
-	            GSourceFuncs source_funcs = {prepare, check, dispatch, NULL};
-	            GSource *source = g_source_new(&source_funcs, sizeof(IOSource));
-	            ((IOSource *)source)->fd = clientfd;
-	            ((IOSource *)source)->canRead = false;
-	            ((IOSource *)source)->total = 0;
-	            sources[clientfd] = source;
-
-	            g_source_attach(source, context1);
-	            g_source_unref(source);
-	        } else {
-	        	IOSource *isrc = (IOSource *)sources[event[i].data.fd];
-	        	isrc->canRead = true;
-//	        	log("epoll_wait can read clientfd(%d)", event[i].data.fd);
-//				int ret = 0;
-//				char buff[1600] = {0};
-//				while (true) {
-//					ret = read(isrc->fd, buff, sizeof(buff));
-//					if (-1 == ret) {
-//						if (EAGAIN != errno) {
-//							log("recv clientfd(%d) error %d ", isrc->fd, errno);
-//							close (isrc->fd);
-//						} else {
-////			            	log("recv clientfd(%d) nothing ", isrc->fd);
-//							isrc->canRead = false;
-//						}
-//						break;
-//					} else if (!ret) {
-//						log ("recv clientfd(%d) finish ", isrc->fd);
-//						isrc->canRead = false;
-//						close (isrc->fd);
-//						break;
-//					} else {
-//						isrc->total += ret;
-////			        	log("recv clientfd(%d) %d, total:%d", isrc->fd, ret, isrc->total);
-//					}
-//				}
-//				isrc->canRead = false;
-	        }
-	    }
-	}
-
-//	while(1) {
-//		sleep(1);
+//	// 创建socket
+//    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+//    int flag = 1;
+//    int ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+//    log("setsockopt listenfd(%d) %d", listenfd, ret);
+//
+//    // 绑定的地址
+//    struct sockaddr_in server_addr = { 0 };
+//    server_addr.sin_family = AF_INET;
+//    server_addr.sin_port = htons(12345);
+//    server_addr.sin_addr.s_addr = INADDR_ANY;
+////    const char * const local_addr = "0.0.0.0";
+////    inet_aton (local_addr, &(server_addr.sin_addr));
+//    ret = bind(listenfd, (const struct sockaddr *)&server_addr, sizeof (server_addr));
+//    log("bind listenfd(%d) %d", listenfd, ret);
+//    ret = set_non_blocking(listenfd);
+//    ret = listen(listenfd, 1024);
+//    log("listen listenfd(%d) %d", listenfd, ret);
+//
+//	// 创建epoll
+//	struct epoll_event ev, event[MAX_EVENTS];
+//    int epollfd = epoll_create1(EPOLL_CLOEXEC);
+//	ev.events = EPOLLIN | EPOLLET;
+//	ev.data.fd = listenfd;
+//	if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, listenfd, &ev ) == -1 ) {
+//		log("poll_ctl listenfd(%d) error", listenfd);
+//	    exit( EXIT_FAILURE );
 //	}
+//
+//	while(true) {
+//		int nfds = epoll_wait(epollfd, event, MAX_EVENTS, -1);
+//	    for ( int i = 0; i < nfds; ++i ) {
+//	    	uint32_t events = event[i].events;
+//	    	if ( events & EPOLLERR || events & EPOLLHUP || (! events & EPOLLIN) ) {
+//	    		if ( event[i].data.fd == listenfd ) {
+//	    			log("epoll listenfd(%d) has error %d ", event[i].data.fd, events);
+//	    			close (event[i].data.fd);
+//	    			break;
+//	    		} else {
+//	    			log("epoll clientfd(%d) has error %d ", event[i].data.fd, events);
+//	            	IOSource *source = (IOSource *)sources[event[i].data.fd];
+//	    	        source->canRead = true;
+//	    	        sources[event[i].data.fd] = NULL;
+//	    			continue;
+//	    		}
+//	    	} else if ( event[i].data.fd == listenfd ) {
+//                struct sockaddr in_addr = { 0 };
+//                socklen_t in_addr_len = sizeof (in_addr);
+//	            int clientfd = accept(listenfd, (struct sockaddr *) &in_addr, &in_addr_len);
+//	            if ( clientfd == -1 ) {
+//	            	log("accept error");
+//	            	break;
+//	                exit( EXIT_FAILURE );
+//	            }
+//	            log("accept clientfd(%d) ", clientfd);
+//	            ret = set_non_blocking( clientfd );
+//	            ev.events = EPOLLIN | EPOLLET;
+//	            ev.data.fd = clientfd;
+//	            if ( epoll_ctl( epollfd, EPOLL_CTL_ADD, clientfd, &ev ) == -1 ) {
+//	            	log("epoll_ctl clientfd(%d) ", clientfd);
+//	                exit( EXIT_FAILURE );
+//	            }
+//
+//	            GSourceFuncs source_funcs = {prepare, check, dispatch, NULL};
+//	            GSource *source = g_source_new(&source_funcs, sizeof(IOSource));
+//	            ((IOSource *)source)->fd = clientfd;
+//	            ((IOSource *)source)->canRead = false;
+//	            ((IOSource *)source)->total = 0;
+//	            sources[clientfd] = source;
+//
+//	            g_source_attach(source, context1);
+//	            g_source_unref(source);
+//	        } else {
+//	        	IOSource *isrc = (IOSource *)sources[event[i].data.fd];
+//	        	isrc->canRead = true;
+////	        	log("epoll_wait can read clientfd(%d)", event[i].data.fd);
+////				int ret = 0;
+////				char buff[1600] = {0};
+////				while (true) {
+////					ret = read(isrc->fd, buff, sizeof(buff));
+////					if (-1 == ret) {
+////						if (EAGAIN != errno) {
+////							log("recv clientfd(%d) error %d ", isrc->fd, errno);
+////							close (isrc->fd);
+////						} else {
+//////			            	log("recv clientfd(%d) nothing ", isrc->fd);
+////							isrc->canRead = false;
+////						}
+////						break;
+////					} else if (!ret) {
+////						log ("recv clientfd(%d) finish ", isrc->fd);
+////						isrc->canRead = false;
+////						close (isrc->fd);
+////						break;
+////					} else {
+////						isrc->total += ret;
+//////			        	log("recv clientfd(%d) %d, total:%d", isrc->fd, ret, isrc->total);
+////					}
+////				}
+////				isrc->canRead = false;
+//	        }
+//	    }
+//	}
+
+	char c;
+	for(int i = 0; i < 4; i++) {
+		gRunning[i] = false;
+	}
+
+	while (true) {
+		printf("please input any key to continue.\n");
+		scanf("%c", &c);
+		for(int i = 0; i < 4; i++) {
+			gRunning[i] = true;
+		}
+	}
+
 
 	return EXIT_SUCCESS;
 }

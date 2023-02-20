@@ -101,12 +101,14 @@ int main(int argc, char *argv[]) {
 
 bool Parse(int argc, char *argv[]) {
 	string key, value;
-	for( int i = 1; (i + 1) < argc; i+=2 ) {
-		key = argv[i];
-		value = argv[i+1];
+	for( int i = 1; i < argc;) {
+		key = argv[i++];
 
 		if( key.compare("-f") == 0 ) {
+			value = argv[i++];
 			gConfFilePath = value;
+		} else if( key.compare("-d") == 0 ) {
+			LogManager::GetLogManager()->SetSTDMode(true);
 		}
 	}
 

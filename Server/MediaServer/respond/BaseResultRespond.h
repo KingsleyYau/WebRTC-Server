@@ -1,29 +1,30 @@
 /*
  * BaseResultRespond.h
  *
- *  Created on: 2016-3-8
+ *  Created on: 2016年3月8日
  *      Author: Max.Chiu
- *      Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RESPOND_BASERESULTRESPOND_H_
-#define RESPOND_BASERESULTRESPOND_H_
+#ifndef BASERESULTRESPOND_H_
+#define BASERESULTRESPOND_H_
 
 #include "BaseRespond.h"
 
-namespace mediaserver {
+// ThirdParty
+#include <json/json.h>
 
+namespace mediaserver {
 class BaseResultRespond : public BaseRespond {
 public:
 	BaseResultRespond();
 	virtual ~BaseResultRespond();
 
-	int GetData(char* buffer, int len, bool &more);
-	void SetParam(bool ret, const string& errMsg);
+	virtual string Result() override;
+
+	virtual void SetParam(bool ret, string errmsg = "");
 
 protected:
-	bool mRet;
-	string mErrMsg;
+	Json::Value resRoot;
 };
 }
-#endif /* RESPOND_BASERESULTRESPOND_H_ */
+#endif /* BASERESULTRESPOND_H_ */

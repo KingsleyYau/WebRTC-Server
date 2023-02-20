@@ -336,7 +336,7 @@ private:
 	RtpPacketHistory audio_packet_history_;
 
 	// 用于解析接收的rtp包
-	RtpPacketReceived rtpPktCache;
+//	RtpPacketReceived rtpPktCache;
 };
 
 } /* namespace mediaserver */

@@ -47,7 +47,7 @@ bool Fir::Parse(const CommonHeader& packet) {
 
 	// The FCI field MUST contain one or more FIR entries.
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kFciLength) {
-		LogAync(LOG_WARNING, "Pli::Parse( "
+		LogAync(LOG_WARN, "Pli::Parse( "
 				"this : %p, "
 				"[RTCP packet error, it is too small to be a valid FIR], "
 				"packet.payload_size_bytes() : %u "
@@ -57,7 +57,7 @@ bool Fir::Parse(const CommonHeader& packet) {
 
 	if ((packet.payload_size_bytes() - kCommonFeedbackLength) % kFciLength
 			!= 0) {
-		LogAync(LOG_WARNING, "Pli::Parse( "
+		LogAync(LOG_WARN, "Pli::Parse( "
 				"this : %p, "
 				"[RTCP packet error, it is invalid size for a valid FIR], "
 				"packet.payload_size_bytes() : %u "

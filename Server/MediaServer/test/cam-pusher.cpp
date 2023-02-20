@@ -163,7 +163,14 @@ void SignalFunc(int signal) {
 	}break;
 	case SIGINT:
 	case SIGQUIT:
-	case SIGKILL:
+	case SIGKILL: {
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Exit Signal, signal : %d )", signal
+				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		gTester.Exit(signal);
+		LogManager::GetLogManager()->LogFlushMem2File();
+	}break;
 	case SIGBUS:
 	case SIGSEGV:{
 		LogAyncUnSafe(

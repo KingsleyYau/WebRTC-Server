@@ -163,9 +163,11 @@ int HttpParser::ParseData(char* buffer, int len) {
 //					}
 //				}
 //				ret += last;
-
-				if( mpCallback ) {
-					mpCallback->OnHttpParserError(this);
+				// 没有Content-Length的请求, 并且不是Get
+				if (mHttpType != GET) {
+					if( mpCallback ) {
+						mpCallback->OnHttpParserError(this);
+					}
 				}
 				Reset();
 			}
@@ -227,6 +229,10 @@ string HttpParser::GetPath() {
 
 HttpType HttpParser::GetType() {
 	return mHttpType;
+}
+
+int HttpParser::GetContentLength() {
+	return miContentLength;
 }
 
 string HttpParser::GetAuth() {

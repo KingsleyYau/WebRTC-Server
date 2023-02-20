@@ -11,6 +11,9 @@
 
 #include "BaseResultRespond.h"
 
+// ThirdParty
+#include <json/json.h>
+
 namespace mediaserver {
 
 class SdpCallRespond : public BaseResultRespond {
@@ -18,12 +21,7 @@ public:
 	SdpCallRespond();
 	virtual ~SdpCallRespond();
 
-	int GetData(char* buffer, int len, bool &more);
 	void SetSdp(const string& sdp);
-
-private:
-	string mSdp;
-
 };
 }
 #endif /* RESPOND_SDPCALLRESPOND_H_ */

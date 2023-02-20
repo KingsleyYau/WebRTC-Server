@@ -509,7 +509,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 					}
 				} else {
 					LogAync(
-							LOG_WARNING,
+							LOG_WARN,
 							"WebRTC::ParseRemoteSdp( "
 							"this : %p, "
 							"[Error Remote Media Count], "
@@ -902,7 +902,7 @@ bool WebRTC::ParseRemoteSdp(const string& sdp) {
 		mIceClient.SetRemoteSdp(sdp);
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"WebRTC::ParseRemoteSdp( "
 				"this : %p, "
 				"[Fail], "
@@ -1103,7 +1103,7 @@ bool WebRTC::CreateLocalSdpFile() {
 				);
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"WebRTC::CreateLocalSdpFile( "
 				"this : %p, "
 				"[Fail], "
@@ -1696,7 +1696,7 @@ int WebRTC::SendData(const void *data, unsigned int len) {
 
 void WebRTC::OnIceCandidateGatheringFail(IceClient *ice, RequestErrorType errType) {
 	LogAync(
-			LOG_WARNING,
+			LOG_WARN,
 			"WebRTC::OnIceCandidateGatheringFail( "
 			"this : %p, "
 			"ice : %p, "
@@ -2002,7 +2002,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 //		Arithmetic ari;
 //		string hex = ari.AsciiToHexWithSep(data, size);
 		LogAync(
-				LOG_NOTICE,
+				LOG_INFO,
 				"WebRTC::OnIceRecvData( "
 				"this : %p, "
 				"[Unknow Data Format], "
@@ -2028,7 +2028,7 @@ void WebRTC::OnIceRecvData(IceClient *ice, const char *data, unsigned int size, 
 
 void WebRTC::OnIceFail(IceClient *ice) {
 	LogAync(
-			LOG_WARNING,
+			LOG_NOTICE,
 			"WebRTC::OnIceFail( "
 			"this : %p, "
 			"ice : %p, "
@@ -2039,7 +2039,7 @@ void WebRTC::OnIceFail(IceClient *ice) {
 			mRtmpUrl.c_str()
 			);
 	if( mpWebRTCCallback ) {
-		mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Ice_Fail, "");
+		mpWebRTCCallback->OnWebRTCError(this, RequestErrorType_WebRTC_Ice_Fail, RequestErrObjects[RequestErrorType_WebRTC_Ice_Fail].errMsg);
 	}
 }
 

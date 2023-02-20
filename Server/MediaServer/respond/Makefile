@@ -15,7 +15,7 @@ CXXFLAGS = -O2 -g
 endif
 
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS +=	-I. -I.. -I../third_party
+CXXFLAGS +=	-I. -I.. -I../third_party -I../third_party/json
 
 OBJS 		=	BaseRespond.o BaseRawRespond.o BaseResultRespond.o \
 				SdpCallRespond.o
