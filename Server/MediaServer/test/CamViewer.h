@@ -6,10 +6,13 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef TEST_CamViewer_H_
-#define TEST_CamViewer_H_
+#ifndef TEST_WEBRTCTESTER_H_
+#define TEST_WEBRTCTESTER_H_
+
+#include "WebRTCClient.h"
 
 #include <mongoose/mongoose.h>
+#include <json/json.h>
 
 // Common
 #include <common/LogManager.h>
@@ -19,41 +22,63 @@ namespace mediaserver {
 class CamViewer;
 
 class CamViewerImp {
-public:
-	static void Handle(struct mg_connection *nc, int ev, void *ev_data);
+	friend void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data);
 
 public:
 	CamViewerImp();
 	~CamViewerImp();
 
-	bool Init(KMutex *mutex, mg_mgr *mgr, const string& url, const string& stream, int index, bool bReconnect = true);
+	bool Init(const string url, const string user, const string dest, int index,
+			bool bReconnect = true, int reconnectMaxSeconds = 60);
 	bool Start();
 	void Disconnect();
+	void Close();
+	void Stop();
+	void Poll();
+
+	string Desc();
+	bool Timeout();
 
 public:
-	bool HandleRecvData(unsigned char *data, size_t size);
+	bool WSRecvData(unsigned char *data, size_t size);
+
+private:
+	void Login();
 
 public:
 	mg_mgr *mgr;
 	mg_connection *conn;
 	string url;
-	string stream;
+	string user;
+	string dest;
 
 	int index;
 	bool bReconnect;
-
-	KMutex *mutex;
+	long long startTime;
+	long long loginTime;
+	int reconnectSeconds;
+	int reconnectMaxSeconds;
+	bool bRunning;
+	bool bConnected;
+	bool bLogined;
+	long long totalDataSize;
+	KMutex mMutex;
 };
 
 class CamViewerRunnable;
+class CamViewerReconnectRunnable;
+class CamViewerStateRunnable;
 class CamViewer {
 	friend class CamViewerRunnable;
+	friend class CamViewerReconnectRunnable;
+	friend class CamViewerStateRunnable;
 
 public:
 	CamViewer();
 	virtual ~CamViewer();
 
-	bool Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount = 1, int iReconnect = 0);
+	bool Start(const string& stream, const string& dest, const string& webSocketServer, unsigned int iMaxCount = 1,
+			int iReconnect = 60);
 	void Stop();
 	bool IsRunning();
 	void Exit(int signal);
@@ -63,6 +88,8 @@ private:
 
 private:
 	void MainThread();
+	void ReconnectThread();
+	void StateThread();
 
 private:
     mg_mgr mMgr;
@@ -76,9 +103,14 @@ private:
 
     CamViewerRunnable* mpRunnable;
 	KThread mThread;
-	KMutex mMutex;
+
+    CamViewerReconnectRunnable* mpReconnectRunnable;
+	KThread mReconnectThread;
+
+	CamViewerStateRunnable* mpStateRunnable;
+	KThread mStateThread;
 };
 
 } /* namespace mediaserver */
 
-#endif /* TEST_CamViewer_H_ */
+#endif /* TEST_WEBRTCTESTER_H_ */

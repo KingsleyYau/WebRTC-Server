@@ -752,7 +752,7 @@ void CamPusher::MainThread() {
 			CamPusherImp *tester = &mpTesterList[i];
 			tester->Poll();
 		}
-		Sleep(10);
+		Sleep(1);
 	}
 
 	LogAync(

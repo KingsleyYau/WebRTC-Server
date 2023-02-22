@@ -23,9 +23,10 @@ using namespace std;
 #include "CamViewer.h"
 using namespace mediaserver;
 
-char ws[128] = {"192.168.88.133:8080"};
+char ws_host[128] = {"192.168.88.133:8080"};
 char interface[128] = {""};//{"192.168.88.134"};
 char name[128] = {"tester"};
+char dest[128] = {"WW"};
 int iCurrent = 0;
 int iTotal = 1;
 int iReconnect = 0;
@@ -71,11 +72,11 @@ int main(int argc, char *argv[]) {
 	srand(time(0));
 
 	LogManager::GetLogManager()->Start(iLogLevel, "./log");
-	LogManager::GetLogManager()->SetDebugMode(false);
+//	LogManager::GetLogManager()->SetDebugMode(false);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
-    string baseUrl = "ws://" + string(ws);
-    bool bFlag = gTester.Start(name, baseUrl, iTotal, iReconnect);
+    string baseUrl = string(ws_host);
+    bool bFlag = gTester.Start(name, dest, baseUrl, iTotal, iReconnect);
 
 	while( bFlag && gTester.IsRunning() ) {
 		/* do nothing here */
@@ -90,33 +91,44 @@ bool Parse(int argc, char *argv[]) {
 	string key;
 	string value;
 
-	for( int i = 1; (i + 1) < argc; i+=2 ) {
-		key = argv[i];
-		value = argv[i+1];
+	for( int i = 1; (i + 1) < argc;) {
+		key = argv[i++];
 
 		if( key.compare("-ws") == 0 ) {
-			memset(ws, 0, sizeof(ws));
-			memcpy(ws, value.c_str(), value.length());
+			value = argv[i++];
+			memset(ws_host, 0, sizeof(ws_host));
+			memcpy(ws_host, value.c_str(), value.length());
 		} else if( key.compare("-name") == 0 ) {
+			value = argv[i++];
 			memset(name, 0, sizeof(name));
 			memcpy(name, value.c_str(), value.length());
-		} else if( key.compare("-i") == 0 ) {
+		} else if( key.compare("-dest") == 0 ) {
+			value = argv[i++];
+			memset(dest, 0, sizeof(dest));
+			memcpy(dest, value.c_str(), value.length());
+		}  else if( key.compare("-i") == 0 ) {
+			value = argv[i++];
 			memset(interface, 0, sizeof(interface));
 			memcpy(interface, value.c_str(), value.length());
 		} else if( key.compare("-n") == 0 ) {
+			value = argv[i++];
 			iTotal = atoi(value.c_str());
 		} else if( key.compare("-r") == 0 ) {
+			value = argv[i++];
 			iReconnect = atoi(value.c_str());
 		} else if ( key.compare("-v") == 0 ) {
+			value = argv[i++];
 			iLogLevel = atoi(value.c_str());
 			iLogLevel = MIN(iLogLevel, LOG_DEBUG);
 			iLogLevel = MAX(iLogLevel, LOG_OFF);
+		} else if( key.compare("-d") == 0 ) {
+			LogManager::GetLogManager()->SetSTDMode(true);
 		}
 	}
 
-	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -name [Name] -i [LocalIp] -n [Count] -r [Reconnect] -v [LogLevel, 0-6] \n");
-	printf("# Example: ./webrtc-tester -ws 192.168.88.133:8080 -name tester -i 192.168.88.134 -n 1 -r 60 -v 4 \n");
-	printf("# Config: [ws : %s], [name : %s], [interface : %s], [iTotal : %d], [iReconnect : %d], [Log Level: %s] \n", ws, name, interface, iTotal, iReconnect, LogManager::LogLevelDesc(iLogLevel).c_str());
+	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -name [Name] -dest [Dest] -i [LocalIp] -n [Count] -r [Reconnect] -v [LogLevel, 0-6] \n");
+	printf("# Example: ./webrtc-tester -ws 192.168.88.133:8080 -name tester -dest WW -i 192.168.88.134 -n 1 -r 60 -v 4 \n");
+	printf("# Config: [ws : %s], [name : %s], [dest : %s], [interface : %s], [iTotal : %d], [iReconnect : %d], [Log Level: %s] \n", ws_host, name, dest, interface, iTotal, iReconnect, LogManager::LogLevelDesc(iLogLevel).c_str());
 
 	return true;
 }
