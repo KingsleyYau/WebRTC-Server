@@ -64,6 +64,10 @@ LogManager *LogManager::GetLogManager() {
 	return gLogManager;
 }
 
+string LogManager::LogLevelDesc(LOG_LEVEL nLevel) {
+	return LOG_LEVEL_DESC[nLevel];
+}
+
 LogManager::LogManager()
 :mMutex(KMutex::MutexType_Recursive)
 {
@@ -124,7 +128,7 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
         //get va_list
         va_list	agList;
         va_start(agList, format);
-        vsnprintf(logBuffer, MAX_LOG_BUFFER_LEN - 1, format, agList);
+        int vret = vsnprintf(logBuffer, MAX_LOG_BUFFER_LEN - 1, format, agList);
         va_end(agList);
 
         strcat(logBuffer, "\n");
@@ -138,6 +142,38 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
         }
 
         if ( mSTDMode ) {
+        	char levelBuffer[32] = {0};
+        	switch(nLevel) {
+        	case LOG_ALERT:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[35m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_ERR:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[31m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_WARN:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[33m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_NOTICE:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[36m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_INFO:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[32m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_DEBUG:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[37m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	default:{
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "[%s]", LOG_LEVEL_DESC[nLevel]);
+        	}break;
+        	}
+
+            snprintf(bitBuffer, sizeof(bitBuffer) - 1, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] %s %s:%d ",
+            		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
+    				(int)syscall(SYS_gettid),
+					levelBuffer,
+    				file,
+    				line
+    				);
         	printf(bitBuffer);
         	printf(logBuffer);
         }
@@ -200,6 +236,39 @@ bool LogManager::LogUnSafe(const char *file, int line, LOG_LEVEL nLevel, const c
         }
 
         if ( mSTDMode ) {
+        	char levelBuffer[32] = {0};
+        	switch(nLevel) {
+        	case LOG_ALERT:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[35m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_ERR:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[31m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_WARN:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[33m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_NOTICE:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[36m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_INFO:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[32m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	case LOG_DEBUG:
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "\033[37m[%s]\033[0m", LOG_LEVEL_DESC[nLevel]);
+        		break;
+        	default:{
+        		snprintf(levelBuffer, sizeof(levelBuffer) - 1, "[%s]", LOG_LEVEL_DESC[nLevel]);
+        	}break;
+        	}
+
+            snprintf(bitBuffer, sizeof(bitBuffer) - 1, "[ %d-%02d-%02d %02d:%02d:%02d.%03d tid:%-6d ] %s %s:%d ",
+            		tTime.tm_year+1900, tTime.tm_mon+1, tTime.tm_mday, tTime.tm_hour, tTime.tm_min, tTime.tm_sec, tv.tv_usec / 1000,
+    				(int)syscall(SYS_gettid),
+					levelBuffer,
+    				file,
+    				line
+    				);
+
         	printf(bitBuffer);
         	printf(logBuffer);
         }
@@ -260,6 +329,7 @@ bool LogManager::Stop() {
 
 	/* stop log thread */
 	mLogThread.Stop();
+	LogFlushMem2File();
 
 	if( mpFileCtrl ) {
 		delete mpFileCtrl;
@@ -332,9 +402,9 @@ void LogManager::LogSetFlushBuffer(unsigned int iLen) {
 }
 
 void LogManager::LogFlushMem2File() {
-	if( mIsRunning ) {
+	if( mpFileCtrl ) {
 		mpFileCtrl->FlushMem2File();
-		if( mDebugMode ) {
+		if( mDebugMode && mpFileCtrlDebug ) {
 			mpFileCtrlDebug->FlushMem2File();
 		}
 	}

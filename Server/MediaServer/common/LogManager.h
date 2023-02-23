@@ -35,6 +35,7 @@ class LogManager {
 public:
 
 	static LogManager *GetLogManager();
+	static string LogLevelDesc(LOG_LEVEL nLevel);
 
 	LogManager();
 	virtual ~LogManager();
