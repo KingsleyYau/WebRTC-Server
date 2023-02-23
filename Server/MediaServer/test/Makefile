@@ -8,11 +8,12 @@
 
 export MAKE	:=	make
 
-#ifeq ($(RELEASE), 1)
-#CXXFLAGS = -O3 
-#else
+release=0
+ifeq ($(release), 1)
+CXXFLAGS = -O3 
+else
 CXXFLAGS = -g
-#endif
+endif
 
 CXXFLAGS += -std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable 

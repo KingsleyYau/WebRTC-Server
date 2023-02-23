@@ -88,7 +88,7 @@ void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data) {
 }
 
 CamViewerImp::CamViewerImp():mMutex(KMutex::MutexType_Recursive) {
-	mgr = (mg_mgr *)malloc(sizeof(mg_mgr));
+	mgr = NULL;
 	conn = NULL;
 	index = 0;
 	user = "";
@@ -105,15 +105,12 @@ CamViewerImp::CamViewerImp():mMutex(KMutex::MutexType_Recursive) {
 }
 
 CamViewerImp::~CamViewerImp() {
-	if(mgr) {
-		free(mgr);
-		mgr = NULL;
-	}
+
 }
 
-bool CamViewerImp::Init(const string url, const string user, const string dest, int index,
+bool CamViewerImp::Init(mg_mgr *mgr, const string url, const string user, const string dest, int index,
 		bool bReconnect, int reconnectMaxSeconds) {
-
+	this->mgr = mgr;
 	this->url = url;
 	this->user = user;
 	this->dest = dest;
@@ -131,7 +128,7 @@ string CamViewerImp::Desc() {
 			<< ", user:" << user
 			<< ", dest:" << dest
 			<< ", timeout:" << reconnectSeconds
-			<< ", totalDataSize:" << totalDataSize;
+			<< ", total:" << ReadableSize(totalDataSize);
 	ss.unsetf(ios_base::dec);
 	return ss.str();
 }
@@ -151,7 +148,6 @@ bool CamViewerImp::Start() {
 	    	reconnectSeconds = 0;
 	    }
 
-		mg_mgr_init(mgr, NULL);
 		string user_agent = "User-Agent:CamViewer-" + to_string(index) + "\r\n";
 		conn = mg_connect_ws_opt(mgr, WSEventCallback, opt, url.c_str(), "", user_agent.c_str());
 		if ( NULL != conn && conn->err == 0 ) {
@@ -199,14 +195,7 @@ bool CamViewerImp::Start() {
 void CamViewerImp::Stop() {
 	mMutex.lock();
 	bConnected = false;
-	mMutex.unlock();
-}
-
-void CamViewerImp::Poll() {
-	mMutex.lock();
-	if (bConnected && mgr) {
-		mg_mgr_poll(mgr, 1);
-	}
+	conn = NULL;
 	mMutex.unlock();
 }
 
@@ -236,14 +225,13 @@ void CamViewerImp::Disconnect() {
 				);
 
 		mg_shutdown(conn);
-		conn = NULL;
 	}
 	mMutex.unlock();
 }
 
 void CamViewerImp::Close() {
 	mMutex.lock();
-	if (bRunning && mgr) {
+	if (bRunning) {
 		LogAync(
 				LOG_NOTICE,
 				"CamViewerImp::Close( "
@@ -256,7 +244,11 @@ void CamViewerImp::Close() {
 				Desc().c_str()
 				);
 
-		mg_mgr_free(mgr);
+		if (conn) {
+			mg_close_conn(conn);
+			conn = NULL;
+		}
+
 		bRunning = false;
 		bLogined = false;
 
@@ -294,17 +286,17 @@ bool CamViewerImp::WSRecvData(unsigned char *data, size_t size) {
 	return bFlag;
 }
 
-class CamViewerRunnable:public KRunnable {
+class CamViewerPollRunnable:public KRunnable {
 public:
-	CamViewerRunnable(CamViewer *container) {
+	CamViewerPollRunnable(CamViewer *container) {
 		mContainer = container;
 	}
-	virtual ~CamViewerRunnable() {
+	virtual ~CamViewerPollRunnable() {
 		mContainer = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->MainThread();
+		mContainer->PollThread();
 	}
 private:
 	CamViewer *mContainer;
@@ -343,9 +335,9 @@ private:
 };
 
 
-CamViewer::CamViewer() {
+CamViewer::CamViewer():mMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
-	mpRunnable = new CamViewerRunnable(this);
+	mpPollRunnable = new CamViewerPollRunnable(this);
 	mpReconnectRunnable = new CamViewerReconnectRunnable(this);
 	mpStateRunnable = new CamViewerStateRunnable(this);
 
@@ -358,9 +350,9 @@ CamViewer::CamViewer() {
 
 CamViewer::~CamViewer() {
 	// TODO Auto-generated destructor stub
-	if( mpRunnable ) {
-		delete mpRunnable;
-		mpRunnable = NULL;
+	if( mpPollRunnable ) {
+		delete mpPollRunnable;
+		mpPollRunnable = NULL;
 	}
 
 	if( mpReconnectRunnable ) {
@@ -404,7 +396,7 @@ bool CamViewer::Start(const string& stream, const string& dest, const string& we
 			iReconnect
 			);
 
-//	mg_mgr_init(&mMgr, NULL);
+	mg_mgr_init(&mgr, NULL);
 
 	mRunning = true;
 	mWebSocketServer = webSocketServer;
@@ -414,16 +406,19 @@ bool CamViewer::Start(const string& stream, const string& dest, const string& we
 	char indexStr[16] = {'\0'};
 	mpTesterList = new CamViewerImp[iMaxCount];
 
-	if (0 == mStateThread.Start(mpStateRunnable, "StateThread")) {
-		LogAync(
-				LOG_ALERT,
-				"CamViewer::Start( "
-				"this:%p, "
-				"[Create State Thread Fail] "
-				")",
-				this
-				);
-		bFlag = false;
+	// 启动子进程监听
+	if( bFlag ) {
+		bFlag = MainLoop::GetMainLoop()->Start();
+		if( bFlag ) {
+			LogAync(
+					LOG_NOTICE, "CamPusher::Start( event : [启动监听子进程循环-OK] )"
+					);
+		} else {
+			LogAync(
+					LOG_ALERT, "CamPusher::Start( event : [启动监听子进程循环-Fail] )"
+					);
+			printf("# CamPusher(Loop) start Fail. \n");
+		}
 	}
 
 	if (bFlag) {
@@ -438,19 +433,19 @@ bool CamViewer::Start(const string& stream, const string& dest, const string& we
 					+ room + "|||PC0|||4/4/SID=12346&USERTYPE=1" + "/"
 					+ param;
 
-			tester->Init(wholeURL, user, room, i, (miReconnect > 0), miReconnect);
+			tester->Init(&mgr, wholeURL, user, room, i, (miReconnect > 0), miReconnect);
 			tester->Start();
 			Sleep(30);
 		}
 	}
 
 	if( bFlag ) {
-		if (0 == mThread.Start(mpRunnable, "MainThread")) {
+		if (0 == mPollThread.Start(mpPollRunnable, "PollThread")) {
 			LogAync(
 					LOG_ALERT,
 					"CamViewer::Start( "
 					"this:%p, "
-					"[Create Main Thread Fail] "
+					"[Create PollThread Fail] "
 					")",
 					this
 					);
@@ -462,7 +457,19 @@ bool CamViewer::Start(const string& stream, const string& dest, const string& we
 					LOG_ALERT,
 					"CamViewer::Start( "
 					"this:%p, "
-					"[Create Reconnect Thread Fail] "
+					"[Create ReconnectThread Fail] "
+					")",
+					this
+					);
+			bFlag = false;
+		}
+
+		if (0 == mStateThread.Start(mpStateRunnable, "StateThread")) {
+			LogAync(
+					LOG_ALERT,
+					"CamViewer::Start( "
+					"this:%p, "
+					"[Create StateThread Fail] "
 					")",
 					this
 					);
@@ -480,9 +487,12 @@ void CamViewer::Stop() {
 			")"
 			);
 	mRunning = false;
-	mThread.Stop();
+	mPollThread.Stop();
 	mReconnectThread.Stop();
 	mStateThread.Stop();
+
+	// 停止子进程监听循环
+	MainLoop::GetMainLoop()->Stop();
 }
 
 bool CamViewer::IsRunning() {
@@ -504,25 +514,23 @@ void CamViewer::Exit(int signal) {
 			);
 }
 
-void CamViewer::MainThread() {
+void CamViewer::PollThread() {
 	LogAync(
 			LOG_NOTICE,
-			"CamViewer::MainThread( [Start] )"
+			"CamViewer::PollThread( [Start] )"
 			);
 
 	long long lastTime = getCurrentTime();
 
 	while ( mRunning ) {
-		for(int i = 0; i < miMaxCount; i++) {
-			CamViewerImp *tester = &mpTesterList[i];
-			tester->Poll();
-		}
-		Sleep(1);
+		mMutex.lock();
+		mg_mgr_poll(&mgr, 10);
+		mMutex.unlock();
 	}
 
 	LogAync(
 			LOG_NOTICE,
-			"CamViewer::MainThread( [Exit] )"
+			"CamViewer::PollThread( [Exit] )"
 			);
 }
 
@@ -534,6 +542,7 @@ void CamViewer::ReconnectThread() {
 
 	while ( mRunning ) {
 		for(int i = 0; i < miMaxCount; i++) {
+			mMutex.lock();
 			CamViewerImp *tester = &mpTesterList[i];
 			if (tester->bRunning && !tester->bConnected) {
 				tester->Close();
@@ -568,7 +577,7 @@ void CamViewer::ReconnectThread() {
 					}
 				}
 			}
-
+			mMutex.unlock();
 		}
 		Sleep(100);
 	}
@@ -597,6 +606,15 @@ void CamViewer::StateThread() {
 					login++;
 				}
 			}
+			LogAync(
+					LOG_NOTICE,
+					"CamViewer::StateThread( "
+					"tester:%p, "
+					"%s "
+					")",
+					tester,
+					tester->Desc().c_str()
+					);
 		}
 
 		double percent = 0;

@@ -28,13 +28,12 @@ public:
 	CamViewerImp();
 	~CamViewerImp();
 
-	bool Init(const string url, const string user, const string dest, int index,
+	bool Init(mg_mgr *mgr, const string url, const string user, const string dest, int index,
 			bool bReconnect = true, int reconnectMaxSeconds = 60);
 	bool Start();
 	void Disconnect();
 	void Close();
 	void Stop();
-	void Poll();
 
 	string Desc();
 	bool Timeout();
@@ -65,11 +64,11 @@ public:
 	KMutex mMutex;
 };
 
-class CamViewerRunnable;
+class CamViewerPollRunnable;
 class CamViewerReconnectRunnable;
 class CamViewerStateRunnable;
 class CamViewer {
-	friend class CamViewerRunnable;
+	friend class CamViewerPollRunnable;
 	friend class CamViewerReconnectRunnable;
 	friend class CamViewerStateRunnable;
 
@@ -87,12 +86,12 @@ private:
 	bool Connect(CamViewer *tester);
 
 private:
-	void MainThread();
+	void PollThread();
 	void ReconnectThread();
 	void StateThread();
 
 private:
-    mg_mgr mMgr;
+    mg_mgr mgr;
     string mWebSocketServer;
 
     CamViewerImp *mpTesterList;
@@ -101,14 +100,16 @@ private:
     int miReconnect;
     int miMaxCount;
 
-    CamViewerRunnable* mpRunnable;
-	KThread mThread;
+    CamViewerPollRunnable* mpPollRunnable;
+	KThread mPollThread;
 
     CamViewerReconnectRunnable* mpReconnectRunnable;
 	KThread mReconnectThread;
 
 	CamViewerStateRunnable* mpStateRunnable;
 	KThread mStateThread;
+
+	KMutex mMutex;
 };
 
 } /* namespace mediaserver */

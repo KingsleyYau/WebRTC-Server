@@ -111,15 +111,12 @@ CamPusherImp::CamPusherImp():mMutex(KMutex::MutexType_Recursive) {
 }
 
 CamPusherImp::~CamPusherImp() {
-	if(mgr) {
-		free(mgr);
-		mgr = NULL;
-	}
 }
 
-bool CamPusherImp::Init(const string url, const string stream, int index,
+bool CamPusherImp::Init(mg_mgr *mgr, const string url, const string stream, int index,
 		bool bReconnect, int reconnectMaxSeconds, double pushRatio,
 		bool bTcpForce) {
+	this->mgr = mgr;
 	this->url = url;
 	this->stream = stream;
 	this->index = index;
@@ -165,7 +162,6 @@ bool CamPusherImp::Start() {
 	    	reconnectSeconds = 0;
 	    }
 
-		mg_mgr_init(mgr, NULL);
 		string user_agent = "User-Agent:CamPusher-" + to_string(index) + "\r\n";
 		conn = mg_connect_ws_opt(mgr, WSEventCallback, opt, url.c_str(), "", user_agent.c_str());
 		if ( NULL != conn && conn->err == 0 ) {
@@ -213,14 +209,7 @@ bool CamPusherImp::Start() {
 void CamPusherImp::Stop() {
 	mMutex.lock();
 	bConnected = false;
-	mMutex.unlock();
-}
-
-void CamPusherImp::Poll() {
-	mMutex.lock();
-	if (bConnected && mgr) {
-		mg_mgr_poll(mgr, 1);
-	}
+	conn= NULL;
 	mMutex.unlock();
 }
 
@@ -274,7 +263,6 @@ void CamPusherImp::Close() {
 				Desc().c_str()
 				);
 
-		mg_mgr_free(mgr);
 		bRunning = false;
 		bPushing = false;
 		bLogined = false;
@@ -529,17 +517,17 @@ void CamPusherImp::OnWebRTCClientClose(WebRTCClient *rtc) {
 	Disconnect();
 }
 
-class CamPusherRunnable:public KRunnable {
+class CamPusherPollRunnable:public KRunnable {
 public:
-	CamPusherRunnable(CamPusher *container) {
+	CamPusherPollRunnable(CamPusher *container) {
 		mContainer = container;
 	}
-	virtual ~CamPusherRunnable() {
+	virtual ~CamPusherPollRunnable() {
 		mContainer = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->MainThread();
+		mContainer->PollThread();
 	}
 private:
 	CamPusher *mContainer;
@@ -578,9 +566,9 @@ private:
 };
 
 
-CamPusher::CamPusher() {
+CamPusher::CamPusher():mMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
-	mpRunnable = new CamPusherRunnable(this);
+	mpPollRunnable = new CamPusherPollRunnable(this);
 	mpReconnectRunnable = new CamPusherReconnectRunnable(this);
 	mpStateRunnable = new CamPusherStateRunnable(this);
 
@@ -593,9 +581,9 @@ CamPusher::CamPusher() {
 
 CamPusher::~CamPusher() {
 	// TODO Auto-generated destructor stub
-	if( mpRunnable ) {
-		delete mpRunnable;
-		mpRunnable = NULL;
+	if( mpPollRunnable ) {
+		delete mpPollRunnable;
+		mpPollRunnable = NULL;
 	}
 
 	if( mpReconnectRunnable ) {
@@ -643,7 +631,7 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 			BOOL_2_STRING(bTcpForce)
 			);
 
-//	mg_mgr_init(&mMgr, NULL);
+	mg_mgr_init(&mgr, NULL);
 
 	mRunning = true;
 	mWebSocketServer = webSocketServer;
@@ -653,16 +641,19 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 	char indexStr[16] = {'\0'};
 	mpTesterList = new CamPusherImp[iMaxCount];
 
-	if (0 == mStateThread.Start(mpStateRunnable, "StateThread")) {
-		LogAync(
-				LOG_ALERT,
-				"CamPusher::Start( "
-				"this:%p, "
-				"[Create State Thread Fail] "
-				")",
-				this
-				);
-		bFlag = false;
+	// 启动子进程监听
+	if( bFlag ) {
+		bFlag = MainLoop::GetMainLoop()->Start();
+		if( bFlag ) {
+			LogAync(
+					LOG_NOTICE, "CamPusher::Start( event : [启动监听子进程循环-OK] )"
+					);
+		} else {
+			LogAync(
+					LOG_ALERT, "CamPusher::Start( event : [启动监听子进程循环-Fail] )"
+					);
+			printf("# CamPusher(Loop) start Fail. \n");
+		}
 	}
 
 	if (bFlag) {
@@ -672,19 +663,18 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 			sprintf(indexStr, "%u", i);
 			string wholeStream = stream + indexStr;
 
-			tester->Init(mWebSocketServer, wholeStream, i, (miReconnect > 0), miReconnect, pushRatio, bTcpForce);
+			tester->Init(&mgr, mWebSocketServer, wholeStream, i, (miReconnect > 0), miReconnect, pushRatio, bTcpForce);
 			tester->Start();
-			Sleep(30);
 		}
 	}
 
 	if( bFlag ) {
-		if (0 == mThread.Start(mpRunnable, "MainThread")) {
+		if (0 == mPollThread.Start(mpPollRunnable, "PollThread")) {
 			LogAync(
 					LOG_ALERT,
 					"CamPusher::Start( "
 					"this:%p, "
-					"[Create Main Thread Fail] "
+					"[Create PollThread Fail] "
 					")",
 					this
 					);
@@ -696,7 +686,19 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 					LOG_ALERT,
 					"CamPusher::Start( "
 					"this:%p, "
-					"[Create Reconnect Thread Fail] "
+					"[Create ReconnectThread Fail] "
+					")",
+					this
+					);
+			bFlag = false;
+		}
+
+		if (0 == mStateThread.Start(mpStateRunnable, "StateThread")) {
+			LogAync(
+					LOG_ALERT,
+					"CamPusher::Start( "
+					"this:%p, "
+					"[Create StateThread Fail] "
 					")",
 					this
 					);
@@ -714,9 +716,12 @@ void CamPusher::Stop() {
 			")"
 			);
 	mRunning = false;
-	mThread.Stop();
+	mPollThread.Stop();
 	mReconnectThread.Stop();
 	mStateThread.Stop();
+
+	// 停止子进程监听循环
+	MainLoop::GetMainLoop()->Stop();
 }
 
 bool CamPusher::IsRunning() {
@@ -738,26 +743,23 @@ void CamPusher::Exit(int signal) {
 			);
 }
 
-void CamPusher::MainThread() {
+void CamPusher::PollThread() {
 	LogAync(
 			LOG_NOTICE,
-			"CamPusher::MainThread( [Start] )"
+			"CamPusher::PollThread( [Start] )"
 			);
 
 	long long lastTime = getCurrentTime();
 
 	while ( mRunning ) {
-//		mg_mgr_poll(&mMgr, 100);
-		for(int i = 0; i < miMaxCount; i++) {
-			CamPusherImp *tester = &mpTesterList[i];
-			tester->Poll();
-		}
-		Sleep(1);
+		mMutex.lock();
+		mg_mgr_poll(&mgr, 10);
+		mMutex.unlock();
 	}
 
 	LogAync(
 			LOG_NOTICE,
-			"CamPusher::MainThread( [Exit] )"
+			"CamPusher::PollThread( [Exit] )"
 			);
 }
 
@@ -769,6 +771,7 @@ void CamPusher::ReconnectThread() {
 
 	while ( mRunning ) {
 		for(int i = 0; i < miMaxCount; i++) {
+			mMutex.lock();
 			CamPusherImp *tester = &mpTesterList[i];
 			if (tester->bRunning && !tester->bConnected) {
 				tester->Close();
@@ -803,7 +806,7 @@ void CamPusher::ReconnectThread() {
 					}
 				}
 			}
-
+			mMutex.unlock();
 		}
 		Sleep(100);
 	}

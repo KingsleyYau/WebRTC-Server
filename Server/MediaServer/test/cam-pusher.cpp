@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
 		sleep(3);
 	}
 
+	gTester.Stop();
+	LogManager::GetLogManager()->Stop();
+
 	return EXIT_SUCCESS;
 }
 
