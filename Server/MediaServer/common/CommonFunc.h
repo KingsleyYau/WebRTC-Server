@@ -10,7 +10,12 @@
 #define COMMONFUNCDEFINE_H_
 
 #include <string>
+#include <sstream>
 using namespace std;
+
+#define KB (1024)
+#define MB (1024 * KB)
+#define GB (1024 * MB)
 
 #ifndef _WIN32
 // 获取数组元素个数
@@ -104,6 +109,28 @@ inline long long DiffTime(long long start, long long end)
 {
     return end - start;
 //	return (end > start ? end - start : (unsigned long)-1 - end + start);
+}
+
+
+inline string ReadableSize(long long size) {
+	std::stringstream ss;
+	string unit = "B";
+    double floatSize = (1.0 * size);
+    if (floatSize > GB) {
+        floatSize = floatSize / GB;
+        unit = "GB";
+    } else if (floatSize > MB) {
+        floatSize = floatSize / MB;
+        unit = "MB";
+    } else if (floatSize > KB) {
+        floatSize = floatSize / KB;
+        unit = "KB";
+    }
+    ss.setf(ios::fixed);
+    ss.precision(2);
+    ss << floatSize << unit;
+	ss.unsetf(ios_base::dec);
+    return ss.str();
 }
 
 #endif /* COMMONFUNCDEFINE_H_ */
