@@ -3131,6 +3131,10 @@ void mg_socket_if_connect_tcp(struct mg_connection *nc,
     nc->err = mg_get_errno() ? mg_get_errno() : 1;
     return;
   }
+  /**
+   * Add by Max 2023/02/24
+   */
+  fcntl(nc->sock, F_SETFD, FD_CLOEXEC);
 #if !defined(MG_ESP8266)
   mg_set_non_blocking_mode(nc->sock);
 #endif
