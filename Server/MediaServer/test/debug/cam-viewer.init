@@ -1,0 +1,11 @@
+file cam-viewer
+set args -name MM10 -r 600 -n 60 -v 3 -d
+handle SIGPIPE noprint
+set pagination off
+set print thread-events off
+set print array-indexes on
+set print pretty on
+set print object on
+set confirm off
+source breakpoint/cam-viewer.bp
+run

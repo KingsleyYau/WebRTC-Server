@@ -63,16 +63,14 @@ define show-agent_add_discovery
 	print cdisco->type
 end
 
-break discovery.c:141
-break component.c:186
-break component.c:193
-break component.c:197 
-break component.c:218
-break component.c:233
-
-break agent.c:2708 
-
-break agent.c:254 
+#break discovery.c:141
+#break component.c:186
+#break component.c:193
+#break component.c:197 
+#break component.c:218
+#break component.c:233
+#break agent.c:2708 
+#break agent.c:254 
 
 commands 1
   show-discovery_prune_socket

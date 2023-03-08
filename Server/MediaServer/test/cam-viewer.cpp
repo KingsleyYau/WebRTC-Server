@@ -72,7 +72,6 @@ int main(int argc, char *argv[]) {
 	srand(time(0));
 
 	LogManager::GetLogManager()->Start(iLogLevel, "./log");
-//	LogManager::GetLogManager()->SetDebugMode(false);
 	LogManager::GetLogManager()->LogSetFlushBuffer(1 * BUFFER_SIZE_1K * BUFFER_SIZE_1K);
 
     string baseUrl = string(ws_host);
@@ -87,6 +86,7 @@ int main(int argc, char *argv[]) {
 	gTester.Stop();
 	LogManager::GetLogManager()->Stop();
 
+	printf("# cam-viewer exit \n");
 	return EXIT_SUCCESS;
 }
 
@@ -94,7 +94,7 @@ bool Parse(int argc, char *argv[]) {
 	string key;
 	string value;
 
-	for( int i = 1; (i + 1) < argc;) {
+	for(int i = 1; i < argc;) {
 		key = argv[i++];
 
 		if( key.compare("-ws") == 0 ) {
@@ -126,11 +126,13 @@ bool Parse(int argc, char *argv[]) {
 			iLogLevel = MAX(iLogLevel, LOG_OFF);
 		} else if( key.compare("-d") == 0 ) {
 			LogManager::GetLogManager()->SetSTDMode(true);
+		} else {
+			printf("# Usage: ./cam-viewer -ws [WebsocketHost] -name [Name] -dest [Dest] -i [LocalIp] -n [Count] -r [Reconnect] -v [LogLevel, 0-6] -d [Std Log]\n");
+			printf("# Example: ./cam-viewer -ws 192.168.88.133:8080 -name MM -dest WW -i 192.168.88.134 -n 1 -r 60 -v 4 \n");
+			return false;
 		}
 	}
 
-	printf("# Usage: ./webrtc-tester -ws [WebsocketHost] -name [Name] -dest [Dest] -i [LocalIp] -n [Count] -r [Reconnect] -v [LogLevel, 0-6] \n");
-	printf("# Example: ./webrtc-tester -ws 192.168.88.133:8080 -name tester -dest WW -i 192.168.88.134 -n 1 -r 60 -v 4 \n");
 	printf("# Config: [ws : %s], [name : %s], [dest : %s], [interface : %s], [iTotal : %d], [iReconnect : %d], [Log Level: %s] \n", ws_host, name, dest, interface, iTotal, iReconnect, LogManager::LogLevelDesc(iLogLevel).c_str());
 
 	return true;
@@ -144,17 +146,27 @@ void SignalFunc(int signal) {
 		while (true) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
-				printf("# main( waitpid : %d ) \n", pid);
+				printf("# main( waitpid:%d ) \n", pid);
 			} else {
 				break;
 			}
 		}
 	}break;
-	case SIGKILL:
+	case SIGINT:
+	case SIGQUIT:
+	case SIGTERM:{
+		LogAyncUnSafe(
+				LOG_ALERT, "main( Get Exit Signal, signal:%d )", signal
+				);
+		MainLoop::GetMainLoop()->Exit(SIGKILL);
+		gTester.Exit(signal);
+		LogManager::GetLogManager()->LogFlushMem2File();
+	}break;
 	case SIGBUS:
+	case SIGABRT:
 	case SIGSEGV:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Error Signal, signal : %d )", signal
+				LOG_ALERT, "main( Get Error Signal, signal:%d )", signal
 				);
 		gTester.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();
@@ -162,7 +174,7 @@ void SignalFunc(int signal) {
 	}break;
 	default:{
 		LogAyncUnSafe(
-				LOG_ALERT, "main( Get Other Signal, signal : %d )", signal
+				LOG_ALERT, "main( Get Other Signal, signal:%d )", signal
 				);
 		gTester.Exit(signal);
 		LogManager::GetLogManager()->LogFlushMem2File();

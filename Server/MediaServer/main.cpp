@@ -140,8 +140,8 @@ void SignalFunc(int sig) {
 		gMediaServer.Exit(sig);
 		LogManager::GetLogManager()->LogFlushMem2File();
 	}break;
-	case SIGKILL:
 	case SIGBUS:
+	case SIGABRT:
 	case SIGSEGV:{
 		LogAyncUnSafe(
 				LOG_ALERT, "main( Get Error Signal, sig : %d )", sig

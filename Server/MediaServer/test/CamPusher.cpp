@@ -209,7 +209,7 @@ bool CamPusherImp::Start() {
 void CamPusherImp::Stop() {
 	mMutex.lock();
 	bConnected = false;
-	conn= NULL;
+	conn = NULL;
 	mMutex.unlock();
 }
 
@@ -237,7 +237,6 @@ void CamPusherImp::Disconnect() {
 				url.c_str(),
 				Desc().c_str()
 				);
-
 		mg_shutdown(conn);
 		conn = NULL;
 	}
@@ -250,7 +249,7 @@ void CamPusherImp::Close() {
 	}
 
 	mMutex.lock();
-	if (bRunning && mgr) {
+	if (bRunning) {
 		LogAync(
 				LOG_NOTICE,
 				"CamPusherImp::Close( "
@@ -823,7 +822,15 @@ void CamPusher::StateThread() {
 			"CamPusher::StateThread( [Start] )"
 			);
 
+	long long lastStateTime = getCurrentTime();
 	while ( mRunning ) {
+		long long now = getCurrentTime();
+		if (now - lastStateTime < 10 * 1000) {
+			Sleep(1000);
+			continue;
+		}
+		lastStateTime = now;
+
 		int online = 0;
 		int login = 0;
 		int pushing = 0;
@@ -871,7 +878,6 @@ void CamPusher::StateThread() {
 				percent,
 				loginDeltaAvg
 				);
-		Sleep(10 * 1000);
 	}
 
 	LogAync(

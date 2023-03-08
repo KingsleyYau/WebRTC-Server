@@ -21,7 +21,7 @@ static KMutex gLoginMutex;
 namespace mediaserver {
 
 void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data) {
-    struct websocket_message *wm = (struct websocket_message *)ev_data;
+    struct websocket_message *wsm = (struct websocket_message *)ev_data;
     CamViewerImp *tester = (CamViewerImp *)nc->user_data;
 
     switch (ev) {
@@ -51,11 +51,28 @@ void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data) {
         	tester->Login();
 
         }break;
-        case MG_EV_WEBSOCKET_FRAME:{
+        case MG_EV_WEBSOCKET_CONTROL_FRAME:{
             // Receive Data
-//        	string str((const char*)wm->data, wm->size);
         	LogAync(
         			LOG_INFO,
+        			"WSEventCallback( "
+					"this:%p, "
+					"[Recv_Control], "
+					"%s, "
+					"size:%d, "
+					"flags:%0xx "
+        			")",
+					tester,
+					tester->Desc().c_str(),
+					wsm->size,
+					wsm->flags
+        			);
+
+        }break;
+        case MG_EV_WEBSOCKET_FRAME:{
+            // Receive Data
+        	LogAync(
+        			LOG_DEBUG,
         			"WSEventCallback( "
 					"this:%p, "
 					"[Recv_Data], "
@@ -64,9 +81,9 @@ void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data) {
         			")",
 					tester,
 					tester->Desc().c_str(),
-					wm->size
+					wsm->size
         			);
-        	tester->WSRecvData(wm->data, wm->size);
+        	tester->WSRecvData(wsm->data, wsm->size);
 
         }break;
         case MG_EV_CLOSE:{
@@ -129,7 +146,7 @@ string CamViewerImp::Desc() {
 			<< ", dest:" << dest
 			<< ", timeout:" << reconnectSeconds
 			<< ", total:" << ReadableSize(totalDataSize);
-	ss.unsetf(ios_base::dec);
+//	ss.unsetf(ios_base::dec);
 	return ss.str();
 }
 
@@ -223,8 +240,8 @@ void CamViewerImp::Disconnect() {
 				url.c_str(),
 				Desc().c_str()
 				);
-
 		mg_shutdown(conn);
+		conn = NULL;
 	}
 	mMutex.unlock();
 }
@@ -594,7 +611,25 @@ void CamViewer::StateThread() {
 			"CamViewer::StateThread( [Start] )"
 			);
 
+	long long lastStateTime = getCurrentTime();
 	while ( mRunning ) {
+		long long now = getCurrentTime();
+		if (now - lastStateTime < 10 * 1000) {
+			LogAync(
+					LOG_NOTICE,
+					"CamViewer::StateThread( "
+					"[Sleep], "
+					"now: %lld, "
+					"lastStateTime: %lld "
+					")",
+					now,
+					lastStateTime
+					);
+			Sleep(1000);
+			continue;
+		}
+		lastStateTime = now;
+
 		int online = 0;
 		int login = 0;
 
@@ -635,7 +670,6 @@ void CamViewer::StateThread() {
 				gLoginCount,
 				percent
 				);
-		Sleep(10 * 1000);
 	}
 
 	LogAync(

@@ -1,5 +1,5 @@
-file webrtc-tester
-set args -turn 192.168.88.138
+file cam-pusher 
+set args -name WW10 -r 600 -n 60 -pr 1 -t -v 5 -ice
 handle SIGPIPE noprint
 set pagination off
 set print thread-events off
@@ -7,5 +7,5 @@ set print array-indexes on
 set print pretty on
 set print object on
 set confirm off
-source gdb_tester.break
+source breakpoint/cam-pusher.bp
 run

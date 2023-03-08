@@ -1,0 +1,98 @@
+define show-discovery_prune_socket
+	print "agent"
+	print agent
+  print "discovery"
+	print discovery
+	print "discovery->nicesock"
+	print discovery->nicesock
+	print "discovery->type"
+	print discovery->type
+end
+
+define show-component
+  print "agent"
+	print agent
+	print "cmp"
+	print cmp
+	print "candidate"
+	print candidate
+	print "cmp->selected_pair.local"
+	print cmp->selected_pair.local
+	print "candidate->sockptr"
+	print candidate->sockptr
+	print "candidate->sockptr->type"
+	print ((NiceSocket *)candidate->sockptr)->type	
+	print "nsocket"
+	print nsocket
+	print "nsocket->type"
+	print nsocket->type
+end
+
+define show-component_detach_socket
+  print "agent"
+	print agent
+	print "cmp"
+	print cmp
+	print "nsocket"
+	print nsocket
+	print "stateChange"
+	print stateChange
+end
+
+define show-component_detach_socket_2
+  print "agent"
+	print agent
+	print "component"
+	print component
+	print "candidate"
+	print candidate
+	print "candidate->sockptr"
+	print candidate->sockptr
+	print "nsocket"
+	print nsocket
+end
+
+define show-agent_add_discovery
+  print "agent"
+	print agent
+	print "discovery"
+	print cdisco
+	print "discovery->nicesock"
+	print cdisco->nicesock
+	print "discovery->type"
+	print cdisco->type
+end
+
+#break discovery.c:141
+#break component.c:186
+#break component.c:193
+#break component.c:197 
+#break component.c:218
+#break component.c:233
+#break agent.c:2708 
+#break agent.c:254 
+
+commands 1
+  show-discovery_prune_socket
+  c
+end
+
+commands 2 3 4
+  show-component
+  c
+end
+
+commands 5
+  show-component_detach_socket
+  c
+end
+
+commands 6
+  show-component_detach_socket_2
+  c
+end
+
+commands 7
+  show-agent_add_discovery
+  c
+end

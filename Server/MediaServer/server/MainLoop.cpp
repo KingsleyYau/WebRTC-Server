@@ -134,17 +134,17 @@ void MainLoop::Stop(int sign_no) {
 }
 
 void MainLoop::Exit(int signal) {
-	LogAyncUnSafe(
-			LOG_INFO, "MainLoop::Exit( signal : %d )", signal
-			);
+//	LogAyncUnSafe(
+//			LOG_INFO, "MainLoop::Exit( signal : %d )", signal
+//			);
 	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
 		MainLoopObj *obj = itr->second;
 		if ( !obj->isExit ) {
-			LogAyncUnSafe(
-					LOG_INFO, "MainLoop::Exit( kill -%d %d )",
-					signal,
-					obj->pid
-					);
+//			LogAyncUnSafe(
+//					LOG_INFO, "MainLoop::Exit( kill -%d %d )",
+//					signal,
+//					obj->pid
+//					);
 			kill(obj->pid, signal);
 		}
 //		else {
@@ -154,18 +154,17 @@ void MainLoop::Exit(int signal) {
 }
 
 void MainLoop::Call(int pid) {
-	mCallbackMap.Lock();
-	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
-	if ( itr != mCallbackMap.End() ) {
-		MainLoopObj *obj = itr->second;
-		obj->isExit = true;
-	}
-	mCallbackMap.Unlock();
+//	mCallbackMap.Lock();
+//	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
+//	if ( itr != mCallbackMap.End() ) {
+//		MainLoopObj *obj = itr->second;
+//		obj->isExit = true;
+//	}
+//	mCallbackMap.Unlock();
 }
 
 void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
 	MainLoopObj *obj = new MainLoopObj(pid, cb);
-
 	mCallbackMap.Lock();
 	mCallbackMap.Insert(pid, obj);
     mCallbackMap.Unlock();
