@@ -511,7 +511,7 @@ void WSServer::IOHandleThread() {
     	mServer.run();
     } catch (websocketpp::exception const & e) {
     	LogAync(
-    			LOG_WARNING,
+    			LOG_WARN,
     			"WSServer::IOHandleThread( "
     			"[Exception], "
     			"e : %s "
@@ -520,7 +520,7 @@ void WSServer::IOHandleThread() {
     			);
     } catch (...) {
     	LogAync(
-    			LOG_WARNING,
+    			LOG_WARN,
     			"WSServer::IOHandleThread( "
     			"[Unknow Exception] "
     			")"

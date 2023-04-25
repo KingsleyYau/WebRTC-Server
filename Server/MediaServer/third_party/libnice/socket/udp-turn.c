@@ -367,7 +367,13 @@ socket_recv_messages (NiceSocket *sock,
   /* Make sure socket has not been freed: */
   g_assert (sock->priv != NULL);
 
-  nice_debug_verbose ("received message on TURN socket");
+//  nice_debug_verbose ("received message on TURN socket");
+  /**
+   * Add Debug Log
+   * Add by Max 2020/12/04
+   */
+  nice_debug_verbose("Socket %p(fd %d): [UDP/TURN] Recv", sock,
+			g_socket_get_fd(sock->fileno));
 
   if (priv->fragment_buffer) {
     /* Fill as many recv_messages as possible with RFC4571-framed data we

@@ -23,10 +23,11 @@ using namespace mediaserver;
 #include <common/LogManager.h>
 #include <include/CommonHeader.h>
 
-char ws_host[128] = {"192.168.88.133:9883"};
+char ws_host[128] = {"ws://192.168.88.133:9883"};
 char turn[128] = {"192.168.88.133"};
 char interface[128] = {""};//{"192.168.88.134"};
 char name[128] = {"WW"};
+char usersFileName[1024] = {""};
 char logDir[128] = {"log"};
 int iCurrent = 0;
 int iTotal = 1;
@@ -50,12 +51,14 @@ int main(int argc, char *argv[]) {
 	sa.sa_handler = SIG_IGN;
 	sigemptyset(&sa.sa_mask);
 	sigaction(SIGPIPE, &sa, 0);
+	sigaction(SIGTTOU, &sa, 0);
 
 	/* Handle */
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SignalFunc;
 	sa.sa_flags = SA_RESTART;
 	sigemptyset(&sa.sa_mask);
+
 
 //	sigaction(SIGHUP, &sa, 0);
 	sigaction(SIGINT, &sa, 0); // Ctrl-C
@@ -80,8 +83,8 @@ int main(int argc, char *argv[]) {
 
 	WebRTCClient::GobalInit("./ssl/tester.crt", "./ssl/tester.key", turn, interface);
 
-    string baseUrl = "ws://" + string(ws_host);
-    bool bFlag = gTester.Start(name, baseUrl, iTotal, turn, iReconnect, dPushRatio, bTcpForce);
+    string baseUrl = string(ws_host);
+    bool bFlag = gTester.Start(name, baseUrl, usersFileName, iTotal, turn, iReconnect, dPushRatio, bTcpForce);
 
 	while( bFlag && gTester.IsRunning() ) {
 		/* do nothing here */
@@ -103,42 +106,64 @@ bool Parse(int argc, char *argv[]) {
 	for(int i = 1; i < argc;) {
 		key = argv[i++];
 
-		if( key.compare("-ws") == 0 ) {
-			value = argv[i++];
-			memset(ws_host, 0, sizeof(ws_host));
-			memcpy(ws_host, value.c_str(), value.length());
+		if(key.compare("-ws") == 0) {
+			if (i < argc) {
+				value = argv[i++];
+				memset(ws_host, 0, sizeof(ws_host));
+				memcpy(ws_host, value.c_str(), value.length());
+			}
 		} else if( key.compare("-name") == 0 ) {
-			value = argv[i++];
-			memset(name, 0, sizeof(name));
-			memcpy(name, value.c_str(), value.length());
+			if (i < argc) {
+				value = argv[i++];
+				memset(name, 0, sizeof(name));
+				memcpy(name, value.c_str(), value.length());
+			}
 		} else if( key.compare("-turn") == 0 ) {
-			value = argv[i++];
-			memset(turn, 0, sizeof(turn));
-			memcpy(turn, value.c_str(), value.length());
+			if (i < argc) {
+				value = argv[i++];
+				memset(turn, 0, sizeof(turn));
+				memcpy(turn, value.c_str(), value.length());
+			}
 		} else if( key.compare("-log") == 0 ) {
-			value = argv[i++];
-			memset(logDir, 0, sizeof(logDir));
-			memcpy(logDir, value.c_str(), value.length());
+			if (i < argc) {
+				value = argv[i++];
+				memset(logDir, 0, sizeof(logDir));
+				memcpy(logDir, value.c_str(), value.length());
+			}
 		}  else if( key.compare("-i") == 0 ) {
-			value = argv[i++];
-			memset(interface, 0, sizeof(interface));
-			memcpy(interface, value.c_str(), value.length());
+			if (i < argc) {
+				value = argv[i++];
+				memset(interface, 0, sizeof(interface));
+				memcpy(interface, value.c_str(), value.length());
+			}
 		} else if( key.compare("-n") == 0 ) {
-			value = argv[i++];
-			iTotal = atoi(value.c_str());
+			if (i < argc) {
+				value = argv[i++];
+				iTotal = atoi(value.c_str());
+			}
 		} else if( key.compare("-r") == 0 ) {
 			value = argv[i++];
 			iReconnect = atoi(value.c_str());
 		} else if( key.compare("-pr") == 0 ) {
-			value = argv[i++];
-			dPushRatio = atof(value.c_str());
-			dPushRatio = MIN(1.0, dPushRatio);
-			dPushRatio = MAX(0, dPushRatio);
+			if (i < argc) {
+				value = argv[i++];
+				dPushRatio = atof(value.c_str());
+				dPushRatio = MIN(1.0, dPushRatio);
+				dPushRatio = MAX(0, dPushRatio);
+			}
 		} else if( key.compare("-v") == 0 ) {
-			value = argv[i++];
-			iLogLevel = atoi(value.c_str());
-			iLogLevel = MIN(iLogLevel, LOG_DEBUG);
-			iLogLevel = MAX(iLogLevel, LOG_OFF);
+			if (i < argc) {
+				value = argv[i++];
+				iLogLevel = atoi(value.c_str());
+				iLogLevel = MIN(iLogLevel, LOG_DEBUG);
+				iLogLevel = MAX(iLogLevel, LOG_OFF);
+			}
+		}  else if( key.compare("-f") == 0 ) {
+			if (i < argc) {
+				value = argv[i++];
+				memset(usersFileName, 0, sizeof(usersFileName));
+				memcpy(usersFileName, value.c_str(), value.length());
+			}
 		} else if( key.compare("-t") == 0 ) {
 			bTcpForce = true;
 		} else if( key.compare("-d") == 0 ) {
@@ -148,7 +173,7 @@ bool Parse(int argc, char *argv[]) {
 			IceClient::EnableDebugLog(true);
 		} else {
 			printf("# Usage: ./cam-pusher -ws [WebsocketHost] -turn [TurnHost] -name [Name] -log [LogDir] -i [LocalIp] -n [Count] -r [Reconnect] -pr [Push Ratio(0.0-1.0)] -t [Tcp Turn Force] -v [LogLevel] -d [Std Log]\n");
-			printf("# Example: ./cam-pusher -ws 192.168.88.133:9883 -turn 192.168.88.133 -name tester -log log -i 192.168.88.134 -n 1 -r 60 -pr 1.0 -t -v 4 -d \n");
+			printf("# Example: ./cam-pusher -ws ws://192.168.88.133:9883 -turn 192.168.88.133 -name tester -log log -i 192.168.88.134 -n 1 -r 60 -pr 1.0 -t -v 4 -d \n");
 			return false;
 		}
 	}
@@ -168,9 +193,9 @@ void SignalFunc(int signal) {
 		while (true) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
-//				LogAyncUnSafe(
-//						LOG_INFO, "main( waitpid:%d )", pid
-//						);
+				LogAyncUnSafe(
+						LOG_INFO, "main( waitpid:%d )", pid
+						);
 				MainLoop::GetMainLoop()->Call(pid);
 			} else {
 				break;

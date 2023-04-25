@@ -49,6 +49,15 @@ public:
 		return v;
 	}
 
+	void PopItem(iterator itr) {
+		pthread_rwlock_wrlock(&mLock);
+		if( itr != mList.end() ) {
+			mList.erase(itr);
+			mSize--;
+		}
+		pthread_rwlock_unlock(&mLock);
+	}
+
 	bool Empty() {
 		bool bFlag = false;
 		pthread_rwlock_rdlock(&mLock);

@@ -455,7 +455,7 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 			continue;
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"TcpServer::AcceptCallback( "
 					"[Accept error], "
 					"errno : %d "
@@ -520,7 +520,7 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 				watcher = (::ev_io *)malloc(sizeof(::ev_io));
 
 				LogAync(
-						LOG_WARNING,
+						LOG_WARN,
 						"TcpServer::IOHandleAccept( "
 						"[Not enough watcher, new more], "
 						"fd : %d, "
@@ -543,7 +543,7 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 
 		} else {
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"TcpServer::IOHandleAccept( "
 					"[Not allow accept client], "
 					"fd : %d, "
@@ -685,7 +685,7 @@ void TcpServer::StopEvIO(::ev_io *w) {
 		} else {
 			// 释放内存
 			LogAync(
-					LOG_WARNING,
+					LOG_WARN,
 					"TcpServer::StopEvIO( "
 					"[Delete extra ev_io], "
 					"fd : %d "

@@ -16,7 +16,7 @@ CXXFLAGS = -g
 endif
 
 CXXFLAGS += -std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX
-CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable 
+CXXFLAGS +=	-Wall -fmessage-length=0 -Wunused-variable -Wno-write-strings -Wno-narrowing -Wno-unused-variable
 CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
 			-I../third_party/json \
 			-I../third_party/curl/include \
@@ -28,7 +28,7 @@ CXXFLAGS +=	-I. -I../ -I../include -I../third_party \
 			-I/usr/include/mysql \
 			-I$(BUILD_PATH_INCLUDE)
 
-CXXFLAGS += -DDISABLE_MD5=1
+CXXFLAGS += -DDISABLE_MD5=1  -DMG_ENABLE_SSL=1
 
 export BUILD_PATH = /root/mediaserver/build
 export BUILD_PATH_INCLUDE = $(BUILD_PATH)/include

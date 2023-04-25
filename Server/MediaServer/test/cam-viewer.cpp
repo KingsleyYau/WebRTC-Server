@@ -25,7 +25,7 @@ using namespace mediaserver;
 
 char ws_host[128] = {"192.168.88.133:8080"};
 char interface[128] = {""};//{"192.168.88.134"};
-char name[128] = {"tester"};
+char name[128] = {"MM"};
 char dest[128] = {"WW"};
 int iCurrent = 0;
 int iTotal = 1;

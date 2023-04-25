@@ -250,6 +250,10 @@ void WebRTCClient::UpdateCandidate(const string& sdp) {
 	mIceClient.SetRemoteSdp(sdp);
 }
 
+void WebRTCClient::Shutdown() {
+	mRtpClient.Shutdown();
+}
+
 bool WebRTCClient::ParseRemoteSdp(const string& sdp) {
 	LogAync(
 			LOG_NOTICE,
@@ -566,6 +570,7 @@ void WebRTCClient::StopRtpTransform() {
 
 	// 不需要锁, 内部有锁, 找不到就放过
 	MainLoop::GetMainLoop()->StopWatchChild(mRtpTransformPid);
+	kill(mRtpTransformPid, SIGTERM);
 
 	mRtpTransformPidMutex.lock();
 	if ( mRtpTransformPid != 0 ) {
@@ -802,6 +807,9 @@ void WebRTCClient::OnIceRecvData(IceClient *ice, const char *data, unsigned int 
 					mDtlsSession.GetClientKey(remoteKey, remoteSize);
 
 					bStart = mRtpSession.Start(localKey, localSize, remoteKey, remoteSize);
+					// Hard code in shell
+					mRtpSession.SetAudioSSRC(0x12345679);
+					mRtpSession.SetVideoSSRC(0x12345678);
 				}
 
 				if ( bStart ) {

@@ -10,7 +10,7 @@ typedef unsigned long   LOG_LEVEL;
 #define LOG_OFF         (LOG_LEVEL)0
 #define LOG_ALERT     	(LOG_LEVEL)1
 #define LOG_ERR    		(LOG_LEVEL)2
-#define LOG_WARNING     (LOG_LEVEL)3
+#define LOG_WARN     (LOG_LEVEL)3
 #define LOG_NOTICE     	(LOG_LEVEL)4
 #define LOG_INFO        (LOG_LEVEL)5
 #define LOG_DEBUG       (LOG_LEVEL)6

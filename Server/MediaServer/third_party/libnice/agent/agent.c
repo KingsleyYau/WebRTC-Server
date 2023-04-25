@@ -166,12 +166,20 @@ static void nice_agent_set_property (GObject *object,
 
 void agent_lock (NiceAgent *agent)
 {
-  g_mutex_lock (&agent->agent_mutex);
+//  g_mutex_lock (&agent->agent_mutex);
+  /**
+   * Add by Max 2023/03/13
+   */
+  g_rec_mutex_lock (&agent->agent_rec_mutex);
 }
 
 void agent_unlock (NiceAgent *agent)
 {
-  g_mutex_unlock (&agent->agent_mutex);
+//  g_mutex_unlock (&agent->agent_mutex);
+  /**
+   * Add by Max 2023/03/13
+   */
+  g_rec_mutex_unlock (&agent->agent_rec_mutex);
 }
 
 static GType _nice_agent_stream_ids_get_type (void);
@@ -213,6 +221,9 @@ agent_unlock_and_emit (NiceAgent *agent)
   queue = agent->pending_signals;
   g_queue_init (&agent->pending_signals);
 
+  /**
+   * Add by Max 2023/03/13
+   */
   agent_unlock (agent);
 
   while ((sig = g_queue_pop_head (&queue))) {
@@ -220,6 +231,11 @@ agent_unlock_and_emit (NiceAgent *agent)
 
     free_queued_signal (sig);
   }
+
+//  /**
+//   * Add by Max 2023/03/13
+//   */
+//  agent_unlock (agent);
 }
 
 static void
@@ -1250,7 +1266,11 @@ nice_agent_init (NiceAgent *agent)
 
   g_queue_init (&agent->pending_signals);
 
-  g_mutex_init (&agent->agent_mutex);
+//  g_mutex_init (&agent->agent_mutex);
+  /**
+   * Add by Max 2023/03/13
+   */
+  g_rec_mutex_init (&agent->agent_rec_mutex);
 }
 
 
@@ -3246,6 +3266,7 @@ nice_agent_gather_candidates (
   g_slist_free (local_addresses);
 
   if (ret == FALSE) {
+	nice_debug ("Agent %p: Candidate gathering ERROR", agent);
     priv_stop_upnp (agent);
     for (cid = 1; cid <= stream->n_components; cid++) {
       NiceComponent *component = nice_stream_find_component_by_id (stream, cid);
@@ -3326,11 +3347,11 @@ on_stream_refreshes_pruned (NiceAgent *agent, NiceStream *stream)
 	 * Add by Max 2019/09/03
 	 */
 	nice_debug ("Agent %p: on_stream_refreshes_pruned, stream %p, stream_id %u", agent, stream, stream->id);
+	agent_lock (agent);
 	agent_queue_signal (agent, signals[SIGNAL_STREAMS_REMOVED_ACTUALLY], stream->id);
 	agent_unlock_and_emit (agent);
 
 	agent_lock (agent);
-	nice_debug ("Agent %p: on_stream_refreshes_pruned emit, stream %p, stream_id %u", agent, stream, stream->id);
 	nice_stream_close (agent, stream);
 	agent_unlock (agent);
 
@@ -3339,7 +3360,10 @@ on_stream_refreshes_pruned (NiceAgent *agent, NiceStream *stream)
 	 * agent lock itself. */
 	g_object_unref (stream);
 
-	agent_lock (agent);
+	/**
+	 * Modify by Max 2023/03/14
+	 */
+//	agent_lock (agent);
 
 	return G_SOURCE_REMOVE;
 }
@@ -5276,7 +5300,11 @@ nice_agent_dispose (GObject *object)
 
   agent_unlock (agent);
 
-  g_mutex_clear (&agent->agent_mutex);
+//  g_mutex_clear (&agent->agent_mutex);
+  /**
+   * Add by Max 2023/03/13
+   */
+  g_rec_mutex_clear (&agent->agent_rec_mutex);
 
   if (G_OBJECT_CLASS (nice_agent_parent_class)->dispose)
     G_OBJECT_CLASS (nice_agent_parent_class)->dispose (object);
@@ -5292,6 +5320,11 @@ component_io_cb (GSocket *gsocket, GIOCondition condition, gpointer user_data)
   NiceStream *stream;
   gboolean has_io_callback;
   gboolean remove_source = FALSE;
+
+  if (g_source_is_destroyed (g_main_current_source ())) {
+	  nice_debug ("SocketSource %p(Source %p) destroyed", socket_source, g_main_current_source ());
+	  return G_SOURCE_REMOVE;
+  }
 
   component = socket_source->component;
 
@@ -5334,7 +5367,11 @@ component_io_cb (GSocket *gsocket, GIOCondition condition, gpointer user_data)
     }
 
     nice_component_remove_socket (agent, component, socket_source->socket);
-    agent_unlock (agent);
+    /**
+     * Add by Max 2023/03/14
+     */
+    agent_unlock_and_emit(agent);
+//    agent_unlock (agent);
     g_object_unref (agent);
     return G_SOURCE_REMOVE;
   }
@@ -5737,7 +5774,7 @@ timeout_data_destroy (TimeoutData *data)
 	 */
 	NiceAgent *agent;
 	agent = g_weak_ref_get (&data->agent_ref);
-	nice_debug ("Agent %p: [%s], function %p, user_data %p, source %p", agent, g_source_get_name(data->source), data->function, data->user_data, data->source);
+	nice_debug ("Agent %p: source %p [%s], function %p, user_data %p", agent, data->source, g_source_get_name(data->source), data->function, data->user_data);
 	if (agent != NULL) {
 		g_object_unref (agent);
 	}
@@ -5761,7 +5798,7 @@ timeout_data_new (NiceAgent *agent, NiceTimeoutLockedCallback function,
    * Add Debug Log
    * Add by Max 2019/09/03
    */
-  nice_debug ("Agent %p: [%s], function %p, user_data %p, source %p", agent, g_source_get_name(data->source), data->function, data->user_data, source);
+  nice_debug ("Agent %p: source %p [%s], function %p, user_data %p", agent, source, g_source_get_name(data->source), data->function, data->user_data);
 
   return data;
 }
@@ -5773,24 +5810,42 @@ timeout_cb (gpointer user_data)
   NiceAgent *agent;
   gboolean ret = G_SOURCE_REMOVE;
 
-  agent = g_weak_ref_get (&data->agent_ref);
-  if (agent == NULL) {
-	  nice_debug ("Agent %p: Agent was destroyed, function %p, user_data %p", agent, data->function, data->user_data);
-	  return G_SOURCE_REMOVE;
-  }
-
-  agent_lock (agent);
-
+  /**
+   * Modify by Max 2023/03/15
+   */
   /* A race condition might happen where the mutex above waits for the lock
    * and in the meantime another thread destroys the source.
    * In that case, we don't need to run the function since it should
    * have been cancelled */
   if (g_source_is_destroyed (g_main_current_source ())) {
-    nice_debug ("Agent %p: Source was destroyed, function %p user_data %p", agent, data->function, data->user_data);
-
-    agent_unlock (agent);
-    goto end;
+	  nice_debug ("Source %p [%s] was destroyed, function %p user_data %p", data->source, g_source_get_name(data->source), data->function, data->user_data);
+	  return G_SOURCE_REMOVE;
   }
+
+  agent = g_weak_ref_get (&data->agent_ref);
+  if (agent == NULL) {
+	  nice_debug ("Source %p [%s] was destroyed, function %p, user_data %p", data->source, g_source_get_name(data->source), data->function, data->user_data);
+	  return G_SOURCE_REMOVE;
+  }
+
+  /**
+   * Add Debug Log
+   * Add by Max 2019/09/03
+   */
+  nice_debug ("Agent %p: source %p [%s], function %p, user_data %p", agent, data->source, g_source_get_name(data->source), data->function, data->user_data);
+
+  agent_lock (agent);
+
+//  /* A race condition might happen where the mutex above waits for the lock
+//   * and in the meantime another thread destroys the source.
+//   * In that case, we don't need to run the function since it should
+//   * have been cancelled */
+//  if (g_source_is_destroyed (g_main_current_source ())) {
+//    nice_debug ("Agent %p: Source was destroyed, function %p user_data %p", agent, data->function, data->user_data);
+//
+//    agent_unlock (agent);
+//    goto end;
+//  }
 
   ret = data->function (agent, data->user_data);
 
@@ -6816,14 +6871,10 @@ on_agent_refreshes_pruned (NiceAgent *agent, gpointer user_data)
    * Add Debug Log
    * Add by Max 2019/09/02
    */
-  nice_debug ("Agent %p: on_agent_refreshes_pruned, user_data %p", agent, task);
-
-  agent_unlock (agent);
+  nice_debug ("Agent %p: user_data %p", agent, task);
 
   g_task_return_boolean (task, TRUE);
   g_object_unref (task);
-
-  agent_lock (agent);
 
   return G_SOURCE_REMOVE;
 }
@@ -6843,7 +6894,7 @@ nice_agent_close_async (NiceAgent *agent, GAsyncReadyCallback callback,
    * Add Debug Log
    * Add by Max 2019/09/02
    */
-  nice_debug ("Agent %p: nice_agent_close_async, function %p, user_data %p", agent, on_agent_refreshes_pruned, task);
+  nice_debug ("Agent %p: function %p, user_data %p", agent, on_agent_refreshes_pruned, task);
   refresh_prune_agent_async (agent, on_agent_refreshes_pruned, task);
 
   agent_unlock (agent);
@@ -6881,7 +6932,7 @@ void nice_epoll_run(gint timeout) {
 	    	IOSource *source = (IOSource *)sources[event[i].data.fd];
 	    	source->canRead = true;
 	    	nice_debug_verbose ("nice_epoll_run %p(FD %d)", source, event[i].data.fd);
-	    	if ( events & EPOLLERR || events & EPOLLHUP || (! events & EPOLLIN) ) {
+	    	if ((events & EPOLLERR) || (events & EPOLLHUP) || (!(events & EPOLLIN))) {
 				source->condition = G_IO_HUP;
 	    	}
 	    	g_mutex_unlock(&sources_mutex);

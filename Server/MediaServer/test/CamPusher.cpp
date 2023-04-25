@@ -13,7 +13,12 @@
 // ThirdParty
 #include <json/json.h>
 #include <common/CommonFunc.h>
+#include <common/StringHandle.h>
+
 #include <sstream>
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 static int gLoginCount = 0;
 static int gLoginOKCount = 0;
@@ -96,6 +101,7 @@ CamPusherImp::CamPusherImp():mMutex(KMutex::MutexType_Recursive) {
 	mgr = (mg_mgr *)malloc(sizeof(mg_mgr));
 	conn = NULL;
 	index = 0;
+	sid = "";
 	bReconnect = true;
 	bConnected = false;
 	bLogined = false;
@@ -114,12 +120,14 @@ CamPusherImp::~CamPusherImp() {
 }
 
 bool CamPusherImp::Init(mg_mgr *mgr, const string url, const string stream, int index,
+		const string sid,
 		bool bReconnect, int reconnectMaxSeconds, double pushRatio,
 		bool bTcpForce) {
 	this->mgr = mgr;
 	this->url = url;
 	this->stream = stream;
 	this->index = index;
+	this->sid = sid;
 	this->bReconnect = bReconnect;
 	this->reconnectMaxSeconds = reconnectMaxSeconds;
 	this->reconnectSeconds = 0;
@@ -138,6 +146,7 @@ string CamPusherImp::Desc() {
 	std::stringstream ss;
 	ss << "index:" << index
 			<< ", stream:" << stream
+			<< ", sid:" << sid
 			<< ", tcp:" << string(BOOL_2_STRING(bTcpForce))
 			<< ", timeout:" << reconnectSeconds;
 	ss.setf(ios::fixed);
@@ -169,6 +178,7 @@ bool CamPusherImp::Start() {
 			bConnected = true;
 			bRunning = true;
 		    startTime = getCurrentTime();
+		    pingTime = getCurrentTime();
 		}
 		mMutex.unlock();
     }
@@ -294,7 +304,6 @@ void CamPusherImp::OnLogin(Json::Value resRoot, const string res) {
 		}
 
 		if (bPush) {
-			rtc.Start("", stream, bTcpForce);
 			LogAync(
 					LOG_NOTICE,
 					"CamPusherImp::OnLogin( "
@@ -307,6 +316,7 @@ void CamPusherImp::OnLogin(Json::Value resRoot, const string res) {
 					url.c_str(),
 					Desc().c_str()
 					);
+			rtc.Start("", stream, bTcpForce);
 		} else {
 			LogAync(
 					LOG_NOTICE,
@@ -351,7 +361,7 @@ void CamPusherImp::Login(const string user) {
 	reqRoot["route"] = "imRTC/login";
 
 	char param[2046];
-	sprintf(param, "userId=%s&userType=0&sid=t076mcgkvle5q8sgb4pf67c5ss&siteId=4", user.c_str());
+	sprintf(param, "userId=%s&userType=0&sid=%s&siteId=6", user.c_str(), sid.c_str());
 
 	reqData["param"] = param;
 	reqRoot["req_data"] = reqData;
@@ -382,6 +392,44 @@ void CamPusherImp::Login(const string user) {
 	gLoginCount++;
 	gLoginMutex.unlock();
 
+}
+
+void CamPusherImp::Ping() {
+	long long now = getCurrentTime();
+	long long delta = now - pingTime;
+	if (!bRunning || !bLogined || delta < 5 * 1000) {
+		return;
+	}
+	pingTime = now;
+
+	Json::Value reqRoot;
+	Json::Value reqData = Json::Value::null;
+	Json::FastWriter writer;
+
+	reqRoot["id"] = "1";
+	reqRoot["route"] = "imRTC/sendPing";
+
+	string req = writer.write(reqRoot);
+
+	LogAync(
+			LOG_NOTICE,
+			"CamPusherImp::Ping( "
+			"this:%p, "
+			"url:%s, "
+			"%s, "
+			"req:%s "
+			")",
+			this,
+			url.c_str(),
+			Desc().c_str(),
+			req.c_str()
+			);
+
+	mMutex.lock();
+	if (bConnected && conn) {
+		mg_send_websocket_frame(conn, WEBSOCKET_OP_TEXT, (const void *)req.c_str(), req.length());
+	}
+	mMutex.unlock();
 }
 
 bool CamPusherImp::WSRecvData(unsigned char *data, size_t size) {
@@ -596,7 +644,7 @@ CamPusher::~CamPusher() {
 	}
 }
 
-bool CamPusher::Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount, const string turnServer,
+bool CamPusher::Start(const string& stream, const string& webSocketServer, const string& usersFileName, unsigned int iMaxCount, const string turnServer,
 		int iReconnect, double pushRatio, bool bTcpForce) {
 	bool bFlag = true;
 
@@ -656,15 +704,35 @@ bool CamPusher::Start(const string& stream, const string& webSocketServer, unsig
 	}
 
 	if (bFlag) {
+		ifstream ifs;
+		char buf[1024];
+		if (usersFileName.length() > 0 ) {
+			ifs.open(usersFileName, ios::in);
+		}
 		for(unsigned int i = 0; i < iMaxCount; i++) {
 			CamPusherImp *tester = &mpTesterList[i];
+			string wholeStream = "";
+			string sid = "";
 
-			sprintf(indexStr, "%u", i);
-			string wholeStream = stream + indexStr;
+			if (ifs.is_open()) {
+				if(ifs.getline(buf, sizeof(buf))) {
+					vector<string> parmas = StringHandle::splitWithVector(buf, ",");
+					if (parmas.size() >= 2) {
+						wholeStream = parmas[0];
+						sid = parmas[1];
+					}
+				} else {
+					ifs.close();
+				}
+			} else {
+				sprintf(indexStr, "%u", i);
+				wholeStream = stream + indexStr;
+			}
 
-			tester->Init(&mgr, mWebSocketServer, wholeStream, i, (miReconnect > 0), miReconnect, pushRatio, bTcpForce);
+			tester->Init(&mgr, mWebSocketServer, wholeStream, i, sid, (miReconnect > 0), miReconnect, pushRatio, bTcpForce);
 			tester->Start();
 		}
+		ifs.close();
 	}
 
 	if( bFlag ) {
@@ -719,6 +787,13 @@ void CamPusher::Stop() {
 	mReconnectThread.Stop();
 	mStateThread.Stop();
 
+	for(int i = 0; i < miMaxCount; i++) {
+		mMutex.lock();
+		CamPusherImp *tester = &mpTesterList[i];
+		tester->Close();
+		mMutex.unlock();
+	}
+
 	// 停止子进程监听循环
 	MainLoop::GetMainLoop()->Stop();
 }
@@ -772,6 +847,7 @@ void CamPusher::ReconnectThread() {
 		for(int i = 0; i < miMaxCount; i++) {
 			mMutex.lock();
 			CamPusherImp *tester = &mpTesterList[i];
+			tester->Ping();
 			if (tester->bRunning && !tester->bConnected) {
 				tester->Close();
 

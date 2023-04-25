@@ -85,6 +85,7 @@ public:
 			bool bTcpFoce = true
 			);
 	void Stop();
+	void Shutdown();
 	void UpdateCandidate(const string& sdp);
 
 private:

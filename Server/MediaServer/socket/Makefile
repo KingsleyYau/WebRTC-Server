@@ -14,9 +14,10 @@ else
 CXXFLAGS = -O2 -g
 endif
 
-CXXFLAGS 	+=	-DLINUX
-CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
-CXXFLAGS 	+=	-I. -I.. -I../third_party
+CXXFLAGS +=-std=c++11
+CXXFLAGS +=	-DLINUX
+CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
+CXXFLAGS +=	-I. -I.. -I../third_party
 
 OBJS 		=	$(THIRD_PARTY)
 OBJS 		+=	UdpSender.o UdpReceiver.o

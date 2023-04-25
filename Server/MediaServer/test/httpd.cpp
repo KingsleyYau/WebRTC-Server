@@ -145,7 +145,10 @@ public:
 		} else if ( parser->GetPath() == "/keepalive" ) {
 			snprintf(buffer, sizeof(buffer), "{\"errno\":1,\"errmsg\":\"\",\"data\":\"%s\"}}", parser->GetRawFirstLine().c_str());
 			HttpSendRespond(parser, buffer);
-		}  else if ( parser->GetPath() == "/request/raw" ) {
+		} else if (parser->GetPath() == "/livechat/setstatus.php") {
+			snprintf(buffer, sizeof(buffer), "{\"result\":0,\"errno\":1,\"errmsg\":\"\",\"data\":\"%s\"}}", parser->GetRawFirstLine().c_str());
+			HttpSendRespond(parser, buffer);
+		} else if ( parser->GetPath() == "/request/raw" ) {
 
 		} else {
 			bFlag = true;
@@ -318,7 +321,7 @@ int main(int argc, char *argv[]) {
 	LogManager::GetLogManager()->Start(iLogLevel, "log_httpd");
 
 	gServer.SetAsyncIOServerCallback(&gAsyncIOServerCallbackImp);
-	bool bFlag = gServer.Start(80, 10000, 4);
+	bool bFlag = gServer.Start(80, 1000, 4);
 	while( bFlag && gServer.IsRunning() ) {
 		LogManager::GetLogManager()->LogFlushMem2File();
 		fflush(stdout);
@@ -355,17 +358,17 @@ bool Parse(int argc, char *argv[]) {
 	string key;
 	string value;
 
-	for( int i = 1; i < argc;) {
+	for(int i = 1; i < argc;) {
 		key = argv[i++];
 
-		if( key.compare("-v") == 0 ) {
-			if (i + 1 < argc) {
+		if(key.compare("-v") == 0) {
+			if (i < argc) {
 				value = argv[i++];
 				iLogLevel = atoi(value.c_str());
 				iLogLevel = MIN(iLogLevel, LOG_DEBUG);
 				iLogLevel = MAX(iLogLevel, LOG_OFF);
 			}
-		} else if( key.compare("-d") == 0 ) {
+		} else if(key.compare("-d") == 0) {
 			LogManager::GetLogManager()->SetSTDMode(true);
 		}
 	}

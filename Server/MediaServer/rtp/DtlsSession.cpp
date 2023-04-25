@@ -608,9 +608,11 @@ bool DtlsSession::RecvFrame(const char* frame, unsigned int size) {
 				LOG_DEBUG,
 				"DtlsSession::RecvFrame( "
 				"this : %p, "
+				"size : %u, "
 				"written : %d "
 				")",
 				this,
+				size,
 				written
 				);
 	    char data[1500];

@@ -124,8 +124,10 @@ enum ExtRequestType {
 // 在线连接对象
 struct ExtRequestItem {
 	ExtRequestItem() {
-		uuid = "";
 		type = ExtRequestTypeUnknow;
+		uuid = "";
+		extParam = "";
+		reqRoot = Json::Value::null;
 	}
 
 	ExtRequestType type;
@@ -196,6 +198,7 @@ public:
 
 	// HttpHandler
 	void OnRequestReloadLogConfig(HttpParser* parser);
+	void OnRequestGetOnlineUsers(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 
@@ -245,7 +248,7 @@ private:
 	/**
 	 * 外部请求线程处理
 	 */
-	void ExtRequestHandle();
+	void ExtRequestHandle(ExtRequestList *requestList);
 
 	/**
 	 * 回收资源线程处理
@@ -299,7 +302,10 @@ private:
 	 * 外部状态改变接口
 	 */
 	bool SendExtSetStatusRequest(HttpClient* httpClient, bool isLogin, const string& param);
-
+	/**
+	 * 获取外部请求线程
+	 */
+	int GetExtParameters(const string& wholeLine, string& userId);
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/
 	// 监听端口
@@ -408,8 +414,12 @@ private:
 	KThread mTimeoutCheckThread;
 
 	// 外部登录校验线程
-	ExtRequestRunnable* mpExtRequestRunnable;
-	KThread mExtRequestThread;
+//	ExtRequestRunnable* mpExtRequestRunnable;
+//	KThread mExtRequestThread;
+	ExtRequestRunnable** mpExtRequestRunnables;
+	KThread **mpExtRequestThreads;
+	// 外部请求处理线程数目
+	int miExtRequestThreadCount;
 
 	// 资源回收线程
 	RecycleRunnable* mpRecycleRunnable;
@@ -445,10 +455,13 @@ private:
 	// 可用的MediaClient
 	MediaClientList mMediaClientList;
 	// 外部请求队列
-	ExtRequestList mExtRequestList;
+//	ExtRequestList mExtRequestList;
+	ExtRequestList **mpExtRequestLists;
+	KMutex mExtRequestMutex;
 
 	// 是否需要强制同步在线列表
 	bool mbForceExtSync;
+	long long miExtSyncLastTime;
 	/***************************** 运行参数 end **************************************/
 };
 

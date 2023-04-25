@@ -16,10 +16,10 @@ CFLAGS = -g
 endif
 
 CFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable \
-          -DDISABLE_MD5=1 -DMG_ENABLE_HTTP_CGI=0 #\
+          -DDISABLE_MD5=1 -DMG_ENABLE_HTTP_CGI=0 -DMG_ENABLE_SSL=1#\
           #-DCS_ENABLE_STDIO=1 -DCS_ENABLE_DEBUG=1
-CFLAGS += -I. -I.. -I../include
-
+CFLAGS += -I. -I.. -I../include -I$(BUILD_PATH_INCLUDE)
+	
 OBJS = mongoose.o
 		
 TARGET = libmongoose.a

@@ -133,14 +133,6 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
 
         strcat(logBuffer, "\n");
 
-        if( mLogLevel >= nLevel ) {
-        	mpFileCtrl->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
-        }
-
-        if( mDebugMode ) {
-        	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
-        }
-
         if ( mSTDMode ) {
         	char levelBuffer[32] = {0};
         	switch(nLevel) {
@@ -176,6 +168,12 @@ bool LogManager::Log(const char *file, int line, LOG_LEVEL nLevel, const char *f
     				);
         	printf(bitBuffer);
         	printf(logBuffer);
+        } else {
+    		mpFileCtrl->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
+
+            if( mDebugMode ) {
+            	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
+            }
         }
 
         bFlag = true;
@@ -227,14 +225,6 @@ bool LogManager::LogUnSafe(const char *file, int line, LOG_LEVEL nLevel, const c
 
         strcat(logBuffer, "\n");
 
-        if( mLogLevel >= nLevel ) {
-        	mpFileCtrl->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer, true);
-        }
-
-        if( mDebugMode ) {
-        	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer, true);
-        }
-
         if ( mSTDMode ) {
         	char levelBuffer[32] = {0};
         	switch(nLevel) {
@@ -271,6 +261,12 @@ bool LogManager::LogUnSafe(const char *file, int line, LOG_LEVEL nLevel, const c
 
         	printf(bitBuffer);
         	printf(logBuffer);
+        } else {
+    		mpFileCtrl->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
+
+            if( mDebugMode ) {
+            	mpFileCtrlDebug->LogMsg(logBuffer, (int)strlen(logBuffer), bitBuffer);
+            }
         }
 
         bFlag = true;

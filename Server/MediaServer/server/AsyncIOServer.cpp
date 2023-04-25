@@ -270,7 +270,7 @@ bool AsyncIOServer::OnAccept(Socket* socket) {
 		client = Client::Create();
 
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"AsyncIOServer::OnAccept( "
 				"[Not enough client, new more], "
 				"client : %p, "
@@ -649,7 +649,7 @@ void AsyncIOServer::DestroyClient(Client* client) {
 
 	} else {
 		LogAync(
-				LOG_WARNING,
+				LOG_WARN,
 				"AsyncIOServer::DestroyClient( "
 				"[Delete extra client], "
 				"client : %p, "

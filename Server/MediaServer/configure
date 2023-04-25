@@ -11,6 +11,8 @@
 # Must be absolute path
 BUILD_PATH=$1
 echo "BUILD_PATH:$BUILD_PATH"
+DEBUG=$2
+echo "DEBUG:$DEBUG"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
 
 find . -type f | xargs touch
@@ -44,7 +46,12 @@ cd third_party/libnice || exit 1
 chmod +x autogen.sh || exit 1
 export CFLAGS="$(pkg-config --cflags openssl)"
 export LDFLAGS="$(pkg-config --libs openssl) -ldl -pthread"
-./autogen.sh --disable-shared --enable-static || exit 1
+if [ "$DEBUG" == "debug" ];then
+  ./autogen.sh --disable-shared --enable-static --enable-debug || exit 1
+else
+  ./autogen.sh --disable-shared --enable-static || exit 1
+fi
+
 cd -
 
 cd third_party/abseil-cpp || exit 1

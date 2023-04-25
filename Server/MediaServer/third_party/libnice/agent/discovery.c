@@ -160,7 +160,7 @@ void refresh_free(NiceAgent *agent, CandidateRefresh *cand) {
 	 * Add by Max 2019/09/02
 	 */
 	nice_debug(
-			"Agent %p: refresh_free, cand %p, destroy_cb %p, destroy_cb_data %p",
+			"Agent %p: refresh_free, refresh %p, destroy_cb %p, destroy_cb_data %p",
 			agent, cand, cand->destroy_cb, cand->destroy_cb_data);
 //	nice_debug ("Freeing candidate refresh cand %p, destroy_cb %p, destroy_cb_data %p", cand, cand->destroy_cb, cand->destroy_cb_data);
 
@@ -182,6 +182,7 @@ void refresh_free(NiceAgent *agent, CandidateRefresh *cand) {
 
 	if (cand->destroy_cb) {
 		cand->destroy_cb(cand->destroy_cb_data);
+		cand->destroy_cb = NULL;
 	}
 
 	g_slice_free(CandidateRefresh, cand);
@@ -255,11 +256,11 @@ static gboolean refresh_remove_async(NiceAgent *agent, CandidateRefresh *cand,
 	 * Add by Max 2019/08/30
 	 */
 	nice_debug(
-			"Agent %p: refresh_remove_async, destroy_cb %p, destroy_cb_data %p, cand %p",
-			agent, cb, cb_data, cand);
-	nice_debug(
-			"Agent %p: Sending request to remove TURN allocation for refresh %p",
-			agent, cand);
+			"Agent %p: refresh_remove_async, refresh %p, destroy_cb %p, destroy_cb_data %p",
+			agent, cand, cb, cb_data);
+//	nice_debug(
+//			"Agent %p: Sending request to remove TURN allocation for refresh %p",
+//			agent, cand);
 
 	cand->disposing = TRUE;
 
@@ -305,6 +306,7 @@ static gboolean refresh_remove_async(NiceAgent *agent, CandidateRefresh *cand,
 
 //			stun_timer_start(&cand->timer, agent->stun_initial_timeout,
 //					agent->stun_max_retransmissions);
+
 			agent_timeout_add_with_context(agent, &cand->tick_source,
 					"TURN deallocate retransmission",
 					stun_timer_remainder(&cand->timer),
@@ -334,11 +336,19 @@ typedef struct {
 } RefreshPruneAsyncData;
 
 static void on_refresh_removed(RefreshPruneAsyncData *data) {
+	nice_debug(
+			"Agent %p: data %p, items_to_free %u",
+			data->agent,
+			data,
+			data->items_to_free);
+
 	if (data->items_to_free == 0 || --(data->items_to_free) == 0) {
-		GSource *timeout_source = NULL;
-		agent_timeout_add_with_context(data->agent, &timeout_source,
-				"Async refresh prune", 0, data->cb, data->user_data);
-		g_source_unref(timeout_source);
+//		GSource *timeout_source = NULL;
+//		agent_timeout_add_with_context(data->agent, &timeout_source,
+//				"Async refresh prune", 0, data->cb, data->user_data);
+//		g_source_unref(timeout_source);
+//		g_free(data);
+		data->cb(data->agent, data->user_data);
 		g_free(data);
 	}
 }
@@ -351,6 +361,7 @@ static void refresh_prune_async(NiceAgent *agent, GSList *refreshes,
 	data->agent = agent;
 	data->user_data = user_data;
 	data->cb = function;
+	data->items_to_free = 0;
 
 	for (it = refreshes; it; it = it->next) {
 		/**
@@ -1329,16 +1340,13 @@ static gboolean priv_discovery_tick_agent_locked(NiceAgent *agent,
 		gpointer pointer) {
 	gboolean ret;
 
-	ret = priv_discovery_tick_unlocked(agent);
-	if (ret == FALSE) {
-		if (agent->discovery_timer_source != NULL) {
-			nice_debug("Agent %p: Discovery free timer by lock, source %p",
-					agent, agent->discovery_timer_source);
-			g_source_destroy(agent->discovery_timer_source);
-			g_source_unref(agent->discovery_timer_source);
-			agent->discovery_timer_source = NULL;
-		}
-	}
+//	ret = priv_discovery_tick_unlocked(agent);
+//	if (ret == FALSE) {
+//		if (agent->discovery_timer_source != NULL) {
+//			nice_debug("Agent %p: Discovery free timer by lock, source %p",
+//					agent, agent->discovery_timer_source);
+//		}
+//	}
 
 	return ret;
 }
@@ -1359,10 +1367,14 @@ void discovery_schedule(NiceAgent *agent) {
 			/* step: run first iteration immediately */
 			gboolean res = priv_discovery_tick_unlocked(agent);
 			if (res == TRUE) {
+//				agent_timeout_add_with_context(agent,
+//						&agent->discovery_timer_source,
+//						"Candidate discovery tick", agent->timer_ta,
+//						priv_discovery_tick_agent_locked, NULL);
 				agent_timeout_add_with_context(agent,
 						&agent->discovery_timer_source,
 						"Candidate discovery tick", agent->timer_ta,
-						priv_discovery_tick_agent_locked, NULL);
+						priv_discovery_tick_unlocked, NULL);
 				nice_debug("Agent %p: Discovery add timer, source %p", agent,
 						agent->discovery_timer_source);
 			}

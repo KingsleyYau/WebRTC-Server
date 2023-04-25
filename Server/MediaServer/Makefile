@@ -128,7 +128,7 @@ modules: $(MODULEDIRS)
 	@echo ''
 	@echo '################################################################'
 
-all: deps modules $(TARGET)
+all: deps modules $(TARGET) test
 
 test: deps modules
 	$(MAKE) -C test

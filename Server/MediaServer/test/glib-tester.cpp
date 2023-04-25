@@ -483,6 +483,29 @@ int main(int argc, char *argv[]) {
 		gRunning[i] = false;
 	}
 
+//	GWeakRef ref;
+//	GTask *task = g_task_new (NULL, NULL, task_finish, NULL);
+//	g_weak_ref_init(&ref, task);
+//	g_object_unref(task);
+//	GTask *task_weak = (GTask *)g_weak_ref_get(&ref);
+
+	GSList *l = NULL;
+	for (int i = 0; i < 10; i++) {
+		GTask *task = g_task_new (NULL, NULL, task_finish, NULL);
+		l = g_slist_append (l, task);
+		log("add:%d task:%p", i, task);
+	}
+
+	GSList *d;
+	int i;
+	for (i = 0, d = l; d; i++) {
+		GSList *next = d->next;
+		GTask *task = (GTask *)d->data;
+		l = g_slist_remove(l, task);
+		log("remove:%d, task:%p", i, task);
+		d = next;
+	}
+
 	while (true) {
 		printf("please input any key to continue.\n");
 		scanf("%c", &c);

@@ -10,11 +10,13 @@ function Usage {
 
 NOCLEAN="$1"
 if [ "$NOCLEAN" == "noclean" ]; then
-  echo "# Build WebRTC MediaServer without clean"
+  echo "# Build mediaServer without clean"
 else
-  echo "# Build WebRTC MediaServer with clean"
-  NOCLEAN=""
+  echo "# Build mediaServer with clean"
+  NOCLEAN="clean"
 fi
+
+DEBUG="$2"
 
 # Build dependence
 cd dep
@@ -26,5 +28,5 @@ cd -
 
 # Build mediaserver
 cd MediaServer
-./compile.sh $BUILD_PATH $NOCLEAN || exit 1
+./compile.sh $BUILD_PATH $NOCLEAN $DEBUG || exit 1
 cd -

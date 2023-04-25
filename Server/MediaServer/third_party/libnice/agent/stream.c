@@ -97,7 +97,7 @@ nice_stream_close (NiceAgent *agent, NiceStream *stream)
    * Add Debug Log
    * Add by Max 2019/08/30
    */
-  nice_debug ("Agent %p: nice_stream_close, stream %p, components.length %d", agent, stream, g_slist_length(stream->components));
+  nice_debug ("Agent %p: Stream %p, components.length %d", agent, stream, g_slist_length(stream->components));
 
   for (i = stream->components; i; i = i->next) {
     NiceComponent *component = i->data;

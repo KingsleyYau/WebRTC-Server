@@ -217,7 +217,7 @@ static gint socket_recv_messages(NiceSocket *sock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug("Socket %p(fd %d): [UDP/BSD] Recv, ret %d", sock,
+		nice_debug_verbose("Socket %p(fd %d): [UDP/BSD] Recv, ret %d", sock,
 				g_socket_get_fd(sock->fileno), recvd);
 
 		if (recvd < 0) {
@@ -306,7 +306,7 @@ static gssize socket_send_message(NiceSocket *sock, const NiceAddress *to,
 	 * Add Debug Log
 	 * Add by Max 2020/12/04
 	 */
-	nice_debug("Socket %p(fd %d): [UDP/BSD] Send, ret %d", sock,
+	nice_debug_verbose("Socket %p(fd %d): [UDP/BSD] Send, ret %d", sock,
 			g_socket_get_fd(sock->fileno), len);
 
 	g_clear_object(&gaddr);

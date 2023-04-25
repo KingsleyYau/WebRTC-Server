@@ -182,7 +182,7 @@ string Arithmetic::Base64Encode(const char* data, int length) {
 		result = code;
 	}
 	if ( code ) {
-		delete code;
+		free(code);
 		code = NULL;
 	}
 	return result;

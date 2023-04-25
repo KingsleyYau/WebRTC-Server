@@ -14,6 +14,12 @@ AC_CONFIG_SRCDIR([agent/agent.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([1.12 -Wall -Wno-portability subdir-objects])
 
+# Add by Max
+AC_ARG_ENABLE([debug],
+    [AS_HELP_STRING([--enable-debug],[debug program(default is no)])],
+    [CFLAGS="${CFLAGS} -g -O0"],
+    [CFLAGS="-g -O2"])
+    
 AC_CONFIG_FILES([
 	Makefile
 	agent/Makefile

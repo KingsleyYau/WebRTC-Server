@@ -160,8 +160,7 @@ GSource* nice_epoll_create_source(SocketSource *socket_source) {
 	GSource *source = g_source_new(&epoll_source_funcs, sizeof(IOSource));
 	((IOSource *) source)->fd = fd;
 	((IOSource *) source)->canRead = false;
-	((IOSource *) source)->gsocket = g_object_ref(
-			socket_source->socket->fileno);
+	((IOSource *) source)->gsocket = g_object_ref(socket_source->socket->fileno);
 
 	nice_debug("Socket %p(FD %d): Add (Source %p) to epoll(FD %d)",
 			socket_source->socket, fd, source, nice_epoll_fd());
@@ -201,8 +200,7 @@ static void socket_source_attach(SocketSource *socket_source,
 
 		bPoll = false;
 	} else {
-		source = g_socket_create_source(socket_source->socket->fileno, G_IO_IN,
-		NULL);
+		source = g_socket_create_source(socket_source->socket->fileno, G_IO_IN, NULL);
 		bPoll = true;
 	}
 
@@ -210,9 +208,13 @@ static void socket_source_attach(SocketSource *socket_source,
 			socket_source, NULL);
 
 	/* Add the source. */
-	nice_debug("Socket %p(FD %d): Attaching (Source %p) to Context %p(%s)",
+	nice_debug("Socket %p(FD %d): Attaching SocketSource %p(Source %p) Component %p to Context %p(%s)",
 			socket_source->socket,
-			g_socket_get_fd(socket_source->socket->fileno), source, context,
+			g_socket_get_fd(socket_source->socket->fileno),
+			socket_source,
+			source,
+			socket_source->component,
+			context,
 			bPoll ? "poll" : "epoll");
 
 	g_assert(socket_source->source == NULL);
@@ -221,29 +223,31 @@ static void socket_source_attach(SocketSource *socket_source,
 
 }
 
-static void socket_source_detach(SocketSource *source) {
-	int fd = (source->socket->fileno != NULL) ? g_socket_get_fd (source->socket->fileno) : -1;
+static void socket_source_detach(SocketSource *socket_source) {
+	int fd = (socket_source->socket->fileno != NULL) ? g_socket_get_fd (socket_source->socket->fileno) : -1;
 	bool bPoll = true;
-	if (source->socket->type == NICE_SOCKET_TYPE_TCP_ACTIVE
-			|| source->socket->type == NICE_SOCKET_TYPE_TCP_PASSIVE
-			|| source->socket->type
+	if (socket_source->socket->type == NICE_SOCKET_TYPE_TCP_ACTIVE
+			|| socket_source->socket->type == NICE_SOCKET_TYPE_TCP_PASSIVE
+			|| socket_source->socket->type
 					== NICE_SOCKET_TYPE_UDP_TURN_OVER_TCP
-			|| source->socket->type == NICE_SOCKET_TYPE_TCP_BSD) {
+			|| socket_source->socket->type == NICE_SOCKET_TYPE_TCP_BSD) {
 		bPoll = false;
 	}
 
-	nice_debug("Socket %p(FD %d): Detaching (Source %p) from Context %p(%s)",
-			source->socket,
+	nice_debug("Socket %p(FD %d): Detaching SocketSource %p(Source %p) Component %p from Context %p(%s)",
+			socket_source->socket,
 			fd,
-			source->source,
-			(source->source != NULL) ? g_source_get_context (source->source) : 0,
+			socket_source,
+			socket_source->source,
+			socket_source->component,
+			(socket_source->source != NULL) ? g_source_get_context (socket_source->source) : 0,
 			bPoll ? "poll" : "epoll");
 
-	if (source->source != NULL) {
-		g_source_destroy(source->source);
-		g_source_unref(source->source);
+	if (socket_source->source != NULL) {
+		g_source_destroy(socket_source->source);
+		g_source_unref(socket_source->source);
 	}
-	source->source = NULL;
+	socket_source->source = NULL;
 
 	if (fd != -1 && bPoll) {
 		g_mutex_lock(&sources_mutex);
@@ -252,15 +256,15 @@ static void socket_source_detach(SocketSource *source) {
 	}
 }
 
-static void socket_source_free(SocketSource *source) {
-	socket_source_detach(source);
+static void socket_source_free(SocketSource *socket_source) {
+	socket_source_detach(socket_source);
 
-	if ( source->socket ) {
-		nice_socket_free(source->socket);
-		source->socket = NULL;
+	if (socket_source->socket) {
+		nice_socket_free(socket_source->socket);
+		socket_source->socket = NULL;
 	}
 
-	g_slice_free(SocketSource, source);
+	g_slice_free(SocketSource, socket_source);
 }
 
 NiceComponent *
@@ -292,6 +296,9 @@ void nice_component_remove_socket(NiceAgent *agent, NiceComponent *cmp,
 		}
 
 		if (candidate == cmp->selected_pair.local) {
+			/**
+			 * Modify by Max 2023/03/14
+			 */
 			nice_component_clear_selected_pair(cmp);
 			agent_signal_component_state_change(agent, cmp->stream_id, cmp->id,
 					NICE_COMPONENT_STATE_FAILED);
@@ -313,19 +320,17 @@ void nice_component_remove_socket(NiceAgent *agent, NiceComponent *cmp,
 
 		cmp->local_candidates = g_slist_delete_link(cmp->local_candidates, i);
 		i = next;
-		nice_debug("Agent %p: Remove local candidate %p, total %d", agent, candidate, g_slist_length(cmp->local_candidates));
+		nice_debug("Agent %p: Component %p Remove local candidate %p, total %d", agent, cmp, candidate, g_slist_length(cmp->local_candidates));
 	}
 
 	/**
 	 * Add by Max 2020/06/08
 	 */
-	discovery_prune_socket(agent, nsocket);
-	if (!stateChange) {
-		agent_signal_component_state_change(agent, cmp->stream_id, cmp->id,
-				NICE_COMPONENT_STATE_FAILED);
-		agent_unlock_and_emit(agent);
-		agent_lock(agent);
-	}
+//	discovery_prune_socket(agent, nsocket);
+//	if (stateChange) {
+//		agent_unlock_and_emit(agent);
+//		agent_lock(agent);
+//	}
 
 	nice_component_detach_socket(cmp, nsocket);
 }
@@ -333,6 +338,9 @@ void nice_component_remove_socket(NiceAgent *agent, NiceComponent *cmp,
 static gboolean on_candidate_refreshes_pruned(NiceAgent *agent,
 		NiceCandidate *candidate) {
 	NiceComponent *component;
+
+	nice_debug("Agent %p: Component %p: Candidate %p Socket %p (stream %u)",
+			agent, component, candidate, candidate->sockptr, component->stream_id);
 
 	if (agent_find_component(agent, candidate->stream_id,
 			candidate->component_id, NULL, &component)) {
@@ -411,6 +419,7 @@ static void nice_component_clear_selected_pair(NiceComponent *component) {
 		component->selected_pair.keepalive.tick_source = NULL;
 	}
 
+	nice_debug("Component %p: selected_pair %p, selected_pair.local %p", component, component->selected_pair, component->selected_pair.local);
 	memset(&component->selected_pair, 0, sizeof(CandidatePair));
 }
 
@@ -425,7 +434,7 @@ void nice_component_close(NiceAgent *agent, NiceComponent *cmp) {
 	 * Add Debug Log
 	 * Add by Max 2019/08/30
 	 */
-	nice_debug("Agent %p: nice_component_close, component %p", agent, cmp);
+	nice_debug("Agent %p: Component %p", agent, cmp);
 
 	/* Start closing the pseudo-TCP socket first. FIXME: There is a very big and
 	 * reliably triggerable race here. pseudo_tcp_socket_close() does not block
@@ -455,8 +464,8 @@ void nice_component_close(NiceAgent *agent, NiceComponent *cmp) {
 		NiceCandidate *candidate = cmp->local_candidates->data;
 		refresh_prune_candidate(agent, candidate);
 
-		agent_remove_local_candidate(agent, cmp->local_candidates->data);
-		nice_candidate_free(cmp->local_candidates->data);
+		agent_remove_local_candidate(agent, candidate);
+		nice_candidate_free(candidate);
 		cmp->local_candidates = g_slist_delete_link(cmp->local_candidates,
 				cmp->local_candidates);
 		nice_debug("Agent %p: Remove local candidate %p, total %d", agent, candidate, g_slist_length(cmp->local_candidates));
@@ -718,6 +727,10 @@ void nice_component_attach_socket(NiceComponent *component,
 			_find_socket_source);
 	if (l != NULL) {
 		socket_source = l->data;
+		nice_debug("Component %p: Find old SocketSource %p (stream %u)",
+				component,
+				socket_source,
+				component->stream_id);
 	} else {
 		socket_source = g_slice_new0(SocketSource);
 		socket_source->socket = nicesock;
@@ -726,12 +739,14 @@ void nice_component_attach_socket(NiceComponent *component,
 				socket_source);
 		if (nicesock->fileno != NULL)
 			component->socket_sources_age++;
-	}
 
-	/* Create and attach a source */
-	nice_debug("Component %p: Attach Source %p (stream %u)", component, socket_source,
-			component->stream_id);
-	socket_source_attach(socket_source, component->ctx);
+		/* Create and attach a source */
+		nice_debug("Component %p: Attach SocketSource %p (stream %u)",
+				component,
+				socket_source,
+				component->stream_id);
+		socket_source_attach(socket_source, component->ctx);
+	}
 }
 
 /* Reattaches socket handles of @component to the main context.
@@ -743,7 +758,7 @@ static void nice_component_reattach_all_sockets(NiceComponent *component) {
 
 	for (i = component->socket_sources; i != NULL; i = i->next) {
 		SocketSource *socket_source = i->data;
-		nice_debug("Reattach source %p.", socket_source->source);
+		nice_debug("Component %p: Reattach SocketSource %p(Source %p).", component, socket_source, socket_source->source);
 		socket_source_detach(socket_source);
 		socket_source_attach(socket_source, component->ctx);
 	}
@@ -782,7 +797,7 @@ static void nice_component_detach_socket(NiceComponent *component,
 	s = g_slist_find_custom(component->socket_sources, nicesock,
 			_find_socket_source);
 	if (s == NULL) {
-		nice_debug("Component %p: Detach Socket %p not found source (stream %u), ",
+		nice_debug("Component %p: Detach Socket %p not found Source (stream %u), ",
 				component, nicesock->fileno, component->stream_id);
 		return;
 	}
@@ -797,17 +812,16 @@ static void nice_component_detach_socket(NiceComponent *component,
 	 *       ->nice_component_detach_socket
 	 *
 	 */
-//	/* Detach the source. */
-//	socket_source = s->data;
-//	component->socket_sources = g_slist_delete_link(component->socket_sources,
-//			s);
-//	component->socket_sources_age++;
-//
-//	nice_debug("Component %p: Detach Source %p (stream %u)", component, socket_source,
-//			component->stream_id);
-//
-////	socket_source_detach(socket_source);
-//	socket_source_free(socket_source);
+	/* Detach the source. */
+	socket_source = s->data;
+
+	nice_debug("Component %p: Detach SocketSource %p(Source %p) (stream %u)", component, socket_source, socket_source->source, component->stream_id);
+
+	component->socket_sources = g_slist_delete_link(component->socket_sources, s);
+	component->socket_sources_age++;
+
+//	socket_source_detach(socket_source);
+	socket_source_free(socket_source);
 }
 
 /*
@@ -820,16 +834,23 @@ static void nice_component_detach_socket(NiceComponent *component,
 void nice_component_detach_all_sockets(NiceComponent *component) {
 	GSList *i;
 
+	nice_debug("Component %p: Detach SocketSource(%d)",
+			component,
+			g_slist_length(component->socket_sources));
+
 	for (i = component->socket_sources; i != NULL; i = i->next) {
 		SocketSource *socket_source = i->data;
-		nice_debug("Detach source %p, socket %p", socket_source->source,
+		nice_debug("Component %p: Detach SocketSource %p(Source %p), socket %p",
+				component,
+				socket_source,
+				socket_source->source,
 				socket_source->socket);
 		socket_source_detach(socket_source);
 	}
 }
 
 void nice_component_free_socket_sources(NiceComponent *component) {
-	nice_debug("Free socket sources for component %p", component);
+	nice_debug("Component %p: Free SocketSource(%d)", component, g_slist_length(component->socket_sources));
 
 	g_slist_free_full(component->socket_sources,
 			(GDestroyNotify) socket_source_free);
@@ -1158,6 +1179,11 @@ static void nice_component_init(NiceComponent *component) {
 	component->tcp = NULL;
 	g_weak_ref_init(&component->agent_ref, NULL);
 
+	/**
+	 * Add by Max 2023/03/14
+	 */
+	memset(&component->selected_pair, 0, sizeof(CandidatePair));
+
 	g_mutex_init(&component->io_mutex);
 	g_queue_init(&component->pending_io_messages);
 	component->io_callback_id = 0;
@@ -1287,6 +1313,7 @@ static void nice_component_finalize(GObject *obj) {
 	if (cmp->stop_cancellable_source != NULL) {
 		g_source_destroy(cmp->stop_cancellable_source);
 		g_source_unref(cmp->stop_cancellable_source);
+		cmp->stop_cancellable_source = NULL;
 	}
 
 	if (cmp->ctx != NULL) {
@@ -1295,12 +1322,13 @@ static void nice_component_finalize(GObject *obj) {
 	}
 
 	g_main_context_unref(cmp->own_ctx);
+	cmp->own_ctx = NULL;
 
 	g_weak_ref_clear(&cmp->agent_ref);
 
 	g_atomic_int_inc(&n_components_destroyed);
-	nice_debug("Destroyed NiceComponent (%u created, %u destroyed)",
-			n_components_created, n_components_destroyed);
+	nice_debug("Component %p: Destroyed NiceComponent (%u created, %u destroyed)",
+			cmp, n_components_created, n_components_destroyed);
 
 	G_OBJECT_CLASS(nice_component_parent_class)->finalize(obj);
 }

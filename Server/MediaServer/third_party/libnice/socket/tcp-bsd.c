@@ -297,7 +297,7 @@ static gint socket_recv_messages(NiceSocket *sock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug("Socket %p(fd %d): [TCP/BSD] Recv, ret %d, errno %d", sock,
+		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Recv, ret %d, errno %d", sock,
 				g_socket_get_fd(sock->fileno), len, errno);
 
 		/* recv returns 0 when the peer performed a shutdown.. we must return -1
@@ -354,7 +354,7 @@ static gssize socket_send_message(NiceSocket *sock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug("Socket %p(fd %d): [TCP/BSD] Send, len %d, ret %d", sock,
+		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Send, len %d, ret %d", sock,
 				g_socket_get_fd(sock->fileno), message_len, ret);
 
 		if (ret < 0) {

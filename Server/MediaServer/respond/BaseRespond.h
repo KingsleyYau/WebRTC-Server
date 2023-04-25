@@ -9,6 +9,13 @@
 #define REQUEST_BASERESPOND_H_
 
 #include "IRespond.h"
+
+// STL
+#include <string>
+#include <map>
+#include <list>
+using namespace std;
+
 namespace mediaserver {
 class BaseRespond : public IRespond {
 public:

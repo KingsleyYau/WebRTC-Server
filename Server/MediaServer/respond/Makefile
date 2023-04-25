@@ -14,11 +14,12 @@ else
 CXXFLAGS = -O2 -g
 endif
 
+CXXFLAGS += -std=c++11
 CXXFLAGS +=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS +=	-I. -I.. -I../third_party -I../third_party/json
 
 OBJS 		=	BaseRespond.o BaseRawRespond.o BaseResultRespond.o \
-				SdpCallRespond.o
+				SdpCallRespond.o UserListRespond.o
 		
 TARGET =	librespond.a
 

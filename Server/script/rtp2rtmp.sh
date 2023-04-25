@@ -49,7 +49,7 @@ function Clean() {
   fi
   echo "# rtp2rtmp.sh $SELF_PID exit "
 }
-trap 'Clean; exit' SIGTERM
+trap 'Clean; exit' SIGTERM SIGQUIT
 
 RTMP_STREAM=`echo $RTMP_URL | sed 's/rtmp:\/\/.*:[0-9]*\/\(.*\)/\1/g' | sed 's/\//_/g'`
 

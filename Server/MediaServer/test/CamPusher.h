@@ -29,12 +29,14 @@ public:
 	~CamPusherImp();
 
 	bool Init(mg_mgr *mgr, const string url, const string stream, int index,
+			const string sid = "",
 			bool bReconnect = true, int reconnectMaxSeconds = 60, double pushRatio = 1.0,
 			bool bTcpForce = false);
 	bool Start();
 	void Disconnect();
 	void Close();
 	void Stop();
+	void Ping();
 
 	string Desc();
 	bool Timeout();
@@ -57,6 +59,7 @@ public:
 	mg_connection *conn;
 	string url;
 	string stream;
+	string sid;
 
 	WebRTCClient rtc;
 	int index;
@@ -64,6 +67,7 @@ public:
 	long long startTime;
 	long long loginTime;
 	long long loginDelta;
+	long long pingTime;
 	int reconnectSeconds;
 	int reconnectMaxSeconds;
 	double pushRatio;
@@ -87,7 +91,8 @@ public:
 	CamPusher();
 	virtual ~CamPusher();
 
-	bool Start(const string& stream, const string& webSocketServer, unsigned int iMaxCount = 1, const string turnServer = "",
+	bool Start(const string& stream, const string& webSocketServer, const string& fileName = "",
+			unsigned int iMaxCount = 1, const string turnServer = "",
 			int iReconnect = 60, double pushRatio = 1.0, bool bTcpForce = false);
 	void Stop();
 	bool IsRunning();

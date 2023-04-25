@@ -125,7 +125,7 @@ public:
 	/**
 	 * socket
 	 */
-	void *socket;
+	Socket *socket;
 
 	/**
 	 * 解析器

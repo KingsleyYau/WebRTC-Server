@@ -22,22 +22,22 @@
 #include <respond/BaseRespond.h>
 #include <respond/BaseRawRespond.h>
 #include <respond/BaseResultRespond.h>
-
+#include <respond/UserListRespond.h>
 /***************************** 状态监视处理 **************************************/
 class StateRunnable : public KRunnable {
 public:
 	StateRunnable(MediaServer *container) {
-		mContainer = container;
+		this->container = container;
 	}
 	virtual ~StateRunnable() {
-		mContainer = NULL;
+		container = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->StateHandle();
+		container->StateHandle();
 	}
 private:
-	MediaServer *mContainer;
+	MediaServer *container;
 };
 
 /***************************** 状态监视处理 **************************************/
@@ -46,17 +46,17 @@ private:
 class TimeoutCheckRunnable : public KRunnable {
 public:
 	TimeoutCheckRunnable(MediaServer *container) {
-		mContainer = container;
+		this->container = container;
 	}
 	virtual ~TimeoutCheckRunnable() {
-		mContainer = NULL;
+		container = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->TimeoutCheckHandle();
+		container->TimeoutCheckHandle();
 	}
 private:
-	MediaServer *mContainer;
+	MediaServer *container;
 };
 
 /***************************** 超时处理 **************************************/
@@ -64,18 +64,20 @@ private:
 /***************************** 外部登录处理 **************************************/
 class ExtRequestRunnable : public KRunnable {
 public:
-	ExtRequestRunnable(MediaServer *container) {
-		mContainer = container;
+	ExtRequestRunnable(MediaServer *container, ExtRequestList *requestList) {
+		this->container = container;
+		this->requestList = requestList;
 	}
 	virtual ~ExtRequestRunnable() {
-		mContainer = NULL;
+		container = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->ExtRequestHandle();
+		container->ExtRequestHandle(requestList);
 	}
 private:
-	MediaServer *mContainer;
+	MediaServer *container;
+	ExtRequestList *requestList;
 };
 
 /***************************** 外部登录处理 **************************************/
@@ -83,22 +85,23 @@ private:
 class RecycleRunnable : public KRunnable {
 public:
 	RecycleRunnable(MediaServer *container) {
-		mContainer = container;
+		this->container = container;
 	}
 	virtual ~RecycleRunnable() {
-		mContainer = NULL;
+		container = NULL;
 	}
 protected:
 	void onRun() {
-		mContainer->RecycleHandle();
+		container->RecycleHandle();
 	}
 private:
-	MediaServer *mContainer;
+	MediaServer *container;
 };
 /***************************** 回收处理 **************************************/
 
 MediaServer::MediaServer()
-:mServerMutex(KMutex::MutexType_Recursive) {
+:mServerMutex(KMutex::MutexType_Recursive),
+ mExtRequestMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
 	// Http服务
 	mAsyncIOServer.SetAsyncIOServerCallback(this);
@@ -108,8 +111,8 @@ MediaServer::MediaServer()
 	mpStateRunnable = new StateRunnable(this);
 	// 超时处理线程
 	mpTimeoutCheckRunnable = new TimeoutCheckRunnable(this);
-	// 外部请求线程
-	mpExtRequestRunnable = new ExtRequestRunnable(this);
+//	// 外部请求线程
+//	mpExtRequestRunnable = new ExtRequestRunnable(this);
 	// 资源回收线程
 	mpRecycleRunnable = new RecycleRunnable(this);
 
@@ -141,6 +144,7 @@ MediaServer::MediaServer()
 	mbForceExtSync = true;
 	miExtSyncStatusMaxTime = 10;
 	miExtSyncStatusTime = 1;
+	miExtSyncLastTime = 0;
 
 	// 统计参数
 	mTotal = 0;
@@ -162,10 +166,10 @@ MediaServer::~MediaServer() {
 		mpTimeoutCheckRunnable = NULL;
 	}
 
-	if ( mpExtRequestRunnable ) {
-		delete mpExtRequestRunnable;
-		mpExtRequestRunnable = NULL;
-	}
+//	if ( mpExtRequestRunnable ) {
+//		delete mpExtRequestRunnable;
+//		mpExtRequestRunnable = NULL;
+//	}
 }
 
 bool MediaServer::Start(const string& config) {
@@ -303,10 +307,12 @@ bool MediaServer::Start() {
 			"MediaServer::Start( "
 			"[信令服务(Websocket)], "
 			"miWebsocketPort : %u, "
-			"miWebsocketMaxClient : %u "
+			"miWebsocketMaxClient : %u, "
+			"miExtRequestThreadCount : %u "
 			")",
 			miWebsocketPort,
-			miWebsocketMaxClient
+			miWebsocketMaxClient,
+			miExtRequestThreadCount
 			);
 
 	// 日志参数
@@ -422,43 +428,59 @@ bool MediaServer::Start() {
 		}
 	}
 
-	// 启动超时处理线程
-	if( bFlag ) {
-		if( mTimeoutCheckThread.Start(mpTimeoutCheckRunnable, "Timeout") != 0 ) {
-			LogAync(
-					LOG_NOTICE,
-					"MediaServer::Start( "
-					"event : [启动超时处理线程-OK] "
-					")");
-		} else {
-			bFlag = false;
-			LogAync(
-					LOG_ALERT,
-					"MediaServer::Start( "
-					"event : [启动超时处理线程-Fail] "
-					")"
-					);
-			printf("# MediaServer(Timeout Thread) start Fail. \n");
-		}
-	}
-
 	// 启动外部请求线程
-	if( bFlag ) {
-		if( mExtRequestThread.Start(mpExtRequestRunnable, "ExtRequest") != 0 ) {
-			LogAync(
-					LOG_NOTICE,
-					"MediaServer::Start( "
-					"event : [启动外部请求线程-OK] "
-					")");
-		} else {
-			bFlag = false;
-			LogAync(
-					LOG_ALERT,
-					"MediaServer::Start( "
-					"event : [启动外部请求线程-Fail] "
-					")"
-					);
-			printf("# MediaServer(ExtRequest Thread) start Fail. \n");
+	if (bFlag && miExtRequestThreadCount > 0) {
+		// 创建队列
+		mpExtRequestLists = new ExtRequestList*[miExtRequestThreadCount];
+		mpExtRequestRunnables = new ExtRequestRunnable*[miExtRequestThreadCount];
+		// 创建处理线程
+		mpExtRequestThreads = new KThread*[miExtRequestThreadCount];
+		for (int i = 0; i < miExtRequestThreadCount; i++) {
+			mpExtRequestLists[i] = new ExtRequestList();
+			mpExtRequestRunnables[i] = new ExtRequestRunnable(this, mpExtRequestLists[i]);
+			mpExtRequestThreads[i] = new KThread();
+			mpExtRequestThreads[i]->Start(mpExtRequestRunnables[i], "ExtRequest_" + to_string(i));
+		}
+		LogAync(
+				LOG_NOTICE,
+				"MediaServer::Start( "
+				"event : [启动外部请求线程-OK] "
+				")");
+//		if( mExtRequestThread.Start(mpExtRequestRunnable, "ExtRequest") != 0 ) {
+//			LogAync(
+//					LOG_NOTICE,
+//					"MediaServer::Start( "
+//					"event : [启动外部请求线程-OK] "
+//					")");
+//		} else {
+//			bFlag = false;
+//			LogAync(
+//					LOG_ALERT,
+//					"MediaServer::Start( "
+//					"event : [启动外部请求线程-Fail] "
+//					")"
+//					);
+//			printf("# MediaServer(ExtRequest Thread) start Fail. \n");
+//		}
+
+		// 启动超时处理线程
+		if( bFlag ) {
+			if( mTimeoutCheckThread.Start(mpTimeoutCheckRunnable, "Timeout") != 0 ) {
+				LogAync(
+						LOG_NOTICE,
+						"MediaServer::Start( "
+						"event : [启动超时处理线程-OK] "
+						")");
+			} else {
+				bFlag = false;
+				LogAync(
+						LOG_ALERT,
+						"MediaServer::Start( "
+						"event : [启动超时处理线程-Fail] "
+						")"
+						);
+				printf("# MediaServer(Timeout Thread) start Fail. \n");
+			}
 		}
 	}
 
@@ -563,6 +585,7 @@ bool MediaServer::LoadConfig() {
 			miWebsocketMaxClient = atoi(conf.GetPrivate("WEBSOCKET", "MAXCLIENT", "1000").c_str());
 			mExtSetStatusPath = conf.GetPrivate("WEBSOCKET", "EXTSETSTATUSPATH", "");
 			mExtSyncStatusPath = conf.GetPrivate("WEBSOCKET", "EXTSYNCPATH", "");
+			miExtRequestThreadCount = atoi(conf.GetPrivate("WEBSOCKET", "EXTRTHREADCOUNT", "4").c_str());
 
 			bFlag = true;
 		}
@@ -625,7 +648,6 @@ bool MediaServer::Stop() {
 			"pid : %d, "
 			"mPidFilePath : %s "
 			")",
-			signal,
 			pid,
 			mPidFilePath.c_str()
 			);
@@ -660,8 +682,20 @@ bool MediaServer::Stop() {
 	// 停止定时任务
 	mStateThread.Stop();
 	mTimeoutCheckThread.Stop();
-	mExtRequestThread.Stop();
+//	mExtRequestThread.Stop();
 	mRecycleThread.Stop();
+	for (int i = 0; i < miExtRequestThreadCount; i++) {
+		mpExtRequestThreads[i]->Stop();
+		delete mpExtRequestThreads[i];
+		delete mpExtRequestRunnables[i];
+		delete mpExtRequestLists[i];
+	}
+	delete[] mpExtRequestThreads;
+	delete[] mpExtRequestRunnables;
+	delete[] mpExtRequestLists;
+	mpExtRequestThreads = NULL;
+	mpExtRequestRunnables = NULL;
+	mpExtRequestLists = NULL;
 
 	// 停止子进程监听循环
 	MainLoop::GetMainLoop()->Stop();
@@ -758,6 +792,8 @@ void MediaServer::StateHandle() {
 }
 
 void MediaServer::TimeoutCheckHandle() {
+	HttpClient httpClient;
+
 	while( IsRunning() ) {
 		mWebRTCMap.Lock();
 		for (WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
@@ -780,20 +816,25 @@ void MediaServer::TimeoutCheckHandle() {
 		}
 		mWebRTCMap.Unlock();
 
+		// 同步在线状态
+		mExtRequestMutex.lock();
+		HandleExtForceSync(&httpClient);
+		mExtRequestMutex.unlock();
+
 		sleep(1);
 	}
 }
 
-void MediaServer::ExtRequestHandle() {
+void MediaServer::ExtRequestHandle(ExtRequestList *requestList) {
 	HttpClient httpClient;
 	bool bFlag = false;
 
 	while( IsRunning() ) {
-		bFlag = HandleExtForceSync(&httpClient);
-
-		if (bFlag) {
-			miExtSyncStatusTime = 1;
-			ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
+		mExtRequestMutex.lock();
+		if (!mbForceExtSync) {
+			mExtRequestMutex.unlock();
+//			ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
+			ExtRequestItem *item = (ExtRequestItem *)requestList->PopFront();
 			if (item) {
 				switch (item->type) {
 				case ExtRequestTypeLogin:{
@@ -804,16 +845,38 @@ void MediaServer::ExtRequestHandle() {
 				}break;
 				default:break;
 				}
-
 				delete item;
 			} else {
 				sleep(1);
 			}
 		} else {
-			sleep(miExtSyncStatusTime);
-			miExtSyncStatusTime++;
-			miExtSyncStatusTime = MIN(miExtSyncStatusTime, miExtSyncStatusMaxTime);
+			mExtRequestMutex.unlock();
+			sleep(1);
 		}
+
+//		bFlag = HandleExtForceSync(&httpClient);
+//		if (bFlag) {
+//			miExtSyncStatusTime = 1;
+//			ExtRequestItem *item = (ExtRequestItem *)mExtRequestList.PopFront();
+//			if (item) {
+//				switch (item->type) {
+//				case ExtRequestTypeLogin:{
+//					HandleExtLogin(&httpClient, item);
+//				}break;
+//				case ExtRequestTypeLogout:{
+//					HandleExtLogout(&httpClient, item);
+//				}break;
+//				default:break;
+//				}
+//				delete item;
+//			} else {
+//				sleep(1);
+//			}
+//		} else {
+//			sleep(miExtSyncStatusTime);
+//			miExtSyncStatusTime++;
+//			miExtSyncStatusTime = MIN(miExtSyncStatusTime, miExtSyncStatusMaxTime);
+//		}
 	}
 }
 
@@ -830,10 +893,12 @@ void MediaServer::RecycleHandle() {
 					LOG_NOTICE,
 					"MediaServer::RecycleHandle( "
 					"rtc : %p, "
-					"size : %d "
+					"mWebRTCRecycleList.Size : %d, "
+					"mWebRTCList.Size : %d "
 					")",
 					rtc,
-					mWebRTCRecycleList.Size()
+					mWebRTCRecycleList.Size(),
+					mWebRTCList.Size()
 					);
 		} else {
 			sleep(1);
@@ -944,6 +1009,9 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 	if( !strcasecmp(parser->GetPath().c_str(), "/reload") ) {
 		// 重新加载日志配置
 		OnRequestReloadLogConfig(parser);
+	} else if( !strcasecmp(parser->GetPath().c_str(), "/getonlineusers") ) {
+		// 获取在线用户列表
+		OnRequestGetOnlineUsers(parser);
 	} else {
 		// 未知命令
 		bFlag = OnRequestUndefinedCommand(parser);
@@ -1047,6 +1115,36 @@ void MediaServer::OnRequestReloadLogConfig(HttpParser* parser) {
 
 	// 马上返回数据
 	BaseResultRespond respond;
+	HttpSendRespond(parser, &respond);
+}
+
+void MediaServer::OnRequestGetOnlineUsers(HttpParser* parser) {
+	LogAync(
+			LOG_NOTICE,
+			"MediaServer::OnRequestGetOnlineUsers( "
+			"event : [内部服务(HTTP)-收到命令:获取在线用户列表], "
+			"parser : %p "
+			")",
+			parser
+			);
+
+	list<string> users;
+	mWebRTCMap.Lock();
+	for(WebsocketMap::iterator itr = mWebsocketMap.Begin(); itr != mWebsocketMap.End(); itr++) {
+		MediaClient *client = itr->second;
+		if ( client->logined ) {
+			string user;
+			GetExtParameters(client->extParam, user);
+			if (user.length() > 0) {
+				users.push_back(user);
+			}
+		}
+	}
+	mWebRTCMap.Unlock();
+
+	// 马上返回数据
+	UserListRespond respond;
+	respond.SetUserList(users);
 	HttpSendRespond(parser, &respond);
 }
 
@@ -1360,7 +1458,10 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 			item->type = ExtRequestTypeLogout;
 			item->uuid = client->uuid;
 			item->extParam = client->extParam;
-			mExtRequestList.PushBack(item);
+			string user;
+			int i = GetExtParameters(client->extParam, user);
+			ExtRequestList *requestList = mpExtRequestLists[i];
+			requestList->PushBack(item);
 		}
 
 		// Remove rtc
@@ -1380,6 +1481,14 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 	mWebsocketMap.Erase(hdl);
 	mWebRTCMap.Unlock();
 
+	if ( rtc ) {
+		mWebRTCRecycleList.PushBack(rtc);
+	}
+
+	if ( client ) {
+		mMediaClientList.PushBack(client);
+	}
+
 	LogAync(
 			LOG_NOTICE,
 			"MediaServer::OnWSClose( "
@@ -1398,14 +1507,6 @@ void MediaServer::OnWSClose(WSServer *server, connection_hdl hdl) {
 			userAgent.c_str(),
 			currentTime - connectTime
 			);
-
-	if ( rtc ) {
-		mWebRTCRecycleList.PushBack(rtc);
-	}
-
-	if ( client ) {
-		mMediaClientList.PushBack(client);
-	}
 }
 
 void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string& str) {
@@ -1696,22 +1797,38 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 							param.c_str()
 							);
 
-					// Start External Login
-					mWebRTCMap.Lock();
-					WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
-					if ( itr != mWebsocketMap.End() ) {
-						MediaClient *client = itr->second;
-						ExtRequestItem *item = new ExtRequestItem();
-						item->type = ExtRequestTypeLogin;
-						item->uuid = client->uuid;
-						item->reqRoot = reqRoot;
-						mExtRequestList.PushBack(item);
-						bRespond = false;
-						bFlag = true;
+					mExtRequestMutex.lock();
+					if (!mbForceExtSync) {
+						mExtRequestMutex.unlock();
+						// Start External Login
+						mWebRTCMap.Lock();
+						WebsocketMap::iterator itr = mWebsocketMap.Find(hdl);
+						if ( itr != mWebsocketMap.End() ) {
+							MediaClient *client = itr->second;
+							string user;
+							int i = GetExtParameters(param, user);
+							ExtRequestList *requestList = mpExtRequestLists[i];
+							if (requestList->Size() <= 300) {
+								ExtRequestItem *item = new ExtRequestItem();
+								item->type = ExtRequestTypeLogin;
+								item->uuid = client->uuid;
+								item->reqRoot = reqRoot;
+								item->extParam = param;
+								requestList->PushBack(item);
+
+								bRespond = false;
+								bFlag = true;
+							} else {
+								GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Request_Server_Busy);
+							}
+						} else {
+							GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
+						}
+						mWebRTCMap.Unlock();
 					} else {
+						mExtRequestMutex.unlock();
 						GetErrorObject(resRoot["errno"], resRoot["errmsg"], RequestErrorType_Unknow_Error);
 					}
-					mWebRTCMap.Unlock();
 				} else if ( route == "imRTC/sendGetToken" ) {
 					string userId = "";
 					if ( reqRoot["req_data"].isObject() ) {
@@ -1790,10 +1907,12 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					"MediaServer::OnWSMessage( "
 					"event : [Websocket-请求出错], "
 					"hdl : %p, "
-					"req : %s "
+					"req : %s, "
+					"res : %s "
 					")",
 					hdl.lock().get(),
-					str.c_str()
+					str.c_str(),
+					res.c_str()
 					);
 		}
 
@@ -1826,8 +1945,10 @@ void MediaServer::GetErrorObject(Json::Value &resErrorNo, Json::Value &resErrorM
 
 bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 	bool bFlag = true;
+	long long currentTime = getCurrentTime();
 
-	if ( mbForceExtSync && mExtSyncStatusPath.length() > 0 ) {
+	if ( (mExtSyncStatusPath.length() > 0) &&
+			(mbForceExtSync && (currentTime - miExtSyncLastTime > 30 * 1000)) ) {
 		bFlag = false;
 
 		// Request HTTP
@@ -1842,12 +1963,17 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 		reqRoot["params"] = Json::arrayValue;
 		mWebRTCMap.Lock();
 		// Pop All Logout Request
-		for(ExtRequestList::iterator itr = mExtRequestList.Begin(); itr != mExtRequestList.End(); itr++) {
-			ExtRequestItem *item = *itr;
-			if ( item->type == ExtRequestTypeLogout ) {
-				delete item;
-				mExtRequestList.PopValueUnSafe(itr++);
+		for (int i = 0; i < miExtRequestThreadCount; i++) {
+			ExtRequestList *requestList = mpExtRequestLists[i];
+			requestList->Lock();
+			for(ExtRequestList::iterator itr = requestList->Begin(); itr != requestList->End(); itr++) {
+				ExtRequestItem *item = *itr;
+				if (item->type == ExtRequestTypeLogout) {
+					requestList->PopValueUnSafe(itr++);
+					delete item;
+				}
 			}
+			requestList->Unlock();
 		}
 
 		// Send Sync Online List
@@ -1893,12 +2019,14 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 					"MediaServer::HandleExtForceSync( "
 					"event : [外部同步在线状态-%s], "
 					"url : %s, "
-					"req : %s, "
+					"count : %u, "
+//					"req : %s, "
 					"res : %s "
 					")",
 					FLAG_2_STRING(bFlag),
 					url.c_str(),
-					req.c_str(),
+					reqRoot["params"].size(),
+//					req.c_str(),
 					res
 					);
 		} else {
@@ -1907,16 +2035,18 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 					"MediaServer::HandleExtForceSync( "
 					"event : [外部同步在线状态-%s], "
 					"url : %s, "
-					"req : %s, "
+					"count : %u, "
+//					"req : %s, "
 					"res : %s "
 					")",
 					FLAG_2_STRING(bFlag),
 					url.c_str(),
-					req.c_str(),
+					reqRoot["params"].size(),
+//					req.c_str(),
 					res
 					);
 		}
-
+		miExtSyncLastTime = getCurrentTime();
 	}
 
 	return bFlag;
@@ -1983,7 +2113,9 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 					item->uuid.c_str(),
 					param.c_str()
 					);
-			sendLogout = true;
+			if(bFlag) {
+				sendLogout = true;
+			}
 		}
 	} else {
 		LogAync(
@@ -1996,19 +2128,23 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 				item->uuid.c_str(),
 				param.c_str()
 				);
-		sendLogout = true;
+		if(bFlag) {
+			sendLogout = true;
+		}
 	}
 	mWebRTCMap.Unlock();
 
 	if (sendLogout) {
 		// 重新插入下线通知
-		ExtRequestItem *logItem = new ExtRequestItem();
-		logItem->type = ExtRequestTypeLogout;
-		logItem->extParam = param;
-		logItem->uuid = item->uuid;
-		mExtRequestList.PushBack(logItem);
+		ExtRequestItem *logoutItem = new ExtRequestItem();
+		logoutItem->type = ExtRequestTypeLogout;
+		logoutItem->extParam = param;
+		logoutItem->uuid = item->uuid;
+		string user;
+		int i = GetExtParameters(item->extParam, user);
+		ExtRequestList *requestList = mpExtRequestLists[i];
+		requestList->PushBack(logoutItem);
 	}
-
 }
 
 void MediaServer::HandleExtLogout(HttpClient* httpClient, ExtRequestItem *item) {
@@ -2071,8 +2207,15 @@ bool MediaServer::SendExtSetStatusRequest(
 		}
 	}
 
-	if ( httpCode != 200 ) {
+	if (httpCode != 200 || (!bFlag && !isLogin)) {
+		/**
+		 * 两种情况需要同步
+		 * 1.下线失败
+		 * 2.请求没有返回200
+		 */
+		mExtRequestMutex.lock();
 		mbForceExtSync = true;
+		mExtRequestMutex.unlock();
 	}
 
 	LogAync(
@@ -2093,4 +2236,59 @@ bool MediaServer::SendExtSetStatusRequest(
 			);
 
 	return bFlag;
+}
+
+int MediaServer::GetExtParameters(const string& wholeLine, string& userId) {
+	int result = 0;
+	string key;
+	string value;
+
+	string line;
+	string::size_type posSep;
+	string::size_type index = 0;
+	string::size_type pos;
+
+	while( string::npos != index ) {
+		pos = wholeLine.find("&", index);
+		if( string::npos != pos ) {
+			// 找到分隔符
+			line = wholeLine.substr(index, pos - index);
+			// 移动下标
+			index = pos + 1;
+
+		} else {
+			// 是否最后一次
+			if( index < wholeLine.length() ) {
+				line = wholeLine.substr(index, pos - index);
+				// 移动下标
+				index = string::npos;
+
+			} else {
+				// 找不到
+				index = string::npos;
+				break;
+			}
+		}
+
+		posSep = line.find("=");
+		if( (string::npos != posSep) && (posSep + 1 < line.length()) ) {
+			key = line.substr(0, posSep);
+			value = line.substr(posSep + 1, line.length() - (posSep + 1));
+
+		} else {
+			key = line;
+		}
+
+		if ( key == "userId" ) {
+			userId = value;
+			for(auto ch : value) {
+				result += ch;
+			}
+			if (miExtRequestThreadCount > 0) {
+				result %= miExtRequestThreadCount;
+			}
+			break;
+		}
+	}
+	return result;
 }

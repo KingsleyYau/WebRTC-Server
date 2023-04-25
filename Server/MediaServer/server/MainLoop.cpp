@@ -155,11 +155,11 @@ void MainLoop::Exit(int signal) {
 
 void MainLoop::Call(int pid) {
 //	mCallbackMap.Lock();
-//	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
-//	if ( itr != mCallbackMap.End() ) {
-//		MainLoopObj *obj = itr->second;
-//		obj->isExit = true;
-//	}
+	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
+	if ( itr != mCallbackMap.End() ) {
+		MainLoopObj *obj = itr->second;
+		obj->isExit = true;
+	}
 //	mCallbackMap.Unlock();
 }
 

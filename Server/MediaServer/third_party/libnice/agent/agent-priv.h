@@ -141,6 +141,10 @@ struct _NiceAgent
   GObject parent;                 /* gobject pointer */
 
   GMutex agent_mutex;             /* Mutex used for thread-safe lib */
+  /**
+   * Add by Max 2023/03/13
+   */
+  GRecMutex agent_rec_mutex;      /* Mutex used for thread-safe lib */
 
   gboolean full_mode;             /* property: full-mode */
   gchar *stun_server_ip;          /* property: STUN server IP */

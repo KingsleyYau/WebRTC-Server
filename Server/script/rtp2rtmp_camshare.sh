@@ -49,7 +49,7 @@ function Clean() {
   fi
   echo "# rtp2rtmp_camshare.sh $SELF_PID exit "
 }
-trap 'Clean; exit' SIGTERM
+trap 'Clean; exit' SIGTERM SIGQUIT
 
 CPU_NUM=$(cat /proc/cpuinfo | grep processor | wc -l)
 CPU=$(($(cat /dev/urandom 2>/dev/null | head -n 10 | cksum | awk -F ' ' '{print $1}')%${CPU_NUM}))
