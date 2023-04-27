@@ -23,6 +23,7 @@ const exec = require('child_process');
 const formidable = require('formidable');
 const mime = require('mime-types');
 const querystring = require('querystring');
+const util = require('util');
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -441,6 +442,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
 
+                fields = util.format('%j', fields);
                 Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], fields:' + fields);
                 let crop_face = 1;
                 if( fields.crop_face == "0" ) {
@@ -455,6 +457,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let seg_detail_face = 0;
                 if( fields.seg_detail_face == "1" ) {
                     seg_detail_face = 1;
+                }
+
+                let seg_detail_face_with_hair = 1;
+                if( fields.seg_detail_face_with_hair == "0" ) {
+                    seg_detail_face_with_hair = 0;
                 }
 
                 let align_face = 0;
@@ -504,7 +511,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --seg_detail_face_with_hair " + seg_detail_face_with_hair + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
