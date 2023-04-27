@@ -441,9 +441,20 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
 
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], fields:' + fields);
                 let crop_face = 1;
                 if( fields.crop_face == "0" ) {
                     crop_face = 0;
+                }
+
+                let seg_face = 1;
+                if( fields.seg_face == "0" ) {
+                    seg_face = 0;
+                }
+
+                let seg_detail_face = 0;
+                if( fields.seg_detail_face == "1" ) {
+                    seg_detail_face = 1;
                 }
 
                 let align_face = 0;
@@ -493,7 +504,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.jpg");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
@@ -1536,6 +1547,32 @@ proxyRouter.all('/api/maser/dubnitskiy', async (ctx, next) => {
     }
 
     let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/dubnitskiy/image", "/maser/dubnitskiy/image", page, page_size);
+    respond.data.datalist = items;
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/maser/diffusion', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    params = querystring.parse(ctx.querystring);
+    page = 1;
+    if (!Common.isNull(params.page)) {
+        page = params.page;
+    }
+    page_size = 24;
+    if (!Common.isNull(params.page_size)) {
+        page_size = params.page_size;
+    }
+
+    let items = readDirSyncSortByDate(Common.AppGlobalVar.rootPath + "/static/maser/diffusion", "/maser/diffusion", page, page_size);
     respond.data.datalist = items;
 
     ctx.body = respond;
