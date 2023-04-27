@@ -442,8 +442,8 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
 
-                fields = util.format('%j', fields);
-                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], fields:' + fields);
+                parms = util.format('%j', fields);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], parms:' + parms);
                 let crop_face = 1;
                 if( fields.crop_face == "0" ) {
                     crop_face = 0;
@@ -513,6 +513,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
 
                 let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --seg_detail_face_with_hair " + seg_detail_face_with_hair + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd);
                 child = exec.exec(cmd, function(error, stdout, stderr) {
                     if(error) {
                         Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file + ', ' + error.toString());
