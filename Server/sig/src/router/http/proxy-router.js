@@ -454,6 +454,11 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                     seg_face = 0;
                 }
 
+                let seg_body = 0;
+                if( fields.seg_body == "1" ) {
+                    seg_body = 1;
+                }
+
                 let seg_detail_face = 0;
                 if( fields.seg_detail_face == "1" ) {
                     seg_detail_face = 1;
@@ -511,7 +516,7 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let photo_path = path.join(dir, basename_pre + "_photo.png");
                 let cartoon_path = path.join(dir, basename_pre + "_seg.png");
 
-                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --seg_detail_face_with_hair " + seg_detail_face_with_hair + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
+                let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_body " + seg_body + " --seg_detail_face " + seg_detail_face + " --seg_detail_face_with_hair " + seg_detail_face_with_hair + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
                 Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + cmd);
                 child = exec.exec(cmd, function(error, stdout, stderr) {
