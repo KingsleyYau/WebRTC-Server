@@ -508,8 +508,8 @@ proxyRouter.all('/api/upload_seg', async (ctx, next) => {
                 let upload_file = upload_path + basename;
                 Common.log('http', 'debug', '[' + ctx.session.sessionId  + ']-/api/upload_seg], ' + upload_file);
 
-                let photo_path = path.join(dir, basename_pre + "_photo.jpg");
-                let cartoon_path = path.join(dir, basename_pre + "_seg.jpg");
+                let photo_path = path.join(dir, basename_pre + "_photo.png");
+                let cartoon_path = path.join(dir, basename_pre + "_seg.png");
 
                 let cmd = SEG + ' --input_image ' + filepath + " --crop_face " + crop_face + " --seg_face " + seg_face + " --seg_detail_face " + seg_detail_face + " --seg_detail_face_with_hair " + seg_detail_face_with_hair + " --align_face " + align_face + " --enhance_only " + enhance_only + " --keep_bg " + keep_bg + " --enhance_face_only " + enhance_face_only + " --fit_size " + fit_size + " --face_size " + face_size + " --keep_body " + keep_body + " --smooth " + smooth
                 // exec.execSync(cmd)
