@@ -37,7 +37,6 @@
 
 #include <websocketpp/common/asio.hpp>
 #include <websocketpp/common/functional.hpp>
-#include <websocketpp/common/cmd_handler.hpp>
 
 #include <sstream>
 #include <string>
