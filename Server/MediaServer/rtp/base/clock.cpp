@@ -16,7 +16,7 @@
 #include <rtp/base/rw_lock_wrapper.h>
 #include <rtp/base/time_utils.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RealTimeClock: public Clock {
 	Timestamp CurrentTime() override {
@@ -138,4 +138,4 @@ void SimulatedClock::AdvanceTime(TimeDelta delta) {
 	time_ += delta;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

@@ -26,7 +26,7 @@
 #include <rtp/base/experiments/field_trial_parser.h>
 #include <rtp/base/numerics/safe_minmax.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 
 constexpr TimeDelta kDefaultRtt = TimeDelta::Millis<200>();
@@ -421,4 +421,4 @@ void AimdRateControl::ChangeState(const RateControlInput& input,
 	}
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

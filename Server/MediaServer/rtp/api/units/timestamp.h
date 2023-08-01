@@ -21,7 +21,7 @@
 #include <rtp/api/units/time_delta.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // Timestamp represents the time that has passed since some unspecified epoch.
 // The epoch is assumed to be before any represented timestamps, this means that
 // negative values are not valid. The most notable feature is that the
@@ -140,6 +140,6 @@ inline std::ostream& operator<<(  // no-presubmit-check TODO(webrtc:8982)
 #endif  // UNIT_TEST
 
 }
-  // namespace mediaserver
+  // namespace qpidnetwork
 
 #endif  // RTP_API_UNITS_TIMESTAMP_H_

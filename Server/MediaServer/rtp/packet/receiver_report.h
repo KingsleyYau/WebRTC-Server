@@ -19,7 +19,7 @@
 #include <rtp/packet/RtcpPacket.h>
 #include <rtp/packet/ReportBlock.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader;
 
@@ -53,5 +53,5 @@ private:
 };
 
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_RECEIVER_REPORT_H_

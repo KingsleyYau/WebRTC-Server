@@ -17,7 +17,7 @@
 
 #include <rtp/base/units/unit_base.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // TimeDelta represents the difference between two timestamps. Commonly this can
 // be a duration. However since two Timestamps are not guaranteed to have the
@@ -94,6 +94,6 @@ private:
 };
 
 }
-// namespace mediaserver
+// namespace qpidnetwork
 
 #endif  // RTP_API_UNITS_TIMEDELTA_H_

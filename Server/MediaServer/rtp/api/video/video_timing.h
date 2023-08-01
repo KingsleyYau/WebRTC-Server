@@ -16,7 +16,7 @@
 #include <limits>
 #include <string>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Video timing timestamps in ms counted from capture_time_ms of a frame.
 // This structure represents data sent in video-timing RTP header extension.
@@ -110,6 +110,6 @@ struct TimingFrameInfo {
 	uint8_t flags; // Flags indicating validity and/or why tracing was triggered.
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_VIDEO_VIDEO_TIMING_H_

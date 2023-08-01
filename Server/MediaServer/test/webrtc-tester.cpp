@@ -17,7 +17,7 @@
 using namespace std;
 
 #include "WebRTCTester.h"
-using namespace mediaserver;
+using namespace qpidnetwork;
 
 // Common
 #include <common/LogManager.h>
@@ -130,7 +130,7 @@ void SignalFunc(int sign_no) {
 			int pid = waitpid(-1, &status, WNOHANG);
 			if ( pid > 0 ) {
 				printf("# main( waitpid : %d ) \n", pid);
-				MainLoop::GetMainLoop()->Call(pid);
+				MainLoop::GetMainLoop()->WaitPid(pid);
 			} else {
 				break;
 			}

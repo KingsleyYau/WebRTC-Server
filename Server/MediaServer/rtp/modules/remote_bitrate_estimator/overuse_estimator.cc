@@ -21,7 +21,7 @@
 // Common
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 enum {
 	kMinFramePeriodHistoryLength = 60
@@ -165,4 +165,4 @@ void OveruseEstimator::UpdateNoiseEstimate(double residual, double ts_delta,
 		var_noise_ = 1;
 	}
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

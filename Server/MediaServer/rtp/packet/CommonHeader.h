@@ -18,7 +18,7 @@
 
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader {
 public:
@@ -64,5 +64,5 @@ private:
 	const uint8_t* payload_ = nullptr;
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  /* RTP_PACKET_COMMON_HEADER_H_ */

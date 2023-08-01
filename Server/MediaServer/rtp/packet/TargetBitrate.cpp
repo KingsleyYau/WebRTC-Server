@@ -14,7 +14,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr size_t kTargetBitrateHeaderSizeBytes = 4;
 constexpr uint8_t TargetBitrate::kBlockType;
@@ -119,4 +119,4 @@ void TargetBitrate::Create(uint8_t* buffer) const {
 	}
 }
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

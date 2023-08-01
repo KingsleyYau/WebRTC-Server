@@ -1,6 +1,6 @@
 #include <rtp/api/rtp_headers.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 //RTPHeaderExtension::RTPHeaderExtension() :
 //		hasTransmissionTimeOffset(false), transmissionTimeOffset(0), hasAbsoluteSendTime(
@@ -32,4 +32,4 @@ RTPHeader::RTPHeader(const RTPHeader& other) = default;
 
 RTPHeader& RTPHeader::operator=(const RTPHeader& other) = default;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

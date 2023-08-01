@@ -17,7 +17,7 @@
 
 #include <rtp/api/array_view.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Fill memory with zeros in a way that the compiler doesn't optimize it away
 // even if the pointer is not used afterwards.
@@ -25,10 +25,10 @@ void ExplicitZeroMemory(void* ptr, size_t len);
 
 template<typename T, typename std::enable_if<
 		!std::is_const<T>::value && std::is_trivial<T>::value>::type* = nullptr>
-void ExplicitZeroMemory(mediaserver::ArrayView<T> a) {
+void ExplicitZeroMemory(qpidnetwork::ArrayView<T> a) {
 	ExplicitZeroMemory(a.data(), a.size());
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_ZERO_MEMORY_H_

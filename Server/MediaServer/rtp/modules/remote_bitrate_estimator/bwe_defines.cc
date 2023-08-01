@@ -12,7 +12,7 @@
 
 #include <rtp/base/field_trial.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 const char kBweTypeHistogram[] = "WebRTC.BWE.Types";
 
@@ -35,4 +35,4 @@ RateControlInput::RateControlInput(BandwidthUsage bw_state,
 
 RateControlInput::~RateControlInput() = default;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

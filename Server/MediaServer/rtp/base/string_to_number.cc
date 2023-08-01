@@ -17,7 +17,7 @@
 
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace string_to_number_internal {
 absl::optional<signed_type> ParseSigned(const char* str, int base) {
 	RTC_DCHECK(str);
@@ -85,4 +85,4 @@ template absl::optional<float> ParseFloatingPoint(const char* str);
 template absl::optional<double> ParseFloatingPoint(const char* str);
 template absl::optional<long double> ParseFloatingPoint(const char* str);
 }  // namespace string_to_number_internal
-}  // namespace mediaserver
+}  // namespace qpidnetwork

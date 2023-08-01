@@ -16,7 +16,7 @@
 
 #include <rtp/packet/RtcpPacket.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader;
 // Source Description (SDES) (RFC 3550).
@@ -51,5 +51,5 @@ private:
 	size_t block_length_;
 };
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_SDES_H_

@@ -13,13 +13,13 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class BaseResultRespond : public BaseRespond {
 public:
 	BaseResultRespond();
 	virtual ~BaseResultRespond();
 
-	virtual string Result() override;
+	virtual string Result() const override;
 
 	virtual void SetParam(bool ret, string errmsg = "");
 

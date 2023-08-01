@@ -64,4 +64,21 @@ private:
 	pthread_mutex_t m_Mutex;
 
 };
+
+class KAutoMutex
+{
+public:
+	KAutoMutex(KMutex *mutex) {
+		this->mutex = mutex;
+		this->mutex->lock();
+	}
+
+	~KAutoMutex(){
+		mutex->unlock();
+	}
+
+private:
+	KMutex *mutex;
+};
+
 #endif

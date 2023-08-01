@@ -2,7 +2,6 @@
  * File         : TimeProc.hpp
  * Date         : 2012-10-19
  * Author       : FGX
- * Copyright    : City Hotspot Co., Ltd.
  * Description  :
  */
 

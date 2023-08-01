@@ -21,7 +21,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtc_units_impl {
 // UnitBase is a base class for implementing custom value types with a specific
 // unit. It provides type safety and commonly useful operations. The underlying
@@ -311,6 +311,6 @@ inline Unit_T operator*(const int32_t& scalar,
 	return other * scalar;
 }
 }  // namespace rtc_units_impl
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_UNITS_UNIT_BASE_H_

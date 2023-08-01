@@ -29,7 +29,7 @@ public:
 	}
 
 	void Insert(Key key, Value value) {
-		mMap.insert( typename SafeMap::value_type(key, value) );
+		mMap.insert(typename SafeMap::value_type(key, value));
 	}
 
 	/**

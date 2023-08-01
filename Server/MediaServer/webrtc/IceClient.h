@@ -25,7 +25,7 @@ using namespace std;
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _NiceCandidate NiceCandidate;
-namespace mediaserver {
+namespace qpidnetwork {
 class IceClient;
 class IceClientCallback {
 public:
@@ -60,6 +60,18 @@ public:
 			const string& turnUserName,
 			const string& turnPassword,
 			const string& turnShareSecret
+			);
+	static void ChangeGobalSetting(
+			const string& stunServerIp,
+			const string& localIp,
+			bool useShareSecret,
+			const string& turnUserName,
+			const string& turnPassword,
+			const string& turnShareSecret
+			);
+	static void EnableDebugLog(
+			bool enable = true,
+			bool verbose = false
 			);
 
 public:
@@ -114,6 +126,6 @@ private:
 	RequestErrorType mLastErrorCode;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* ICE_ICECLIENT_H_ */

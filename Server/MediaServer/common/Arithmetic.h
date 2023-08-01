@@ -2,7 +2,6 @@
  * File         : Arithmetic.hpp
  * Date         : 2007-07-12
  * Author       : Keqin Su
- * Copyright    : City Hotspot Co., Ltd.
  * Description  : include file for Arithmetic.h 
  */
 

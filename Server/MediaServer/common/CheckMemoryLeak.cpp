@@ -31,7 +31,7 @@ void OutputDebugStringf(const char *szFmt, ...)
 
 void * MyAlloc(size_t cbSize, const char *szFile = __FILE__, unsigned int  nLineNo = __LINE__)
 {
-	OutputDebugStringf("MyAlloc( file : %s, line : %d )", szFile, nLineNo);
+	OutputDebugStringf("MyAlloc(file : %s, line : %d)", szFile, nLineNo);
 	// We allocate a header followed by the desired allocation
     void *p = malloc(sizeof(AllocHeader) + cbSize + sizeof(AllocEnd));
 	//void* p = operator new(sizeof(AllocHeader) + cbSize + sizeof(AllocEnd));
@@ -52,7 +52,7 @@ void * MyAlloc(size_t cbSize, const char *szFile = __FILE__, unsigned int  nLine
 	g_allocList.Insert(pHeader);
 
 	// print log
-	OutputDebugStringf("MyAlloc( file : %s, line : %d, data : %p )", szFile, nLineNo, p);
+	OutputDebugStringf("MyAlloc(file : %s, line : %d, data : %p)", szFile, nLineNo, p);
 //	__android_log_print(ANDROID_LOG_DEBUG, "leak", "new data:%p", p);
 
     // we return the address + sizeof(AllocHeader)
@@ -62,7 +62,7 @@ void * MyAlloc(size_t cbSize, const char *szFile = __FILE__, unsigned int  nLine
 void MyDelete(void *p, const char *szFile = __FILE__, unsigned int  nLineNo = __LINE__)
 {
 	// print log
-	OutputDebugStringf("MyDelete( file : %s, line : %d, data : %p )", szFile, nLineNo, p);
+	OutputDebugStringf("MyDelete(file : %s, line : %d, data : %p)", szFile, nLineNo, p);
 //	OutputDebugStringf("delete data:%p", p);
 //	__android_log_print(ANDROID_LOG_DEBUG, "leak", "delete data:%p", p);
 

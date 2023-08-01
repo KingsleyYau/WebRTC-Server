@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class NtpTime {
 public:
@@ -41,6 +41,6 @@ private:
 	uint64_t value_;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_BASE_NTPTIME_H_ */

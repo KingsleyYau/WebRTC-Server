@@ -36,7 +36,7 @@
 // copyable, so it's probably cheaper to pass it by value than by const
 // reference.
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template<typename T>
 class FunctionView;
@@ -130,6 +130,6 @@ public:
 			};
 
 		}
-		// namespace mediaserver
+		// namespace qpidnetwork
 
 #endif  // RTP_API_FUNCTION_VIEW_H_

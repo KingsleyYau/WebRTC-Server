@@ -40,14 +40,14 @@
 #include <include/ErrCode.h>
 #include <include/ForkNotice.h>
 
-using namespace mediaserver;
-
 // STL
 #include <map>
 #include <list>
 using namespace std;
 
 #define REQUEST_TIME_OUT_MS 60000
+
+namespace qpidnetwork {
 
 // 在线连接对象
 struct MediaClient {
@@ -127,19 +127,21 @@ struct ExtRequestItem {
 		type = ExtRequestTypeUnknow;
 		uuid = "";
 		extParam = "";
-		reqRoot = Json::Value::null;
+		req = Json::Value::null;
 	}
 
 	ExtRequestType type;
 	string uuid;
 	string extParam;
-	Json::Value reqRoot;
+	Json::Value req;
 };
 // 在线连接列表, 因为2个Map是同时使用, 所以只需用WebRTCMap的锁
 typedef KSafeMap<WebRTC*, MediaClient*> WebRTCMap;
 typedef KSafeMap<connection_hdl, MediaClient*, std::owner_less<connection_hdl> > WebsocketMap;
-// 在线的用户列表
+// 在线的用户列表(UUID)
 typedef KSafeMap<string, MediaClient*> MediaClientMap;
+// 在线并已经登录的用户列表(USER)
+typedef KSafeMap<string, MediaClient*> MediaUserMap;
 // 空闲的WebRTC列表
 typedef KSafeList<WebRTC *> WebRTCList;
 // 空闲的MediaClient列表
@@ -182,6 +184,10 @@ public:
 	 */
 	bool IsRunning();
 	/**
+	 * 是否需要退出
+	 */
+	bool IsNeedStop();
+	/**
 	 * 清除进程信息
 	 */
 	void Exit(int sig);
@@ -199,6 +205,7 @@ public:
 	// HttpHandler
 	void OnRequestReloadLogConfig(HttpParser* parser);
 	void OnRequestGetOnlineUsers(HttpParser* parser);
+	void OnRequestKickUser(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 
@@ -306,6 +313,16 @@ private:
 	 * 获取外部请求线程
 	 */
 	int GetExtParameters(const string& wholeLine, string& userId);
+
+	// WSHandler
+	bool OnWSRequestPing(Json::Value req, Json::Value &rep);
+	bool OnWSRequestSdpCall(Json::Value req, Json::Value &rep, connection_hdl hdl);
+	bool OnWSRequestSdpPull(Json::Value req, Json::Value &rep, connection_hdl hdl);
+	bool OnWSRequestSdpUpdate(Json::Value req, Json::Value &rep, connection_hdl hdl);
+	bool OnWSRequestLogin(Json::Value req, Json::Value &rep, connection_hdl hdl);
+	bool OnWSRequestGetToken(Json::Value req, Json::Value &rep, connection_hdl hdl);
+
+
 private:
 	/***************************** 内部服务(HTTP)参数 **************************************/
 	// 监听端口
@@ -432,6 +449,7 @@ private:
 	// 是否运行
 	KMutex mServerMutex;
 	bool mRunning;
+	bool mNeedStop;
 	string mPidFilePath;
 
 	// 配置文件
@@ -448,6 +466,7 @@ private:
 	WebRTCMap mWebRTCMap;
 	WebsocketMap mWebsocketMap;
 	MediaClientMap mMediaClientMap;
+	MediaUserMap mMediaUserMap;
 	// 可用的WebRTC Object
 	WebRTCList mWebRTCList;
 	// 待回收的WebRTC列表
@@ -464,5 +483,5 @@ private:
 	long long miExtSyncLastTime;
 	/***************************** 运行参数 end **************************************/
 };
-
+}
 #endif /* MEDIASERVER_H_ */

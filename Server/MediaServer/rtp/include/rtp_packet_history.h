@@ -23,7 +23,7 @@
 #include <rtp/base/critical_section.h>
 #include <rtp/base/thread_annotations.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class Clock;
 class RtpPacketToSend;
@@ -98,7 +98,7 @@ public:
 	// packet will not be marked as pending.
 	std::unique_ptr<RtpPacketToSend> GetPacketAndMarkAsPending(
 			uint16_t sequence_number,
-			mediaserver::FunctionView<
+			qpidnetwork::FunctionView<
 					std::unique_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
 
 	// Updates the send time for the given packet and increments the transmission
@@ -120,12 +120,12 @@ public:
 	// container, or to abort getting the packet if the function returns
 	// nullptr.
 	std::unique_ptr<RtpPacketToSend> GetPayloadPaddingPacket(
-			mediaserver::FunctionView<
+			qpidnetwork::FunctionView<
 					std::unique_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
 
 	// Cull packets that have been acknowledged as received by the remote end.
 	void CullAcknowledgedPackets(
-			mediaserver::ArrayView<const uint16_t> sequence_numbers);
+			qpidnetwork::ArrayView<const uint16_t> sequence_numbers);
 
 	// Mark packet as queued for transmission. This will prevent premature
 	// removal or duplicate retransmissions in the pacer queue.
@@ -196,7 +196,7 @@ private:
 			const StoredPacket& stored_packet);
 
 	Clock* const clock_;
-	mediaserver::CriticalSection lock_;
+	qpidnetwork::CriticalSection lock_;
 	size_t number_to_store_ RTC_GUARDED_BY(lock_);
 	StorageMode mode_ RTC_GUARDED_BY(lock_);
 	int64_t rtt_ms_ RTC_GUARDED_BY(lock_);
@@ -218,5 +218,5 @@ private:
 	RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(RtpPacketHistory)
 	;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_PACKET_HISTORY_H_

@@ -15,7 +15,7 @@
 
 #include <absl/types/optional.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template<typename U>
 inline bool IsNewer(U value, U prev_value) {
@@ -107,5 +107,5 @@ inline uint32_t LatestTimestamp(uint32_t timestamp1, uint32_t timestamp2) {
 	return IsNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_BASE_TYPES_H_

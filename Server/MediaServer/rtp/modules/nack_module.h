@@ -21,7 +21,7 @@
 #include <rtp/base/numerics/sequence_number_util.h>
 #include <rtp/base/clock.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class NackModule {
 public:
@@ -107,6 +107,6 @@ private:
 	Clock* const clock_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_NACK_MODULE_H_

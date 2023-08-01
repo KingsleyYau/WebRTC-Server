@@ -10,7 +10,7 @@
 
 #include <rtp/base/race_checker.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RaceChecker::RaceChecker() {
 }
@@ -53,4 +53,4 @@ RaceCheckerScope::~RaceCheckerScope() {
 }
 
 }  // namespace internal
-}  // namespace mediaserver
+}  // namespace qpidnetwork

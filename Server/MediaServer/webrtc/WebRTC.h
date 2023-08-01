@@ -33,7 +33,7 @@
 #include <vector>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 typedef list<string> RtcpFbList;
 typedef struct SdpPayload {
 	void Reset() {
@@ -96,7 +96,14 @@ public:
 			const string& turnPassword,
 			const string& turnShareSecret
 			);
-
+	static void ChangeGobalSetting(
+			const string& stunServerIp,
+			const string& localIp,
+			bool useShareSecret,
+			const string& turnUserName,
+			const string& turnPassword,
+			const string& turnShareSecret
+			);
 	static void SetDropAudioBeforeVideo(bool bFlag);
 
 public:
@@ -115,13 +122,15 @@ public:
 			const string& sdp,
 			const string& rtmpUrl,
 			bool isPull = false,
-			bool bControlling = false
+			bool bControlling = false,
+			bool isIgnoreMedia = false
 			);
 	void Stop();
 	void UpdateCandidate(const string& sdp);
 	string GetRtmpUrl();
 	RequestErrorType GetLastErrorType();
 	string GetLastErrorMessage();
+	string Desc();
 
 	/**
 	 * 解析远程SDP
@@ -245,6 +254,8 @@ private:
 	string mRtp2RtmpShellFilePath;
 	// 是否转码
 	bool mNeedTranscodeVideo;
+	// 是否允许缺失音视频时候继续转发
+	bool isIgnoreMedia;
 	// 执行转发RTP的脚本
 	string mRtmp2RtpShellFilePath;
 	// 转发RTMP的链接
@@ -275,6 +286,6 @@ private:
 	vector<RtpExtension> mAudioExtmap;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* WEBRTC_WEBRTC_H_ */

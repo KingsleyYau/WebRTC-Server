@@ -38,7 +38,7 @@
 
 #include <limits>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // According to ISO C standard ISO/IEC 9899, section 6.2.6.2 (2), the three
 // representations of signed integers allowed are two's complement, one's
@@ -397,6 +397,6 @@ class ByteWriter<T, 8, false> {
   }
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_BYTE_IO_H_

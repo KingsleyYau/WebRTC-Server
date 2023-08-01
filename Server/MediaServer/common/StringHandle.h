@@ -2,7 +2,6 @@
  * File         : StringHandle.h
  * Date         : 2012-07-02
  * Author       : Kingsley Yau
- * Copyright    : City Hotspot Co., Ltd.
  * Description  : DrPalm StringHandle include
  */
 

@@ -33,7 +33,7 @@ using namespace std;
 #include <respond/BaseRawRespond.h>
 #include <respond/BaseResultRespond.h>
 
-using namespace mediaserver;
+using namespace qpidnetwork;
 unsigned int gReqCount = 0;
 AsyncIOServer gServer;
 class HttpParserCallbackImp : public HttpParserCallback {

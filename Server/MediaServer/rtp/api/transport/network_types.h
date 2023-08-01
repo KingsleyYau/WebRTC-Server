@@ -20,7 +20,7 @@
 #include <rtp/api/units/time_delta.h>
 #include <rtp/api/units/timestamp.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Configuration
 
@@ -272,6 +272,6 @@ struct NetworkStateEstimate {
 	DataRate link_capacity_min = DataRate::MinusInfinity();
 	double cross_traffic_ratio = NAN;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_TRANSPORT_NETWORK_TYPES_H_

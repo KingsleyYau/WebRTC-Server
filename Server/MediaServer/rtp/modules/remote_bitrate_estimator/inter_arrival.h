@@ -15,7 +15,7 @@
 
 #include <rtp/base/constructor_magic.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Helper class to compute the inter-arrival time delta and the size delta
 // between two timestamp groups. A timestamp is a 32 bit unsigned number with
@@ -86,6 +86,6 @@ private:
 	RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(InterArrival)
 	;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_REMOTE_BITRATE_ESTIMATOR_INTER_ARRIVAL_H_

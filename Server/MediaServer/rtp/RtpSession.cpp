@@ -48,7 +48,7 @@ using namespace std;
 #define MAX_KEY_LEN 96
 static char kEmptyKey[MAX_KEY_LEN] = { 0 };
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 #define RTCP_HEADER_LENGTH 4
 #define RTCP_COMMON_FEEDBACK_LENGTH 8
@@ -100,9 +100,10 @@ bool RtpSession::GobalInit() {
 	bFlag = (status == srtp_err_status_ok);
 
 	if (!bFlag) {
-		LogAync(LOG_ALERT, "RtpSession::GobalInit( "
-				"[%s] "
-				")", FLAG_2_STRING(bFlag));
+		LogAync(LOG_ALERT, "RtpSession::GobalInit, "
+				"[%s]",
+				FLAG_2_STRING(bFlag)
+				);
 	}
 
 	return bFlag;
@@ -114,7 +115,7 @@ constexpr int kRembSendIntervalMs = 200;
 constexpr int kRRSendIntervalMs = 200;
 constexpr int kStatsIntervalMs = 5000;
 
-static unsigned int gMaxPliSeconds = 3;
+static unsigned int gMaxPliSeconds = 1;
 static bool gSimLost = false;
 static unsigned int gAudioLostSeed = 300;
 static unsigned int gAudioLostSize = 150;
@@ -192,7 +193,7 @@ void RtpSession::Reset() {
 
 	// Audio
 	mAudioSSRC = 0;
-
+	mIsAudioReceived = false;
 	//////////////////////////////////////////////////////////////////////////
 	/**
 	 * 模拟丢包
@@ -261,11 +262,14 @@ void RtpSession::RegisterVideoExtensions(
 		const vector<RtpExtension>& extensions) {
 	for (vector<RtpExtension>::const_iterator itr = extensions.cbegin();
 			itr != extensions.cend(); itr++) {
-		LogAync(LOG_INFO, "RtpSession::RegisterVideoExtensions( "
-				"this : %p, "
-				"id : %d, "
-				"uri : %s "
-				")", this, itr->id, itr->uri.c_str());
+		LogAync(LOG_INFO, "RtpSession::RegisterVideoExtensions, "
+				"this:%p, "
+				"id:%d, "
+				"uri:%s",
+				this,
+				itr->id,
+				itr->uri.c_str()
+				);
 		mVideoExtensionMap.RegisterByUri(itr->id, itr->uri);
 	}
 }
@@ -274,11 +278,14 @@ void RtpSession::RegisterAudioExtensions(
 		const vector<RtpExtension>& extensions) {
 	for (vector<RtpExtension>::const_iterator itr = extensions.cbegin();
 			itr != extensions.cend(); itr++) {
-		LogAync(LOG_INFO, "RtpSession::RegisterAudioExtensions( "
-				"this : %p, "
-				"id : %d, "
-				"uri : %s "
-				")", this, itr->id, itr->uri.c_str());
+		LogAync(LOG_INFO, "RtpSession::RegisterAudioExtensions, "
+				"this:%p, "
+				"id:%d, "
+				"uri:%s",
+				this,
+				itr->id,
+				itr->uri.c_str()
+				);
 //		mAudioExtensionMap.RegisterByUri(itr->id, itr->uri);
 	}
 }
@@ -289,12 +296,14 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey,
 
 	Arithmetic art;
 	LogAync(LOG_INFO,
-			"RtpSession::Start( "
-			"this : %p, "
-			"localKey : %s, "
-			"remoteKey : %s "
-			")", this, art.AsciiToHexWithSep(localKey, localSize).c_str(),
-			art.AsciiToHexWithSep(remoteKey, remoteSize).c_str());
+			"RtpSession::Start, "
+			"this:%p, "
+			"localKey:%s, "
+			"remoteKey:%s",
+			this,
+			art.AsciiToHexWithSep(localKey, localSize).c_str(),
+			art.AsciiToHexWithSep(remoteKey, remoteSize).c_str()
+			);
 
 	srtp_err_status_t status = srtp_err_status_ok;
 
@@ -309,16 +318,19 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey,
 	bFlag &= StartRecv(remoteKey, remoteSize);
 
 	if (bFlag) {
-		LogAync(LOG_INFO, "RtpSession::Start( "
-				"this : %p, "
-				"[OK] "
-				")", this);
+		LogAync(LOG_INFO, "RtpSession::Start, "
+				"this:%p, "
+				"[OK]",
+				this
+				);
 	} else {
-		LogAync(LOG_ALERT, "RtpSession::Start( "
-				"this : %p, "
+		LogAync(LOG_ALERT, "RtpSession::Start, "
+				"this:%p, "
 				"[Fail], "
-				"status : %d "
-				")", this, status);
+				"status:%d",
+				this,
+				status
+				);
 		Stop();
 	}
 
@@ -328,9 +340,9 @@ bool RtpSession::Start(char *localKey, int localSize, char *remoteKey,
 }
 
 void RtpSession::Stop() {
-	LogAync(LOG_INFO, "RtpSession::Stop( "
-			"this : %p "
-			")", this);
+	LogAync(LOG_INFO, "RtpSession::Stop, "
+			"this:%p "
+			, this);
 
 	mClientMutex.lock();
 	if (mRunning) {
@@ -338,22 +350,14 @@ void RtpSession::Stop() {
 
 		StopRecv();
 		StopSend();
-//		LogAync(
-//				LOG_INFO,
-//				"RtpSession::Stop( "
-//				"this : %p, "
-//				"[OK] "
-//				")",
-//				this
-//				);
 		Reset();
 	}
 	mClientMutex.unlock();
 
-	LogAync(LOG_INFO, "RtpSession::Stop( "
-			"this : %p, "
+	LogAync(LOG_INFO, "RtpSession::Stop, "
+			"this:%p, "
 			"[OK] "
-			")", this);
+			, this);
 }
 
 void RtpSession::SetSimLostParam(bool bSimLost, unsigned int audioLostSeed,
@@ -370,11 +374,11 @@ bool RtpSession::StartSend(char *localKey, int size) {
 	bool bFlag = true;
 
 	Arithmetic art;
-	LogAync(LOG_DEBUG, "RtpSession::StartSend( "
-			"this : %p, "
-			"size : %d, "
-			"localKey : %s "
-			")", this, size, art.AsciiToHexWithSep(localKey, size).c_str());
+	LogAync(LOG_DEBUG, "RtpSession::StartSend, "
+			"this:%p, "
+			"size:%d, "
+			"localKey:%s "
+			, this, size, art.AsciiToHexWithSep(localKey, size).c_str());
 
 	// Initialize libsrtp
 	memset(mpSendPolicy, 0x0, sizeof(srtp_policy_t));
@@ -401,16 +405,16 @@ bool RtpSession::StartSend(char *localKey, int size) {
 	bFlag = (status == srtp_err_status_ok);
 
 	if (bFlag) {
-		LogAync(LOG_DEBUG, "RtpSession::StartSend( "
-				"this : %p, "
+		LogAync(LOG_DEBUG, "RtpSession::StartSend, "
+				"this:%p, "
 				"[OK] "
-				")", this);
+				, this);
 	} else {
-		LogAync(LOG_ALERT, "RtpSession::StartSend( "
-				"this : %p, "
+		LogAync(LOG_ALERT, "RtpSession::StartSend, "
+				"this:%p, "
 				"[Fail], "
-				"status : %d "
-				")", this, status);
+				"status:%d "
+				, this, status);
 	}
 
 	return bFlag;
@@ -422,21 +426,21 @@ void RtpSession::StopSend() {
 		mpSendSrtpCtx = NULL;
 	}
 
-	LogAync(LOG_DEBUG, "RtpSession::StopSend( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::StopSend, "
+			"this:%p, "
 			"[OK] "
-			")", this);
+			, this);
 }
 
 bool RtpSession::StartRecv(char *remoteKey, int size) {
 	bool bFlag = true;
 
 	Arithmetic art;
-	LogAync(LOG_DEBUG, "RtpSession::StartRecv( "
-			"this : %p, "
-			"size : %d, "
-			"remoteKey : %s "
-			")", this, size, art.AsciiToHexWithSep(remoteKey, size).c_str());
+	LogAync(LOG_DEBUG, "RtpSession::StartRecv, "
+			"this:%p, "
+			"size:%d, "
+			"remoteKey:%s "
+			, this, size, art.AsciiToHexWithSep(remoteKey, size).c_str());
 
 	// Initialize libsrtp
 	memset(mpRecvPolicy, 0x0, sizeof(srtp_policy_t));
@@ -463,16 +467,16 @@ bool RtpSession::StartRecv(char *remoteKey, int size) {
 	bFlag = (status == srtp_err_status_ok);
 
 	if (bFlag) {
-		LogAync(LOG_DEBUG, "RtpSession::StartRecv( "
-				"this : %p, "
+		LogAync(LOG_DEBUG, "RtpSession::StartRecv, "
+				"this:%p, "
 				"[OK] "
-				")", this);
+				, this);
 	} else {
-		LogAync(LOG_ALERT, "RtpSession::StartRecv( "
-				"this : %p, "
+		LogAync(LOG_ALERT, "RtpSession::StartRecv, "
+				"this:%p, "
 				"[Fail], "
-				"status : %d "
-				")", this, status);
+				"status:%d "
+				, this, status);
 	}
 
 	return bFlag;
@@ -484,10 +488,10 @@ void RtpSession::StopRecv() {
 		mpRecvSrtpCtx = NULL;
 	}
 
-	LogAync(LOG_DEBUG, "RtpSession::StopRecv( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::StopRecv, "
+			"this:%p, "
 			"[OK] "
-			")", this);
+			, this);
 }
 
 bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
@@ -507,17 +511,17 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 			uint32_t ssrc = ntohl(h->ssrc);
 			uint16_t seq = ntohs(h->seq);
 			uint32_t ts = ntohl(h->ts);
-//			LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
-//					"this : %p, "
+//			LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket, "
+//					"this:%p, "
 //					"[%s], "
-//					"media_ssrc : 0x%08x(%u), "
-//					"x : %u, "
-//					"seq : %u, "
-//					"ts : %u, "
-//					"recvTime : %lld, "
-//					"size : %d"
+//					"media_ssrc:0x%08x(%u), "
+//					"x:%u, "
+//					"seq:%u, "
+//					"ts:%u, "
+//					"recvTime:%lld, "
+//					"size:%d"
 //					"%s"
-//					")", this,
+//					, this,
 //					PktTypeDesc(ssrc).c_str(),
 //					ssrc,
 //					ssrc,
@@ -526,7 +530,7 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 //					ts,
 //					recvTime,
 //					size,
-//					h->m? ", [Mark] " : " ");
+//					h->m? ", [Mark] ":" ");
 
 			// 模拟丢包
 			bFlag = SimPktLost(ssrc, seq);
@@ -544,46 +548,94 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 					if (IsVideoPkt(ssrc)) {
 						// 采集频率
 						rtpPkt.set_payload_type_frequency(kVideoPayloadTypeFrequency);
-
 					}
 					bool bFlag = rtpPkt.Parse((const uint8_t *) pkt, pktSize);
 					if (bFlag) {
-						if (IsVideoPkt(ssrc)) {
-							// 标记首个视频帧
-							mIsVideoReceived = true;
-						}
-//						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
-//								"this : %p, "
-//								"[%s], "
-//								"media_ssrc : 0x%08x(%u), "
-//								"x : %u, "
-//								"seq : %u, "
-//								"ts : %u, "
-//								"recvTime : %lld, "
-//								"pktSize : %d"
-//								"%s"
-//								")", this, PktTypeDesc(rtpPkt.ssrc_).c_str(), rtpPkt.ssrc_,
-//								rtpPkt.ssrc_, rtpPkt.has_extension_,
-//								rtpPkt.sequence_number_, rtpPkt.timestamp_,
-//								recvTime, pktSize,
-//								rtpPkt.marker_ ? ", [Mark] " : " ");
 						RTPHeader header;
 						rtpPkt.GetHeader(&header);
-						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
-								"this : %p, "
+						if (IsVideoPkt(ssrc)) {
+							// 标记首个视频帧
+							if (!mIsVideoReceived && header.markerBit) {
+								mIsVideoReceived = true;
+								LogAync(LOG_NOTICE, "RtpSession::RecvRtpPacket, "
+										"this:%p, "
+										"[First %s], "
+										"media_ssrc:0x%08x(%u), "
+										"x:%u, "
+										"padding:%u, "
+										"seq:%u, "
+										"ts:%u, "
+										"abs:%lld, "
+										"recvTime:%lld, "
+										"frequency:%d, "
+										"payloadSize:%d, "
+										"paddingSize:%d"
+										"%s"
+										,
+										this,
+										PktTypeDesc(header.ssrc).c_str(),
+										header.ssrc, header.ssrc,
+										rtpPkt.IsExtensionPacket(),
+										rtpPkt.IsPadding(),
+										header.sequenceNumber,
+										header.timestamp,
+										header.extension.GetAbsoluteSendTimestamp().ms(),
+										recvTime,
+										rtpPkt.payload_type_frequency(),
+										rtpPkt.payload_size(),
+										rtpPkt.padding_size(),
+										header.markerBit ? ", [Mark] ":" ");
+							}
+						} else if (IsAudioPkt(ssrc)) {
+							// 标记首个音频帧
+							if (!mIsAudioReceived) {
+								LogAync(LOG_NOTICE, "RtpSession::RecvRtpPacket, "
+										"this:%p, "
+										"[First %s], "
+										"media_ssrc:0x%08x(%u), "
+										"x:%u, "
+										"padding:%u, "
+										"seq:%u, "
+										"ts:%u, "
+										"abs:%lld, "
+										"recvTime:%lld, "
+										"frequency:%d, "
+										"payloadSize:%d, "
+										"paddingSize:%d"
+										"%s"
+										,
+										this,
+										PktTypeDesc(header.ssrc).c_str(),
+										header.ssrc, header.ssrc,
+										rtpPkt.IsExtensionPacket(),
+										rtpPkt.IsPadding(),
+										header.sequenceNumber,
+										header.timestamp,
+										header.extension.GetAbsoluteSendTimestamp().ms(),
+										recvTime,
+										rtpPkt.payload_type_frequency(),
+										rtpPkt.payload_size(),
+										rtpPkt.padding_size(),
+										header.markerBit ? ", [Mark] ":" ");
+								mIsAudioReceived = true;
+							}
+						}
+
+						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket, "
+								"this:%p, "
 								"[%s], "
-								"media_ssrc : 0x%08x(%u), "
-								"x : %u, "
-								"padding : %u, "
-								"seq : %u, "
-								"ts : %u, "
-								"abs : %lld, "
-								"recvTime : %lld, "
-								"frequency : %d, "
-								"payloadSize : %d, "
-								"paddingSize : %d"
+								"media_ssrc:0x%08x(%u), "
+								"x:%u, "
+								"padding:%u, "
+								"seq:%u, "
+								"ts:%u, "
+								"abs:%lld, "
+								"recvTime:%lld, "
+								"frequency:%d, "
+								"payloadSize:%d, "
+								"paddingSize:%d"
 								"%s"
-								")", this, PktTypeDesc(header.ssrc).c_str(),
+								, this, PktTypeDesc(header.ssrc).c_str(),
 								header.ssrc, header.ssrc,
 								rtpPkt.IsExtensionPacket(),
 								rtpPkt.IsPadding(),
@@ -594,48 +646,48 @@ bool RtpSession::RecvRtpPacket(const char* frame, unsigned int size, void *pkt,
 								rtpPkt.payload_type_frequency(),
 								rtpPkt.payload_size(),
 								rtpPkt.padding_size(),
-								header.markerBit ? ", [Mark] " : " ");
+								header.markerBit ? ", [Mark] ":" ");
 						if (bFlag) {
 							// 更新媒体流信息
 							UpdateStreamInfo(&rtpPkt, recvTime, header);
 						}
 					} else {
-						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
-								"this : %p, "
+						LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket, "
+								"this:%p, "
 								"[%s], [Parse Rtp Packet Error], "
-								"media_ssrc : 0x%08x(%u), "
-								"x : %u, "
-								"seq : %u, "
-								"ts : %u, "
-								"recvTime : %lld, "
-								"size : %d"
+								"media_ssrc:0x%08x(%u), "
+								"x:%u, "
+								"seq:%u, "
+								"ts:%u, "
+								"recvTime:%lld, "
+								"size:%d"
 								"%s"
-								")", this, PktTypeDesc(ssrc).c_str(), ssrc,
+								, this, PktTypeDesc(ssrc).c_str(), ssrc,
 								ssrc, h->x, seq, ts, recvTime, size,
-								h->m ? ", [Mark] " : " ");
+								h->m ? ", [Mark] ":" ");
 					}
 					rtpPkt.Clear();
 				} else {
-					LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket( "
-							"this : %p, "
+					LogAync(LOG_DEBUG, "RtpSession::RecvRtpPacket, "
+							"this:%p, "
 							"[%s], [Parse Rtp Packet Error %d], "
-							"media_ssrc : 0x%08x(%u), "
-							"x : %u, "
-							"seq : %u, "
-							"ts : %u, "
-							"recvTime : %lld, "
-							"size : %d"
+							"media_ssrc:0x%08x(%u), "
+							"x:%u, "
+							"seq:%u, "
+							"ts:%u, "
+							"recvTime:%lld, "
+							"size:%d"
 							"%s"
-							")", this, PktTypeDesc(ssrc).c_str(), status, ssrc,
+							, this, PktTypeDesc(ssrc).c_str(), status, ssrc,
 							ssrc, h->x, seq, ts, recvTime, size,
-							h->m ? ", [Mark] " : " ");
+							h->m ? ", [Mark] ":" ");
 				}
 			}
 		} else {
-			LogAync(LOG_INFO, "RtpSession::RecvRtpPacket( "
-					"this : %p, "
+			LogAync(LOG_INFO, "RtpSession::RecvRtpPacket, "
+					"this:%p, "
 					"[Ignore frame before Handshake] "
-					")", this);
+					, this);
 		}
 	}
 	mClientMutex.unlock();
@@ -651,16 +703,16 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 	unsigned int ssrc = GetRtpSSRC(pkt, pktSize);
 	LogAync(
 			LOG_DEBUG,
-			"RtpSession::SendRtpPacket( "
-			"this : %p, "
+			"RtpSession::SendRtpPacket, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"x : %u, "
-			"seq : %u, "
-			"ts : %u, "
-			"pktSize : %d"
+			"media_ssrc:0x%08x(%u), "
+			"x:%u, "
+			"seq:%u, "
+			"ts:%u, "
+			"pktSize:%d"
 			"%s"
-			")",
+			,
 			this,
 			PktTypeDesc(ssrc).c_str(),
 			ssrc,
@@ -669,7 +721,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 			ntohs(h->seq),
 			ntohl(h->ts),
 			pktSize,
-			h->m ? ", [Mark] " : " "
+			h->m ? ", [Mark] ":" "
 			);
 
 	srtp_err_status_t status = srtp_err_status_fail;
@@ -698,18 +750,18 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
     if ( !bFlag ) {
 		LogAync(
 				LOG_INFO,
-				"RtpSession::SendRtpPacket( "
-				"this : %p, "
+				"RtpSession::SendRtpPacket, "
+				"this:%p, "
 				"[%s], "
-				"media_ssrc : 0x%08x(%u), "
-				"seq : %u, "
-				"ts : %u, "
-				"pktSize : %d, "
+				"media_ssrc:0x%08x(%u), "
+				"seq:%u, "
+				"ts:%u, "
+				"pktSize:%d, "
 				"%s"
-				"sendSize : %d, "
-				"status : %d, "
+				"sendSize:%d, "
+				"status:%d, "
 				"[Fail] "
-				")",
+				,
 				this,
 				PktTypeDesc(ssrc).c_str(),
 				ssrc,
@@ -717,7 +769,7 @@ bool RtpSession::SendRtpPacket(void *pkt, unsigned int& pktSize) {
 				ntohs(h->seq),
 				ntohl(h->ts),
 				pktSize,
-				h->m ? "[Mark], " : "",
+				h->m ? "[Mark], ":"",
 				sendSize,
 				status
 				);
@@ -735,7 +787,7 @@ bool RtpSession::EnqueueRtpPacket(void *pkt, unsigned int& pktSize) {
 		int64_t now_ms = Clock::GetRealTimeClock()->TimeInMilliseconds();
 
 		static constexpr int kExtraCapacity = 16;
-		auto rtpSendPkt = mediaserver::make_unique<RtpPacketToSend>(&mVideoExtensionMap, RTP_MAX_PAYLOAD_LEN + kExtraCapacity);
+		auto rtpSendPkt = qpidnetwork::make_unique<RtpPacketToSend>(&mVideoExtensionMap, RTP_MAX_PAYLOAD_LEN + kExtraCapacity);
 		// Copy Header
 		rtpSendPkt->CopyHeaderFrom(rtpRecvPkt);
 		// Reserve Extension
@@ -753,19 +805,19 @@ bool RtpSession::EnqueueRtpPacket(void *pkt, unsigned int& pktSize) {
 		bool hasAbsoluteSendTime = rtpSendPkt->GetExtension<AbsoluteSendTime>(&absoluteSendTime);
 		Timestamp absoluteSendTs = Timestamp::us((absoluteSendTime * 1000000ll) / (1 << RTPHeaderExtension::kAbsSendTimeFraction));
 
-		LogAync(LOG_DEBUG, "RtpSession::EnqueueRtpPacket( "
-				"this : %p, "
+		LogAync(LOG_DEBUG, "RtpSession::EnqueueRtpPacket, "
+				"this:%p, "
 				"[%s], "
-				"media_ssrc : 0x%08x(%u), "
-				"x : %u, "
-				"padding : %u, "
-				"seq : %u, "
-				"ts : %u, "
-				"abs : %lld, "
-				"payloadSize : %d, "
-				"paddingSize : %d"
+				"media_ssrc:0x%08x(%u), "
+				"x:%u, "
+				"padding:%u, "
+				"seq:%u, "
+				"ts:%u, "
+				"abs:%lld, "
+				"payloadSize:%d, "
+				"paddingSize:%d"
 				"%s"
-				")", this, PktTypeDesc(rtpSendPkt->Ssrc()).c_str(),
+				, this, PktTypeDesc(rtpSendPkt->Ssrc()).c_str(),
 				rtpSendPkt->Ssrc(), rtpSendPkt->Ssrc(),
 				rtpSendPkt->IsExtensionPacket(),
 				rtpSendPkt->IsPadding(),
@@ -774,7 +826,7 @@ bool RtpSession::EnqueueRtpPacket(void *pkt, unsigned int& pktSize) {
 				absoluteSendTs.ms(),
 				rtpSendPkt->payload_size(),
 				rtpSendPkt->padding_size(),
-				rtpSendPkt->Marker() ? ", [Mark] " : " ");
+				rtpSendPkt->Marker() ? ", [Mark] ":" ");
 
 		unsigned int bufferSize = rtpSendPkt->size();
 		SendRtpPacket((void *)rtpSendPkt->data(), bufferSize);
@@ -802,17 +854,6 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 			memcpy((void *) pkt, (void *) frame, size);
 			pktSize = size;
 
-//			RtcpPayloadType type = (RtcpPayloadType)((RtcpHeader *)pkt)->pt;
-//			LogAync(
-//					LOG_DEBUG,
-//					"RtpSession::RecvRtcpPacket( "
-//					"this : %p, "
-//					"type : %u "
-//					")",
-//					this,
-//					type
-//					);
-
 			if (mpRecvSrtpCtx) {
 				srtp_err_status_t status = srtp_unprotect_rtcp(mpRecvSrtpCtx,
 						pkt, (int *) &pktSize);
@@ -825,10 +866,10 @@ bool RtpSession::RecvRtcpPacket(const char* frame, unsigned int size, void *pkt,
 			}
 
 		} else {
-			LogAync(LOG_NOTICE, "RtpSession::RecvRtcpPacket( "
-					"this : %p, "
+			LogAync(LOG_NOTICE, "RtpSession::RecvRtcpPacket, "
+					"this:%p, "
 					"[Ignore frame before Handshake] "
-					")", this);
+					, this);
 		}
 	}
 	mClientMutex.unlock();
@@ -882,11 +923,11 @@ bool RtpSession::SendRtcpPli(unsigned int media_ssrc) {
 	pli.media_ssrc_ = media_ssrc;
 	bFlag = pli.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpPli( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpPli, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u) "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc
+			"media_ssrc:0x%08x(%u) "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc
 			);
 
 	if (bFlag) {
@@ -910,12 +951,12 @@ bool RtpSession::SendRtcpFir(unsigned int media_ssrc) {
 	fir.AddRequestTo(media_ssrc, ++mFirSeq);
 	bFlag = fir.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpFir( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpFir, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"bufferSize : %u "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
+			"media_ssrc:0x%08x(%u), "
+			"bufferSize:%u "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
 			bufferSize);
 
 	if (bFlag) {
@@ -941,14 +982,14 @@ bool RtpSession::SendRtcpNack(unsigned int media_ssrc, unsigned int start,
 	nack.SetPacketIdsWithStart(start, size);
 	bFlag = nack.Create(buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc_ : 0x%08x(%u), "
-			"bufferSize : %u, "
-			"start : %u, "
-			"size : %u "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
+			"media_ssrc_:0x%08x(%u), "
+			"bufferSize:%u, "
+			"start:%u, "
+			"size:%u "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
 			bufferSize, start, size);
 
 	if (bFlag) {
@@ -984,13 +1025,13 @@ bool RtpSession::SendRtcpNack(unsigned int media_ssrc,
 		nacks = nacks.substr(0, nacks.length() - 1);
 	}
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpNack, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc_ : 0x%08x(%u), "
-			"nack_batch_size : %u, "
-			"nack_batch : %s "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
+			"media_ssrc_:0x%08x(%u), "
+			"nack_batch_size:%u, "
+			"nack_batch:%s "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
 			nack_batch.size(), nacks.c_str());
 
 	if (bFlag) {
@@ -1016,13 +1057,13 @@ bool RtpSession::SendRtcpRemb(unsigned int media_ssrc,
 	remb.bitrate_bps_ = bitrate;
 	bFlag = remb.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRemb( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRemb, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"bufferSize : %u, "
-			"bitrate : %llu "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
+			"media_ssrc:0x%08x(%u), "
+			"bufferSize:%u, "
+			"bitrate:%llu "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
 			bufferSize, bitrate);
 
 	if (bFlag) {
@@ -1058,17 +1099,17 @@ bool RtpSession::SendRtcpXr() {
 	rrtr.SetNtp(ntp);
 	xr.SetRrtr(rrtr);
 
-//  for (const rtcp::ReceiveTimeInfo& rti : ctx.feedback_state_.last_xr_rtis) {
+//  for (const rtcp::ReceiveTimeInfo& rti:ctx.feedback_state_.last_xr_rtis) {
 //	xr->AddDlrrItem(rti);
 //  }
 
 	bFlag = xr.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpXr( "
-			"this : %p, "
-			"bufferSize : %u, "
-			"ntp : %u "
-			")", this, bufferSize, CompactNtp(rrtr.ntp()));
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpXr, "
+			"this:%p, "
+			"bufferSize:%u, "
+			"ntp:%u "
+			, this, bufferSize, CompactNtp(rrtr.ntp()));
 
 	if (bFlag) {
 		unsigned int pktSize = (unsigned int) bufferSize;
@@ -1092,10 +1133,10 @@ bool RtpSession::SendRtcpRr(const std::vector<rtcp::ReportBlock> &result) {
 
 	bFlag = rr.Create((uint8_t *) buffer, &bufferSize, MTU);
 
-	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRr( "
-			"this : %p, "
-			"bufferSize : %u "
-			")", this, bufferSize);
+	LogAync(LOG_DEBUG, "RtpSession::SendRtcpRr, "
+			"this:%p, "
+			"bufferSize:%u "
+			, this, bufferSize);
 
 	if (bFlag) {
 		unsigned int pktSize = (unsigned int) bufferSize;
@@ -1145,29 +1186,33 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 	if ( now_ms - last_rr_send_time_ > kRRSendIntervalMs ) {
 		int step = 0;
 		std::vector<rtcp::ReportBlock> result = rs_module_.RtcpReportBlocks(RTCP_MAX_REPORT_BLOCKS);
-		for (auto& report_block : result) {
+		for (auto& report_block:result) {
 			uint32_t ssrc = report_block.source_ssrc();
 			StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
 			if ( ss ) {
 				if ( now_ms - last_stats_time_ > kStatsIntervalMs ) {
 					double fractionLostInPercent = report_block.fraction_lost() * 100.0 / 255.0;
-					LogAync(LOG_INFO, "RtpSession::UpdateStatsPacket( "
-							"this : %p, "
+					LogAync(LOG_INFO, "RtpSession::UpdateStatsPacket, "
+							"this:%p, "
 							"[%s], "
-							"media_ssrc : 0x%08x(%u), "
-							"bitrate_est : %" PRId64 ", "
-							"bitrate_recv : %u, "
-							"extended_highest_sequence_number : %u, "
-							"rtt : %" PRId64 ", "
-							"packets_lost : %d, "
-							"jitter : %u, "
-							"fraction_since_last : %u%%(%hhu), "
-							"identification : %s "
-							")",
+							"media_ssrc:0x%08x(%u), "
+//							"bitrate_est:%" PRId64 ", "
+//							"bitrate_recv:%u, "
+							"bitrate_est:%s, "
+							"bitrate_recv:%s, "
+							"extended_highest_sequence_number:%u, "
+							"rtt:%" PRId64 ", "
+							"packets_lost:%d, "
+							"jitter:%u, "
+							"fraction_since_last:%u%%(%hhu), "
+							"identification:%s "
+							,
 							this,
 							PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
-							IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
-							ss->BitrateReceived(),
+//							IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
+//							ss->BitrateReceived(),
+							ReadableBps(IsVideoPkt(ssrc)?last_send_bitrate_bps_:0).c_str(),
+							ReadableBps(ss->BitrateReceived()).c_str(),
 							report_block.extended_high_seq_num(),
 							xr_rr_rtt_ms_,
 							report_block.cumulative_lost_signed(),
@@ -1202,12 +1247,12 @@ bool RtpSession::UpdateAudioLossPacket(const RtpPacketReceived *rtpPkt,
 	nack_audio_module_.UpdateLastReceivedPacket(seq, ts);
 	std::vector<uint16_t> nack_batch = nack_audio_module_.GetNackList(xr_rr_rtt_ms_);
 
-	LogAync(LOG_DEBUG, "RtpSession::UpdateAudioLossPacket( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::UpdateAudioLossPacket, "
+			"this:%p, "
 			"[%s], "
-			"ssrc : 0x%08x(%u), "
-			"nack_batch_size : %u "
-			")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size()
+			"ssrc:0x%08x(%u), "
+			"nack_batch_size:%u "
+			, this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size()
 			);
 
 	 if (!nack_batch.empty()) {
@@ -1229,7 +1274,7 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 
 	// 视频帧间隔秒数
 	double deltaSeconds = (ts - mVideoPLITimestamp) / 90000.0;
-	deltaSeconds = (deltaSeconds > 0) ? deltaSeconds : -deltaSeconds;
+	deltaSeconds = (deltaSeconds > 0) ? deltaSeconds:-deltaSeconds;
 
 	/**
 	 * 每gMaxPliSeconds秒, 发送PLI
@@ -1249,14 +1294,14 @@ bool RtpSession::UpdateVideoLossPacket(const RtpPacketReceived *rtpPkt,
 	std::vector<uint16_t> nack_list;
 	nack_module_.GetNackList(nack_list);
 
-	LogAync(LOG_DEBUG, "RtpSession::UpdateVideoLossPacket( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::UpdateVideoLossPacket, "
+			"this:%p, "
 			"[%s], "
-			"ssrc : 0x%08x(%u), "
-			"nack_batch_size : %u, "
-			"nack_list_size : %u, "
-			"need_request_keyframe : %s "
-			")", this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size(),
+			"ssrc:0x%08x(%u), "
+			"nack_batch_size:%u, "
+			"nack_list_size:%u, "
+			"need_request_keyframe:%s "
+			, this, PktTypeDesc(ssrc).c_str(), ssrc, ssrc, nack_batch.size(),
 			nack_list.size(),
 			BOOL_2_STRING(need_request_keyframe)
 			);
@@ -1292,33 +1337,10 @@ void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt,
 	const uint8_t* packet_begin = (const uint8_t*) pkt;
 	const uint8_t* packet_end = (const uint8_t*) (pkt + pktSize);
 
-//	Arithmetic ari;
-//	string hex = ari.AsciiToHexWithSep((const char *)packet_begin, pktSize);
-//	LogAync(
-//			LOG_DEBUG,
-//			"RtpSession::UpdateStreamInfoWithRtcp( "
-//			"this : %p, "
-//			"pktSize : %u, "
-//			"hex : %s "
-//			")",
-//			this,
-//			pktSize,
-//			hex.c_str()
-//			);
-
 	for (const uint8_t* next_block = packet_begin; next_block != packet_end;
 			next_block = rtcp_block.NextPacket()) {
 		int remaining_blocks_size = packet_end - next_block;
 		RTC_CHECK_GT(remaining_blocks_size, 0);
-//		LogAync(
-//				LOG_DEBUG,
-//				"RtpSession::UpdateStreamInfoWithRtcp( "
-//				"this : %p, "
-//				"remaining_blocks_size : %u "
-//				")",
-//				this,
-//				remaining_blocks_size
-//				);
 		if (!rtcp_block.Parse(next_block, remaining_blocks_size)) {
 			if (next_block == packet_begin) {
 				// Failed to parse 1st header, nothing was extracted from this packet.
@@ -1329,11 +1351,11 @@ void RtpSession::UpdateStreamInfoWithRtcp(const void *pkt,
 			break;
 		}
 
-		LogAync(LOG_DEBUG, "RtpSession::UpdateStreamInfoWithRtcp( "
-				"this : %p, "
-				"type : %u, "
-				"payload_size_bytes : %u "
-				")", this, rtcp_block.type(), rtcp_block.payload_size_bytes());
+		LogAync(LOG_DEBUG, "RtpSession::UpdateStreamInfoWithRtcp, "
+				"this:%p, "
+				"type:%u, "
+				"payload_size_bytes:%u "
+				, this, rtcp_block.type(), rtcp_block.payload_size_bytes());
 
 		switch (rtcp_block.type()) {
 		case SenderReport::kPacketType:
@@ -1374,21 +1396,21 @@ void RtpSession::HandleRtcpSr(const CommonHeader& rtcp_block) {
 	remote_sender_rtp_time_ = sr.rtp_timestamp();
 	Clock *clock = Clock::GetRealTimeClock();
 	last_received_sr_ntp_ = TimeMicrosToNtp(clock->TimeInMicroseconds());
-	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpSr( "
-			"this : %p, "
-			"sender_ssrc : 0x%08x(%u), "
-			"ts : %u, "
-			"remote_sender_ntp_time_ : %llu, "
-			"last_received_sr_ntp_ : %llu, "
-			"sender_packet_count : %u, "
-			"sender_octet_count : %u, "
-			"report_blocks.count : %u "
-			")", this, sender_ssrc, sender_ssrc, remote_sender_rtp_time_,
+	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpSr, "
+			"this:%p, "
+			"sender_ssrc:0x%08x(%u), "
+			"ts:%u, "
+			"remote_sender_ntp_time_:%llu, "
+			"last_received_sr_ntp_:%llu, "
+			"sender_packet_count:%u, "
+			"sender_octet_count:%u, "
+			"report_blocks.count:%u "
+			, this, sender_ssrc, sender_ssrc, remote_sender_rtp_time_,
 			remote_sender_ntp_time_.ToMs(), last_received_sr_ntp_.ToMs(),
 			sr.sender_packet_count(), sr.sender_octet_count(),
 			sr.report_blocks().size());
 
-	for (const ReportBlock& report_block : sr.report_blocks()) {
+	for (const ReportBlock& report_block:sr.report_blocks()) {
 		HandleRtcpRb(report_block);
 	}
 }
@@ -1400,16 +1422,16 @@ void RtpSession::HandleRtcpRr(const CommonHeader& rtcp_block) {
 	}
 
 	const uint32_t sender_ssrc = rr.sender_ssrc_;
-	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpRr( "
-			"this : %p, "
-			"sender_ssrc : 0x%08x(%u), "
-			"report_blocks.count : %u "
-			")", this, sender_ssrc, sender_ssrc, rr.report_blocks().size());
+	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpRr, "
+			"this:%p, "
+			"sender_ssrc:0x%08x(%u), "
+			"report_blocks.count:%u "
+			, this, sender_ssrc, sender_ssrc, rr.report_blocks().size());
 //  UpdateTmmbrRemoteIsAlive(remote_ssrc);
 //
 //  packet_information->packet_type_flags |= kRtcpRr;
 //
-	for (const ReportBlock& report_block : rr.report_blocks()) {
+	for (const ReportBlock& report_block:rr.report_blocks()) {
 		HandleRtcpRb(report_block);
 	}
 }
@@ -1439,17 +1461,17 @@ void RtpSession::HandleRtcpRb(const ReportBlock& report_block) {
 //		rtt_ms = CompactNtpRttToMs(rtt_ntp);
 	}
 
-	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpRb( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpRb, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"fraction_lost : %u, "
-			"cumulative_lost_signed : %d, "
-			"extended_highest_sequence_number : %u, "
-			"jitter : %u, "
-			"delay_since_last_sr : %u, "
-			"last_sr : %u "
-			")", this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
+			"media_ssrc:0x%08x(%u), "
+			"fraction_lost:%u, "
+			"cumulative_lost_signed:%d, "
+			"extended_highest_sequence_number:%u, "
+			"jitter:%u, "
+			"delay_since_last_sr:%u, "
+			"last_sr:%u "
+			, this, PktTypeDesc(media_ssrc).c_str(), media_ssrc, media_ssrc,
 			fraction_lost, cumulative_lost_signed,
 			extended_highest_sequence_number, jitter, delay_since_last_sr,
 			last_sr);
@@ -1462,7 +1484,7 @@ void RtpSession::HandleRtcpSdes(const CommonHeader& rtcp_block) {
 		return;
 	}
 
-//	for (const Sdes::Chunk& chunk : sdes.chunks()) {
+//	for (const Sdes::Chunk& chunk:sdes.chunks()) {
 //	}
 }
 
@@ -1474,14 +1496,14 @@ void RtpSession::HandleRtcpXr(const CommonHeader& rtcp_block) {
 	}
 
 	const uint32_t sender_ssrc = xr.sender_ssrc_;
-	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXr( "
-			"this : %p, "
-			"sender_ssrc : 0x%08x(%u) "
-			")", this, sender_ssrc, sender_ssrc);
+	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXr, "
+			"this:%p, "
+			"sender_ssrc:0x%08x(%u) "
+			, this, sender_ssrc, sender_ssrc);
 //  if (xr.rrtr())
 //    HandleRtcpXrReceiveReferenceTime(xr.sender_ssrc(), *xr.rrtr());
 //
-	for (const rtcp::ReceiveTimeInfo& time_info : xr.dlrr().sub_blocks()) {
+	for (const rtcp::ReceiveTimeInfo& time_info:xr.dlrr().sub_blocks()) {
 		HandleRtcpXrDlrr(time_info);
 	}
 }
@@ -1509,15 +1531,15 @@ void RtpSession::HandleRtcpXrDlrr(const ReceiveTimeInfo& rti) {
 	rbe_module_.OnRttUpdate(xr_rr_rtt_ms_, xr_rr_rtt_ms_);
 	video_packet_history_.SetRtt(xr_rr_rtt_ms_);
 
-	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXrDlrr( "
-			"this : %p, "
-			"source_ssrc : 0x%08x(%u), "
-			"now : %u, "
-			"lrr : %u, "
-			"dlrr : %u, "
-			"rtt_ntp : %u, "
-			"xr_rr_rtt_ms_ : %llu "
-			")", this, rti.ssrc, rti.ssrc, now_ntp, send_time_ntp, delay_ntp,
+	LogAync(LOG_DEBUG, "RtpSession::HandleRtcpXrDlrr, "
+			"this:%p, "
+			"source_ssrc:0x%08x(%u), "
+			"now:%u, "
+			"lrr:%u, "
+			"dlrr:%u, "
+			"rtt_ntp:%u, "
+			"xr_rr_rtt_ms_:%llu "
+			, this, rti.ssrc, rti.ssrc, now_ntp, send_time_ntp, delay_ntp,
 			rtt_ntp, xr_rr_rtt_ms_);
 }
 
@@ -1537,18 +1559,18 @@ void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
 		nacks = nacks.substr(0, nacks.length() - 1);
 	}
 
-	LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
-			"this : %p, "
+	LogAync(LOG_DEBUG, "RtpSession::HandleNack, "
+			"this:%p, "
 			"[%s], "
-			"media_ssrc : 0x%08x(%u), "
-			"nack_batch_size : %u, "
-			"nack_batch : %s "
-			")", this, PktTypeDesc(nack.media_ssrc_).c_str(), nack.media_ssrc_, nack.media_ssrc_,
+			"media_ssrc:0x%08x(%u), "
+			"nack_batch_size:%u, "
+			"nack_batch:%s "
+			, this, PktTypeDesc(nack.media_ssrc_).c_str(), nack.media_ssrc_, nack.media_ssrc_,
 			nack.packet_ids().size(), nacks.c_str());
 
 	int64_t now_ms = Clock::GetRealTimeClock()->TimeInMilliseconds();
 	if (IsVideoPkt(nack.media_ssrc_)) {
-		for (uint16_t packet_id : nack.packet_ids()) {
+		for (uint16_t packet_id:nack.packet_ids()) {
 			std::unique_ptr<RtpPacketToSend> packet = video_packet_history_.GetPacketAndMarkAsPending(packet_id);
 
 			if (packet) {
@@ -1560,12 +1582,12 @@ void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
 					packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::MsTo24Bits(now_ms));
 				}
 //				LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
-//						"this : %p, "
+//						"this:%p, "
 //						"[%s], "
-//						"media_ssrc : 0x%08x(%u), "
-//						"seq : %u, "
+//						"media_ssrc:0x%08x(%u), "
+//						"seq:%u, "
 //						"[ReSend] "
-//						")", this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
+//						, this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
 //						packet_id);
 
 				unsigned int bufferSize = packet->size();
@@ -1573,7 +1595,7 @@ void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
 			}
 		}
 	} else if (IsAudioPkt(nack.media_ssrc_)) {
-		for (uint16_t packet_id : nack.packet_ids()) {
+		for (uint16_t packet_id:nack.packet_ids()) {
 			std::unique_ptr<RtpPacketToSend> packet = audio_packet_history_.GetPacketAndMarkAsPending(packet_id);
 
 			if (packet) {
@@ -1581,12 +1603,12 @@ void RtpSession::HandleNack(const CommonHeader& rtcp_block) {
 				audio_packet_history_.MarkPacketAsSent(packet->SequenceNumber());
 
 //				LogAync(LOG_DEBUG, "RtpSession::HandleNack( "
-//						"this : %p, "
+//						"this:%p, "
 //						"[%s], "
-//						"media_ssrc : 0x%08x(%u), "
-//						"seq : %u, "
+//						"media_ssrc:0x%08x(%u), "
+//						"seq:%u, "
 //						"[ReSend] "
-//						")", this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
+//						, this, PktTypeDesc(packet->Ssrc()).c_str(), packet->Ssrc(), packet->Ssrc(),
 //						packet_id);
 
 				unsigned int bufferSize = packet->size();
@@ -1622,12 +1644,12 @@ bool RtpSession::SimPktLost(unsigned int media_ssrc, unsigned int seq) {
 				if (++mAudioAbandonCount <= mAudioAbandonTotal) {
 					bFlag = false;
 				} else {
-					LogAync(LOG_NOTICE, "RtpSession::SimPktLost( "
-							"this : %p, "
+					LogAync(LOG_NOTICE, "RtpSession::SimPktLost, "
+							"this:%p, "
 							"[%s], [End], "
-							"media_ssrc : 0x%08x(%u), "
-							"total : %u "
-							")", this, PktTypeDesc(media_ssrc).c_str(),
+							"media_ssrc:0x%08x(%u), "
+							"total:%u "
+							, this, PktTypeDesc(media_ssrc).c_str(),
 							media_ssrc, media_ssrc, mAudioAbandonTotal);
 
 					mbAudioAbandonning = false;
@@ -1643,13 +1665,13 @@ bool RtpSession::SimPktLost(unsigned int media_ssrc, unsigned int seq) {
 					mAudioAbandonCount = 0;
 					bFlag = false;
 
-					LogAync(LOG_NOTICE, "RtpSession::SimPktLost( "
-							"this : %p, "
+					LogAync(LOG_NOTICE, "RtpSession::SimPktLost, "
+							"this:%p, "
 							"[%s], [Start], "
-							"media_ssrc : 0x%08x(%u), "
-							"seq : %u, "
-							"total : %u "
-							")", this, PktTypeDesc(media_ssrc).c_str(),
+							"media_ssrc:0x%08x(%u), "
+							"seq:%u, "
+							"total:%u "
+							, this, PktTypeDesc(media_ssrc).c_str(),
 							media_ssrc, media_ssrc, seq, mAudioAbandonTotal);
 				}
 			}
@@ -1658,12 +1680,12 @@ bool RtpSession::SimPktLost(unsigned int media_ssrc, unsigned int seq) {
 				if (++mVideoAbandonCount <= mVideoAbandonTotal) {
 					bFlag = false;
 				} else {
-					LogAync(LOG_NOTICE, "RtpSession::SimPktLost( "
-							"this : %p, "
+					LogAync(LOG_NOTICE, "RtpSession::SimPktLost, "
+							"this:%p, "
 							"[%s], [End], "
-							"media_ssrc : 0x%08x(%u), "
-							"total : %u "
-							")", this, PktTypeDesc(media_ssrc).c_str(),
+							"media_ssrc:0x%08x(%u), "
+							"total:%u "
+							, this, PktTypeDesc(media_ssrc).c_str(),
 							media_ssrc, media_ssrc, mVideoAbandonTotal);
 
 					mbVideoAbandonning = false;
@@ -1679,13 +1701,13 @@ bool RtpSession::SimPktLost(unsigned int media_ssrc, unsigned int seq) {
 					mVideoAbandonCount = 0;
 					bFlag = false;
 
-					LogAync(LOG_NOTICE, "RtpSession::SimPktLost( "
-							"this : %p, "
+					LogAync(LOG_NOTICE, "RtpSession::SimPktLost, "
+							"this:%p, "
 							"[%s], [Start], "
-							"media_ssrc : 0x%08x(%u), "
-							"seq : %u, "
-							"total : %u "
-							")", this, PktTypeDesc(media_ssrc).c_str(),
+							"media_ssrc:0x%08x(%u), "
+							"seq:%u, "
+							"total:%u "
+							, this, PktTypeDesc(media_ssrc).c_str(),
 							media_ssrc, media_ssrc, seq, mVideoAbandonTotal);
 				}
 			}
@@ -1733,19 +1755,19 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 		    StreamStatistician* ss = rs_module_.GetStatistician(*itr);
 			if ( ss ) {
 				RtpReceiveStats rrs = ss->GetStats();
-				LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged( "
-						"this : %p, "
+				LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged, "
+						"this:%p, "
 						"[%s], "
-						"media_ssrc : 0x%08x(%u), "
-						"bitrate_est : %u, "
-						"bitrate_recv : %u, "
-						"packets_lost : %d, "
-						"jitter : %u, "
-						"fraction : %d%% "
-//						"jitter_since_last : %u, "
-//						"packets_lost_since_last : %d, "
-//						"fraction_since_last : %hhu "
-						")",
+						"media_ssrc:0x%08x(%u), "
+						"bitrate_est:%u, "
+						"bitrate_recv:%u, "
+						"packets_lost:%d, "
+						"jitter:%u, "
+						"fraction:%d%% "
+//						"jitter_since_last:%u, "
+//						"packets_lost_since_last:%d, "
+//						"fraction_since_last:%hhu "
+						,
 						this,
 						PktTypeDesc(*itr).c_str(), *itr, *itr,
 						bitrate,
@@ -1796,4 +1818,4 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 		}
 	}
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

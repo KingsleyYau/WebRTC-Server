@@ -9,7 +9,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/packet/rtp_packet.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace {
 constexpr size_t kMidRsidMaxSize = 16;
@@ -44,4 +44,4 @@ void RtpPacketCounter::AddPacket(const RtpPacket& packet) {
 	payload_bytes += packet.payload_size();
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

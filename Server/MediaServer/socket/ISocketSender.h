@@ -9,12 +9,12 @@
 #ifndef SOCKET_ISOCKETSENDER_H_
 #define SOCKET_ISOCKETSENDER_H_
 
-namespace mediaserver {
+namespace qpidnetwork {
     class SocketSender {
     public:
         virtual ~SocketSender(){};
         virtual int SendData(const void *data, unsigned int len) = 0;
     };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* SOCKET_ISOCKETSENDER_H_ */

@@ -30,7 +30,7 @@
 #define RTCP_CNAME_SIZE 256  // RFC 3550 page 44, including null termination
 #define IP_PACKET_SIZE 1500  // we assume ethernet
 
-namespace mediaserver {
+namespace qpidnetwork {
 class RtpPacket;
 namespace rtcp {
 class TransportFeedback;
@@ -414,5 +414,5 @@ public:
 	virtual void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms,
 			uint32_t ssrc) = 0;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_RTP_RTCP_DEFINES_H_

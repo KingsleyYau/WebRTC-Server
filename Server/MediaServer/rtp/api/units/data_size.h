@@ -20,7 +20,7 @@
 
 #include <rtp/base/units/unit_base.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // DataSize is a class represeting a count of bytes.
 class DataSize final : public rtc_units_impl::RelativeUnit<DataSize> {
 public:
@@ -67,6 +67,6 @@ inline std::ostream& operator<<(  // no-presubmit-check TODO(webrtc:8982)
 #endif  // UNIT_TEST
 
 }
-  // namespace mediaserver
+  // namespace qpidnetwork
 
 #endif  // RTP_API_UNITS_DATA_SIZE_H_

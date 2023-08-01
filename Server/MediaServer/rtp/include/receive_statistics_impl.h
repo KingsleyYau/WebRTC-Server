@@ -22,7 +22,7 @@
 #include <rtp/base/rate_statistics.h>
 #include <rtp/base/thread_annotations.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class StreamStatisticianImpl: public StreamStatistician {
 public:
@@ -62,7 +62,7 @@ private:
 
 	const uint32_t ssrc_;
 	Clock* const clock_;
-	mediaserver::CriticalSection stream_lock_;
+	qpidnetwork::CriticalSection stream_lock_;
 	RateStatistics incoming_bitrate_ RTC_GUARDED_BY(&stream_lock_);
 	// In number of packets or sequence numbers.
 	int max_reordering_threshold_ RTC_GUARDED_BY(&stream_lock_);
@@ -121,10 +121,10 @@ private:
 	StreamStatisticianImpl* GetOrCreateStatistician(uint32_t ssrc);
 
 	Clock* const clock_;
-	mediaserver::CriticalSection receive_statistics_lock_;
+	qpidnetwork::CriticalSection receive_statistics_lock_;
 	uint32_t last_returned_ssrc_;
 	int max_reordering_threshold_ RTC_GUARDED_BY(receive_statistics_lock_);
 	std::map<uint32_t, StreamStatisticianImpl*> statisticians_ RTC_GUARDED_BY(receive_statistics_lock_);
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_RECEIVE_STATISTICS_IMPL_H_

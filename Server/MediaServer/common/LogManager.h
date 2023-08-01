@@ -23,12 +23,22 @@ using namespace std;
 #include <sys/stat.h>
 #include <sys/syscall.h>
 
+#define FLAG_2_LOG_IA(bFlag) bFlag?LOG_INFO:LOG_ALERT
+#define FLAG_2_LOG_IW(bFlag) bFlag?LOG_INFO:LOG_WARN
+#define FLAG_2_LOG_ID(bFlag) bFlag?LOG_INFO:LOG_DEBUG
+#define FLAG_2_LOG_NA(bFlag) bFlag?LOG_NOTICE:LOG_ALERT
+#define FLAG_2_LOG_NE(bFlag) bFlag?LOG_NOTICE:LOG_ERR
+#define FLAG_2_LOG_NW(bFlag) bFlag?LOG_NOTICE:LOG_WARN
+#define FLAG_2_LOG_ND(bFlag) bFlag?LOG_NOTICE:LOG_DEBUG
+
 #define DiffGetTickCount(start, end)    ((start) <= (end) ? (end) - (start) : ((unsigned int)(-1)) - (start) + (end))
 
 #define LogAyncUnSafe(level, fmt, ...) \
 		LogManager::GetLogManager()->LogUnSafe(__FILE__, __LINE__, level, fmt, ## __VA_ARGS__)
 #define LogAync(level, fmt, ...) \
 		LogManager::GetLogManager()->Log(__FILE__, __LINE__, level, fmt, ## __VA_ARGS__)
+#define LogAyncFunc(level, fmt, ...) \
+		LogManager::GetLogManager()->Log(__FILE__, __LINE__, __FUNCTION__, level, fmt, ## __VA_ARGS__)
 
 class LogRunnable;
 class LogManager {
@@ -44,6 +54,7 @@ public:
 	bool Stop();
 	bool IsRunning();
 	bool Log(const char *file, int line, LOG_LEVEL nLevel, const char *format, ...);
+	bool Log(const char *file, int line, const char *func, LOG_LEVEL nLevel, const char *format, ...);
 	bool LogUnSafe(const char *file, int line, LOG_LEVEL nLevel, const char *format, ...);
 	int MkDir(const char* pDir);
 	void SetLogLevel(LOG_LEVEL nLevel = LOG_DEBUG);

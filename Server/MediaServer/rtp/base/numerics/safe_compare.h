@@ -39,7 +39,7 @@
 
 #include <rtp/base/type_traits.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace safe_cmp_impl {
 
@@ -171,6 +171,6 @@ RTC_SAFECMP_MAKE_FUN(Gt)
 RTC_SAFECMP_MAKE_FUN(Ge)
 #undef RTC_SAFECMP_MAKE_FUN
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTC_BASE_NUMERICS_SAFE_COMPARE_H_

@@ -9,16 +9,14 @@
 #define SOCKET_H_
 
 #include <errno.h>
-
 #include <sys/socket.h>
-
 #include <string>
 using namespace std;
 
 #include <common/LogManager.h>
 
 struct ev_io;
-namespace mediaserver {
+namespace qpidnetwork {
 typedef enum SocketStatus {
 	SocketStatusSuccess,
 	SocketStatusFail,
@@ -35,7 +33,7 @@ public:
 	}
 
 	static void Destroy(Socket* socket) {
-		if( socket ) {
+		if (socket) {
 			delete socket;
 		}
 	}
@@ -62,38 +60,36 @@ public:
 	SocketStatus Read(const char *data, int &len) {
 		SocketStatus status = SocketStatusFail;
 		int ret = recv(fd, (void *)data, len, 0);
-		if( ret > 0 ) {
+		if (ret > 0) {
 			status = SocketStatusSuccess;
 
-		} else if( ret == 0 ) {
+		} else if (ret == 0) {
 //			LogAync(
 //					LOG_DEBUG,
-//					"Socket::Read( "
+//					"Socket::Read("
 //					"[Normal Closed], "
-//					"fd : '%d' "
+//					"fd:%d "
 //					")",
 //					fd
 //					);
 			status = SocketStatusFail;
-
 		} else {
-			if(errno == EAGAIN || errno == EWOULDBLOCK) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 //				LogAync(
 //						LOG_DEBUG,
-//						"Socket::Read( "
+//						"Socket::Read("
 //						"[errno == EAGAIN || errno == EWOULDBLOCK continue], "
-//						"fd : '%d' "
+//						"fd:%d "
 //						")",
 //						fd
 //						);
 				status = SocketStatusTimeout;
-
 			} else {
 //				LogAync(
 //						LOG_DEBUG,
-//						"Socket::Read( "
+//						"Socket::Read("
 //						"[Error Closed], "
-//						"fd : '%d' "
+//						"fd:%d "
 //						")",
 //						fd
 //						);
@@ -109,49 +105,55 @@ public:
 		bool bFlag = false;
 		int index = 0;
 
-		if( len <= 0 ) {
+		if (len <= 0) {
 			return false;
 		}
 
 		do {
 			int ret = send(fd, data + index, len - index, 0);
-			if( ret > 0 ) {
+			if (ret > 0) {
 				index += ret;
-				if( index == len ) {
+				if (index == len) {
 //					LogAync(
 //							LOG_DEBUG,
-//							"Socket::Send( "
+//							"Socket::Send("
 //							"[Send Finish], "
-//							"fd : '%d' "
+//							"fd:%d, "
+//							"ret:%d, "
+//							"index:%d, "
+//							"len:%d "
 //							")",
-//							fd
+//							fd,
+//							ret,
+//							index,
+//							len
 //							);
 					bFlag = true;
+					break;
 				}
 			} else {
-				if(errno == EAGAIN || errno == EWOULDBLOCK) {
-//					LogAync(
-//							LOG_DEBUG,
-//							"Socket::Send( "
-//							"[errno == EAGAIN || errno == EWOULDBLOCK continue], "
-//							"fd : % '%d' "
-//							")",
-//							fd
-//							);
-					continue;
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					LogAync(
+							LOG_DEBUG,
+							"Socket::Send, "
+							"[errno == EAGAIN || errno == EWOULDBLOCK continue], "
+							"fd:%d "
+							")",
+							fd
+							);
+					usleep(100 * 1000);
 				} else {
 //					LogAync(
 //							LOG_DEBUG,
-//							"Socket::Send( "
+//							"Socket::Send("
 //							"[Error Closed], "
-//							"fd : '%d' "
+//							"fd:%d "
 //							")",
 //							fd
 //							);
 					break;
 				}
 			}
-
 		} while(true);
 
 		len = index;
@@ -162,8 +164,8 @@ public:
 	void Disconnect() {
 //		LogAync(
 //				LOG_DEBUG,
-//				"Socket::Disconnect( "
-//				"fd : '%d' "
+//				"Socket::Disconnect("
+//				"fd:%d "
 //				")",
 //				fd
 //				);
@@ -173,8 +175,8 @@ public:
 	void Close() {
 //		LogAync(
 //				LOG_DEBUG,
-//				"Socket::Close( "
-//				"fd : '%d' "
+//				"Socket::Close("
+//				"fd:%d "
 //				")",
 //				fd
 //				);

@@ -14,7 +14,7 @@
 #include <rtp/base/atomic_ops.h>
 #include <rtp/base/ref_count.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace mediaserver_impl {
 
 class RefCounter {
@@ -25,7 +25,7 @@ public:
 	RefCounter() = delete;
 
 	void IncRef() {
-		mediaserver::AtomicOps::Increment(&ref_count_);
+		qpidnetwork::AtomicOps::Increment(&ref_count_);
 	}
 
 	// Returns kDroppedLastRef if this call dropped the last reference; the caller
@@ -33,10 +33,10 @@ public:
 	// Otherwise, returns kOtherRefsRemained (note that in case of multithreading,
 	// some other caller may have dropped the last reference by the time this call
 	// returns; all we know is that we didn't do it).
-	mediaserver::RefCountReleaseStatus DecRef() {
-		return (mediaserver::AtomicOps::Decrement(&ref_count_) == 0) ?
-				mediaserver::RefCountReleaseStatus::kDroppedLastRef :
-				mediaserver::RefCountReleaseStatus::kOtherRefsRemained;
+	qpidnetwork::RefCountReleaseStatus DecRef() {
+		return (qpidnetwork::AtomicOps::Decrement(&ref_count_) == 0) ?
+				qpidnetwork::RefCountReleaseStatus::kDroppedLastRef :
+				qpidnetwork::RefCountReleaseStatus::kOtherRefsRemained;
 	}
 
 	// Return whether the reference count is one. If the reference count is used
@@ -46,7 +46,7 @@ public:
 	// needed for the owning thread to act on the resource protected by the
 	// reference counter, knowing that it has exclusive access.
 	bool HasOneRef() const {
-		return mediaserver::AtomicOps::AcquireLoad(&ref_count_) == 1;
+		return qpidnetwork::AtomicOps::AcquireLoad(&ref_count_) == 1;
 	}
 
 private:
@@ -54,6 +54,6 @@ private:
 };
 
 }  // namespace mediaserver_impl
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_REF_COUNTER_H_

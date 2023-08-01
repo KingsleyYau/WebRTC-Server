@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // A ReportBlock represents the Sender Report packet from
 // RFC 3550 section 6.4.1.
@@ -84,5 +84,5 @@ private:
 	uint32_t delay_since_last_sr_;    // 32 bits, units of 1/65536 seconds
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_REPORT_BLOCK_H_

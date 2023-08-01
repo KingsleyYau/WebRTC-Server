@@ -16,7 +16,7 @@
 
 #include <vector>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 struct ReceiveTimeInfo {
 	// RFC 3611 4.5
@@ -74,5 +74,5 @@ private:
 	std::vector<ReceiveTimeInfo> sub_blocks_;
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_DLRR_H_

@@ -27,7 +27,7 @@
 #include <rtp/RtpRawClient.h>
 #include <webrtc/IceClient.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 typedef list<string> RtcpFbList;
 typedef struct SdpPayload {
 	unsigned int payload_type;
@@ -157,6 +157,6 @@ private:
 	KMutex mRtpTransformPidMutex;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* WebRTCClient_WebRTCClient_H_ */

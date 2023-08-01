@@ -14,7 +14,7 @@
 #include <memory>
 #include <vector>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 enum class BandwidthUsage {
 	kBwNormal = 0, kBwUnderusing = 1, kBwOverusing = 2, kLast
@@ -48,6 +48,6 @@ public:
 	virtual ~NetworkStatePredictorFactoryInterface() = default;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_NETWORK_STATE_PREDICTOR_H_

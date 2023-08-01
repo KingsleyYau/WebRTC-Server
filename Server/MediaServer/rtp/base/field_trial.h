@@ -54,7 +54,7 @@
 //
 // TODO(andresp): find out how to get bots to run tests with trials enabled.
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace field_trial {
 
 // Returns the group name chosen for the named trial, or the empty string
@@ -85,6 +85,6 @@ void InitFieldTrialsFromString(const char* trials_string);
 const char* GetFieldTrialString();
 
 }  // namespace field_trial
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_FIELD_TRIAL_H_

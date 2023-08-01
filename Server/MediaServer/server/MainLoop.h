@@ -14,7 +14,7 @@
 #include <common/KSafeMap.h>
 #include <common/KThread.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class MainLoopCallback {
 public:
@@ -64,7 +64,7 @@ public:
 	void Stop(int signal = SIGTERM);
 	void Exit(int signal = SIGTERM);
 
-	void Call(int pid);
+	void WaitPid(int pid);
 	void StartWatchChild(int pid, MainLoopCallback *cb);
 	void StopWatchChild(int pid);
 
@@ -82,6 +82,6 @@ private:
 	MainLoopRunnable *mpMainLoopRunnable;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* SERVER_MAINLOOP_H_ */

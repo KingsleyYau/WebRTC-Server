@@ -1,4 +1,4 @@
-# Copyright (C) 2015 The CamShareServer
+# Copyright (C) 2015 The QpidNetwork
 # respond module Makefile
 #
 # Created on: 2015/10/10

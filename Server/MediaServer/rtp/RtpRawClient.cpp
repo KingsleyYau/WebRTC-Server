@@ -11,7 +11,7 @@
 // Common
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RtpRawClient::RtpRawClient() {
 	// TODO Auto-generated constructor stub
@@ -40,13 +40,12 @@ bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, const string& rec
 		if( bFlag ) {
 			LogAync(
 					LOG_DEBUG,
-					"RtpRawClient::Init( "
-					"this : %p, "
+					"RtpRawClient::Init, "
+					"this:%p, "
 					"[OK], "
-					"sendIp : %s, "
-					"rtpSendPort : %d, "
-					"rtpRecvPort : %d "
-					")",
+					"sendIp:%s, "
+					"rtpSendPort:%d, "
+					"rtpRecvPort:%d",
 					this,
 					sendIp.c_str(),
 					rtpSendPort,
@@ -55,14 +54,13 @@ bool RtpRawClient::Init(const string& sendIp, int rtpSendPort, const string& rec
 		} else {
 			LogAync(
 					LOG_WARN,
-					"RtpRawClient::Init( "
-					"this : %p, "
+					"RtpRawClient::Init, "
+					"this:%p, "
 					"[Fail], "
-					"sendIp : %s, "
-					"rtpSendPort : %d, "
-					"recvIp : %s, "
-					"rtpRecvPort : %d "
-					")",
+					"sendIp:%s, "
+					"rtpSendPort:%d, "
+					"recvIp:%s, "
+					"rtpRecvPort:%d",
 					this,
 					sendIp.c_str(),
 					rtpSendPort,
@@ -100,9 +98,8 @@ void RtpRawClient::Stop() {
 void RtpRawClient::Shutdown() {
 	LogAync(
 			LOG_INFO,
-			"RtpRawClient::Shutdown( "
-			"this : %p "
-			")",
+			"RtpRawClient::Shutdown, "
+			"this:%p",
 			this
 			);
 	mRtpReceiver.Shutdown();
@@ -120,11 +117,10 @@ bool RtpRawClient::RecvRtpPacket(void *pkt, unsigned int& pktSize) {
 	} else {
 		LogAync(
 				LOG_INFO,
-				"RtpRawClient::RecvRtpPacket( "
-				"this : %p, "
+				"RtpRawClient::RecvRtpPacket, "
+				"this:%p, "
 				"[Fail], "
-				"size : %d "
-				")",
+				"size:%d",
 				this,
 				size
 				);
@@ -132,4 +128,4 @@ bool RtpRawClient::RecvRtpPacket(void *pkt, unsigned int& pktSize) {
 	return bFlag;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

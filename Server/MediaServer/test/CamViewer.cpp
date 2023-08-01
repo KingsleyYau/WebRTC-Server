@@ -18,7 +18,7 @@
 static int gLoginCount = 0;
 static KMutex gLoginMutex;
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 void WSEventCallback(struct mg_connection *nc, int ev, void *ev_data) {
     struct websocket_message *wsm = (struct websocket_message *)ev_data;
@@ -678,4 +678,4 @@ void CamViewer::StateThread() {
 			);
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

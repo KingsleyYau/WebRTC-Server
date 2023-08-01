@@ -11,7 +11,7 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 SdpCallRespond::SdpCallRespond() {
 	// TODO Auto-generated constructor stub
@@ -26,4 +26,4 @@ void SdpCallRespond::SetSdp(const string& sdp) {
 	resRoot["sdp"] = sdp;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

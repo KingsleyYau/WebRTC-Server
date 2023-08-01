@@ -14,7 +14,7 @@
 #include <vector>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class Nack: public Rtpfb {
 public:
@@ -52,6 +52,6 @@ private:
 	std::vector<uint16_t> packet_ids_;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_NACK_H_ */

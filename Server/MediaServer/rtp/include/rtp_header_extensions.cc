@@ -22,7 +22,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/byte_io.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // Absolute send time in RTP streams.
 //
 // The absolute send time is signaled to the receiver in-band using the
@@ -42,7 +42,7 @@ constexpr RTPExtensionType AbsoluteSendTime::kId;
 constexpr uint8_t AbsoluteSendTime::kValueSizeBytes;
 constexpr const char AbsoluteSendTime::kUri[];
 
-bool AbsoluteSendTime::Parse(mediaserver::ArrayView<const uint8_t> data,
+bool AbsoluteSendTime::Parse(qpidnetwork::ArrayView<const uint8_t> data,
 		uint32_t* time_24bits) {
 	if (data.size() != 3)
 		return false;
@@ -50,7 +50,7 @@ bool AbsoluteSendTime::Parse(mediaserver::ArrayView<const uint8_t> data,
 	return true;
 }
 
-bool AbsoluteSendTime::Write(mediaserver::ArrayView<uint8_t> data,
+bool AbsoluteSendTime::Write(qpidnetwork::ArrayView<uint8_t> data,
 		uint32_t time_24bits) {
 	RTC_DCHECK_EQ(data.size(), 3);RTC_DCHECK_LE(time_24bits, 0x00FFFFFF);
 	ByteWriter<uint32_t, 3>::WriteBigEndian(data.data(), time_24bits);
@@ -68,7 +68,7 @@ constexpr RTPExtensionType TransportSequenceNumber::kId;
 constexpr uint8_t TransportSequenceNumber::kValueSizeBytes;
 constexpr const char TransportSequenceNumber::kUri[];
 
-bool TransportSequenceNumber::Parse(mediaserver::ArrayView<const uint8_t> data,
+bool TransportSequenceNumber::Parse(qpidnetwork::ArrayView<const uint8_t> data,
 		uint16_t* transport_sequence_number) {
 	if (data.size() != kValueSizeBytes)
 		return false;
@@ -77,7 +77,7 @@ bool TransportSequenceNumber::Parse(mediaserver::ArrayView<const uint8_t> data,
 	return true;
 }
 
-bool TransportSequenceNumber::Write(mediaserver::ArrayView<uint8_t> data,
+bool TransportSequenceNumber::Write(qpidnetwork::ArrayView<uint8_t> data,
 		uint16_t transport_sequence_number) {
 	RTC_DCHECK_EQ(data.size(), ValueSize(transport_sequence_number));
 	ByteWriter<uint16_t>::WriteBigEndian(data.data(),
@@ -109,7 +109,7 @@ constexpr const char TransportSequenceNumberV2::kUri[];
 constexpr uint16_t TransportSequenceNumberV2::kIncludeTimestampsBit;
 
 bool TransportSequenceNumberV2::Parse(
-		mediaserver::ArrayView<const uint8_t> data,
+		qpidnetwork::ArrayView<const uint8_t> data,
 		uint16_t* transport_sequence_number,
 		absl::optional<FeedbackRequest>* feedback_request) {
 	if (data.size() != kValueSizeBytes
@@ -135,7 +135,7 @@ bool TransportSequenceNumberV2::Parse(
 	return true;
 }
 
-bool TransportSequenceNumberV2::Write(mediaserver::ArrayView<uint8_t> data,
+bool TransportSequenceNumberV2::Write(qpidnetwork::ArrayView<uint8_t> data,
 		uint16_t transport_sequence_number,
 		const absl::optional<FeedbackRequest>& feedback_request) {
 	RTC_DCHECK_EQ(data.size(),
@@ -181,7 +181,7 @@ constexpr RTPExtensionType VideoTimingExtension::kId;
 constexpr uint8_t VideoTimingExtension::kValueSizeBytes;
 constexpr const char VideoTimingExtension::kUri[];
 
-bool VideoTimingExtension::Parse(mediaserver::ArrayView<const uint8_t> data,
+bool VideoTimingExtension::Parse(qpidnetwork::ArrayView<const uint8_t> data,
 		VideoSendTiming* timing) {
 	RTC_DCHECK(timing);
 	// TODO(sprang): Deprecate support for old wire format.
@@ -214,7 +214,7 @@ bool VideoTimingExtension::Parse(mediaserver::ArrayView<const uint8_t> data,
 	return true;
 }
 
-bool VideoTimingExtension::Write(mediaserver::ArrayView<uint8_t> data,
+bool VideoTimingExtension::Write(qpidnetwork::ArrayView<uint8_t> data,
 		const VideoSendTiming& timing) {
 	RTC_DCHECK_EQ(data.size(), 1 + 2 * 6);
 	ByteWriter<uint8_t>::WriteBigEndian(
@@ -240,10 +240,10 @@ bool VideoTimingExtension::Write(mediaserver::ArrayView<uint8_t> data,
 	return true;
 }
 
-bool VideoTimingExtension::Write(mediaserver::ArrayView<uint8_t> data,
+bool VideoTimingExtension::Write(qpidnetwork::ArrayView<uint8_t> data,
 		uint16_t time_delta_ms, uint8_t offset) {
 	RTC_DCHECK_GE(data.size(), offset + 2);RTC_DCHECK_LE(offset, kValueSizeBytes - sizeof(uint16_t));
 	ByteWriter<uint16_t>::WriteBigEndian(data.data() + offset, time_delta_ms);
 	return true;
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

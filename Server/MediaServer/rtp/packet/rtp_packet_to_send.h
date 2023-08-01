@@ -22,7 +22,7 @@
 #include <rtp/include/rtp_header_extensions.h>
 #include <rtp/packet/rtp_packet.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // Class to hold rtp packet with metadata for sender side.
 class RtpPacketToSend: public RtpPacket {
 public:
@@ -79,11 +79,11 @@ public:
 
 	// Additional data bound to the RTP packet for use in application code,
 	// outside of WebRTC.
-	mediaserver::ArrayView<const uint8_t> application_data() const {
+	qpidnetwork::ArrayView<const uint8_t> application_data() const {
 		return application_data_;
 	}
 
-	void set_application_data(mediaserver::ArrayView<const uint8_t> data) {
+	void set_application_data(qpidnetwork::ArrayView<const uint8_t> data) {
 		application_data_.assign(data.begin(), data.end());
 	}
 
@@ -119,5 +119,5 @@ private:
 	std::vector<uint8_t> application_data_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_TO_SEND_H_

@@ -18,7 +18,7 @@
 // Default implementation of histogram methods for WebRTC clients that do not
 // want to provide their own implementation.
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace metrics {
 class Histogram;
 
@@ -39,7 +39,7 @@ public:
 		sample = std::min(sample, max_);
 		sample = std::max(sample, min_ - 1);  // Underflow bucket.
 
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		if (info_.samples.size() == kMaxSampleMapSize
 				&& info_.samples.find(sample) == info_.samples.end()) {
 			return;
@@ -49,7 +49,7 @@ public:
 
 	// Returns a copy (or nullptr if there are no samples) and clears samples.
 	std::unique_ptr<SampleInfo> GetAndReset() {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		if (info_.samples.empty())
 			return nullptr;
 
@@ -67,19 +67,19 @@ public:
 
 	// Functions only for testing.
 	void Reset() {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		info_.samples.clear();
 	}
 
 	int NumEvents(int sample) const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto it = info_.samples.find(sample);
 		return (it == info_.samples.end()) ? 0 : it->second;
 	}
 
 	int NumSamples() const {
 		int num_samples = 0;
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		for (const auto& sample : info_.samples) {
 			num_samples += sample.second;
 		}
@@ -87,17 +87,17 @@ public:
 	}
 
 	int MinSample() const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		return (info_.samples.empty()) ? -1 : info_.samples.begin()->first;
 	}
 
 	std::map<int, int> Samples() const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		return info_.samples;
 	}
 
 private:
-	mediaserver::CriticalSection crit_;
+	qpidnetwork::CriticalSection crit_;
 	const int min_;
 	const int max_;
 	SampleInfo info_ RTC_GUARDED_BY(crit_);
@@ -115,7 +115,7 @@ public:
 
 	Histogram* GetCountsHistogram(const std::string& name, int min, int max,
 			int bucket_count) {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		if (it != map_.end())
 			return reinterpret_cast<Histogram*>(it->second.get());
@@ -126,7 +126,7 @@ public:
 	}
 
 	Histogram* GetEnumerationHistogram(const std::string& name, int boundary) {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		if (it != map_.end())
 			return reinterpret_cast<Histogram*>(it->second.get());
@@ -138,7 +138,7 @@ public:
 
 	void GetAndReset(
 			std::map<std::string, std::unique_ptr<SampleInfo>>* histograms) {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		for (const auto& kv : map_) {
 			std::unique_ptr<SampleInfo> info = kv.second->GetAndReset();
 			if (info)
@@ -148,37 +148,37 @@ public:
 
 	// Functions only for testing.
 	void Reset() {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		for (const auto& kv : map_)
 			kv.second->Reset();
 	}
 
 	int NumEvents(const std::string& name, int sample) const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		return (it == map_.end()) ? 0 : it->second->NumEvents(sample);
 	}
 
 	int NumSamples(const std::string& name) const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		return (it == map_.end()) ? 0 : it->second->NumSamples();
 	}
 
 	int MinSample(const std::string& name) const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		return (it == map_.end()) ? -1 : it->second->MinSample();
 	}
 
 	std::map<int, int> Samples(const std::string& name) const {
-		mediaserver::CritScope cs(&crit_);
+		qpidnetwork::CritScope cs(&crit_);
 		const auto& it = map_.find(name);
 		return (it == map_.end()) ? std::map<int, int>() : it->second->Samples();
 	}
 
 private:
-	mediaserver::CriticalSection crit_;
+	qpidnetwork::CriticalSection crit_;
 	std::map<std::string, std::unique_ptr<RtcHistogram>> map_
 	RTC_GUARDED_BY(crit_);
 
@@ -193,10 +193,10 @@ private:
 static RtcHistogramMap* volatile g_rtc_histogram_map = nullptr;
 
 void CreateMap() {
-	RtcHistogramMap* map = mediaserver::AtomicOps::AcquireLoadPtr(&g_rtc_histogram_map);
+	RtcHistogramMap* map = qpidnetwork::AtomicOps::AcquireLoadPtr(&g_rtc_histogram_map);
 	if (map == nullptr) {
 		RtcHistogramMap* new_map = new RtcHistogramMap();
-		RtcHistogramMap* old_map = mediaserver::AtomicOps::CompareAndSwapPtr(
+		RtcHistogramMap* old_map = qpidnetwork::AtomicOps::CompareAndSwapPtr(
 				&g_rtc_histogram_map, static_cast<RtcHistogramMap*>(nullptr),
 				new_map);
 		if (old_map != nullptr)
@@ -213,7 +213,7 @@ static volatile int g_rtc_histogram_called = 0;
 // Gets the map (or nullptr).
 RtcHistogramMap* GetMap() {
 #if RTC_DCHECK_IS_ON
-  mediaserver::AtomicOps::ReleaseStore(&g_rtc_histogram_called, 1);
+  qpidnetwork::AtomicOps::ReleaseStore(&g_rtc_histogram_called, 1);
 #endif
 	return g_rtc_histogram_map;
 }
@@ -286,7 +286,7 @@ SampleInfo::~SampleInfo() {
 void Enable() {
 	RTC_DCHECK(g_rtc_histogram_map == nullptr);
 #if RTC_DCHECK_IS_ON
-  RTC_DCHECK_EQ(0, mediaserver::AtomicOps::AcquireLoad(&g_rtc_histogram_called));
+  RTC_DCHECK_EQ(0, qpidnetwork::AtomicOps::AcquireLoad(&g_rtc_histogram_called));
 #endif
 	CreateMap();
 }

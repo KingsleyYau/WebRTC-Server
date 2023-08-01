@@ -19,7 +19,7 @@
 #include <absl/types/optional.h>
 #include <rtp/base/system/rtc_export.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RTC_EXPORT RateStatistics {
 public:
@@ -87,6 +87,6 @@ private:
 	const int64_t max_window_size_ms_;
 	int64_t current_window_size_ms_;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_RATE_STATISTICS_H_

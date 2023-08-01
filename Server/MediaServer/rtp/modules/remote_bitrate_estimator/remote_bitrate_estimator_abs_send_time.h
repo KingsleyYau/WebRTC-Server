@@ -32,7 +32,7 @@
 #include <rtp/base/rate_statistics.h>
 #include <rtp/base/clock.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 struct Probe {
 	Probe(int64_t send_time_ms, int64_t recv_time_ms, size_t payload_size) :
@@ -134,6 +134,6 @@ private:
 	RTC_DISALLOW_IMPLICIT_CONSTRUCTORS (RemoteBitrateEstimatorAbsSendTime);
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_remote_bitrate_estimator_REMOTE_BITRATE_ESTIMATOR_ABS_SEND_TIME_H_

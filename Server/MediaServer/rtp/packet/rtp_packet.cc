@@ -18,7 +18,7 @@
 #include <rtp/base/numerics/safe_conversions.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 constexpr size_t kFixedHeaderSize = 12;
 constexpr uint8_t kRtpVersion = 2;
@@ -85,11 +85,11 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t buffer_size) {
 	return true;
 }
 
-bool RtpPacket::Parse(mediaserver::ArrayView<const uint8_t> packet) {
+bool RtpPacket::Parse(qpidnetwork::ArrayView<const uint8_t> packet) {
 	return Parse(packet.data(), packet.size());
 }
 
-bool RtpPacket::Parse(mediaserver::CopyOnWriteBuffer buffer) {
+bool RtpPacket::Parse(qpidnetwork::CopyOnWriteBuffer buffer) {
 	if (!ParseBuffer(buffer.cdata(), buffer.size())) {
 		Clear();
 		return false;
@@ -203,12 +203,12 @@ void RtpPacket::ZeroMutableExtensions() {
 	}
 }
 
-void RtpPacket::SetCsrcs(mediaserver::ArrayView<const uint32_t> csrcs) {
+void RtpPacket::SetCsrcs(qpidnetwork::ArrayView<const uint32_t> csrcs) {
 	RTC_DCHECK_EQ(extensions_size_, 0);RTC_DCHECK_EQ(payload_size_, 0);RTC_DCHECK_EQ(padding_size_, 0);RTC_DCHECK_LE(csrcs.size(), 0x0fu);RTC_DCHECK_LE(kFixedHeaderSize + 4 * csrcs.size(), capacity());
 	payload_offset_ = kFixedHeaderSize + 4 * csrcs.size();
 	WriteAt(0,
 			(data()[0] & 0xF0)
-					| mediaserver::dchecked_cast<uint8_t>(csrcs.size()));
+					| qpidnetwork::dchecked_cast<uint8_t>(csrcs.size()));
 	size_t offset = kFixedHeaderSize;
 	for (uint32_t csrc : csrcs) {
 		ByteWriter<uint32_t>::WriteBigEndian(WriteAt(offset), csrc);
@@ -217,14 +217,14 @@ void RtpPacket::SetCsrcs(mediaserver::ArrayView<const uint32_t> csrcs) {
 	buffer_.SetSize(payload_offset_);
 }
 
-mediaserver::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id,
+qpidnetwork::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id,
 		size_t length) {
 	RTC_DCHECK_GE(id, RtpExtension::kMinId);RTC_DCHECK_LE(id, RtpExtension::kMaxId);RTC_DCHECK_GE(length, 1);RTC_DCHECK_LE(length, RtpExtension::kMaxValueSize);
 	const ExtensionInfo* extension_entry = FindExtensionInfo(id);
 	if (extension_entry != nullptr) {
 		// Extension already reserved. Check if same length is used.
 		if (extension_entry->length == length)
-			return mediaserver::MakeArrayView(WriteAt(extension_entry->offset),
+			return qpidnetwork::MakeArrayView(WriteAt(extension_entry->offset),
 					length);
 
 //		RTC_LOG(LS_ERROR) << "Length mismatch for extension id " << id
@@ -306,20 +306,20 @@ mediaserver::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id,
 	}
 
 	if (profile_id == kOneByteExtensionProfileId) {
-		uint8_t one_byte_header = mediaserver::dchecked_cast<uint8_t>(id) << 4;
-		one_byte_header |= mediaserver::dchecked_cast<uint8_t>(length - 1);
+		uint8_t one_byte_header = qpidnetwork::dchecked_cast<uint8_t>(id) << 4;
+		one_byte_header |= qpidnetwork::dchecked_cast<uint8_t>(length - 1);
 		WriteAt(extensions_offset + extensions_size_, one_byte_header);
 	} else {
 		// TwoByteHeaderExtension.
-		uint8_t extension_id = mediaserver::dchecked_cast<uint8_t>(id);
+		uint8_t extension_id = qpidnetwork::dchecked_cast<uint8_t>(id);
 		WriteAt(extensions_offset + extensions_size_, extension_id);
-		uint8_t extension_length = mediaserver::dchecked_cast<uint8_t>(length);
+		uint8_t extension_length = qpidnetwork::dchecked_cast<uint8_t>(length);
 		WriteAt(extensions_offset + extensions_size_ + 1, extension_length);
 	}
 
-	const uint16_t extension_info_offset = mediaserver::dchecked_cast<uint16_t>(
+	const uint16_t extension_info_offset = qpidnetwork::dchecked_cast<uint16_t>(
 			extensions_offset + extensions_size_ + extension_header_size);
-	const uint8_t extension_info_length = mediaserver::dchecked_cast<uint8_t>(
+	const uint8_t extension_info_length = qpidnetwork::dchecked_cast<uint8_t>(
 			length);
 	extension_entries_.emplace_back(id, extension_info_length,
 			extension_info_offset);
@@ -331,7 +331,7 @@ mediaserver::ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id,
 	payload_offset_ = extensions_offset + extensions_size_padded;
 	buffer_.SetSize(payload_offset_);
 	has_extension_ = true;
-	return mediaserver::MakeArrayView(WriteAt(extension_info_offset),
+	return qpidnetwork::MakeArrayView(WriteAt(extension_info_offset),
 			extension_info_length);
 }
 
@@ -350,7 +350,7 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
 		size_t read_index = extension_entry->offset;
 		size_t write_index = read_index + write_read_delta;
 		// Update offset.
-		extension_entry->offset = mediaserver::dchecked_cast<uint16_t>(
+		extension_entry->offset = qpidnetwork::dchecked_cast<uint16_t>(
 				write_index);
 		// Copy data. Use memmove since read/write regions may overlap.
 		memmove(WriteAt(write_index), data() + read_index,
@@ -374,7 +374,7 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
 uint16_t RtpPacket::SetExtensionLengthMaybeAddZeroPadding(
 		size_t extensions_offset) {
 	// Update header length field.
-	uint16_t extensions_words = mediaserver::dchecked_cast<uint16_t>(
+	uint16_t extensions_words = qpidnetwork::dchecked_cast<uint16_t>(
 			(extensions_size_ + 3) / 4);  // Wrap up to 32bit.
 	ByteWriter<uint16_t>::WriteBigEndian(WriteAt(extensions_offset - 2),
 			extensions_words);
@@ -411,7 +411,7 @@ bool RtpPacket::SetPadding(size_t padding_bytes) {
 //				<< " bytes left in buffer.";
 		return false;
 	}
-	padding_size_ = mediaserver::dchecked_cast<uint8_t>(padding_bytes);
+	padding_size_ = qpidnetwork::dchecked_cast<uint8_t>(padding_bytes);
 	buffer_.SetSize(payload_offset_ + payload_size_ + padding_size_);
 	if (padding_size_ > 0) {
 		size_t padding_offset = payload_offset_ + payload_size_;
@@ -550,7 +550,7 @@ bool RtpPacket::ParseBuffer(const uint8_t* buffer, size_t size) {
 
 				size_t offset = extension_offset + extensions_size_
 						+ extension_header_length;
-				if (!mediaserver::IsValueInRangeForNumericType<uint16_t>(
+				if (!qpidnetwork::IsValueInRangeForNumericType<uint16_t>(
 						offset)) {
 //					RTC_DLOG(LS_WARNING) << "Oversized rtp header extension.";
 					break;
@@ -589,7 +589,7 @@ RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {
 	return extension_entries_.back();
 }
 
-mediaserver::ArrayView<const uint8_t> RtpPacket::FindExtension(
+qpidnetwork::ArrayView<const uint8_t> RtpPacket::FindExtension(
 		ExtensionType type) const {
 	uint8_t id = extensions_.GetId(type);
 	if (id == ExtensionManager::kInvalidId) {
@@ -600,11 +600,11 @@ mediaserver::ArrayView<const uint8_t> RtpPacket::FindExtension(
 	if (extension_info == nullptr) {
 		return nullptr;
 	}
-	return mediaserver::MakeArrayView(data() + extension_info->offset,
+	return qpidnetwork::MakeArrayView(data() + extension_info->offset,
 			extension_info->length);
 }
 
-mediaserver::ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type,
+qpidnetwork::ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type,
 		size_t length) {
 	// TODO(webrtc:7990): Add support for empty extensions (length==0).
 	if (length == 0 || length > RtpExtension::kMaxValueSize
@@ -702,7 +702,7 @@ bool RtpPacket::RemoveExtension(ExtensionType type) {
 }
 
 std::string RtpPacket::ToString() const {
-	mediaserver::StringBuilder result;
+	qpidnetwork::StringBuilder result;
 	result << "{payload_type=" << payload_type_ << "marker=" << marker_
 			<< ", sequence_number=" << sequence_number_ << ", padding_size="
 			<< padding_size_ << ", timestamp=" << timestamp_ << ", ssrc="

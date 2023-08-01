@@ -35,7 +35,7 @@
 // For further description of usage and behavior, see the examples in the unit
 // tests.
 
-namespace mediaserver {
+namespace qpidnetwork {
 class FieldTrialParameterInterface {
 public:
 	virtual ~FieldTrialParameterInterface();
@@ -315,6 +315,6 @@ extern template class FieldTrialOptional<unsigned> ;
 extern template class FieldTrialOptional<bool> ;
 extern template class FieldTrialOptional<std::string> ;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_EXPERIMENTS_FIELD_TRIAL_PARSER_H_

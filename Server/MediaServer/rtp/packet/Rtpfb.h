@@ -13,7 +13,7 @@
 
 #include "RtcpPacket.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class Rtpfb: public RtcpPacket {
 public:
@@ -30,6 +30,6 @@ protected:
 	void CreateCommonFeedback(uint8_t* payload) const;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_RTPFB_H_ */

@@ -16,7 +16,7 @@
 
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template <unsigned long M>                                    // NOLINT
 inline unsigned long Add(unsigned long a, unsigned long b) {  // NOLINT
@@ -137,6 +137,6 @@ inline T MinDiff(T a, T b) {
   return std::min(ForwardDiff<T, M>(a, b), ReverseDiff<T, M>(a, b));
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_NUMERICS_MOD_OPS_H_

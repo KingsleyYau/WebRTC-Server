@@ -16,7 +16,7 @@
 #include <rtp/api/video/video_timing.h>
 //#include "common_types.h"  // NOLINT(build/include)
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 struct FeedbackRequest {
 	// Determines whether the recv delta as specified in
@@ -181,6 +181,6 @@ enum NetworkState {
 	kNetworkUp, kNetworkDown,
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_RTP_HEADERS_H_

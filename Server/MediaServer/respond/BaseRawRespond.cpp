@@ -7,7 +7,7 @@
  */
 
 #include "BaseRawRespond.h"
-namespace mediaserver {
+namespace qpidnetwork {
 
 BaseRawRespond::BaseRawRespond() {
 	// TODO Auto-generated constructor stub
@@ -18,7 +18,7 @@ BaseRawRespond::~BaseRawRespond() {
 	// TODO Auto-generated destructor stub
 }
 
-string BaseRawRespond::Result() {
+string BaseRawRespond::Result() const {
 	return mRaw;
 }
 
@@ -26,4 +26,4 @@ void BaseRawRespond::SetParam(const string& raw) {
 	mRaw = raw;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

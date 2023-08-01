@@ -17,7 +17,7 @@
 #include <rtp/modules/remote_bitrate_estimator/bwe_defines.h>
 #include <rtp/base/constructor_magic.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 bool AdaptiveThresholdExperimentIsDisabled(
 		const WebRtcKeyValueConfig& key_value_config);
@@ -58,6 +58,6 @@ private:
 	RTC_DISALLOW_COPY_AND_ASSIGN(OveruseDetector)
 	;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_REMOTE_BITRATE_ESTIMATOR_OVERUSE_DETECTOR_H_

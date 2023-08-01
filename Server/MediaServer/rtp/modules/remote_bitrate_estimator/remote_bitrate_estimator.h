@@ -19,7 +19,7 @@
 #include <rtp/include/rtp_rtcp_defines.h>
 #include <rtp/packet/RtcpPacket.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class Clock;
 

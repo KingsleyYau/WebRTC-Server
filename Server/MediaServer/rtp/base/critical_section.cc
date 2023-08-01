@@ -25,7 +25,7 @@
 #define RTC_CS_DEBUG_CODE(x)
 #endif  // !RTC_DCHECK_IS_ON
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 CriticalSection::CriticalSection() {
 #if defined(WEBRTC_WIN)

@@ -14,7 +14,7 @@ using namespace std;
 
 #include "LogManager.h"
 
-#define FileLog(fileNamePre, format, ...) LogManager::GetLogManager()->Log(__FILE__, __LINE__, LOG_DEBUG, format, ## __VA_ARGS__)
+#define FileLog(fileNamePre, fmt, ...) LogAync(LOG_DEBUG, fmt, ## __VA_ARGS__)
 
 // add by samson，把定义放到头文件，给外部知道
 #define MAX_LOG_BUFFER 200 * 1024

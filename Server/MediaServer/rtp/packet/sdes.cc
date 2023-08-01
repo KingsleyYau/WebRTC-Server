@@ -18,7 +18,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/packet/CommonHeader.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr uint8_t Sdes::kPacketType;
 constexpr size_t Sdes::kMaxNumberOfChunks;
@@ -197,4 +197,4 @@ bool Sdes::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	return true;
 }
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork

@@ -22,7 +22,7 @@
 
 #include <include/CommonHeader.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 constexpr size_t RtpPacketHistory::kMaxCapacity;
 constexpr size_t RtpPacketHistory::kMaxPaddingtHistory;
@@ -90,7 +90,7 @@ RtpPacketHistory::~RtpPacketHistory() {
 void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode,
 		size_t number_to_store) {
 	RTC_DCHECK_LE(number_to_store, kMaxCapacity);
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode != StorageMode::kDisabled && mode_ != StorageMode::kDisabled) {
 //		RTC_LOG(LS_WARNING)
 //				<< "Purging packet history in order to re-set status.";
@@ -101,12 +101,12 @@ void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode,
 }
 
 RtpPacketHistory::StorageMode RtpPacketHistory::GetStorageMode() const {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	return mode_;
 }
 
 void RtpPacketHistory::SetRtt(int64_t rtt_ms) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	RTC_DCHECK_GE(rtt_ms, 0);
 	rtt_ms_ = rtt_ms;
 // If storage is not disabled,  packets will be removed after a timeout
@@ -120,7 +120,7 @@ void RtpPacketHistory::SetRtt(int64_t rtt_ms) {
 void RtpPacketHistory::PutRtpPacket(std::unique_ptr<RtpPacketToSend> packet,
 		absl::optional<int64_t> send_time_ms) {
 	RTC_DCHECK(packet);
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	int64_t now_ms = clock_->TimeInMilliseconds();
 	if (mode_ == StorageMode::kDisabled) {
 		return;
@@ -164,7 +164,7 @@ void RtpPacketHistory::PutRtpPacket(std::unique_ptr<RtpPacketToSend> packet,
 
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(
 		uint16_t sequence_number) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled) {
 		return nullptr;
 	}
@@ -188,22 +188,22 @@ std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(
 	packet->pending_transmission_ = false;
 
 	// Return copy of packet instance since it may need to be retransmitted.
-	return mediaserver::make_unique<RtpPacketToSend>(*packet->packet_);
+	return qpidnetwork::make_unique<RtpPacketToSend>(*packet->packet_);
 }
 
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(
 		uint16_t sequence_number) {
 	return GetPacketAndMarkAsPending(sequence_number,
 			[](const RtpPacketToSend& packet) {
-				return mediaserver::make_unique<RtpPacketToSend>(packet);
+				return qpidnetwork::make_unique<RtpPacketToSend>(packet);
 			});
 }
 
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(
 		uint16_t sequence_number,
-		mediaserver::FunctionView<
+		qpidnetwork::FunctionView<
 				std::unique_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled) {
 		return nullptr;
 	}
@@ -234,7 +234,7 @@ std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(
 }
 
 void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled) {
 		return;
 	}
@@ -255,7 +255,7 @@ void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
 
 absl::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(
 		uint16_t sequence_number) const {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled) {
 		return absl::nullopt;
 	}
@@ -296,14 +296,14 @@ bool RtpPacketHistory::VerifyRtt(const RtpPacketHistory::StoredPacket& packet,
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
 	// Default implementation always just returns a copy of the packet.
 	return GetPayloadPaddingPacket([](const RtpPacketToSend& packet) {
-		return mediaserver::make_unique<RtpPacketToSend>(packet);
+		return qpidnetwork::make_unique<RtpPacketToSend>(packet);
 	});
 }
 
 std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
-		mediaserver::FunctionView<
+		qpidnetwork::FunctionView<
 				std::unique_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled || padding_priority_.empty()) {
 		return nullptr;
 	}
@@ -331,8 +331,8 @@ std::unique_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
 }
 
 void RtpPacketHistory::CullAcknowledgedPackets(
-		mediaserver::ArrayView<const uint16_t> sequence_numbers) {
-	mediaserver::CritScope cs(&lock_);
+		qpidnetwork::ArrayView<const uint16_t> sequence_numbers) {
+	qpidnetwork::CritScope cs(&lock_);
 	for (uint16_t sequence_number : sequence_numbers) {
 		int packet_index = GetPacketIndex(sequence_number);
 		if (packet_index < 0
@@ -345,7 +345,7 @@ void RtpPacketHistory::CullAcknowledgedPackets(
 }
 
 bool RtpPacketHistory::SetPendingTransmission(uint16_t sequence_number) {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	if (mode_ == StorageMode::kDisabled) {
 		return false;
 	}
@@ -360,7 +360,7 @@ bool RtpPacketHistory::SetPendingTransmission(uint16_t sequence_number) {
 }
 
 void RtpPacketHistory::Clear() {
-	mediaserver::CritScope cs(&lock_);
+	qpidnetwork::CritScope cs(&lock_);
 	Reset();
 }
 
@@ -473,4 +473,4 @@ RtpPacketHistory::PacketState RtpPacketHistory::StoredPacketToPacketState(
 	return state;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

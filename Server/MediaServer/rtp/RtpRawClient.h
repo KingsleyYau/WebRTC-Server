@@ -18,7 +18,7 @@
 
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RtpRawClient: public RtpSession {
 public:
@@ -46,6 +46,6 @@ private:
 	int mRtpRecvPort;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_RTPRAWCLIENT_H_ */

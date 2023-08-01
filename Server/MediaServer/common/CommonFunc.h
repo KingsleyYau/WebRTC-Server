@@ -9,6 +9,7 @@
 #ifndef COMMONFUNCDEFINE_H_
 #define COMMONFUNCDEFINE_H_
 
+#include <stdint.h>
 #include <string>
 #include <sstream>
 using namespace std;
@@ -101,7 +102,7 @@ inline long long getCurrentTime()
 	long long result = 0;
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
-	result =  (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	result = (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 	return result;
 }
 
@@ -110,7 +111,6 @@ inline long long DiffTime(long long start, long long end)
     return end - start;
 //	return (end > start ? end - start : (unsigned long)-1 - end + start);
 }
-
 
 inline string ReadableSize(long long size) {
 	std::stringstream ss;
@@ -125,6 +125,27 @@ inline string ReadableSize(long long size) {
     } else if (floatSize > KB) {
         floatSize = floatSize / KB;
         unit = "KB";
+    }
+    ss.setf(ios::fixed);
+    ss.precision(2);
+    ss << floatSize << unit;
+	ss.unsetf(ios_base::dec);
+    return ss.str();
+}
+
+inline string ReadableBps(long long size) {
+	std::stringstream ss;
+	string unit = "bps";
+    double floatSize = (1.0 * size);
+    if (floatSize > GB) {
+        floatSize = floatSize / GB;
+        unit = "Gbps";
+    } else if (floatSize > MB) {
+        floatSize = floatSize / MB;
+        unit = "Mbps";
+    } else if (floatSize > KB) {
+        floatSize = floatSize / KB;
+        unit = "Kbps";
     }
     ss.setf(ios::fixed);
     ss.precision(2);

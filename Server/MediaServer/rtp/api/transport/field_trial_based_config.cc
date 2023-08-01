@@ -12,8 +12,8 @@
 
 #include <rtp/base/field_trial.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 std::string FieldTrialBasedConfig::Lookup(absl::string_view key) const {
 	return field_trial::FindFullName(std::string(key));
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

@@ -14,7 +14,7 @@
 
 #include <rtp/modules/include/module_common_types_public.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 static const int kBurstDeltaThresholdMs = 5;
 static const int kMaxBurstDurationMs = 100;

@@ -15,7 +15,7 @@
 #include <rtp/base/arraysize.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 /////////////////////////////////////////////////////////////////////////////
 // String Encoding Utilities
@@ -365,4 +365,4 @@ bool FromString(const std::string& s, bool* b) {
 	return false;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

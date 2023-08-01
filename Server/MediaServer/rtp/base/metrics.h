@@ -42,12 +42,12 @@
 //    WEBRTC_EXCLUDE_METRICS_DEFAULT (if GN is used this can be achieved
 //    by setting the GN arg rtc_exclude_metrics_default to true).
 // 2. Provide implementations of:
-//    Histogram* mediaserver::metrics::HistogramFactoryGetCounts(
+//    Histogram* qpidnetwork::metrics::HistogramFactoryGetCounts(
 //        const std::string& name, int sample, int min, int max,
 //        int bucket_count);
-//    Histogram* mediaserver::metrics::HistogramFactoryGetEnumeration(
+//    Histogram* qpidnetwork::metrics::HistogramFactoryGetEnumeration(
 //        const std::string& name, int sample, int boundary);
-//    void mediaserver::metrics::HistogramAdd(
+//    void qpidnetwork::metrics::HistogramAdd(
 //        Histogram* histogram_pointer, const std::string& name, int sample);
 //
 // Example usage:
@@ -88,12 +88,12 @@
 
 #define RTC_HISTOGRAM_COUNTS(name, sample, min, max, bucket_count)       \
   RTC_HISTOGRAM_COMMON_BLOCK(name, sample,                               \
-                             mediaserver::metrics::HistogramFactoryGetCounts( \
+                             qpidnetwork::metrics::HistogramFactoryGetCounts( \
                                  name, min, max, bucket_count))
 
 #define RTC_HISTOGRAM_COUNTS_LINEAR(name, sample, min, max, bucket_count)      \
   RTC_HISTOGRAM_COMMON_BLOCK(name, sample,                                     \
-                             mediaserver::metrics::HistogramFactoryGetCountsLinear( \
+                             qpidnetwork::metrics::HistogramFactoryGetCountsLinear( \
                                  name, min, max, bucket_count))
 
 // Slow metrics: pointer to metric is acquired at each call and is not cached.
@@ -118,7 +118,7 @@
 
 #define RTC_HISTOGRAM_COUNTS_SPARSE(name, sample, min, max, bucket_count)     \
   RTC_HISTOGRAM_COMMON_BLOCK_SLOW(name, sample,                               \
-                                  mediaserver::metrics::HistogramFactoryGetCounts( \
+                                  qpidnetwork::metrics::HistogramFactoryGetCounts( \
                                       name, min, max, bucket_count))
 
 // Histogram for percentage (evenly spaced buckets).
@@ -137,7 +137,7 @@
 #define RTC_HISTOGRAM_ENUMERATION_SPARSE(name, sample, boundary) \
   RTC_HISTOGRAM_COMMON_BLOCK_SLOW(                               \
       name, sample,                                              \
-      mediaserver::metrics::SparseHistogramFactoryGetEnumeration(name, boundary))
+      qpidnetwork::metrics::SparseHistogramFactoryGetEnumeration(name, boundary))
 
 // Histogram for percentage (evenly spaced buckets).
 #define RTC_HISTOGRAM_PERCENTAGE(name, sample) \
@@ -152,28 +152,28 @@
 #define RTC_HISTOGRAM_ENUMERATION(name, sample, boundary) \
   RTC_HISTOGRAM_COMMON_BLOCK_SLOW(                        \
       name, sample,                                       \
-      mediaserver::metrics::HistogramFactoryGetEnumeration(name, boundary))
+      qpidnetwork::metrics::HistogramFactoryGetEnumeration(name, boundary))
 
 // The name of the histogram should not vary.
 // TODO(asapersson): Consider changing string to const char*.
 #define RTC_HISTOGRAM_COMMON_BLOCK(constant_name, sample,                  \
                                    factory_get_invocation)                 \
   do {                                                                     \
-    static mediaserver::metrics::Histogram* atomic_histogram_pointer = nullptr; \
-    mediaserver::metrics::Histogram* histogram_pointer =                        \
+    static qpidnetwork::metrics::Histogram* atomic_histogram_pointer = nullptr; \
+    qpidnetwork::metrics::Histogram* histogram_pointer =                        \
         rtc::AtomicOps::AcquireLoadPtr(&atomic_histogram_pointer);         \
     if (!histogram_pointer) {                                              \
       histogram_pointer = factory_get_invocation;                          \
-      mediaserver::metrics::Histogram* prev_pointer =                           \
+      qpidnetwork::metrics::Histogram* prev_pointer =                           \
           rtc::AtomicOps::CompareAndSwapPtr(                               \
               &atomic_histogram_pointer,                                   \
-              static_cast<mediaserver::metrics::Histogram*>(nullptr),           \
+              static_cast<qpidnetwork::metrics::Histogram*>(nullptr),           \
               histogram_pointer);                                          \
       RTC_DCHECK(prev_pointer == nullptr ||                                \
                  prev_pointer == histogram_pointer);                       \
     }                                                                      \
     if (histogram_pointer) {                                               \
-      mediaserver::metrics::HistogramAdd(histogram_pointer, sample);            \
+      qpidnetwork::metrics::HistogramAdd(histogram_pointer, sample);            \
     }                                                                      \
   } while (0)
 
@@ -181,9 +181,9 @@
 // May be used for histograms with infrequent updates.`
 #define RTC_HISTOGRAM_COMMON_BLOCK_SLOW(name, sample, factory_get_invocation) \
   do {                                                                        \
-    mediaserver::metrics::Histogram* histogram_pointer = factory_get_invocation;   \
+    qpidnetwork::metrics::Histogram* histogram_pointer = factory_get_invocation;   \
     if (histogram_pointer) {                                                  \
-      mediaserver::metrics::HistogramAdd(histogram_pointer, sample);               \
+      qpidnetwork::metrics::HistogramAdd(histogram_pointer, sample);               \
     }                                                                         \
   } while (0)
 
@@ -241,7 +241,7 @@
     }                                                                \
   } while (0)
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace metrics {
 
 // Time that should have elapsed for stats that are gathered once per call.

@@ -16,7 +16,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_conversions_impl.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Convenience function that returns true if the supplied value is in range
 // for the destination type.
@@ -69,7 +69,7 @@ inline Dst saturated_cast(Src value) {
 	return static_cast<Dst>(value);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // #ifndef RTP_BASE_NUMERICS_SAFECONVERSIONS_H_
 

@@ -11,16 +11,15 @@
 
 #include "Socket.h"
 
-#include <parser/IDataParser.h>
-
 #include <common/Buffer.h>
 #include <common/KMutex.h>
-
+#include <common/KSafeList.h>
 #include <common/LogManager.h>
+#include <parser/IDataParser.h>
 
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 /**
  * 每次读取数据Buffer Size
  */
@@ -28,7 +27,7 @@ namespace mediaserver {
 /**
  * 总读包缓存Buffer Size
  */
-#define CLIENT_BUFFER_SIZE 1 * 1024 * 1024
+#define CLIENT_BUFFER_SIZE 128 * 1024
 
 class Client {
 public:

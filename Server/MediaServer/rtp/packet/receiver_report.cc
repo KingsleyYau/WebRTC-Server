@@ -15,7 +15,7 @@
 #include <rtp/packet/CommonHeader.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr uint8_t ReceiverReport::kPacketType;
 constexpr size_t ReceiverReport::kMaxNumberOfReportBlocks;

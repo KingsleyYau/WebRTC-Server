@@ -6,7 +6,7 @@
 #include <rtp/base/arraysize.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 
 struct ExtensionInfo {
@@ -47,7 +47,7 @@ RtpHeaderExtensionMap::RtpHeaderExtensionMap(bool extmap_allow_mixed) :
 }
 
 RtpHeaderExtensionMap::RtpHeaderExtensionMap(
-		mediaserver::ArrayView<const RtpExtension> extensions) :
+		qpidnetwork::ArrayView<const RtpExtension> extensions) :
 		RtpHeaderExtensionMap(false) {
 	for (const RtpExtension& extension : extensions) {
 		RegisterByUri(extension.id, extension.uri);
@@ -133,4 +133,4 @@ void RtpHeaderExtensionMap::Clear() {
 	}
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

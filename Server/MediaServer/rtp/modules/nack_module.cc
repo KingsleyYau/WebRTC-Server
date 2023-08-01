@@ -18,7 +18,7 @@
 
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace {
 const int kMaxPacketAge = 10000;

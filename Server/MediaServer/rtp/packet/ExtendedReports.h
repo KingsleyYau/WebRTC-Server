@@ -18,7 +18,7 @@
 #include <rtp/packet/Rrtr.h>
 #include <rtp/packet/TargetBitrate.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader;
 
@@ -75,5 +75,5 @@ private:
 	absl::optional<TargetBitrate> target_bitrate_;
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_EXTENDED_REPORTS_H_

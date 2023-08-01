@@ -23,7 +23,7 @@
 // clang-format on
 #endif  // defined(WEBRTC_WIN)
 
-namespace mediaserver {
+namespace qpidnetwork {
 class AtomicOps {
  public:
 #if defined(WEBRTC_WIN)
@@ -74,6 +74,6 @@ class AtomicOps {
 #endif
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_ATOMIC_OPS_H_

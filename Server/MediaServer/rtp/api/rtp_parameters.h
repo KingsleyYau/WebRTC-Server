@@ -21,7 +21,7 @@
 #include <rtp/api/media_types.h>
 #include <rtp/base/system/rtc_export.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // These structures are intended to mirror those defined by:
 // http://draft.ortc.org/#rtcrtpdictionaries*
@@ -685,6 +685,6 @@ struct RTC_EXPORT RtpParameters {
 	}
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_RTP_PARAMETERS_H_

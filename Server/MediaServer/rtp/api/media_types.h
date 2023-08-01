@@ -32,12 +32,12 @@ RTC_EXPORT std::string MediaTypeToString(MediaType type);
 
 }  // namespace cricket
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 enum class MediaType {
 	ANY, AUDIO, VIDEO, DATA
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_MEDIA_TYPES_H_

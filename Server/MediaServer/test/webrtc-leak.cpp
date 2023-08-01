@@ -26,7 +26,7 @@ using namespace std;
 #include <gio/gio.h>
 #include <gio/gnetworking.h>
 
-using namespace mediaserver;
+using namespace qpidnetwork;
 
 bool Parse(int argc, char *argv[]);
 void SignalFunc(int sign_no);

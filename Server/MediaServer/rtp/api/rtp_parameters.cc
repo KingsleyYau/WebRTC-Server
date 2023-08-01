@@ -16,7 +16,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 const double kDefaultBitratePriority = 1.0;
 
@@ -255,4 +255,4 @@ std::vector<RtpExtension> RtpExtension::FilterDuplicateNonEncrypted(
 	}
 	return filtered;
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

@@ -8,14 +8,21 @@
 #ifndef INCLUDE_COMMONHEADER_H_
 #define INCLUDE_COMMONHEADER_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+using namespace std;
+
+#include <common/LogManager.h>
+
 #define FLAG_2_STRING(bFlag) bFlag?"OK":"Fail"
 #define BOOL_2_STRING(bFlag) bFlag?"True":"False"
-#define PULL_OR_PUSH_2_STRING(bFlag) bFlag?"Pull":"Push"
+#define PLAY_OR_PUSH_2_STRING(bFlag) bFlag?"Play":"Publish"
 
 #include <memory>
 #include <type_traits>
 using namespace std;
-namespace mediaserver {
+namespace qpidnetwork {
 // 支持普通指针
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {

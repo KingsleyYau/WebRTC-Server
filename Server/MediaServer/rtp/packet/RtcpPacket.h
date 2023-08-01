@@ -18,7 +18,7 @@
 
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class RtcpPacket {
 public:
@@ -59,6 +59,6 @@ public:
 	uint32_t sender_ssrc_ = 0;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_RTCPPACKET_H_ */

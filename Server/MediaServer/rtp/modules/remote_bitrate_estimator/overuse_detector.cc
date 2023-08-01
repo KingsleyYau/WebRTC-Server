@@ -20,7 +20,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_minmax.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 const char kAdaptiveThresholdExperiment[] = "WebRTC-AdaptiveBweThreshold";
 const char kEnabledPrefix[] = "Enabled";
@@ -167,4 +167,4 @@ void OveruseDetector::InitializeExperiment(
 		k_down_ = k_down;
 	}
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

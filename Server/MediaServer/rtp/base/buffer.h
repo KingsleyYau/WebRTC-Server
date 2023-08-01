@@ -24,7 +24,7 @@
 #include <rtp/base/type_traits.h>
 #include <rtp/base/zero_memory.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace internal {
 
@@ -313,7 +313,7 @@ public:
 		SetSize(old_size + max_elements);
 		U* base_ptr = data<U>() + old_size;
 		size_t written_elements = setter(
-				mediaserver::ArrayView<U>(base_ptr, max_elements));
+				qpidnetwork::ArrayView<U>(base_ptr, max_elements));
 
 		RTC_CHECK_LE(written_elements, max_elements);
 		size_ = old_size + written_elements;
@@ -435,6 +435,6 @@ using Buffer = BufferT<uint8_t>;
 template<typename T>
 using ZeroOnFreeBuffer = BufferT<T, true>;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTC_BASE_BUFFER_H_

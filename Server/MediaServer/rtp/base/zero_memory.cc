@@ -13,7 +13,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/zero_memory.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Code and comment taken from "OPENSSL_cleanse" of BoringSSL.
 void ExplicitZeroMemory(void* ptr, size_t len) {
@@ -28,4 +28,4 @@ void ExplicitZeroMemory(void* ptr, size_t len) {
 #endif
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

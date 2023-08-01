@@ -16,7 +16,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_compare.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template <typename Dividend, typename Divisor>
 inline auto constexpr DivideRoundUp(Dividend dividend, Divisor divisor) {
@@ -41,9 +41,9 @@ inline auto constexpr DivideRoundToNearest(Dividend dividend, Divisor divisor) {
 //  auto half_of_divisor = (divisor - 1) / 2;
 //  auto quotient = dividend / divisor;
 //  auto remainder = dividend % divisor;
-  return (dividend / divisor) + (mediaserver::SafeGt((dividend % divisor), ((divisor - 1) / 2)) ? 1 : 0);
+  return (dividend / divisor) + (qpidnetwork::SafeGt((dividend % divisor), ((divisor - 1) / 2)) ? 1 : 0);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_NUMERICS_DIVIDE_ROUND_H_

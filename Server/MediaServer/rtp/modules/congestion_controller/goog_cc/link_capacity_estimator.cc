@@ -14,7 +14,7 @@
 
 #include <rtp/base/numerics/safe_minmax.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 LinkCapacityEstimator::LinkCapacityEstimator() {
 }
 
@@ -78,4 +78,4 @@ double LinkCapacityEstimator::deviation_estimate_kbps() const {
 	// only be used if estimate_kbps_ has a value.
 	return sqrt(deviation_kbps_ * estimate_kbps_.value());
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

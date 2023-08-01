@@ -14,7 +14,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/packet/CommonHeader.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr uint8_t SenderReport::kPacketType;
 constexpr size_t SenderReport::kMaxNumberOfReportBlocks;
@@ -133,4 +133,4 @@ bool SenderReport::SetReportBlocks(std::vector<ReportBlock> blocks) {
 	return true;
 }
 } // namesapce rtcp
-} // namespace mediaserver
+} // namespace qpidnetwork

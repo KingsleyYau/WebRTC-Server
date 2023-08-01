@@ -29,6 +29,7 @@ typedef enum RequestErrorType {
 	RequestErrorType_WebRTC_Dtls_Handshake_Fail = 13,
 	RequestErrorType_WebRTC_Ice_Fail = 14,
 	RequestErrorType_Request_Server_Busy = 15,
+	RequestErrorType_Request_Server_Internal_Error = 16,
 } RequestErrorType;
 
 typedef struct ErrObject {
@@ -64,6 +65,7 @@ const ErrObject RequestErrObjects[] = {
 	ErrObject(RequestErrorType_WebRTC_Dtls_Handshake_Fail, RequestErrorType_WebRTC_Dtls_Handshake_Fail, "WebRTC Dtls Handshake Error."),
 	ErrObject(RequestErrorType_WebRTC_Ice_Fail, RequestErrorType_WebRTC_Ice_Fail, "WebRTC Ice Fail Error."),
 	ErrObject(RequestErrorType_Request_Server_Busy, RequestErrorType_Request_Server_Busy, "Server Busy Error."),
+	ErrObject(RequestErrorType_Request_Server_Busy, RequestErrorType_Request_Server_Internal_Error, "Server Internal Error."),
 };
 
 #endif /* INCLUDE_ERRCODE_H_ */

@@ -14,7 +14,7 @@
 #include <sys/syscall.h>
 #endif
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 PlatformThreadId CurrentThreadId() {
 #if defined(WEBRTC_WIN)

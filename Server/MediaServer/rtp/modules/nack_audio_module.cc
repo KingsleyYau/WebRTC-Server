@@ -20,7 +20,7 @@
 #include <include/CommonHeader.h>
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 
 const int kDefaultSampleRateKhz = 48;
@@ -306,4 +306,4 @@ std::vector<uint16_t> NackAudioModule::GetNackList(
 	return sequence_numbers;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

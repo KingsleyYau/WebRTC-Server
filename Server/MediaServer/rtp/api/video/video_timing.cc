@@ -14,14 +14,14 @@
 #include <rtp/base/numerics/safe_conversions.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 uint16_t VideoSendTiming::GetDeltaCappedMs(int64_t base_ms, int64_t time_ms) {
 	if (time_ms < base_ms) {
 //		RTC_DLOG(LS_ERROR) << "Delta " << (time_ms - base_ms)
 //				<< "ms expected to be positive";
 	}
-	return mediaserver::saturated_cast < uint16_t > (time_ms - base_ms);
+	return qpidnetwork::saturated_cast < uint16_t > (time_ms - base_ms);
 }
 
 TimingFrameInfo::TimingFrameInfo() :
@@ -67,7 +67,7 @@ std::string TimingFrameInfo::ToString() const {
 	}
 
 	char buf[1024];
-	mediaserver::SimpleStringBuilder sb(buf);
+	qpidnetwork::SimpleStringBuilder sb(buf);
 
 	sb << rtp_timestamp << ',' << capture_time_ms << ',' << encode_start_ms
 			<< ',' << encode_finish_ms << ',' << packetization_finish_ms << ','
@@ -80,4 +80,4 @@ std::string TimingFrameInfo::ToString() const {
 	return sb.str();
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

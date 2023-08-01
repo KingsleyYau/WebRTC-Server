@@ -12,7 +12,7 @@
 
 #include <algorithm>
 
-namespace mediaserver {
+namespace qpidnetwork {
 StreamsConfig::StreamsConfig() = default;
 StreamsConfig::StreamsConfig(const StreamsConfig&) = default;
 StreamsConfig::~StreamsConfig() = default;
@@ -102,4 +102,4 @@ ProcessInterval::ProcessInterval() = default;
 ProcessInterval::ProcessInterval(const ProcessInterval&) = default;
 ProcessInterval::~ProcessInterval() = default;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

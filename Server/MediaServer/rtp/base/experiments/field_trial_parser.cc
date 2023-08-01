@@ -20,7 +20,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 
 int FindOrEnd(std::string str, size_t start, char delimiter) {
@@ -245,4 +245,4 @@ template class FieldTrialOptional<unsigned> ;
 template class FieldTrialOptional<bool> ;
 template class FieldTrialOptional<std::string> ;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

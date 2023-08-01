@@ -12,7 +12,7 @@
 
 #include <stddef.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 CopyOnWriteBuffer::CopyOnWriteBuffer() :
 		offset_(0), size_(0) {
@@ -122,4 +122,4 @@ void CopyOnWriteBuffer::UnshareAndEnsureCapacity(size_t new_capacity) {
 	RTC_DCHECK(IsConsistent());
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

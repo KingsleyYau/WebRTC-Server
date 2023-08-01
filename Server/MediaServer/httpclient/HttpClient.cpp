@@ -15,7 +15,7 @@
 
 #include <common/KLog.h>
 
-#define USER_AGENT	"Mozil1a/4.0 (compatible; MS1E 7.0; Windows NT 6.1; WOW64; )"
+#define USER_AGENT	"Mozil1a/4.0 (compatible; MS1E 7.0; Windows NT 6.1; WOW64;)"
 #define MAX_RESPONED_BUFFER 4096
 #define DWONLOAD_TIMEOUT 30
 
@@ -25,12 +25,12 @@ void HttpClient::Init() {
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl_version_info_data *data = curl_version_info(CURLVERSION_FIRST);
 
-	if( data->version != NULL ) {
-		FileLog("httpclient", "Init( curl_version : %s )", data->version);
+	if (data->version != NULL) {
+		FileLog("httpclient", "Init, curl_version:%s", data->version);
 	}
 
-	if( data->ssl_version != NULL ) {
-		FileLog("httpclient", "Init( ssl_version : %s )", data->ssl_version);
+	if (data->ssl_version != NULL) {
+		FileLog("httpclient", "Init, ssl_version:%s", data->ssl_version);
 	}
 
 	sh = curl_share_init();
@@ -40,6 +40,7 @@ void HttpClient::Init() {
 HttpClient::HttpClient() {
 	// TODO Auto-generated constructor stub
 	mpCURL = NULL;
+	mLastRes = CURLE_OK;
 	mUrl = "";
 
 	mbStop = false;
@@ -69,24 +70,23 @@ HttpClient::~HttpClient() {
 }
 
 void HttpClient::Stop() {
-	FileLog("httpclient", "HttpClient::Stop()");
+	FileLog("httpclient", "HttpClient::Stop");
 	mbStop = true;
 }
 
 void HttpClient::Close() {
-	FileLog("httpclient", "HttpClient::Close()");
-	if( mpCURL != NULL ) {
+	FileLog("httpclient", "HttpClient::Close");
+	if (mpCURL != NULL) {
 		curl_easy_cleanup(mpCURL);
 		mpCURL = NULL;
 	}
 }
 
-bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAfterRequest) {
-	FileLog("httpclient", "HttpClient::Request( url : %s, entiy : %p )",
+bool HttpClient::Request( const string& url, const HttpEntiy* entiy, bool closeAfterRequest) {
+	FileLog("httpclient", "HttpClient::Request, url:%s, entiy:%p",
 			url.c_str(), entiy);
 
 	bool bFlag = true;
-	CURLcode res;
 
 	mUrl = url;
 	mbStop = false;
@@ -104,7 +104,7 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
 
 	ResetBuffer();
 
-	if( mpCURL == NULL ) {
+	if (mpCURL == NULL) {
 		mpCURL = curl_easy_init();
 	}
 
@@ -130,16 +130,16 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
 
 	string host = mUrl;
 	std::size_t index = mUrl.find("http://");
-	if( index != string::npos ) {
+	if (index != string::npos) {
 		host = host.substr(strlen("http://"), host.length() - strlen("http://"));
 		index = host.find("/");
-		if( index != string::npos ) {
+		if (index != string::npos) {
 			host = host.substr(0, index);
 		}
 	}
 
 	string cookie = GetCookies(host);
-	FileLog("httpclient", "HttpClient::Request( Cookie Send : %s )", cookie.c_str());
+	FileLog("httpclient", "HttpClient::Request, Cookie Send:%s", cookie.c_str());
 
 	//	curl_easy_setopt(mpCURL, CURLOPT_FOLLOWLOCATION, 1);
 	// 设置连接超时
@@ -149,15 +149,15 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
 	// 设置User-Agent
 	curl_easy_setopt(mpCURL, CURLOPT_USERAGENT, USER_AGENT);
 
-	if( entiy != NULL ) {
-		if( !entiy->mIsGetMethod ) {
+	if (entiy != NULL) {
+		if (!entiy->mIsGetMethod) {
 			curl_easy_setopt(mpCURL, CURLOPT_POST, 1);
 		}
 	}
 
 	// 处理https
-	if( mUrl.find("https") != string::npos ) {
-		FileLog("httpclient", "HttpClient::Request( try to connect with ssl )");
+	if (mUrl.find("https") != string::npos) {
+		FileLog("httpclient", "HttpClient::Request, Connect with SSL");
 		// 不检查服务器证书
 		curl_easy_setopt(mpCURL, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(mpCURL, CURLOPT_SSL_VERIFYHOST, 0);
@@ -172,25 +172,25 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
 	struct curl_httppost* pLast = NULL;
 	string postData("");
 
-	if( entiy != NULL ) {
+	if (entiy != NULL) {
 		/* Basic Authentication */
-		if( entiy->mAuthorization.length() > 0 ) {
+		if (entiy->mAuthorization.length() > 0) {
 			curl_easy_setopt(mpCURL, CURLOPT_USERPWD, entiy->mAuthorization.c_str());
-			FileLog("httpclient", "HttpClient::Request( Add authentication header : [%s] )", entiy->mAuthorization.c_str());
+			FileLog("httpclient", "HttpClient::Request, Add authentication header:[%s]", entiy->mAuthorization.c_str());
 		}
 
 		/* Headers */
-		for( HttpMap::const_iterator itr = entiy->mHeaderMap.begin(); itr != entiy->mHeaderMap.end(); itr++ ) {
+		for (HttpMap::const_iterator itr = entiy->mHeaderMap.begin(); itr != entiy->mHeaderMap.end(); itr++) {
 			string header = itr->first + ": " + itr->second;
 			pList = curl_slist_append(pList, header.c_str());
-			FileLog("httpclient", "HttpClient::Request( Add header : [%s] )", header.c_str());
+			FileLog("httpclient", "HttpClient::Request, Add header:[%s]", header.c_str());
 		}
 
-        if( entiy->mRawData.length() > 0 && !entiy->mIsGetMethod ) {
+        if (entiy->mRawData.length() > 0 && !entiy->mIsGetMethod) {
             curl_easy_setopt(mpCURL, CURLOPT_POSTFIELDS, entiy->mRawData.c_str());
         } else if (entiy->mFileMap.empty() && !entiy->mContentMap.empty() && !entiy->mIsGetMethod) {
             /* Contents */
-            for( HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++ ) {
+            for (HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++) {
                 if (!postData.empty()) {
                     postData += "&";
                 }
@@ -203,21 +203,21 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
                     curl_free(tempBuffer);
                 }
 
-                FileLog("httpclient", "HttpClient::Request( this : %p, Add content : [%s : %s] )", this, itr->first.c_str(), itr->second.c_str());
+                FileLog("httpclient", "HttpClient::Request, this:%p, Add content:[%s:%s]", this, itr->first.c_str(), itr->second.c_str());
             }
 
             curl_easy_setopt(mpCURL, CURLOPT_POSTFIELDS, postData.c_str());
         } else {
 
     		/* Contents */
-    		for( HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++ ) {
+    		for (HttpMap::const_iterator itr = entiy->mContentMap.begin(); itr != entiy->mContentMap.end(); itr++) {
     			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, itr->first.c_str(),
     					CURLFORM_COPYCONTENTS, itr->second.c_str(), CURLFORM_END);
-    			FileLog("httpclient", "HttpClient::Request( Add content : [%s : %s] )", itr->first.c_str(), itr->second.c_str());
+    			FileLog("httpclient", "HttpClient::Request, Add content:[%s:%s]", itr->first.c_str(), itr->second.c_str());
     		}
 
     		/* Files */
-    		for( FileMap::const_iterator itr = entiy->mFileMap.begin(); itr != entiy->mFileMap.end(); itr++ ) {
+    		for (FileMap::const_iterator itr = entiy->mFileMap.begin(); itr != entiy->mFileMap.end(); itr++) {
     			curl_formadd(&pPost, &pLast, CURLFORM_COPYNAME, "filename",
     					CURLFORM_COPYCONTENTS, itr->first.c_str(), CURLFORM_END);
 
@@ -227,45 +227,45 @@ bool HttpClient::Request(const string& url, const HttpEntiy* entiy, bool closeAf
     					CURLFORM_CONTENTTYPE, itr->second.mimeType.c_str(),
     					CURLFORM_END);
 
-    			FileLog("httpclient", "HttpClient::Request( Add file filename : [%s], content [%s : %s,%s] )"
+    			FileLog("httpclient", "HttpClient::Request, Add file filename:[%s], content [%s:%s,%s]"
     					, itr->first.c_str(), itr->first.c_str(), itr->second.fileName.c_str(), itr->second.mimeType.c_str());
     		}
         }
 
-		if( pList != NULL ) {
+		if (pList != NULL) {
 			curl_easy_setopt(mpCURL, CURLOPT_HTTPHEADER, pList);
 		}
-		if( pPost != NULL ) {
+		if (pPost != NULL) {
 			curl_easy_setopt(mpCURL, CURLOPT_HTTPPOST, pPost);
 		}
 	}
 
-	FileLog("httpclient", "HttpClient::Request( curl_easy_perform )");
-	res = curl_easy_perform(mpCURL);
+	FileLog("httpclient", "HttpClient::Request, curl_easy_perform");
+	mLastRes = curl_easy_perform(mpCURL);
 
 	double totalTime = 0;
 	curl_easy_getinfo(mpCURL, CURLINFO_TOTAL_TIME, &totalTime);
-	FileLog("httpclient", "HttpClient::Request( totalTime : %f second )", totalTime);
+	FileLog("httpclient", "HttpClient::Request, totalTime:%f second", totalTime);
 
 	curl_easy_getinfo(mpCURL, CURLINFO_RESPONSE_CODE, &mHttpCode);
-	FileLog("httpclient", "HttpClient::Request( mHttpCode : %ld )", mHttpCode);
+	FileLog("httpclient", "HttpClient::Request, mHttpCode:%ld", mHttpCode);
 
-	if( closeAfterRequest ) {
+	if (closeAfterRequest) {
 		Close();
 	}
 
-	if( pList != NULL ) {
+	if (pList != NULL) {
 		curl_slist_free_all(pList);
 	}
-	if( pPost != NULL ) {
+	if (pPost != NULL) {
 		curl_formfree(pPost);
 	}
 
 	cookie = GetCookies(host);
-	FileLog("httpclient", "HttpClient::Request( Cookie Recv : %s )", cookie.c_str());
+	FileLog("httpclient", "HttpClient::Request, Cookie Recv:%s", cookie.c_str());
 
-	bFlag = (res == CURLE_OK);
-	FileLog("httpclient", "HttpClient::Request( bFlag : %s , res : %d )", bFlag?"true":"false", res);
+	bFlag = (mLastRes == CURLE_OK);
+	FileLog("httpclient", "HttpClient::Request, bFlag:%s, res:%d", bFlag?"true":"false", mLastRes);
 
 	return bFlag;
 }
@@ -284,8 +284,12 @@ void HttpClient::GetBody(const char** pBuffer, int& size) {
 	size = miCurrentSize;
 }
 
+const char* HttpClient::GetLastError() {
+	return curl_easy_strerror(mLastRes);
+}
+
 void HttpClient::CleanCookies() {
-	FileLog("httpclient", "HttpClient::CleanCookies()");
+	FileLog("httpclient", "HttpClient::CleanCookies");
 	CURL *curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_SHARE, sh);
 	curl_easy_setopt(curl, CURLOPT_COOKIELIST, "ALL");
@@ -314,7 +318,7 @@ list<string> HttpClient::GetCookiesInfo()
 				if (NULL != cookies_item->data
 					&& strlen(cookies_item->data) > 0)
 				{
-					FileLog("httpclient", "HttpClient::GetCookiesInfo() cookies_item->data:%s", cookies_item->data);
+					FileLog("httpclient", "HttpClient::GetCookiesInfo, cookies_item->data:%s", cookies_item->data);
 
 					cookiesInfo.push_back(cookies_item->data);
 				}
@@ -353,7 +357,7 @@ void HttpClient::SetCookiesInfo(const list<string>& cookies)
 
 string HttpClient::GetCookies(string site) {
 	string cookie = "";
-	FileLog("httpclient", "HttpClient::GetCookies( site : %s )", site.c_str());
+	FileLog("httpclient", "HttpClient::GetCookies, site:%s", site.c_str());
 
 	CURL *curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_URL, site.c_str());
@@ -367,8 +371,8 @@ string HttpClient::GetCookies(string site) {
 	res = curl_easy_getinfo(curl, CURLINFO_COOKIELIST, &cookies);
 	if (res == CURLE_OK) {
 		next = cookies, i = 0;
-		while ( next != NULL ) {
-			FileLog("httpclient", "HttpClient::GetCookies( cookies[%d] : %s )", i++, next->data);
+		while (next != NULL) {
+			FileLog("httpclient", "HttpClient::GetCookies, cookies[%d]:%s", i++, next->data);
 
 			/**
 			 *
@@ -393,10 +397,10 @@ string HttpClient::GetCookies(string site) {
 			bool bFlag = false;
 			char *p = strtok(next->data, "\t");
 			while(p != NULL) {
-//				FileLog("httpclient", "HttpClient::GetCookies( p[%d] : %s )", j, p);
+//				FileLog("httpclient", "HttpClient::GetCookies(p[%d]:%s)", j, p);
 				switch(j) {
 				case 0:{
-					if( strcmp(p, site.c_str()) != 0 ) {
+					if (strcmp(p, site.c_str()) != 0) {
 						// not current site
 						bFlag = true;
 					}
@@ -412,7 +416,7 @@ string HttpClient::GetCookies(string site) {
 				default:break;
 				}
 
-				if( bFlag ) {
+				if (bFlag) {
 					break;
 				}
 
@@ -423,19 +427,19 @@ string HttpClient::GetCookies(string site) {
 			next = next->next;
 		}
 
-		if( cookies != NULL ) {
+		if (cookies != NULL) {
 			curl_slist_free_all(cookies);
 		}
 	}
 	curl_easy_cleanup(curl);
 
-	FileLog("httpclient", "HttpClient::GetCookies( cookie : %s )", cookie.c_str());
+	FileLog("httpclient", "HttpClient::GetCookies, cookie:%s", cookie.c_str());
 
 	return cookie;
 }
 
 void HttpClient::InitRespondBuffer() {
-	if( mpRespondBuffer != NULL ) {
+	if (mpRespondBuffer != NULL) {
 		delete[] mpRespondBuffer;
 		mpRespondBuffer = NULL;
 	}
@@ -446,14 +450,14 @@ void HttpClient::InitRespondBuffer() {
 }
 
 void HttpClient::DestroyBuffer() {
-	if( mpRespondBuffer ) {
+	if (mpRespondBuffer) {
 		delete[] mpRespondBuffer;
 		mpRespondBuffer = NULL;
 	}
 }
 
 void HttpClient::ResetBuffer() {
-	if( mpRespondBuffer ) {
+	if (mpRespondBuffer) {
 		mpRespondBuffer[0] = '\0';
 	}
 	miCurrentSize = 0;
@@ -461,15 +465,15 @@ void HttpClient::ResetBuffer() {
 
 bool HttpClient::AddRespondBuffer(const char* buf, int size) {
 	bool bFlag = false;
-	if( size > 0 ) {
+	if (size > 0) {
 		/* Add buffer if buffer is not enough */
-		while( size + miCurrentSize >= miCurrentCapacity ) {
+		while (size + miCurrentSize >= miCurrentCapacity) {
 			miCurrentCapacity *= 2;
 			bFlag = true;
 		}
-		if( bFlag ) {
+		if (bFlag) {
 			char *newBuffer = new char[miCurrentCapacity];
-			if( mpRespondBuffer != NULL ) {
+			if (mpRespondBuffer != NULL) {
 				memcpy(newBuffer, mpRespondBuffer, miCurrentSize);
 				delete[] mpRespondBuffer;
 				mpRespondBuffer = NULL;
@@ -484,23 +488,23 @@ bool HttpClient::AddRespondBuffer(const char* buf, int size) {
 }
 
 void HttpClient::HttpHandle(void *buffer, size_t size, size_t nmemb) {
-	FileLog("httpclient", "HttpClient::HttpHandle( size : %d , nmemb : %d )", size, nmemb);
-	if( mContentType.length() == 0 ) {
+	FileLog("httpclient", "HttpClient::HttpHandle, size:%d , nmemb:%d", size, nmemb);
+	if (mContentType.length() == 0) {
 		char *ct = NULL;
 		CURLcode res = curl_easy_getinfo(mpCURL, CURLINFO_CONTENT_TYPE, &ct);
 
-		if( res == CURLE_OK ) {
+		if (res == CURLE_OK) {
 			if (NULL != ct) {
 				mContentType = ct;
 			}
-			FileLog("httpclient", "HttpClient::HttpHandle( Content-Type: %s )", mContentType.c_str());
+			FileLog("httpclient", "HttpClient::HttpHandle, Content-Type:%s", mContentType.c_str());
 		}
 
 		res = curl_easy_getinfo(mpCURL, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &mContentLength);
 		if (res != CURLE_OK) {
 			mContentLength = -1;
 		}
-		FileLog("httpclient", "HttpClient::HttpHandle( Content-Length: %.0f )", mContentLength);
+		FileLog("httpclient", "HttpClient::HttpHandle, Content-Length:%.0f", mContentLength);
 	}
 
 	int len = size * nmemb;
@@ -521,20 +525,13 @@ size_t HttpClient::CurlProgress(void *data, double downloadTotal, double downloa
 size_t HttpClient::HttpProgress(double downloadTotal, double downloadNow, double uploadTotal, double uploadNow) {
 	double totalTime = 0;
 	curl_easy_getinfo(mpCURL, CURLINFO_TOTAL_TIME, &totalTime);
-//	FileLog("httpclient", "HttpClient::HttpProgress( "
-//			"totalTime : %.2f second, uploadTotal : %.2f, uploadNow : %.2f, "
-//			"mdDownloadLastTime : %.2f second, mdDownloadLast : %.2f, downloadNow : %.2f "
-//			")",
-//			totalTime, uploadTotal, uploadNow,
-//			mdDownloadLastTime, mdDownloadLast, downloadNow
-//			);
 
 	// mark the upload progress
 	mdUploadTotal = uploadTotal;
 	mdUploadLast = uploadNow;
 
 	// waiting for upload finish, no upload timeout
-	if( uploadNow == uploadTotal ) {
+	if (uploadNow == uploadTotal) {
 		if (mdDownloadLast == -1) {
 			// update download progress at the beginning
 			mdDownloadLast = downloadNow;
@@ -542,9 +539,9 @@ size_t HttpClient::HttpProgress(double downloadTotal, double downloadNow, double
 		}
 
 		if (mdDownloadLast == downloadNow) {
-			if( totalTime - mdDownloadLastTime > DWONLOAD_TIMEOUT ) {
+			if (totalTime - mdDownloadLastTime > DWONLOAD_TIMEOUT) {
 				// DWONLOAD_TIMEOUT no receive data, download timeout
-				FileLog("httpclient", "HttpClient::HttpProgress( download timeout, timeout : %.2f seconds )", DWONLOAD_TIMEOUT);
+				FileLog("httpclient", "HttpClient::HttpProgress, download timeout, timeout:%.2f seconds", DWONLOAD_TIMEOUT);
 				mbStop = true;
 			}
 		} else {

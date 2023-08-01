@@ -18,7 +18,7 @@
 #include <rtp/include/rtp_header_extensions.h>
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RtpPacketReceived::RtpPacketReceived() = default;
 RtpPacketReceived::RtpPacketReceived(const ExtensionManager* extensions) :
@@ -40,7 +40,7 @@ void RtpPacketReceived::GetHeader(RTPHeader* header) const {
 	header->timestamp = Timestamp();
 	header->ssrc = Ssrc();
 	std::vector < uint32_t > csrcs = Csrcs();
-	header->numCSRCs = mediaserver::dchecked_cast < uint8_t > (csrcs.size());
+	header->numCSRCs = qpidnetwork::dchecked_cast < uint8_t > (csrcs.size());
 	for (size_t i = 0; i < csrcs.size(); ++i) {
 		header->arrOfCSRCs[i] = csrcs[i];
 	}
@@ -76,4 +76,4 @@ void RtpPacketReceived::GetHeader(RTPHeader* header) const {
 //	header->extension.color_space = GetExtension<ColorSpaceExtension>();
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

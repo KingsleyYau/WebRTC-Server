@@ -14,7 +14,7 @@
 #include <json/json.h>
 #include <common/CommonFunc.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 void Tester::Handle(struct mg_connection *nc, int ev, void *ev_data) {
     struct websocket_message *wm = (struct websocket_message *)ev_data;
@@ -454,4 +454,4 @@ void WebRTCTester::MainThread() {
 			);
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

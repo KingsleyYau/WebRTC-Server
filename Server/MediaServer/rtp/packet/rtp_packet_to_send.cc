@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RtpPacketToSend::RtpPacketToSend(const ExtensionManager* extensions) :
 		RtpPacket(extensions) {
@@ -28,4 +28,4 @@ RtpPacketToSend& RtpPacketToSend::operator=(RtpPacketToSend&& packet) = default;
 
 RtpPacketToSend::~RtpPacketToSend() = default;
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

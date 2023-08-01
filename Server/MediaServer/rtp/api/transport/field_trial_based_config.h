@@ -16,12 +16,12 @@
 #include <absl/strings/string_view.h>
 #include <rtp/api/transport/webrtc_key_value_config.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // Implementation using the field trial API fo the key value lookup.
 class FieldTrialBasedConfig: public WebRtcKeyValueConfig {
 public:
 	std::string Lookup(absl::string_view key) const override;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_TRANSPORT_FIELD_TRIAL_BASED_CONFIG_H_

@@ -18,7 +18,7 @@
 #include <rtp/packet/CommonHeader.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr uint8_t App::kPacketType;
 constexpr size_t App::kMaxDataSize;
@@ -96,4 +96,4 @@ bool App::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 }
 
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork

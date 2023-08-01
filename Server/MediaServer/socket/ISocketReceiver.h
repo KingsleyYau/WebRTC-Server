@@ -9,13 +9,13 @@
 #ifndef SOCKET_ISOCKETRECEIVER_H_
 #define SOCKET_ISOCKETRECEIVER_H_
 
-namespace mediaserver {
+namespace qpidnetwork {
     class SocketReceiver {
     public:
         virtual ~SocketReceiver(){};
         virtual int RecvData(void *buffer, unsigned int size) = 0;
     };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 
 #endif /* SOCKET_ISOCKETRECEIVER_H_ */

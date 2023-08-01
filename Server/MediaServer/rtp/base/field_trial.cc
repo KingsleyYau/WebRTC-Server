@@ -20,7 +20,7 @@
 
 // Simple field trial implementation, which allows client to
 // specify desired flags in InitFieldTrialsFromString.
-namespace mediaserver {
+namespace qpidnetwork {
 namespace field_trial {
 
 static const char* trials_init_string = NULL;
@@ -118,4 +118,4 @@ const char* GetFieldTrialString() {
 }
 
 }  // namespace field_trial
-}  // namespace mediaserver
+}  // namespace qpidnetwork

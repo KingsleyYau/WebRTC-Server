@@ -17,7 +17,7 @@
 
 #include <absl/types/optional.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace string_to_number_internal {
 // This file declares a family of functions to parse integers from strings.
 // The standard C library functions either fail to indicate errors (atoi, etc.)
@@ -113,6 +113,6 @@ auto StringToNumber(const std::string& str, int base = 10)
 	return StringToNumber<T>(str.c_str(), base);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTC_BASE_STRING_TO_NUMBER_H_

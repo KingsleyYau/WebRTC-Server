@@ -18,7 +18,7 @@
 #include <rtp/modules/remote_bitrate_estimator/bwe_defines.h>
 #include <rtp/base/constructor_magic.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Bandwidth over-use detector options.  These are used to drive
 // experimentation with bandwidth estimation parameters.
@@ -83,6 +83,6 @@ private:
 
 	RTC_DISALLOW_COPY_AND_ASSIGN (OveruseEstimator);
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_REMOTE_BITRATE_ESTIMATOR_OVERUSE_ESTIMATOR_H_

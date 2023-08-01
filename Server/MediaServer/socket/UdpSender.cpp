@@ -11,7 +11,7 @@
 #include <common/CommonFunc.h>
 #include "UdpSender.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 UdpSender::UdpSender() {
 	// TODO Auto-generated constructor stub
@@ -73,13 +73,12 @@ bool UdpSender::Init(const string& sendIp, int sendPort) {
 	if( bFlag ) {
 		LogAync(
 				LOG_INFO,
-				"UdpSender::Init( "
-				"this : %p, "
+				"UdpSender::Init, "
+				"this:%p, "
 				"[OK], "
-				"fd : %d, "
-				"sendIp : %s, "
-				"sendPort : %d "
-				")",
+				"fd:%d, "
+				"sendIp:%s, "
+				"sendPort:%d ",
 				this,
 				mFd,
 				sendIp.c_str(),
@@ -88,12 +87,11 @@ bool UdpSender::Init(const string& sendIp, int sendPort) {
 	} else {
 		LogAync(
 				LOG_ALERT,
-				"UdpSender::Init( "
-				"this : %p, "
+				"UdpSender::Init, "
+				"this:%p, "
 				"[Fail], "
-				"sendIp : %s, "
-				"sendPort : %d "
-				")",
+				"sendIp:%s, "
+				"sendPort:%d ",
 				this,
 				sendIp.c_str(),
 				sendPort
@@ -108,10 +106,9 @@ void UdpSender::Close() {
 	if( mFd != -1 ) {
 		LogAync(
 				LOG_INFO,
-				"UdpSender::Close( "
-				"this : %p, "
-				"fd : %d "
-				")",
+				"UdpSender::Close, "
+				"this:%p, "
+				"fd:%d ",
 				this,
 				mFd
 				);
@@ -124,12 +121,11 @@ int UdpSender::SendData(const void *data, unsigned int len) {
 	int sendSize = sendto(mFd, data, len, 0, (struct sockaddr *)&mSendSockAddr, sizeof(struct sockaddr_in));
 //	LogAync(
 //			LOG_DEBUG,
-//			"UdpSender::SendData( "
-//			"this : %p, "
-//			"fd : %d, "
-//			"len : %d, "
-//			"sendSize : %d "
-//			")",
+//			"UdpSender::SendData, "
+//			"this:%p, "
+//			"fd:%d, "
+//			"len:%d, "
+//			"sendSize:%d ",
 //			this,
 //			mFd,
 //			len,
@@ -138,4 +134,4 @@ int UdpSender::SendData(const void *data, unsigned int len) {
 	return sendSize;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

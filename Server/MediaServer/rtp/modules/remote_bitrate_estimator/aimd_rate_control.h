@@ -23,7 +23,7 @@
 #include <rtp/modules/remote_bitrate_estimator/bwe_defines.h>
 #include <rtp/base/experiments/field_trial_parser.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // A rate control implementation based on additive increases of
 // bitrate when no over-use is detected and multiplicative decreases when
 // over-uses are detected. When we think the available bandwidth has changes or
@@ -118,6 +118,6 @@ private:
 //	FieldTrialOptional<TimeDelta> initial_backoff_interval_;
 //	FieldTrialParameter<DataRate> low_throughput_threshold_;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_REMOTE_BITRATE_ESTIMATOR_AIMD_RATE_CONTROL_H_

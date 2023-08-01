@@ -19,9 +19,9 @@
 #include <string>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 
-class UdpSender : public SocketSender {
+class UdpSender:public SocketSender {
 public:
 	UdpSender();
 	virtual ~UdpSender();
@@ -39,6 +39,6 @@ private:
 	int mFd;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* SOCKET_UDPSENDER_H_ */

@@ -14,7 +14,7 @@
 #include <vector>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class Fir: public Psfb {
 public:
@@ -58,6 +58,6 @@ private:
 	std::vector<Request> items_;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_FIR_H_ */

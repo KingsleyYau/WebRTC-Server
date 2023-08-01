@@ -25,7 +25,7 @@
 #include <rtp/base/ref_counted_object.h>
 #include <rtp/base/system/rtc_export.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RTC_EXPORT CopyOnWriteBuffer {
 public:
@@ -263,7 +263,7 @@ private:
 		}
 	}
 
-	// buffer_ is either null, or points to an mediaserver::Buffer with capacity > 0.
+	// buffer_ is either null, or points to an qpidnetwork::Buffer with capacity > 0.
 	scoped_refptr<RefCountedObject<Buffer>> buffer_;
 	// This buffer may represent a slice of a original data.
 	size_t offset_; // Offset of a current slice in the original data in buffer_.
@@ -272,6 +272,6 @@ private:
 					 // Should be 0 if the buffer_ is empty.
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_COPY_ON_WRITE_BUFFER_H_

@@ -14,7 +14,7 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class SdpCallRespond : public BaseResultRespond {
 public:

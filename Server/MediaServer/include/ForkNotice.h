@@ -10,7 +10,7 @@
 #define INCLUDE_FORKNOTICE_H_
 
 
-namespace mediaserver {
+namespace qpidnetwork {
 class ForkNotice {
 public:
 	virtual ~ForkNotice(){};

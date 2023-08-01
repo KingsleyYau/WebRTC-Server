@@ -76,40 +76,23 @@ bool MakeDir(const string& path)
 {
 	bool result = true;
 
-	size_t begin = 0;
-	bool isFirstDir = true;
-	while (result)
-	{
-		// 查找目录分隔符
-		size_t pos = path.find('/', begin);
-		if (string::npos == pos) {
-			pos = path.find('\\', begin);
-		}
+    std::string dir = path;
+    if (dir[dir.size() - 1] != '/') {
+        dir += '/';
+    }
 
-		// 第一级目录不处理
-		if (isFirstDir) {
-			isFirstDir = false;
-		}
-		else {
+    size_t begin = 1;
+	while (result) {
+		// 查找目录分隔符
+		size_t pos = dir.find('/', begin);
+		if (string::npos != pos) {
 			// 若目录不存在则创建
-			string parentDir = path.substr(0, pos);
+			string parentDir = dir.substr(0, pos);
 			if (!IsDirExist(parentDir)) {
 				// 设备可读写权限（没有执行权限）
-#ifndef _WIN32
-//#ifndef IOS
-//				result = (0 == mkdir(parentDir.c_str(), 0777));
-//#else
-                int mod = S_IRWXU | S_IRWXG | S_IRWXO;
-                result = (0 == mkdir(parentDir.c_str(), mod));
-//#endif
-#else
-				result = (TRUE == CreateDirectory(parentDir.c_str(), NULL));
-#endif
+				int mod = S_IRWXU | S_IRWXG | S_IRWXO;
+				result = (0 == mkdir(parentDir.c_str(), mod));
 			}
-		}
-
-		if (string::npos != pos && path.length()-1 != pos) {
-			// 偏移位置
 			begin = pos + 1;
 		}
 		else {

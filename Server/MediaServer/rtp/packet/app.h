@@ -17,7 +17,7 @@
 #include <rtp/packet/RtcpPacket.h>
 #include <rtp/base/buffer.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader;
 
@@ -67,9 +67,9 @@ private:
 
 	uint8_t sub_type_;
 	uint32_t name_;
-	mediaserver::Buffer data_;
+	qpidnetwork::Buffer data_;
 };
 
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_RTCP_PACKET_APP_H_

@@ -15,7 +15,7 @@
 #include <rtp/base/platform_thread_types.h>
 #include <rtp/base/thread_annotations.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace internal {
 class RaceCheckerScope;
@@ -65,16 +65,16 @@ public:
 }  // namespace rtc
 
 #define RTC_CHECK_RUNS_SERIALIZED(x)               \
-  mediaserver::internal::RaceCheckerScope race_checker(x); \
+  qpidnetwork::internal::RaceCheckerScope race_checker(x); \
   RTC_CHECK(!race_checker.RaceDetected())
 
 #if RTC_DCHECK_IS_ON
 #define RTC_DCHECK_RUNS_SERIALIZED(x)              \
-  mediaserver::internal::RaceCheckerScope race_checker(x); \
+  qpidnetwork::internal::RaceCheckerScope race_checker(x); \
   RTC_DCHECK(!race_checker.RaceDetected())
 #else
 #define RTC_DCHECK_RUNS_SERIALIZED(x) \
-  mediaserver::internal::RaceCheckerScopeDoNothing race_checker(x)
+  qpidnetwork::internal::RaceCheckerScopeDoNothing race_checker(x)
 #endif
 
 #endif  // RTC_BASE_RACE_CHECKER_H_

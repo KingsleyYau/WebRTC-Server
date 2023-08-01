@@ -8,7 +8,7 @@
 
 #include "Nack.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // RFC 4585: Feedback format.
 //
@@ -43,9 +43,9 @@ bool Nack::Parse(const CommonHeader& packet) {
 
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kNackItemLength) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, it is too small to be a valid Nack], "
-				"packet.payload_size_bytes() : %u "
+				"packet.payload_size_bytes():%u "
 				")", this, packet.payload_size_bytes());
 		return false;
 	}
@@ -186,4 +186,4 @@ void Nack::Unpack() {
 	}
 }
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

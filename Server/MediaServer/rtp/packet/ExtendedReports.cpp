@@ -13,7 +13,7 @@
 #include <rtp/base/byte_io.h>
 #include <rtp/packet/CommonHeader.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 constexpr uint8_t ExtendedReports::kPacketType;
 constexpr size_t ExtendedReports::kMaxNumberOfDlrrItems;
@@ -183,4 +183,4 @@ void ExtendedReports::ParseTargetBitrateBlock(const uint8_t* block,
 	target_bitrate_->Parse(block, block_length);
 }
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

@@ -21,7 +21,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/string_to_number.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 //////////////////////////////////////////////////////////////////////
 // String Encoding Utilities
@@ -132,6 +132,6 @@ static inline T FromString(const std::string& str) {
 
 //////////////////////////////////////////////////////////////////////
 
-}// namespace mediaserver
+}// namespace qpidnetwork
 
 #endif  // RTC_BASE_STRING_ENCODE_H__

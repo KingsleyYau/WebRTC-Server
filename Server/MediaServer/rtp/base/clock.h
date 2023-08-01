@@ -19,7 +19,7 @@
 #include <rtp/base/rw_lock_wrapper.h>
 #include <rtp/base/ntp_time.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // January 1970, in NTP seconds.
 const uint32_t kNtpJan1970 = 2208988800UL;
@@ -86,6 +86,6 @@ private:
 	std::unique_ptr<RWLockWrapper> lock_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_CLOCK_H_

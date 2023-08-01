@@ -8,7 +8,7 @@
 
 #include "Pli.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // RFC 4585: Feedback format.
 //
@@ -34,9 +34,9 @@ Pli::~Pli() = default;
 bool Pli::Parse(const CommonHeader& packet) {
 	if (packet.payload_size_bytes() < kCommonFeedbackLength) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, it is too small to be a valid PLI], "
-				"packet.payload_size_bytes() : %u "
+				"packet.payload_size_bytes():%u "
 				")", this, packet.payload_size_bytes());
 		return false;
 	}
@@ -61,4 +61,4 @@ bool Pli::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	return true;
 }
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

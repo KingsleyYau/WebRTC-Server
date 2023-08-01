@@ -8,7 +8,7 @@
 
 #include "RtcpPacket.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 size_t RtcpPacket::HeaderLength() const {
 	size_t length_in_bytes = BlockLength();
@@ -46,4 +46,4 @@ void RtcpPacket::CreateHeader(
 	*pos += kHeaderLength;
 }
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

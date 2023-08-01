@@ -31,7 +31,7 @@
 
 struct ev_io;
 struct ev_loop;
-namespace mediaserver {
+namespace qpidnetwork {
 class TcpServerCallback {
 public:
 	virtual ~TcpServerCallback(){};

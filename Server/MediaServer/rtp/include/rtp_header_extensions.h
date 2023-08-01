@@ -25,7 +25,7 @@
 #include <rtp/api/video/video_timing.h>
 #include <rtp/include/rtp_rtcp_defines.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class AbsoluteSendTime {
 public:
@@ -35,12 +35,12 @@ public:
 	static constexpr const char kUri[] =
 			"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
-	static bool Parse(mediaserver::ArrayView<const uint8_t> data,
+	static bool Parse(qpidnetwork::ArrayView<const uint8_t> data,
 			uint32_t* time_24bits);
 	static size_t ValueSize(uint32_t time_24bits) {
 		return kValueSizeBytes;
 	}
-	static bool Write(mediaserver::ArrayView<uint8_t> data,
+	static bool Write(qpidnetwork::ArrayView<uint8_t> data,
 			uint32_t time_24bits);
 
 	static constexpr uint32_t MsTo24Bits(int64_t time_ms) {
@@ -56,12 +56,12 @@ public:
 	static constexpr uint8_t kValueSizeBytes = 2;
 	static constexpr const char kUri[] = "http://www.ietf.org/id/"
 			"draft-holmer-rmcat-transport-wide-cc-extensions-01";
-	static bool Parse(mediaserver::ArrayView<const uint8_t> data,
+	static bool Parse(qpidnetwork::ArrayView<const uint8_t> data,
 			uint16_t* transport_sequence_number);
 	static size_t ValueSize(uint16_t /*transport_sequence_number*/) {
 		return kValueSizeBytes;
 	}
-	static bool Write(mediaserver::ArrayView<uint8_t> data,
+	static bool Write(qpidnetwork::ArrayView<uint8_t> data,
 			uint16_t transport_sequence_number);
 };
 
@@ -73,7 +73,7 @@ public:
 	static constexpr uint8_t kValueSizeBytesWithoutFeedbackRequest = 2;
 	static constexpr const char kUri[] =
 			"http://www.webrtc.org/experiments/rtp-hdrext/transport-wide-cc-02";
-	static bool Parse(mediaserver::ArrayView<const uint8_t> data,
+	static bool Parse(qpidnetwork::ArrayView<const uint8_t> data,
 			uint16_t* transport_sequence_number,
 			absl::optional<FeedbackRequest>* feedback_request);
 	static size_t ValueSize(uint16_t /*transport_sequence_number*/,
@@ -81,7 +81,7 @@ public:
 		return feedback_request ?
 				kValueSizeBytes : kValueSizeBytesWithoutFeedbackRequest;
 	}
-	static bool Write(mediaserver::ArrayView<uint8_t> data,
+	static bool Write(qpidnetwork::ArrayView<uint8_t> data,
 			uint16_t transport_sequence_number,
 			const absl::optional<FeedbackRequest>& feedback_request);
 
@@ -97,21 +97,21 @@ public:
 	static constexpr const char kUri[] =
 			"http://www.webrtc.org/experiments/rtp-hdrext/video-timing";
 
-	static bool Parse(mediaserver::ArrayView<const uint8_t> data,
+	static bool Parse(qpidnetwork::ArrayView<const uint8_t> data,
 			VideoSendTiming* timing);
 	static size_t ValueSize(const VideoSendTiming&) {
 		return kValueSizeBytes;
 	}
-	static bool Write(mediaserver::ArrayView<uint8_t> data,
+	static bool Write(qpidnetwork::ArrayView<uint8_t> data,
 			const VideoSendTiming& timing);
 
 	static size_t ValueSize(uint16_t time_delta_ms, uint8_t idx) {
 		return kValueSizeBytes;
 	}
 	// Writes only single time delta to position idx.
-	static bool Write(mediaserver::ArrayView<uint8_t> data, uint16_t time_delta_ms,
+	static bool Write(qpidnetwork::ArrayView<uint8_t> data, uint16_t time_delta_ms,
 			uint8_t idx);
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_RTP_HEADER_EXTENSIONS_H_

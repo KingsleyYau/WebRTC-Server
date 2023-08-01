@@ -12,10 +12,10 @@
 
 #include <rtp/base/rw_lock_posix.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RWLockWrapper* RWLockWrapper::CreateRWLock() {
   return RWLockPosix::Create();
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

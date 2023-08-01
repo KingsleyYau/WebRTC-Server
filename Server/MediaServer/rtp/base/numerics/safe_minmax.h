@@ -83,7 +83,7 @@
 #include <rtp/base/numerics/safe_compare.h>
 #include <rtp/base/type_traits.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace safe_minmax_impl {
 
@@ -330,6 +330,6 @@ R2 SafeClamp(T x, L min, H max) {
              : SafeGe(x, max) ? static_cast<R2>(max) : static_cast<R2>(x);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_NUMERICS_SAFE_MINMAX_H_

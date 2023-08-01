@@ -25,7 +25,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/units/unit_base.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 // DataRate is a class that represents a given data rate. This can be used to
 // represent bandwidth, encoding bitrate, etc. The internal storage is bits per
 // second (bps).
@@ -151,6 +151,6 @@ inline std::ostream& operator<<(  // no-presubmit-check TODO(webrtc:8982)
 #endif  // UNIT_TEST
 
 }
-  // namespace mediaserver
+  // namespace qpidnetwork
 
 #endif  // RTP_API_UNITS_DATA_RATE_H_

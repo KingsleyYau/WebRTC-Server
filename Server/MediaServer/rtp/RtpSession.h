@@ -28,7 +28,7 @@
 #include <rtp/include/receive_statistics_impl.h>
 #include <rtp/include/rtp_packet_history.h>
 #include <rtp/packet/rtp_packet_received.h>
-using namespace mediaserver::rtcp;
+using namespace qpidnetwork::rtcp;
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -50,9 +50,9 @@ struct srtp_policy_t;
 #define RTP_MAX_PAYLOAD_LEN (MTU - UDP_HEADER_LEN - RTP_HEADER_LEN)
 #define RTP_MAX_LEN (MTU - UDP_HEADER_LEN)
 
-namespace mediaserver {
+namespace qpidnetwork {
 class RtpPacket;
-class RtpSession : public RemoteBitrateObserver {
+class RtpSession:public RemoteBitrateObserver {
 public:
 	RtpSession();
 	virtual ~RtpSession();
@@ -261,12 +261,20 @@ private:
 	unsigned int mVideoPLITimestamp;
 	// Video SSRC
 	unsigned int mVideoSSRC;
+	// 请求强制刷新关键帧的序号
+	unsigned int mFirSeq;
+	// 收到的完整视频帧数量
+	unsigned int mVideoRecvFrameCount;
+	// 是否已经接收过视频帧
+	bool mIsVideoReceived;
 	/////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Audio
 	// Audio SSRC
 	unsigned int mAudioSSRC;
+	// 是否已经接收过音频帧
+	bool mIsAudioReceived;
 	/////////////////////////////////////////////////////////////////////////////
 
 	// libsrtp
@@ -274,14 +282,6 @@ private:
 	srtp_policy_t *mpSendPolicy;
 	srtp_ctx_t *mpRecvSrtpCtx;
 	srtp_policy_t *mpRecvPolicy;
-
-	// 请求强制刷新关键帧的序号
-	unsigned int mFirSeq;
-	// 收到的完整视频帧数量
-	unsigned int mVideoRecvFrameCount;
-	// 是否已经接收过视频帧
-	bool mIsVideoReceived;
-
 	//////////////////////////////////////////////////////////////////////////
 	/**
 	 * 模拟丢包
@@ -339,6 +339,6 @@ private:
 //	RtpPacketReceived rtpPktCache;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_RTPSESSION_H_ */

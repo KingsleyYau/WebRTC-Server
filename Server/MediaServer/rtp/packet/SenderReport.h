@@ -18,7 +18,7 @@
 #include <rtp/packet/RtcpPacket.h>
 #include <rtp/packet/ReportBlock.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class CommonHeader;
 
@@ -87,5 +87,5 @@ private:
 	std::vector<ReportBlock> report_blocks_;
 };
 } // namespace rtcp
-} // namespace mediaserver
+} // namespace qpidnetwork
 #endif  // RTP_PACKET_SENDER_REPORT_H_

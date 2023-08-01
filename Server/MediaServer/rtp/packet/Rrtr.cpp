@@ -11,7 +11,7 @@
 #include <rtp/base/byte_io.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // Receiver Reference Time Report Block (RFC 3611).
 //
@@ -43,4 +43,4 @@ void Rrtr::Create(uint8_t* buffer) const {
 	ByteWriter<uint32_t>::WriteBigEndian(&buffer[8], ntp_.fractions());
 }
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

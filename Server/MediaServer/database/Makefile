@@ -1,4 +1,4 @@
-# Copyright (C) 2015 The Mediaserver
+# Copyright (C) 2015 The QpidNetwork
 # common module Makefile
 #
 # Created on: 2015/10/10

@@ -23,7 +23,7 @@
 #include <rtp/api/units/time_delta.h>
 #include <rtp/base/units/unit_base.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class Frequency final : public rtc_units_impl::RelativeUnit<Frequency> {
 public:
@@ -83,5 +83,5 @@ inline std::ostream& operator<<(  // no-presubmit-check TODO(webrtc:8982)
 #endif  // UNIT_TEST
 
 }
-  // namespace mediaserver
+  // namespace qpidnetwork
 #endif  // RTP_API_UNITS_FREQUENCY_H_

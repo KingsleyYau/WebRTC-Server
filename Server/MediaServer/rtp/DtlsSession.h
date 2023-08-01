@@ -30,7 +30,7 @@ using namespace std;
 #define SRTP_MASTER_SALT_LENGTH	14
 #define SRTP_MASTER_LENGTH (SRTP_MASTER_KEY_LENGTH + SRTP_MASTER_SALT_LENGTH)
 
-namespace mediaserver {
+namespace qpidnetwork {
 typedef enum DtlsSessionStatus {
 	DtlsSessionStatus_None,
 	DtlsSessionStatus_HandshakeStart,
@@ -91,6 +91,6 @@ private:
     char mServerKey[SRTP_MASTER_LENGTH];
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_DTLSSESSION_H_ */

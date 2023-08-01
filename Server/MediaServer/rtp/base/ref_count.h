@@ -11,7 +11,7 @@
 #ifndef RTP_BASE_REF_COUNT_H_
 #define RTP_BASE_REF_COUNT_H_
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Refcounted objects should implement the following informal interface:
 //
@@ -23,7 +23,7 @@ namespace mediaserver {
 // you're borrowing someone else's reference. (A newly created object is a
 // special case: the reference count is zero on construction, and the code that
 // creates the object should immediately call AddRef(), bringing the reference
-// count from zero to one, e.g., by constructing an mediaserver::scoped_refptr).
+// count from zero to one, e.g., by constructing an qpidnetwork::scoped_refptr).
 //
 // AddRef() creates a new reference to the object.
 //
@@ -42,8 +42,8 @@ namespace mediaserver {
 // result of another thread calling Release().
 //
 // Calling AddRef() and Release() manually is discouraged. It's recommended to
-// use mediaserver::scoped_refptr to manage all pointers to reference counted objects.
-// Note that mediaserver::scoped_refptr depends on compile-time duck-typing; formally
+// use qpidnetwork::scoped_refptr to manage all pointers to reference counted objects.
+// Note that qpidnetwork::scoped_refptr depends on compile-time duck-typing; formally
 // implementing the below RefCountInterface is not required.
 
 enum class RefCountReleaseStatus {
@@ -66,6 +66,6 @@ protected:
 	}
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_REF_COUNT_H_

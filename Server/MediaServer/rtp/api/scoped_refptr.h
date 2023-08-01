@@ -64,7 +64,7 @@
 #include <memory>
 #include <utility>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template<class T>
 class scoped_refptr {
@@ -174,6 +174,6 @@ protected:
 	T* ptr_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_

@@ -48,6 +48,10 @@ public:
 	 * 获取返回内容
 	 */
 	void GetBody(const char** pBuffer, int& size);
+	/**
+	 * 获取最后一次错误描述
+	 */
+	const char* GetLastError();
 
 	/**
 	 * 清除所有域名cookies
@@ -96,6 +100,7 @@ private:
 	string mContentType;
 	double mContentLength;
 	long mHttpCode;
+	CURLcode mLastRes;
 
 	// stop manually
 	bool mbStop;

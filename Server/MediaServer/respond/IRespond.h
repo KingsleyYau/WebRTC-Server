@@ -14,11 +14,16 @@
 
 #include <string>
 using namespace std;
-namespace mediaserver {
+namespace qpidnetwork {
 class IRespond {
 public:
 	virtual ~IRespond(){};
-	virtual string Result() = 0;
+
+public:
+	virtual unsigned StatusCode() const = 0;
+	virtual void SetStatusCode(unsigned statusCode) = 0;
+	virtual string StatusMsg() const = 0;
+	virtual string Result() const = 0;
 };
 }
 #endif /* REQUEST_IRESPOND_H_ */

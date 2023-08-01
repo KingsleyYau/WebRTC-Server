@@ -2,9 +2,9 @@
 
 #include <rtp/api/rtp_parameters.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
-int RtpHeaderExtensionSize(mediaserver::ArrayView<const RtpExtensionSize> extensions,
+int RtpHeaderExtensionSize(qpidnetwork::ArrayView<const RtpExtensionSize> extensions,
 		const RtpHeaderExtensionMap& registered_extensions) {
 	// RFC3550 Section 5.3.1
 	static constexpr int kExtensionBlockHeaderSize = 4;
@@ -35,4 +35,4 @@ int RtpHeaderExtensionSize(mediaserver::ArrayView<const RtpExtensionSize> extens
 	return size + 3 - (size + 3) % 4;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

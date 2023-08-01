@@ -20,7 +20,7 @@
 #include <rtp/base/clock.h>
 #include <rtp/modules/include/module_common_types_public.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class NackAudioModule {
 public:
@@ -181,6 +181,6 @@ private:
 	Clock* const clock_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_NACK_AUDIO_MODULE_H_

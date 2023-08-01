@@ -15,7 +15,7 @@
 
 #include <absl/strings/string_view.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // An interface that provides a key-value mapping for configuring internal
 // details of WebRTC. Note that there's no guarantess that the meaning of a
@@ -28,6 +28,6 @@ public:
 	// The configured value for the given key. Defaults to an empty string.
 	virtual std::string Lookup(absl::string_view key) const = 0;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_TRANSPORT_WEBRTC_KEY_VALUE_CONFIG_H_

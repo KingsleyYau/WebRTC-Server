@@ -12,7 +12,7 @@
 
 #include <stddef.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RWLockPosix::RWLockPosix() : lock_() {}
 
@@ -49,4 +49,4 @@ void RWLockPosix::ReleaseLockShared() {
   pthread_rwlock_unlock(&lock_);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

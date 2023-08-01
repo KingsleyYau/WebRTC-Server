@@ -14,7 +14,7 @@
 #include <absl/types/optional.h>
 #include <rtp/api/units/data_rate.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class LinkCapacityEstimator {
 public:
 	LinkCapacityEstimator();
@@ -34,6 +34,6 @@ private:
 	absl::optional<double> estimate_kbps_;
 	double deviation_kbps_ = 0.4;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_CONGESTION_CONTROLLER_GOOG_CC_LINK_CAPACITY_ESTIMATOR_H_

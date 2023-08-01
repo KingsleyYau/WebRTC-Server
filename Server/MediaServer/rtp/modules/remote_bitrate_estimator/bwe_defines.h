@@ -20,7 +20,7 @@
 #define BWE_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define BWE_MIN(a, b) ((a) < (b) ? (a) : (b))
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 namespace congestion_controller {
 int GetMinBitrateBps();
@@ -51,6 +51,6 @@ struct RateControlInput {
 	BandwidthUsage bw_state;
 	absl::optional<DataRate> estimated_throughput;
 };
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_REMOTE_BITRATE_ESTIMATOR_BWE_DEFINES_H_

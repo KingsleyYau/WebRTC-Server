@@ -16,7 +16,7 @@ using namespace std;
 
 #include <openssl/hmac.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class Crypto {
 public:
@@ -27,6 +27,6 @@ public:
 	static int Sha1(const string& key, const string& data, unsigned char* result);
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* CRYPTO_CRYPTO_H_ */

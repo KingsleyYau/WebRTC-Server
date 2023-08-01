@@ -18,7 +18,7 @@
 #include <rtp/base/ref_count.h>
 #include <rtp/base/ref_counter.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 template<class T>
 class RefCountedObject: public T {
@@ -63,11 +63,11 @@ protected:
 	virtual ~RefCountedObject() {
 	}
 
-	mutable mediaserver::mediaserver_impl::RefCounter ref_count_ { 0 };
+	mutable qpidnetwork::mediaserver_impl::RefCounter ref_count_ { 0 };
 
 	RTC_DISALLOW_COPY_AND_ASSIGN(RefCountedObject);
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_REF_COUNTED_OBJECT_H_

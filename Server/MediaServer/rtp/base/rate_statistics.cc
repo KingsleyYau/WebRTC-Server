@@ -15,7 +15,7 @@
 
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RateStatistics::RateStatistics(int64_t window_size_ms, float scale) :
 		buckets_(new Bucket[window_size_ms]()), accumulated_count_(0), num_samples_(
@@ -131,4 +131,4 @@ bool RateStatistics::IsInitialized() const {
 	return oldest_time_ != -max_window_size_ms_;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

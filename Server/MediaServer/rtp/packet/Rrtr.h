@@ -14,7 +14,7 @@
 
 #include <rtp/base/ntp_time.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class Rrtr {
 public:
@@ -48,5 +48,5 @@ private:
 	NtpTime ntp_;
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_RRTR_H_

@@ -20,7 +20,7 @@
 #include <rtp/base/constructor_magic.h>
 #include <rtp/base/metrics.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace {
 absl::optional<DataRate> OptionalRateFromOptionalBps(
 		absl::optional<int> bitrate_bps) {
@@ -411,4 +411,4 @@ void RemoteBitrateEstimatorAbsSendTime::SetMinBitrate(int min_bitrate_bps) {
 	// be called from the network thread in the future.
 	remote_rate_.SetMinBitrate(DataRate::bps(min_bitrate_bps));
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

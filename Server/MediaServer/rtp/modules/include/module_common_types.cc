@@ -17,7 +17,7 @@
 
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RTPFragmentationHeader::RTPFragmentationHeader() :
 		fragmentationVectorSize(0), fragmentationOffset(nullptr), fragmentationLength(
@@ -116,4 +116,4 @@ void RTPFragmentationHeader::Resize(size_t size) {
 	}
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

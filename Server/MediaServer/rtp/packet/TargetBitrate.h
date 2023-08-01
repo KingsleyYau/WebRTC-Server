@@ -16,7 +16,7 @@
 
 #include <vector>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class TargetBitrate {
 public:
@@ -55,5 +55,5 @@ private:
 	std::vector<BitrateItem> bitrates_;
 };
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_PACKET_TARGET_BITRATE_H_

@@ -14,7 +14,7 @@
 #include "TcpServer.h"
 #include "Client.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 class Client;
 class AsyncIOServerCallback {
 public:

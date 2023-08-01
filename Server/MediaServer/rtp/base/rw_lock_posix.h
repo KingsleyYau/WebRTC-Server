@@ -15,7 +15,7 @@
 
 #include <rtp/base/rw_lock_wrapper.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RWLockPosix : public RWLockWrapper {
  public:
@@ -35,6 +35,6 @@ class RWLockPosix : public RWLockWrapper {
   pthread_rwlock_t lock_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTC_BASE_SYNCHRONIZATION_RW_LOCK_POSIX_H_

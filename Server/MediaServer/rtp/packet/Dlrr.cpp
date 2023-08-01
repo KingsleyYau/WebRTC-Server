@@ -12,7 +12,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_conversions.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // DLRR Report Block (RFC 3611).
 //
@@ -86,4 +86,4 @@ void Dlrr::Create(uint8_t* buffer) const {
 	} RTC_CHECK_EQ(buffer + BlockLength(), write_at);
 }
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

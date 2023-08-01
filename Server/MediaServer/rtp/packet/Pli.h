@@ -11,7 +11,7 @@
 
 #include "Psfb.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // Picture loss indication (PLI) (RFC 4585).
 class Pli : public Psfb {
@@ -27,6 +27,6 @@ public:
 	bool Create(uint8_t* packet, size_t* index, size_t max_length) const override;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_PLI_H_ */

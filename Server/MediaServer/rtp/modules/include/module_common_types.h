@@ -16,7 +16,7 @@
 
 #include <vector>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RTPFragmentationHeader {
 public:
@@ -101,6 +101,6 @@ public:
 			bool buffering_allowed) = 0;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_MODULES_INCLUDE_MODULE_COMMON_TYPES_H_

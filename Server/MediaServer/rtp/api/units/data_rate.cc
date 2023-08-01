@@ -13,7 +13,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 std::string ToString(DataRate value) {
 	char buf[64];
@@ -31,4 +31,4 @@ std::string ToString(DataRate value) {
 	}
 	return sb.str();
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

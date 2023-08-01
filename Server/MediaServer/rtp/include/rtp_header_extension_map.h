@@ -10,7 +10,7 @@
 #include <rtp/include/rtp_rtcp_defines.h>
 #include <rtp/base/checks.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RtpHeaderExtensionMap {
 public:
@@ -65,6 +65,6 @@ private:
 	bool extmap_allow_mixed_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_INCLUDE_RTP_HEADER_EXTENSION_MAP_H_

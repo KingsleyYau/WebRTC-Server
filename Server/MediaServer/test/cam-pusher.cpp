@@ -17,7 +17,7 @@
 using namespace std;
 
 #include "CamPusher.h"
-using namespace mediaserver;
+using namespace qpidnetwork;
 
 // Common
 #include <common/LogManager.h>
@@ -196,7 +196,7 @@ void SignalFunc(int signal) {
 				LogAyncUnSafe(
 						LOG_INFO, "main( waitpid:%d )", pid
 						);
-				MainLoop::GetMainLoop()->Call(pid);
+				MainLoop::GetMainLoop()->WaitPid(pid);
 			} else {
 				break;
 			}

@@ -21,7 +21,7 @@ using namespace std;
 #include <common/KThread.h>
 
 #include "CamViewer.h"
-using namespace mediaserver;
+using namespace qpidnetwork;
 
 char ws_host[128] = {"192.168.88.133:8080"};
 char interface[128] = {""};//{"192.168.88.134"};
@@ -109,7 +109,7 @@ bool Parse(int argc, char *argv[]) {
 			value = argv[i++];
 			memset(dest, 0, sizeof(dest));
 			memcpy(dest, value.c_str(), value.length());
-		}  else if( key.compare("-i") == 0 ) {
+		} else if( key.compare("-i") == 0 ) {
 			value = argv[i++];
 			memset(interface, 0, sizeof(interface));
 			memcpy(interface, value.c_str(), value.length());

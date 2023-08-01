@@ -11,7 +11,7 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 UserListRespond::UserListRespond() {
 	// TODO Auto-generated constructor stub
@@ -21,13 +21,14 @@ UserListRespond::~UserListRespond() {
 	// TODO Auto-generated destructor stub
 }
 
-void UserListRespond::SetUserList(const list<string> userList) {
+void UserListRespond::SetUserList(const list<string>& userList) {
 	SetParam(true, "");
 	Json::Value userArray = Json::arrayValue;
 	for(auto user : userList) {
 		userArray.append(user);
 	}
+	resRoot["count"] = userArray.size();
 	resRoot["userlist"] = userArray;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

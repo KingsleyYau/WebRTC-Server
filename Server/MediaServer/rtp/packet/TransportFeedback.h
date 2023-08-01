@@ -18,7 +18,7 @@
 #include <memory>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 class TransportFeedback: public Rtpfb {
 public:
@@ -186,6 +186,6 @@ private:
 	size_t size_bytes_;
 };
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTP_PACKET_TRASPORTFEEDBACK_H_ */

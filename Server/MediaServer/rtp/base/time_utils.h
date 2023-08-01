@@ -20,7 +20,7 @@
 #include <rtp/base/strings/string_builder.h>
 #include <rtp/base/system/rtc_export.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 static const int64_t kNumMillisecsPerSec = INT64_C(1000);
 static const int64_t kNumMicrosecsPerSec = INT64_C(1000000);
@@ -175,6 +175,6 @@ private:
 	int max_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_TIME_UTILS_H_

@@ -11,7 +11,7 @@
 #include <rtp/api/units/frequency.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 std::string ToString(Frequency value) {
 	char buf[64];
 	SimpleStringBuilder sb(buf);
@@ -26,4 +26,4 @@ std::string ToString(Frequency value) {
 	}
 	return sb.str();
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

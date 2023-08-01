@@ -15,7 +15,7 @@
 
 #include <absl/strings/string_view.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Statistics for an RTCP channel
 struct RtcpStatistics {
@@ -106,5 +106,5 @@ public:
 	virtual void OnCname(uint32_t ssrc, absl::string_view cname) = 0;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_RTCP_STATISTICS_H_

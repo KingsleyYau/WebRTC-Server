@@ -13,7 +13,7 @@
 
 #include <limits>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 enum DstSign {
 	DST_UNSIGNED, DST_SIGNED
@@ -181,6 +181,6 @@ inline constexpr RangeCheckResult RangeCheck(Src value) {
 	return RangeCheckImpl<Dst, Src>::Check(value);
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_SAFECONVERSIONSIMPL_H_

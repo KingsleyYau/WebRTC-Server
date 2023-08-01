@@ -19,7 +19,7 @@
 #include <rtp/base/byte_io.h>
 #include <rtp/packet/CommonHeader.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 namespace {
 
@@ -85,11 +85,11 @@ public:
 			fields_(fields) {
 	}
 
-	mediaserver::Buffer Serialize(const NetworkStateEstimate& src) const
+	qpidnetwork::Buffer Serialize(const NetworkStateEstimate& src) const
 			override {
 		size_t max_size = fields_.size() * kFieldSize;
 		size_t size = 0;
-		mediaserver::Buffer buf(max_size);
+		qpidnetwork::Buffer buf(max_size);
 		for (const auto& field : fields_) {
 			if (field.Write(src, buf.data() + size)) {
 				size += kFieldSize;
@@ -99,7 +99,7 @@ public:
 		return buf;
 	}
 
-	bool Parse(mediaserver::ArrayView<const uint8_t> src,
+	bool Parse(qpidnetwork::ArrayView<const uint8_t> src,
 			NetworkStateEstimate* target) const override {
 		if (src.size() % kFieldSize != 0)
 			return false;RTC_DCHECK_EQ(src.size() % kFieldSize, 0);
@@ -152,4 +152,4 @@ void RemoteEstimate::SetEstimate(NetworkStateEstimate estimate) {
 }
 
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork

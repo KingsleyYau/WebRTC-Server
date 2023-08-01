@@ -20,7 +20,7 @@
 #include <rtp/include/rtp_rtcp_defines.h>
 #include <rtp/base/copy_on_write_buffer.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class RtpPacket {
 public:
@@ -44,10 +44,10 @@ public:
 	// read or allocate extensions in methods GetExtension, AllocateExtension,
 	// etc.)
 	bool Parse(const uint8_t* buffer, size_t size);
-	bool Parse(mediaserver::ArrayView<const uint8_t> packet);
+	bool Parse(qpidnetwork::ArrayView<const uint8_t> packet);
 
 	// Parse and move given buffer into Packet.
-	bool Parse(mediaserver::CopyOnWriteBuffer packet);
+	bool Parse(qpidnetwork::CopyOnWriteBuffer packet);
 
 	// Maps extensions id to their types.
 	void IdentifyExtensions(const ExtensionManager& extensions);
@@ -84,12 +84,12 @@ public:
 	bool IsPadding() {
 		return has_padding_;
 	}
-	mediaserver::ArrayView<const uint8_t> payload() const {
-		return mediaserver::MakeArrayView(data() + payload_offset_, payload_size_);
+	qpidnetwork::ArrayView<const uint8_t> payload() const {
+		return qpidnetwork::MakeArrayView(data() + payload_offset_, payload_size_);
 	}
 
 	// Buffer.
-	mediaserver::CopyOnWriteBuffer Buffer() const {
+	qpidnetwork::CopyOnWriteBuffer Buffer() const {
 		return buffer_;
 	}
 	size_t capacity() const {
@@ -132,7 +132,7 @@ public:
 	// Writes csrc list. Assumes:
 	// a) There is enough room left in buffer.
 	// b) Extension headers, payload or padding data has not already been added.
-	void SetCsrcs(mediaserver::ArrayView<const uint32_t> csrcs);
+	void SetCsrcs(qpidnetwork::ArrayView<const uint32_t> csrcs);
 
 	// Header extensions.
 	template<typename Extension>
@@ -152,7 +152,7 @@ public:
 
 	// Returns view of the raw extension or empty view on failure.
 	template<typename Extension>
-	mediaserver::ArrayView<const uint8_t> GetRawExtension() const;
+	qpidnetwork::ArrayView<const uint8_t> GetRawExtension() const;
 
 	template<typename Extension, typename ... Values>
 	bool SetExtension(Values...);
@@ -162,12 +162,12 @@ public:
 
 	// Find or allocate an extension |type|. Returns view of size |length|
 	// to write raw extension to or an empty view on failure.
-	mediaserver::ArrayView<uint8_t> AllocateExtension(ExtensionType type,
+	qpidnetwork::ArrayView<uint8_t> AllocateExtension(ExtensionType type,
 			size_t length);
 
 	// Find an extension |type|.
 	// Returns view of the raw extension or empty view on failure.
-	mediaserver::ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
+	qpidnetwork::ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
 
 	// Reserve size_bytes for payload. Returns nullptr on failure.
 	uint8_t* SetPayloadSize(size_t size_bytes);
@@ -206,7 +206,7 @@ private:
 
 	// Allocates and returns place to store rtp header extension.
 	// Returns empty arrayview on failure.
-	mediaserver::ArrayView<uint8_t> AllocateRawExtension(int id, size_t length);
+	qpidnetwork::ArrayView<uint8_t> AllocateRawExtension(int id, size_t length);
 
 	// Promotes existing one-byte header extensions to two-byte header extensions
 	// by rewriting the data and updates the corresponding extension offsets.
@@ -241,7 +241,7 @@ private:
 	ExtensionManager extensions_;
 	std::vector<ExtensionInfo> extension_entries_;
 	size_t extensions_size_ = 0;  // Unaligned.
-	mediaserver::CopyOnWriteBuffer buffer_;
+	qpidnetwork::CopyOnWriteBuffer buffer_;
 };
 
 template<typename Extension>
@@ -272,7 +272,7 @@ absl::optional<typename Extension::value_type> RtpPacket::GetExtension() const {
 }
 
 template<typename Extension>
-mediaserver::ArrayView<const uint8_t> RtpPacket::GetRawExtension() const {
+qpidnetwork::ArrayView<const uint8_t> RtpPacket::GetRawExtension() const {
 	return FindExtension(Extension::kId);
 }
 
@@ -294,6 +294,6 @@ bool RtpPacket::ReserveExtension() {
 	return true;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_PACKET_RTP_PACKET_H_

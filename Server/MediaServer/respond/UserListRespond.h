@@ -6,22 +6,21 @@
  *		Email: Kingsleyyau@gmail.com
  */
 
-#ifndef RESPOND_UserListRespond_H_
-#define RESPOND_UserListRespond_H_
+#ifndef RESPOND_USERLISTRESPOND_H_
+#define RESPOND_USERLISTRESPOND_H_
 
 #include "BaseResultRespond.h"
-
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class UserListRespond : public BaseResultRespond {
 public:
 	UserListRespond();
 	virtual ~UserListRespond();
 
-	void SetUserList(const list<string> userList);
+	void SetUserList(const list<string>& userList);
 };
 }
-#endif /* RESPOND_UserListRespond_H_ */
+#endif /* RESPOND_USERLISTRESPOND_H_ */

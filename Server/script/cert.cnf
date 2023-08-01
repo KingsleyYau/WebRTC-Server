@@ -13,9 +13,7 @@ emailAddress               = kingsleyyau@gmail.com
 extendedKeyUsage = serverAuth
 subjectAltName = @alt_names
 [alt_names]
-DNS.1 = *.charmlive.com
+DNS.1 = *.xxx.com
 IP.1 = 127.0.0.1
 IP.2 = 192.168.88.133
 IP.3 = 192.168.88.134
-IP.4 = 198.211.27.71
-IP.5 = 81.71.134.206

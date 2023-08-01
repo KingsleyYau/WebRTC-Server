@@ -462,10 +462,10 @@ int DBConnection::ExecuteSQL(const string& strSQL, MYSQL_RES** res, int& iRelt, 
     	const char* error = mysql_error(m_pSQLConn);
 		LogAync(
 				LOG_ERR,
-				"DBConnection::ExecuteSQL( "
+				"DBConnection::ExecuteSQL, "
 				"[执行SQL语句失败], "
-				"error : %s, "
-				"sql : %s"
+				"error:%s, "
+				"sql:%s"
 				")",
 				NULL!=error ? error : "Unknow",
 				strSQL.c_str()

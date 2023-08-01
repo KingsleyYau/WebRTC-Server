@@ -19,7 +19,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/base/string_encode.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // This is a minimalistic string builder class meant to cover the most cases of
 // when you might otherwise be tempted to use a stringstream (discouraged for
@@ -183,6 +183,6 @@ private:
 	std::string str_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTC_BASE_STRINGS_STRING_BUILDER_H_

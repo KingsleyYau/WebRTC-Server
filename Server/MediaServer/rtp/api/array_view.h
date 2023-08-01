@@ -18,7 +18,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/type_traits.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // tl;dr: rtc::ArrayView is the same thing as gsl::span from the Guideline
 //        Support Library.
@@ -346,6 +346,6 @@ inline ArrayView<U, Size> reinterpret_array_view(ArrayView<T, Size> view) {
 	return ArrayView<U, Size>(reinterpret_cast<U*>(view.data()), view.size());
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_API_ARRAY_VIEW_H_

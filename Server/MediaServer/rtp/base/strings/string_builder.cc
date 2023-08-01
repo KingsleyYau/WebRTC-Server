@@ -18,7 +18,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/safe_minmax.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 SimpleStringBuilder::SimpleStringBuilder(ArrayView<char> buffer) :
 		buffer_(buffer) {
@@ -136,4 +136,4 @@ StringBuilder& StringBuilder::AppendFormat(const char* fmt, ...) {
 	return *this;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork

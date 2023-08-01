@@ -13,7 +13,7 @@
 #include <rtp/api/array_view.h>
 #include <rtp/base/strings/string_builder.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 std::string ToString(Timestamp value) {
 	char buf[64];
 	SimpleStringBuilder sb(buf);
@@ -31,4 +31,4 @@ std::string ToString(Timestamp value) {
 	}
 	return sb.str();
 }
-}  // namespace mediaserver
+}  // namespace qpidnetwork

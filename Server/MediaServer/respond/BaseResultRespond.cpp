@@ -7,7 +7,7 @@
 
 #include "BaseResultRespond.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 BaseResultRespond::BaseResultRespond() {
 	// TODO Auto-generated constructor stub
@@ -18,7 +18,7 @@ BaseResultRespond::~BaseResultRespond() {
 	// TODO Auto-generated destructor stub
 }
 
-string BaseResultRespond::Result() {
+string BaseResultRespond::Result() const {
 	Json::FastWriter writer;
 	string res = writer.write(resRoot);
 	return res;
@@ -29,4 +29,4 @@ void BaseResultRespond::SetParam(bool ret, string errmsg) {
 	resRoot["errmsg"] = errmsg;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

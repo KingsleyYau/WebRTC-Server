@@ -1,4 +1,4 @@
-# Copyright (C) 2015 The Mediaserver
+# Copyright (C) 2015 The QpidNetwork
 # Tester Makefile
 #
 # Created on: 2015/10/10
@@ -70,6 +70,9 @@ TARGET_CAM_VIEWER = cam-viewer
 
 TARGET_CAM_PUSHER_OBJS = cam-pusher.o CamPusher.o WebRTCClient.o
 TARGET_CAM_PUSHER = cam-pusher
+
+TARGET_CAMCHAT_PUSHER_OBJS = camchat-pusher.o CamChatPusher.o WebRTCClient.o
+TARGET_CAMCHAT_PUSHER = camchat-pusher
 
 TARGET_GLIB_LIBS = -L. \
 			-Wl,-Bstatic -L../common -lcommon \
@@ -161,12 +164,21 @@ $(TARGET_CAM_PUSHER): $(TARGET_CAM_PUSHER_OBJS)
 	@echo '# Bulid cam-pusher completed!'
 	@echo ''
 	@echo '################################################################'	
-					
-all: $(TARGET) $(TARGET_GLIB) $(TARGET_HTTPD) $(TARGET_HTTPC) $(TARGET_CAM_VIEWER) $(TARGET_CAM_PUSHER) $(TARGET_LEAK)
+
+$(TARGET_CAMCHAT_PUSHER): $(TARGET_CAMCHAT_PUSHER_OBJS)
+	$(CXX) -o $(TARGET_CAMCHAT_PUSHER) $(TARGET_CAMCHAT_PUSHER_OBJS) $(LIBS)
+	@echo '################################################################'
+	@echo ''
+	@echo '# Bulid camchat-pusher completed!'
+	@echo ''
+	@echo '################################################################'
+						
+all: $(TARGET) $(TARGET_GLIB) $(TARGET_HTTPD) $(TARGET_HTTPC) $(TARGET_CAM_VIEWER) $(TARGET_CAM_PUSHER) $(TARGET_CAMCHAT_PUSHER) $(TARGET_LEAK)
 
 clean:
 	rm -f $(OBJS) $(TARGET) $(TARGET_GLIB) \
 	$(TARGET_HTTPD) $(TARGET_HTTPC) \
 	$(TARGET_CAM_VIEWER) $(TARGET_CAM_VIEWER_OBJS) \
 	$(TARGET_CAM_PUSHER) $(TARGET_CAM_PUSHER_OBJS) \
+	$(TARGET_CAMCHAT_PUSHER) $(TARGET_CAMCHAT_PUSHER_OBJS) \
 	$(TARGET_LEAK)

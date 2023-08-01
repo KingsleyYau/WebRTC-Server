@@ -8,7 +8,7 @@
 
 #include "Fir.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // RFC 4585: Feedback format.
 // Common packet format:
@@ -48,9 +48,9 @@ bool Fir::Parse(const CommonHeader& packet) {
 	// The FCI field MUST contain one or more FIR entries.
 	if (packet.payload_size_bytes() < kCommonFeedbackLength + kFciLength) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, it is too small to be a valid FIR], "
-				"packet.payload_size_bytes() : %u "
+				"packet.payload_size_bytes():%u "
 				")", this, packet.payload_size_bytes());
 		return false;
 	}
@@ -58,9 +58,9 @@ bool Fir::Parse(const CommonHeader& packet) {
 	if ((packet.payload_size_bytes() - kCommonFeedbackLength) % kFciLength
 			!= 0) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, it is invalid size for a valid FIR], "
-				"packet.payload_size_bytes() : %u "
+				"packet.payload_size_bytes():%u "
 				")", this, packet.payload_size_bytes());
 		return false;
 	}
@@ -106,4 +106,4 @@ bool Fir::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	return true;
 }
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

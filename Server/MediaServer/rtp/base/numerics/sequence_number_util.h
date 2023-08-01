@@ -21,7 +21,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/numerics/mod_ops.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Test if the sequence number |a| is ahead or at sequence number |b|.
 //
@@ -115,6 +115,6 @@ class SeqNumUnwrapper {
   absl::optional<T> last_value_;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_NUMERICS_SEQUENCE_NUMBER_UTIL_H_

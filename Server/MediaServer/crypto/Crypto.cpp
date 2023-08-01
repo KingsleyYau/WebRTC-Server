@@ -10,7 +10,7 @@
 
 #include "string.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 Crypto::Crypto() {
 	// TODO Auto-generated constructor stub
@@ -36,4 +36,4 @@ int Crypto::Sha1(const string& key, const string& data, unsigned char* result) {
 	return digestLen;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

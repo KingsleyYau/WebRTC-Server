@@ -11,7 +11,7 @@
 
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 /***************************** 状态监视处理 **************************************/
 class MainLoop;
@@ -52,7 +52,7 @@ MainLoop::MainLoop()
 
 MainLoop::~MainLoop() {
 	// TODO Auto-generated destructor stub
-	if ( mpMainLoopRunnable ) {
+	if (mpMainLoopRunnable) {
 		delete mpMainLoopRunnable;
 		mpMainLoopRunnable = NULL;
 	}
@@ -62,7 +62,7 @@ bool MainLoop::Start() {
 	bool bFlag = true;
 
 	mRunningMutex.lock();
-	if( mRunning ) {
+	if (mRunning) {
 		Stop();
 	}
 	mRunning = true;
@@ -72,7 +72,7 @@ bool MainLoop::Start() {
 		// 服务启动成功
 		LogAync(
 				LOG_INFO,
-				"MainLoop::Start( "
+				"MainLoop::Start, "
 				"[OK] "
 				")"
 				);
@@ -81,7 +81,7 @@ bool MainLoop::Start() {
 		// 服务启动失败
 		LogAync(
 				LOG_ALERT,
-				"MainLoop::Start( "
+				"MainLoop::Start, "
 				"[Fail] "
 				")"
 				);
@@ -95,8 +95,8 @@ bool MainLoop::Start() {
 void MainLoop::Stop(int sign_no) {
 	LogAync(
 			LOG_INFO,
-			"MainLoop::Stop( "
-			"signal : %d "
+			"MainLoop::Stop, "
+			"signal:%d "
 			")",
 			sign_no
 			);
@@ -111,12 +111,14 @@ void MainLoop::Stop(int sign_no) {
 		mCallbackMap.Lock();
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 			MainLoopObj *obj = itr->second;
-			LogAyncUnSafe(
-					LOG_INFO, "MainLoop::Stop( kill -%d %d )",
-					signal,
-					obj->pid
-					);
-			kill(obj->pid, sign_no);
+			if (!obj->isExit) {
+				LogAyncUnSafe(
+						LOG_INFO, "MainLoop::Stop, kill -%d %d ",
+						signal,
+						obj->pid
+						);
+				kill(obj->pid, sign_no);
+			}
 			delete obj;
 			mCallbackMap.Erase(itr++);
 		}
@@ -127,7 +129,7 @@ void MainLoop::Stop(int sign_no) {
 
 	LogAync(
 			LOG_INFO,
-			"MainLoop::Stop( "
+			"MainLoop::Stop, "
 			"[OK] "
 			")"
 			);
@@ -135,35 +137,31 @@ void MainLoop::Stop(int sign_no) {
 
 void MainLoop::Exit(int signal) {
 //	LogAyncUnSafe(
-//			LOG_INFO, "MainLoop::Exit( signal : %d )", signal
+//			LOG_INFO, "MainLoop::Exit( signal:%d )", signal
 //			);
-	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
-		MainLoopObj *obj = itr->second;
-		if ( !obj->isExit ) {
-//			LogAyncUnSafe(
-//					LOG_INFO, "MainLoop::Exit( kill -%d %d )",
-//					signal,
-//					obj->pid
-//					);
-			kill(obj->pid, signal);
-		}
-//		else {
-//			itr++;
+//	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
+//		MainLoopObj *obj = itr->second;
+//		if (!obj->isExit) {
+//			kill(obj->pid, signal);
 //		}
-	}
+//	}
 }
 
-void MainLoop::Call(int pid) {
-//	mCallbackMap.Lock();
+void MainLoop::WaitPid(int pid) {
 	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
-	if ( itr != mCallbackMap.End() ) {
+	if (itr != mCallbackMap.End()) {
 		MainLoopObj *obj = itr->second;
 		obj->isExit = true;
 	}
-//	mCallbackMap.Unlock();
 }
 
 void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
+	LogAync(
+			LOG_INFO,
+			"MainLoop::StartWatchChild, "
+			"pid:%u",
+			pid
+			);
 	MainLoopObj *obj = new MainLoopObj(pid, cb);
 	mCallbackMap.Lock();
 	mCallbackMap.Insert(pid, obj);
@@ -171,17 +169,22 @@ void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
 }
 
 void MainLoop::StopWatchChild(int pid) {
+	LogAync(
+			LOG_INFO,
+			"MainLoop::StopWatchChild, "
+			"pid:%u",
+			pid
+			);
 	MainLoopObj *obj = NULL;
-
 	mCallbackMap.Lock();
 	MainLoopCallbackMap::iterator itr = mCallbackMap.Find(pid);
-	if ( itr != mCallbackMap.End() ) {
+	if (itr != mCallbackMap.End()) {
 		obj = itr->second;
 		mCallbackMap.Erase(itr);
 	}
     mCallbackMap.Unlock();
 
-    if ( obj ) {
+    if (obj) {
     	delete obj;
     }
 }
@@ -189,17 +192,18 @@ void MainLoop::StopWatchChild(int pid) {
 void MainLoop::MainLoopHandle() {
 	LogAync(
 			LOG_INFO,
-			"MainLoop::MainLoopHandle( [Start] )"
+			"MainLoop::MainLoopHandle, "
+			"[Start]"
 			);
 
-	while( mRunning ) {
+	while (mRunning) {
 		bool bSleep = true;
 		MainLoopObj *obj = NULL;
 
 		mCallbackMap.Lock();
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 			obj = itr->second;
-			if ( obj->isExit ) {
+			if (obj->isExit) {
 				mCallbackMap.Erase(itr++);
 				bSleep = false;
 				break;
@@ -209,8 +213,10 @@ void MainLoop::MainLoopHandle() {
 		}
 		mCallbackMap.Unlock();
 
-		if ( !bSleep && obj ) {
-			obj->cb->OnChildExit(obj->pid);
+		if (!bSleep && obj) {
+			if (obj->cb) {
+				obj->cb->OnChildExit(obj->pid);
+			}
 			delete obj;
 			obj = NULL;
 		} else {
@@ -220,8 +226,8 @@ void MainLoop::MainLoopHandle() {
 
 	LogAync(
 			LOG_INFO,
-			"MainLoop::MainLoopHandle( [Exit] )"
+			"MainLoop::MainLoopHandle, [Exit]"
 			);
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

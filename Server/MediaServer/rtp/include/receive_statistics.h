@@ -21,7 +21,7 @@
 #include <rtp/packet/ReportBlock.h>
 #include <rtp/packet/rtp_packet_received.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class Clock;
 
@@ -74,5 +74,5 @@ public:
 	virtual void EnableRetransmitDetection(uint32_t ssrc, bool enable) = 0;
 };
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 #endif  // RTP_INCLUDE_RECEIVE_STATISTICS_H_

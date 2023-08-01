@@ -31,7 +31,7 @@
 #endif
 // clang-format on
 
-namespace mediaserver {
+namespace qpidnetwork {
 #if defined(WEBRTC_WIN)
 typedef DWORD PlatformThreadId;
 typedef DWORD PlatformThreadRef;
@@ -57,6 +57,6 @@ bool IsThreadRefEqual(const PlatformThreadRef& a, const PlatformThreadRef& b);
 // Sets the current thread name.
 void SetCurrentThreadName(const char* name);
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_BASE_PLATFORM_THREAD_TYPES_H_

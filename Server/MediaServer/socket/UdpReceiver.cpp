@@ -12,7 +12,7 @@
 #include <common/Math.h>
 #include <common/CommonFunc.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 UdpReceiver::UdpReceiver() {
 	// TODO Auto-generated constructor stub
@@ -64,13 +64,12 @@ bool UdpReceiver::Init(const string& recvIp, int recvPort) {
 	if( bFlag ) {
 		LogAync(
 				LOG_INFO,
-				"UdpReceiver::Init( "
-				"this : %p, "
+				"UdpReceiver::Init, "
+				"this:%p, "
 				"[OK], "
-				"fd : %d, "
-				"recvIp : %s, "
-				"recvPort : %d "
-				")",
+				"fd:%d, "
+				"recvIp:%s, "
+				"recvPort:%d ",
 				this,
 				mFd,
 				recvIp.c_str(),
@@ -79,12 +78,11 @@ bool UdpReceiver::Init(const string& recvIp, int recvPort) {
 	} else {
 		LogAync(
 				LOG_ALERT,
-				"UdpReceiver::Init( "
-				"this : %p, "
+				"UdpReceiver::Init, "
+				"this:%p, "
 				"[Fail], "
-				"recvIp : %s, "
-				"recvPort : %d "
-				")",
+				"recvIp:%s, "
+				"recvPort:%d ",
 				this,
 				recvIp.c_str(),
 				recvPort
@@ -99,10 +97,9 @@ void UdpReceiver::Shutdown() {
 	if( mFd != -1 ) {
 		LogAync(
 				LOG_INFO,
-				"UdpReceiver::Shutdown( "
-				"this : %p, "
-				"fd : %d "
-				")",
+				"UdpReceiver::Shutdown, "
+				"this:%p, "
+				"fd:%d ",
 				this,
 				mFd
 				);
@@ -114,10 +111,9 @@ void UdpReceiver::Close() {
 	if( mFd != -1 ) {
 		LogAync(
 				LOG_INFO,
-				"UdpReceiver::Close( "
-				"this : %p, "
-				"fd : %d "
-				")",
+				"UdpReceiver::Close, "
+				"this:%p, "
+				"fd:%d ",
 				this,
 				mFd
 				);
@@ -134,10 +130,10 @@ int UdpReceiver::RecvData(void *buffer, unsigned int size) {
 //	LogAync(
 //			LOG_DEBUG,
 //			"UdpReceiver::RecvData( "
-//			"this : %p, "
-//			"fd : %d, "
-//			"size : %d, "
-//			"recvSize : %d "
+//			"this:%p, "
+//			"fd:%d, "
+//			"size:%d, "
+//			"recvSize:%d "
 //			")",
 //			this,
 //			mFd,
@@ -148,4 +144,4 @@ int UdpReceiver::RecvData(void *buffer, unsigned int size) {
 	return recvSize;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

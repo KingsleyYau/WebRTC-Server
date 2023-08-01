@@ -41,7 +41,7 @@
 #include <dispatch/dispatch.h>
 #endif
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 // Locking methods (Enter, TryEnter, Leave)are const to permit protecting
 // members inside a const context without requiring mutable CriticalSections

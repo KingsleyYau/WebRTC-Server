@@ -17,15 +17,15 @@
 #include <rtp/api/transport/network_types.h>
 #include <rtp/packet/app.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 
 class CommonHeader;
 class RemoteEstimateSerializer {
 public:
-	virtual bool Parse(mediaserver::ArrayView<const uint8_t> src,
+	virtual bool Parse(qpidnetwork::ArrayView<const uint8_t> src,
 			NetworkStateEstimate* target) const = 0;
-	virtual mediaserver::Buffer Serialize(
+	virtual qpidnetwork::Buffer Serialize(
 			const NetworkStateEstimate& src) const = 0;
 	virtual ~RemoteEstimateSerializer() = default;
 };
@@ -58,6 +58,6 @@ private:
 };
 
 }  // namespace rtcp
-}  // namespace mediaserver
+}  // namespace qpidnetwork
 
 #endif  // RTP_PACKET_REMOTE_ESTIMATE_H_

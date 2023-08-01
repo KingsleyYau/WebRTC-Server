@@ -8,7 +8,7 @@
 
 #include "Remb.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 namespace rtcp {
 // Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
 //
@@ -43,9 +43,9 @@ bool Remb::Parse(const CommonHeader& packet) {
 
 	if (packet.payload_size_bytes() < 16) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, it is too small to be a valid Remb], "
-				"packet.payload_size_bytes() : %u "
+				"packet.payload_size_bytes():%u "
 				")", this, packet.payload_size_bytes());
 		return false;
 	}
@@ -57,10 +57,10 @@ bool Remb::Parse(const CommonHeader& packet) {
 	if (packet.payload_size_bytes()
 			!= kCommonFeedbackLength + (2 + number_of_ssrcs) * 4) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, payload size does not match], "
-				"packet.payload_size_bytes() : %u, "
-				"number_of_ssrcs : %u "
+				"packet.payload_size_bytes():%u, "
+				"number_of_ssrcs:%u "
 				")", this, packet.payload_size_bytes(), number_of_ssrcs);
 		return false;
 	}
@@ -73,10 +73,10 @@ bool Remb::Parse(const CommonHeader& packet) {
 	bool shift_overflow = (bitrate_bps_ >> exponenta) != mantissa;
 	if (shift_overflow) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, invalid remb bitrate value], "
-				"mantissa : %u, "
-				"exponenta : %u "
+				"mantissa:%u, "
+				"exponenta:%u "
 				")", this, mantissa, static_cast<int>(exponenta));
 		return false;
 	}
@@ -95,7 +95,7 @@ bool Remb::Parse(const CommonHeader& packet) {
 bool Remb::SetSsrcs(std::vector<uint32_t> ssrcs) {
 	if (ssrcs.size() > kMaxNumberOfSsrcs) {
 		LogAync(LOG_WARN, "Pli::Parse( "
-				"this : %p, "
+				"this:%p, "
 				"[RTCP packet error, Not enough space for all given SSRCs.] "
 				")", this);
 		return false;
@@ -141,4 +141,4 @@ bool Remb::Create(uint8_t* packet, size_t* index, size_t max_length) const {
 	return true;
 }
 }
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

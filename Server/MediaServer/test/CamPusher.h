@@ -18,7 +18,7 @@
 #include <common/LogManager.h>
 #include <common/KThread.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class CamPusher;
 
 class CamPusherImp : public WebRTCClientCallback {
@@ -128,6 +128,6 @@ private:
 	KMutex mMutex;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* TEST_WEBRTCTESTER_H_ */

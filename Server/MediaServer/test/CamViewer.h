@@ -18,7 +18,7 @@
 #include <common/LogManager.h>
 #include <common/KThread.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class CamViewer;
 
 class CamViewerImp {
@@ -112,6 +112,6 @@ private:
 	KMutex mMutex;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* TEST_WEBRTCTESTER_H_ */

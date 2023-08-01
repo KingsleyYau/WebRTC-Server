@@ -33,7 +33,7 @@
 #include <rtp/base/checks.h>
 #include <rtp/base/time_utils.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 ClockInterface* g_clock = nullptr;
 
@@ -65,7 +65,7 @@ class TimeHelper final {
     TIME_ZONE_INFORMATION time_zone;
     GetTimeZoneInformation(&time_zone);
     int64_t time_zone_bias_ns =
-        mediaserver::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
+        qpidnetwork::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
     singleton.app_start_time_ns_ =
         (ntp_server_time_ms - kNTPTimeToUnixTimeEpochOffset) * 1000000 -
         time_zone_bias_ns;
@@ -78,9 +78,9 @@ class TimeHelper final {
     int64_t result = 0;
     LARGE_INTEGER qpcnt;
     QueryPerformanceCounter(&qpcnt);
-    result = mediaserver::dchecked_cast<int64_t>(
-        (mediaserver::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
-         mediaserver::dchecked_cast<uint64_t>(singleton.os_ticks_per_second_)) *
+    result = qpidnetwork::dchecked_cast<int64_t>(
+        (qpidnetwork::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
+         qpidnetwork::dchecked_cast<uint64_t>(singleton.os_ticks_per_second_)) *
         10000);
     result = singleton.app_start_time_ns_ + result -
              singleton.time_since_os_start_ns_;
@@ -92,7 +92,7 @@ class TimeHelper final {
     TIME_ZONE_INFORMATION time_zone;
     GetTimeZoneInformation(&time_zone);
     int64_t time_zone_bias_ns =
-        mediaserver::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
+        qpidnetwork::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
     FILETIME ft;
     // This will give us system file in UTC format.
     GetSystemTimeAsFileTime(&ft);
@@ -114,13 +114,13 @@ class TimeHelper final {
   void UpdateReferenceTime() {
     LARGE_INTEGER qpfreq;
     QueryPerformanceFrequency(&qpfreq);
-    os_ticks_per_second_ = mediaserver::dchecked_cast<int64_t>(qpfreq.QuadPart);
+    os_ticks_per_second_ = qpidnetwork::dchecked_cast<int64_t>(qpfreq.QuadPart);
 
     LARGE_INTEGER qpcnt;
     QueryPerformanceCounter(&qpcnt);
-    time_since_os_start_ns_ = mediaserver::dchecked_cast<int64_t>(
-        (mediaserver::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
-         mediaserver::dchecked_cast<uint64_t>(os_ticks_per_second_)) *
+    time_since_os_start_ns_ = qpidnetwork::dchecked_cast<int64_t>(
+        (qpidnetwork::dchecked_cast<uint64_t>(qpcnt.QuadPart) * 100000 /
+         qpidnetwork::dchecked_cast<uint64_t>(os_ticks_per_second_)) *
         10000);
   }
 
@@ -161,7 +161,7 @@ int64_t SystemTimeNanos() {
     RTC_DCHECK_NE(b, 0);
     RTC_DCHECK_LE(a, std::numeric_limits<int64_t>::max() / b)
         << "The multiplication " << a << " * " << b << " overflows";
-    return mediaserver::dchecked_cast<int64_t>(a * b);
+    return qpidnetwork::dchecked_cast<int64_t>(a * b);
   };
   ticks = mul(mach_absolute_time(), timebase.numer) / timebase.denom;
 #elif defined(WEBRTC_POSIX)
@@ -310,15 +310,15 @@ int64_t TimeUTCMicros() {
   struct timeval time;
   gettimeofday(&time, nullptr);
   // Convert from second (1.0) and microsecond (1e-6).
-  return (static_cast<int64_t>(time.tv_sec) * mediaserver::kNumMicrosecsPerSec +
+  return (static_cast<int64_t>(time.tv_sec) * qpidnetwork::kNumMicrosecsPerSec +
           time.tv_usec);
 
 #elif defined(WEBRTC_WIN)
   struct _timeb time;
   _ftime(&time);
   // Convert from second (1.0) and milliseconds (1e-3).
-  return (static_cast<int64_t>(time.time) * mediaserver::kNumMicrosecsPerSec +
-          static_cast<int64_t>(time.millitm) * mediaserver::kNumMicrosecsPerMillisec);
+  return (static_cast<int64_t>(time.time) * qpidnetwork::kNumMicrosecsPerSec +
+          static_cast<int64_t>(time.millitm) * qpidnetwork::kNumMicrosecsPerMillisec);
 #endif
 }
 
@@ -326,4 +326,4 @@ int64_t TimeUTCMillis() {
   return TimeUTCMicros() / kNumMicrosecsPerMillisec;
 }
 
-}  // namespace mediaserver
+}  // namespace qpidnetwork
