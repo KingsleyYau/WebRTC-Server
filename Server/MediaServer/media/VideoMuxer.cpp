@@ -16,7 +16,7 @@
 
 #include <common/CommonFunc.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 Slice::Slice() {
     mpSliceData = NULL;
     mSliceSize = 0;
@@ -264,4 +264,4 @@ bool VideoMuxer::GetNalus(const char* data, int size, int naluHeaderSize, Nalu* 
     return bFlag;
 }
     
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

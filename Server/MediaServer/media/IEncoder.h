@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class VideoEncoder;
 class VideoEncoderCallback {
 public:
@@ -56,5 +56,5 @@ public:
     virtual void Pause() = 0;
     virtual void EncodeAudioFrame(void* data, int size, void* frame) = 0;
 };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 #endif /* RTMPDUMP_IENCODER_H_ */

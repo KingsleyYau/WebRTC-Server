@@ -8,7 +8,7 @@
 #ifndef RTMPDUMP_ICODEC_H_
 #define RTMPDUMP_ICODEC_H_
 
-namespace mediaserver {
+namespace qpidnetwork {
 	// 原始视频数据格式
 	typedef enum VIDEO_FORMATE_TYPE {
 		VIDEO_FORMATE_NONE    = 0,
@@ -75,5 +75,5 @@ namespace mediaserver {
 		AAC_SEQUENCE_HEADER = 0,
 		AAC_RAW  = 1,
 	} AudioFrameAACType;
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 #endif /* RTMPDUMP_ICODEC_H_ */

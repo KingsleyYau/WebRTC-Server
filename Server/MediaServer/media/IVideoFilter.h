@@ -8,7 +8,7 @@
 #ifndef RTMPDUMP_IVIDEOFILTER_H_
 #define RTMPDUMP_IVIDEOFILTER_H_
 
-namespace mediaserver {
+namespace qpidnetwork {
 class VideoFrame;
 class VideoFilter {
 public:
@@ -16,6 +16,6 @@ public:
 
 	virtual bool FilterFrame(VideoFrame* srcFrame, VideoFrame* dstFrame) = 0;
 };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* RTMPDUMP_IVIDEOFILTER_H_ */

@@ -18,7 +18,7 @@
 #include <string>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 class VideoDecoder;
 class VideoDecoderCallback {
 public:
@@ -74,5 +74,5 @@ public:
     virtual void ReleaseAudioFrame(void* frame) = 0;
     virtual void ClearAudioFrame() = 0;
 };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 #endif /* IDecoder_h */

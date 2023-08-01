@@ -9,7 +9,7 @@
 #ifndef IAUDIORENDERER_H
 #define IAUDIORENDERER_H
 
-namespace mediaserver {
+namespace qpidnetwork {
     class AudioRenderer {
     public:
         virtual ~AudioRenderer(){};
@@ -20,6 +20,6 @@ namespace mediaserver {
         virtual bool GetMute() = 0;
         virtual void SetMute(bool isMute) = 0;
     };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* IAUDIORENDERER_H */

@@ -15,9 +15,10 @@ VERSION=`echo $VERSION | sed s/\"//g`
 echo -e "VERSION:[\033[32m$VERSION\033[0m]"
 
 ENVS=( \
+local_camchat_201 local_camchat_202 \
+product_cam \
 local demo_jp demo_eu \
 product_sg product_au product_eu product_us product_vn product_br \
-product_cam \
 )
 
 function package_tar {
@@ -30,6 +31,11 @@ function package_tar {
 	
  	# Copy Install/Update Script Files
 	cp -rf bin/install.sh $TMP/$ENV/ || return 1
+		
+	# Replace Custom Install/Update
+	if [ -f "conf/$ENV/bin/install.sh" ]; then
+	  cp -rf conf/$ENV/bin/install.sh $TMP/$ENV/ || return 1
+	fi
 	
 	# Copy Version File
 	cp -rf version.json $DEST/version.json || return 1
@@ -40,7 +46,8 @@ function package_tar {
 	cp -rf build/bin/mediaserver $DEST/bin/ || return 1
 	cp -rf build/bin/turnadmin $DEST/bin/ || return 1
 	cp -rf build/bin/turnserver $DEST/bin/ || return 1
-	
+  cp -rf build/bin/wscat $DEST/bin/ || return 1
+  
 	# Copy Config Files
 	mkdir -p $DEST/etc/ || return 1
 	cp -rf conf/$ENV/etc $DEST/ || return 1
@@ -52,6 +59,11 @@ function package_tar {
 	# Copy Var Files
 	mkdir -p $DEST/var/ || return 1
 	#cp -rf conf/$ENV/var $DEST/ || return 1
+	
+	# Replace Custom Config
+	if [ -d "conf/$ENV/etc" ]; then
+	  cp -rf conf/$ENV/etc $DEST/ || return 1
+	fi
 	
 	# Replace Custom Script
 	if [ -d "conf/$ENV/script" ]; then

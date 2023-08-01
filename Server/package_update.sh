@@ -13,6 +13,10 @@ function package_update_tar {
 
   # Copy Install/Update Script Files
   cp -rf bin/update.sh $TMP/$ENV/ || return 1
+	# Replace Custom Install/Update
+	if [ -f "conf/$ENV/bin/update.sh" ]; then
+	  cp -rf conf/$ENV/bin/update.sh $TMP/$ENV/ || return 1
+	fi
 	
   # Copy Version File
   cp -rf version.json $DEST || return 1
@@ -25,20 +29,20 @@ function package_update_tar {
   #cp -rf build/bin/wscat $DEST/bin/ || return 1
 
   # Copy Config Files
-  mkdir -p $DEST/etc/ || return 1
-  cp -rf conf/$ENV/etc/mediaserver.config $DEST/etc/ || return 1
+  #mkdir -p $DEST/etc/ || return 1
+  #cp -rf conf/$ENV/etc/mediaserver.config $DEST/etc/ || return 1
   #if [ -f "conf/$ENV/etc/mediaserver_test.config" ]; then
   #  cp -rf conf/$ENV/etc/mediaserver_test.config $DEST/etc/ || return 1
   #fi
-  if [ -f "conf/$ENV/etc/mediaserver_camshare.config" ]; then
-    cp -rf conf/$ENV/etc/mediaserver_camshare.config $DEST/etc/ || return 1
-  fi
+  #if [ -f "conf/$ENV/etc/mediaserver_camshare.config" ]; then
+  #  cp -rf conf/$ENV/etc/mediaserver_camshare.config $DEST/etc/ || return 1
+  #fi
   
   mkdir -p $DEST/script/ || return 1
   #cp -rf script/check_status.sh $DEST/script/ || return 1
   #cp -rf script/check_status_detail.sh $DEST/script/ || return 1
-  cp -rf script/rtp2rtmp.sh $DEST/script/ || return 1
-  cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
+  #cp -rf script/rtp2rtmp.sh $DEST/script/ || return 1
+  #cp -rf script/rtp2rtmp_camshare.sh $DEST/script/ || return 1
   #cp -rf script/rtmp2rtp.sh $DEST/script/ || return 1
   #cp -rf script/stop_turnserver.sh $DEST/script/ || return 1
   #cp -rf script/stop_mediaserver.sh $DEST/script/ || return 1

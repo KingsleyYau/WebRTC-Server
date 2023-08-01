@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install mediasever script
+# Install mediaserver script
 # Author: Max.Chiu
 # Date: 2019/11/11
 
@@ -9,6 +9,9 @@ echo -e "############## Installing mediaserver ##############"
 if [ "$DEMO" != "demo" ]; then
   sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat gdb
 fi
+
+CUR_DIR=$(dirname $(readlink -f "$0"))
+cd $CUR_DIR
 
 DEST_PATH="/app/live/mediaserver"
 mkdir -p $DEST_PATH
@@ -49,6 +52,8 @@ mkdir -p $DEST_PATH/log/turnserver/
 groupadd mediaserver
 useradd mediaserver -g mediaserver -M
 chown -R mediaserver:mediaserver $DEST_PATH
+mkdir -p /tmp/webrtc
 chown -R mediaserver:mediaserver /tmp/webrtc
 
+cd -
 echo -e "############## Installing mediaserver [\033[32mOK\033[0m] ##############"

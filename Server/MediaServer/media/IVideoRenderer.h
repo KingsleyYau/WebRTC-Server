@@ -9,11 +9,11 @@
 #ifndef IVideoRenderer_h
 #define IVideoRenderer_h
 
-namespace mediaserver {
+namespace qpidnetwork {
 class VideoRenderer {
 public:
     virtual ~VideoRenderer(){};
     virtual void RenderVideoFrame(void* frame) = 0;
 };
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 #endif /* IVideoPlayer_h */

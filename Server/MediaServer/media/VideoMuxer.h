@@ -13,7 +13,7 @@
 
 #include <media/ICodec.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class Slice {
 public:
     Slice();
@@ -67,6 +67,6 @@ public:
     
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* VideoMuxer_h */
