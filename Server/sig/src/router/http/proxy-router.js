@@ -16,7 +16,9 @@ const apns = require('../../lib/apns').Apns.getInstance();
 // Model的Keys
 const DBModelKeys = require('../../db/model-keys');
 
+const os = require('os')
 const fs = require('fs');
+const readline = require('readline');
 const path = require('path');
 const url = require('url');
 const exec = require('child_process');
@@ -24,6 +26,7 @@ const formidable = require('formidable');
 const mime = require('mime-types');
 const querystring = require('querystring');
 const util = require('util');
+const moment = require("moment");
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -1266,7 +1269,7 @@ function readDirSyncSortByDate(path, httpPath, page, page_size){
             let relativePath = httpPath + "/" + file;
             //console.log("absolutePath: ". absolutePath, ", relativePath: ", relativePath);
 
-            let rex = /.*(.jpg|.jpeg|.png|.mp4|.mov)/;
+            let rex = /.*(.jpg|.jpeg|.png|.gif|.mp4|.mov)/;
             let bFlag = rex.test(relativePath.toLowerCase());
             if ( bFlag ) {
                 json.push(relativePath);
@@ -1796,6 +1799,333 @@ proxyRouter.all('/api/rank_queue_stop', async (ctx, next) => {
     ctx.body = respond;
 });
 
+const ROK_DEAMON = AppConfig.python.rok
+proxyRouter.all('/api/rok_title', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', 'rok_title, line:' + line);
+
+    let server = params.server;
+    let x = params.x;
+    let y = params.y;
+    let title = params.title;
+
+    let record = {
+        server:server,
+        x:x,
+        y:y,
+        title:title,
+    }
+
+    let record_path = path.join('/root/Max/project/rok/web/record.txt')
+    let data
+    try {
+        data = fs.readFileSync(record_path, 'utf8');
+        lines = data.split(os.EOL);
+        let json = JSON.stringify(record);
+        Common.log('http', 'notice', 'rok_title, json:' + json);
+        let result = lines.some((line, index, array) => {
+            if (line.search(json) != -1) {
+                let item = JSON.parse(line)
+                respond.errno = 1;
+                respond.errmsg = "请勿重复提交, 上次提交时间 " + item.summit_time;
+                return true;
+            }
+        })
+        if (!result) {
+            let item = {
+                record:record,
+                summit_time:moment().format("YYYY-MM-DD HH:mm:ss")
+            }
+
+            let json = JSON.stringify(item);
+            fs.appendFileSync(record_path, json + os.EOL, 'utf8')
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_title], ' + e);
+        let item = {
+            record:record,
+            summit_time:moment().format("YYYY-MM-DD HH:mm:ss")
+        }
+
+        let json = JSON.stringify(item);
+        fs.appendFileSync(record_path, json + os.EOL, 'utf8')
+    }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_title_jump', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_title_jump], line:' + line);
+
+    let server = params.server;
+    let x = params.x;
+    let y = params.y;
+    let title = params.title;
+
+    let record = {
+        server:server,
+        x:x,
+        y:y,
+        title:title,
+    }
+
+    let record_path = path.join('/root/Max/project/rok/web/record.txt')
+    let data
+    try {
+        data = fs.readFileSync(record_path, 'utf8');
+        lines = data.split(os.EOL);
+        let json = JSON.stringify(record);
+        Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_title_jump], json:' + json);
+        let result = lines.some((line, index, array) => {
+            if (line.search(json) != -1) {
+                let item = JSON.parse(line)
+                respond.errno = 1;
+                respond.errmsg = "请勿重复提交, 上次提交时间 " + item.summit_time;
+                return true;
+            }
+        })
+        if (!result) {
+            let item = {
+                record:record,
+                summit_time:moment().format("YYYY-MM-DD HH:mm:ss")
+            }
+
+            let json = JSON.stringify(item);
+            fs.writeFileSync(record_path, json + os.EOL + data, 'utf8')
+            ret = exec.execSync(ROK_DEAMON);
+            Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_title_jump], ret:' + ret);
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_title_jump], ' + e);
+        let item = {
+            record:record,
+            summit_time:moment().format("YYYY-MM-DD HH:mm:ss")
+        }
+
+        let json = JSON.stringify(item);
+        fs.writeFileSync(record_path, json + os.EOL + data, 'utf8')
+        exec.execSync(ROK_DEAMON);
+    }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_title_queue', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            size:0,
+            queue:[]
+        }
+    }
+
+    Common.log('http', 'notice', 'rok_title_queue');
+
+    let record_path = path.join('/root/Max/project/rok/web/record.txt')
+    // let data = fs.readFileSync(record_path, 'utf8');
+    await new Promise(resolve => {
+        fs.readFile(record_path, 'utf8', function (err, data) {
+            if (!err) {
+                let lines = data.split(os.EOL);
+                let queue = []
+                lines.forEach((line) => {
+                    if (line.length > 0) {
+                        // Common.log('http', 'notice', 'rok_title_queue, line:' + line);
+                        let el = JSON.parse(line)
+                        queue.push(el)
+                    }
+                });
+                respond.data.size = queue.length;
+                respond.data.queue = queue;
+            }
+            resolve()
+        });
+    })
+
+    ctx.body = respond;
+});
+
+const ROK_BOT = AppConfig.python.rok_bot + ' && nohup python -u main.py --api true '
+proxyRouter.all('/api/rok_bot', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_bot], line:' + line);
+
+    let device_name = params.device_name;
+    let run = 0;
+    if( params.run == "1" ) {
+        run = 1;
+    }
+
+    let run_type = 'request_bot';
+    if( params.run_type != "" ) {
+        run_type = params.run_type;
+    }
+
+    let record = {
+        running:run,
+        name:device_name,
+    }
+
+    let record_path = path.join('/root/Max/project/rok/run/' + device_name + '.json')
+    let log_path = path.join('/root/Max/project/rok/run/' + device_name + '.log')
+    try {
+        if (run) {
+            // ret = exec.execSync(ROK_BOT + '--run ' + run + ' --device_name ' + device_name + ' > ' + log_path + ' 2>&1 &');
+            data = fs.readFileSync(record_path, 'utf8');
+            let old_record = JSON.parse(data);
+            Common.log('http', 'info', '[' + ctx.session.sessionId  + ']-/api/rok_bot], ' + old_record.running);
+            if (old_record.running) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_bot], 正在打工, 不需要重复提交');
+                respond.errno = 1;
+                respond.errmsg = '正在打工, 不需要重复提交';
+            } else {
+                cmd = ROK_BOT + '--run ' + run + ' --device_name ' + device_name + ' --run_type '+ run_type + ' > ' + log_path + ' 2>&1 &'
+                child = exec.exec(cmd, function (error, stdout, stderr) {
+                    if (error) {
+                        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + error.toString());
+                        respond.errno = 1;
+                        respond.errmsg = error.message;
+                    }
+                });
+                Common.log('http', 'debug', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + cmd + ", pid:" + child.pid);
+            }
+        } else {
+            let json = JSON.stringify(record);
+            // fs.writeFileSync(record_path, json + os.EOL, 'utf8')
+            fs.writeFile(record_path, json + os.EOL, e => {
+                if (e) {
+                    Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_bot], e:' + e);
+                }
+            });
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + e);
+    }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_bot_snapshot', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_bot_snapshot], line:' + line);
+
+    let device_name = params.device_name;
+    let photo_path = path.join('/root/Max/project/rok/run/' + device_name + '.jpg')
+    try {
+        if (fs.existsSync(photo_path)) {
+            let data = fs.readFileSync(photo_path);
+            data = new Buffer(data).toString('base64');
+            let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+            respond.data.photo = photo_base64
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot_snapshot], ' + e);
+    }
+
+    ctx.body = respond;
+});
+
+function readLastNLines(filePath, N, callback) {
+    // 读取文件大小
+    fs.stat(filePath, (err, stats) => {
+        if(err) {
+            return callback(err);
+        }
+        const fileSize = stats.size;
+        // 创建可读流
+        const readStream = fs.createReadStream(filePath, { start: fileSize - 1024, crlfDelay: Infinity });
+        const rl = readline.createInterface({ input: readStream });
+        const lines = [];
+
+        // 逐行读取文件内容
+        rl.on('line', (line) => {
+            lines.push(line);
+            if (lines.length < N) {
+                lines.shift();
+            }
+        });
+
+        // 读取完毕
+        rl.on('close', () => {
+            callback(null, lines);
+        });
+    });
+}
+
+proxyRouter.all('/api/rok_bot_log', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {}
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_bot_log], line:' + line);
+
+    let device_name = params.device_name;
+    let log_path = path.join('/root/Max/project/rok/run/' + device_name + '.log')
+
+    await new Promise(resolve => {
+        try {
+            cmd = 'tail -n 5 ' + log_path
+            child = exec.exec(cmd, function (error, stdout, stderr) {
+                if (error) {
+                    Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot_log], ' + error.toString());
+                    respond.errno = 1;
+                    respond.errmsg = error.message;
+                } else {
+                    respond.data.lines = stdout;
+                }
+                resolve()
+            });
+            Common.log('http', 'debug', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + cmd + ", pid:" + child.pid);
+        } catch (e) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + e);
+        }
+    })
+    ctx.body = respond;
+});
 
 proxyRouter.get('/', async (ctx, next) => {
     ctx.status = 302;
