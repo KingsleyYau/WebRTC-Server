@@ -17,7 +17,7 @@ const apns = require('../../lib/apns').Apns.getInstance();
 const DBModelKeys = require('../../db/model-keys');
 
 const os = require('os')
-const fs = require('fs');
+
 const readline = require('readline');
 const path = require('path');
 const url = require('url');
@@ -27,6 +27,9 @@ const mime = require('mime-types');
 const querystring = require('querystring');
 const util = require('util');
 const moment = require("moment");
+
+const fs = require('fs');
+const afs = require('../../lib/fs-async.js')
 
 function readDirSync(path, httpPath){
     let json = [];
@@ -1818,6 +1821,11 @@ proxyRouter.all('/api/rok_title', async (ctx, next) => {
     let y = params.y;
     let title = params.title;
 
+    let ip = ctx.req.headers["x-orig-ip"];
+    if (Common.isNull(ip)) {
+        ip = ctx.request.ip;
+    }
+
     let record = {
         server:server,
         x:x,
@@ -1843,7 +1851,8 @@ proxyRouter.all('/api/rok_title', async (ctx, next) => {
         if (!result) {
             let item = {
                 record:record,
-                summit_time:moment().format("YYYY-MM-DD HH:mm:ss")
+                summit_time:moment().format("YYYY-MM-DD HH:mm:ss"),
+                ip:ip,
             }
 
             let json = JSON.stringify(item);
@@ -1943,25 +1952,67 @@ proxyRouter.all('/api/rok_title_queue', async (ctx, next) => {
     Common.log('http', 'notice', 'rok_title_queue');
 
     let record_path = path.join('/root/Max/project/rok/web/record.txt')
+    let record_last_path = path.join('/root/Max/project/rok/web/record_last.txt')
     // let data = fs.readFileSync(record_path, 'utf8');
-    await new Promise(resolve => {
-        fs.readFile(record_path, 'utf8', function (err, data) {
-            if (!err) {
-                let lines = data.split(os.EOL);
-                let queue = []
-                lines.forEach((line) => {
-                    if (line.length > 0) {
-                        // Common.log('http', 'notice', 'rok_title_queue, line:' + line);
-                        let el = JSON.parse(line)
-                        queue.push(el)
-                    }
-                });
-                respond.data.size = queue.length;
-                respond.data.queue = queue;
+
+    Common.log('http', 'notice', 'rok_title_queue read ' + record_last_path);
+    data1 = await afs.readFile(record_last_path, 'utf8')
+    if (data1.length > 0) {
+        let lines = data1.split(os.EOL);
+        if (lines.length > 0) {
+            let line = lines[0]
+            let el = JSON.parse(line)
+            respond.data.last = el
+        }
+    }
+
+    Common.log('http', 'notice', 'rok_title_queue read ' + record_path);
+    data = await afs.readFile(record_path, 'utf8')
+    if (data.length > 0) {
+        let lines = data.split(os.EOL);
+        let queue = []
+        lines.forEach((line) => {
+            if (line.length > 0) {
+                // Common.log('http', 'notice', 'rok_title_queue, line:' + line);
+                let el = JSON.parse(line)
+                queue.push(el)
             }
-            resolve()
         });
-    })
+        respond.data.size = queue.length;
+        respond.data.queue = queue;
+    }
+
+    // let photo_path = path.join('/root/Max/project/rok/web/screencap.jpg')
+    // Common.log('http', 'notice', 'rok_title_queue read ' + photo_path);
+    // data = await afs.readFile(photo_path)
+    // if (data.length > 0) {
+    //     data = new Buffer(data).toString('base64');
+    //     let photo_base64 = 'data:' + mime.lookup(photo_path) + ';base64,' + data;
+    //     respond.data.photo = photo_base64
+    // }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_title_config', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            config:{}
+        }
+    }
+
+    Common.log('http', 'notice', 'rok_title_queue');
+
+    let title_config_path = path.join('/root/Max/project/rok/web/title_config.json')
+    Common.log('http', 'notice', 'rok_title_config read ' + title_config_path);
+    data = await afs.readFile(title_config_path, 'utf8')
+    if (data.length > 0) {
+        let el = JSON.parse(data)
+        respond.data.config = el
+    }
 
     ctx.body = respond;
 });
@@ -2021,7 +2072,6 @@ proxyRouter.all('/api/rok_bot', async (ctx, next) => {
             }
         } else {
             let json = JSON.stringify(record);
-            // fs.writeFileSync(record_path, json + os.EOL, 'utf8')
             fs.writeFile(record_path, json + os.EOL, e => {
                 if (e) {
                     Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_bot], e:' + e);
