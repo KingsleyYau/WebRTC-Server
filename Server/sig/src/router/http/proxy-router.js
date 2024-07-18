@@ -2004,7 +2004,7 @@ proxyRouter.all('/api/rok_title_config', async (ctx, next) => {
         }
     }
 
-    Common.log('http', 'notice', 'rok_title_queue');
+    Common.log('http', 'notice', 'rok_title_config');
 
     let title_config_path = path.join('/root/Max/project/rok/web/title_config.json')
     Common.log('http', 'notice', 'rok_title_config read ' + title_config_path);
@@ -2017,7 +2017,74 @@ proxyRouter.all('/api/rok_title_config', async (ctx, next) => {
     ctx.body = respond;
 });
 
-const ROK_BOT = AppConfig.python.rok_bot + ' && nohup python -u main.py --api true '
+proxyRouter.all('/api/rok_monitor', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            monitor_count:{}
+        }
+    }
+
+    Common.log('http', 'notice', 'rok_monitor');
+
+    try {
+        let monitor_file_path = path.join('/root/Max/project/rok/web/monitor_file.json')
+        Common.log('http', 'notice', 'rok_monitor read ' + monitor_file_path);
+        data = await afs.readFile(monitor_file_path, 'utf8')
+        if (data.length > 0) {
+            let el = JSON.parse(data)
+            respond.data.monitor_count = el
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_monitor], ' + e);
+        respond.errno = 1;
+        respond.errmsg = '当前没有开始监控'
+    }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_ranking_list', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            ranking_date:"",
+            ranking_list:{}
+        }
+    }
+
+    Common.log('http', 'notice', 'rok_ranking_list');
+
+    let params = querystring.parse(ctx.querystring);
+    
+    let date_string = params.date_string;
+    if( Common.isNull(date_string) || date_string == '' ) {
+        date_string = moment().format("YYYY-MM-DD");
+    }
+    respond.data.ranking_date = date_string;
+
+    try {
+        let file_path = path.join('/root/Max/project/rok/web/ranking/ranking_list_'+ date_string +'.json')
+        Common.log('http', 'notice', 'rok_ranking_list read ' + file_path);
+        data = await afs.readFile(file_path, 'utf8')
+        if (data.length > 0) {
+            let el = JSON.parse(data)
+            respond.data.ranking_list = el;
+        }
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_ranking_list], ' + e);
+        respond.errno = 1;
+        respond.errmsg = '没有该天统计'
+    }
+
+    ctx.body = respond;
+});
+
+const ROK_BOT = AppConfig.python.rok_api + ' && nohup python -u main.py --api true '
 proxyRouter.all('/api/rok_bot', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -2174,6 +2241,59 @@ proxyRouter.all('/api/rok_bot_log', async (ctx, next) => {
             Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_bot], ' + e);
         }
     })
+    ctx.body = respond;
+});
+
+const ROK_GET_DEAD_INFO = AppConfig.python.rok_api + ' && nohup python -u main.py --run_type get_dead_info --api true --api_file '
+proxyRouter.all('/api/rok_get_dead_info', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+            dead_info:{}
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_get_dead_info], line:' + line);
+
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_rok");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_get_dead_info], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            try {
+                let filepath = files.upload_file.path;
+                cmd = ROK_GET_DEAD_INFO + filepath
+                data = exec.execSync(cmd)
+                Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_get_dead_info], cmd:' + cmd + ', data:' + data);
+                dead_info = JSON.parse(data)
+                respond.data.dead_info = dead_info
+                resolve()
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_get_dead_info], ' + e.toString());
+                respond.errno = 1;
+                respond.errmsg = "Process fail";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
+
     ctx.body = respond;
 });
 

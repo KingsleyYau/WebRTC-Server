@@ -46,6 +46,8 @@ const AppConfig = {
         // pd: "source /root/miniconda3/bin/activate pd && cd /root/project",
         // pd: "source /Users/max/Documents/tools/miniconda3/bin/activate pd && cd /Users/max/Documents/Project/Demo/python/pd",
         pd: "source /root/miniconda2/bin/activate pd && cd /root/Max/project",
+        rok: "/root/Max/project/rok/web/rok_deamon.sh",
+        rok_api: "source /root/miniconda2/bin/activate rok && cd /root/Max/project/rok",
         sh: "/root/Max/project/",
     },
 }
