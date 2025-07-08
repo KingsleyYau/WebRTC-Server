@@ -293,7 +293,7 @@ void DtlsSession::SSL_Info_Callback(const SSL* s, int where, int ret) {
 	}
 
 	LogAync(
-			LOG_INFO,
+			LOG_DEBUG,
 			"DtlsSession::SSL_Info_Callback, "
 			"this:%p, "
 			"[%s], "

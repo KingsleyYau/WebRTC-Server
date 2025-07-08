@@ -1189,17 +1189,17 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 		for (auto& report_block:result) {
 			uint32_t ssrc = report_block.source_ssrc();
 			StreamStatistician* ss = rs_module_.GetStatistician(ssrc);
-			if ( ss ) {
-				if ( now_ms - last_stats_time_ > kStatsIntervalMs ) {
+			if (ss) {
+				if (now_ms - last_stats_time_ > kStatsIntervalMs) {
 					double fractionLostInPercent = report_block.fraction_lost() * 100.0 / 255.0;
 					LogAync(LOG_INFO, "RtpSession::UpdateStatsPacket, "
 							"this:%p, "
 							"[%s], "
 							"media_ssrc:0x%08x(%u), "
-//							"bitrate_est:%" PRId64 ", "
-//							"bitrate_recv:%u, "
-							"bitrate_est:%s, "
-							"bitrate_recv:%s, "
+							"bitrate_est:%" PRId64 ", "
+							"bitrate_recv:%u, "
+//							"bitrate_est:%s, "
+//							"bitrate_recv:%s, "
 							"extended_highest_sequence_number:%u, "
 							"rtt:%" PRId64 ", "
 							"packets_lost:%d, "
@@ -1209,10 +1209,10 @@ bool RtpSession::UpdateStatsPacket(const RtpPacketReceived *rtpPkt, uint64_t rec
 							,
 							this,
 							PktTypeDesc(ssrc).c_str(), ssrc, ssrc,
-//							IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
-//							ss->BitrateReceived(),
-							ReadableBps(IsVideoPkt(ssrc)?last_send_bitrate_bps_:0).c_str(),
-							ReadableBps(ss->BitrateReceived()).c_str(),
+							IsVideoPkt(ssrc)?last_send_bitrate_bps_:0,
+							ss->BitrateReceived(),
+//							ReadableBps(IsVideoPkt(ssrc)?last_send_bitrate_bps_:0).c_str(),
+//							ReadableBps(ss->BitrateReceived()).c_str(),
 							report_block.extended_high_seq_num(),
 							xr_rr_rtt_ms_,
 							report_block.cumulative_lost_signed(),
@@ -1751,9 +1751,9 @@ bool RtpSession::IsRtcp(const char *frame, unsigned len) {
 void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 		uint32_t bitrate) {
 	for(std::vector<uint32_t>::const_iterator itr = ssrcs.begin(); itr != ssrcs.end(); itr++) {
-		if ( IsVideoPkt(*itr) ) {
+		if (IsVideoPkt(*itr)) {
 		    StreamStatistician* ss = rs_module_.GetStatistician(*itr);
-			if ( ss ) {
+			if (ss) {
 				RtpReceiveStats rrs = ss->GetStats();
 				LogAync(LOG_DEBUG, "RtpSession::OnReceiveBitrateChanged, "
 						"this:%p, "
@@ -1810,7 +1810,7 @@ void RtpSession::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
 			// Cap the value to send in remb with configured value.
 			receive_bitrate_bps = std::min(receive_bitrate_bps, max_bitrate_bps_);
 
-			if ( gAutoBitrate ) {
+			if (gAutoBitrate) {
 				// 发送控制包
 				SendRtcpRemb(*itr, receive_bitrate_bps);
 			}

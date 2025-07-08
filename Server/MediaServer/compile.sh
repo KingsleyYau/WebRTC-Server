@@ -5,19 +5,22 @@
 BUILD_PATH="$1"
 if [ "$BUILD_PATH" == "" ]; then
   echo "# BUILD_PATH must be set, like: /root/mediaserver/build"
+  exit 1
 fi
 
 NOCLEAN="$2"
+DEBUG="$3"
 if [ "$NOCLEAN" == "noclean" ]; then
-	echo "# Build MediaServer without clean"
+  echo "# Compile MediaServer without clean"
+  DEBUG=
 else
-  echo "# Build MediaServer with clean"
-  NOCLEAN=""
+  echo "# Compile MediaServer with clean($DEBUG)"
+  NOCLEAN="clean"
 fi
 
 if [ "$NOCLEAN" != "noclean" ]; then
 	chmod +x ./configure || exit 1
-	./configure $BUILD_PATH || exit 1
+	./configure $BUILD_PATH $DEBUG || exit 1
   make clean
 fi
 

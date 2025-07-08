@@ -804,7 +804,7 @@ void MediaServer::StateHandle() {
 					LOG_WARN,
 					"MediaServer::StateHandle, "
 					"event:[状态服务], "
-					"过去%u秒共收到请求(Websocket):%u, "
+					"%u秒共收到请求(Websocket):%u, "
 					"当前在线(Websocket):%u, "
 					"当前推流(RTC):%u",
 					iStateTime,
@@ -1036,7 +1036,11 @@ bool MediaServer::HttpParseRequestHeader(HttpParser* parser) {
 		// 获取在线用户列表
 		OnRequestGetOnlineUsers(parser);
 	} else if (!strcasecmp(parser->GetPath().c_str(), "/kickuser")) {
+		// 踢出用户
 		OnRequestKickUser(parser);
+	} else if (!strcasecmp(parser->GetPath().c_str(), "/synconlineusers")) {
+		// 同步在线列表
+		OnRequestSyncOnlineUsers(parser);
 	} else {
 		// 未知命令
 		bFlag = OnRequestUndefinedCommand(parser);
@@ -1211,6 +1215,23 @@ void MediaServer::OnRequestKickUser(HttpParser* parser) {
 	}
 	mWebRTCMap.Unlock();
 
+	HttpSendRespond(parser, &respond);
+}
+
+void MediaServer::OnRequestSyncOnlineUsers(HttpParser* parser) {
+	LogAync(
+			LOG_NOTICE,
+			"MediaServer::OnRequestSyncOnlineUsers, "
+			"event:[内部服务(HTTP)-收到命令:同步在线列表], "
+			"%s",
+			parser->GetPath().c_str()
+			);
+	mExtRequestMutex.lock();
+	mbForceExtSync = true;
+	mExtRequestMutex.unlock();
+
+	// 马上返回数据
+	BaseResultRespond respond;
 	HttpSendRespond(parser, &respond);
 }
 
@@ -1672,13 +1693,13 @@ bool MediaServer::OnWSRequestSdpCall(Json::Value req, Json::Value &rep, connecti
 			stream = reqData["stream"].asString();
 		}
 
-		int record = 0;
-		if (reqData["record"].isInt()) {
-			record = reqData["record"].asInt();
+		int record = (mWebRTCRtp2RtmpBaseRecordUrl.length() > 0);
+		if (reqData["record"].isBool()) {
+			record = reqData["record"].asBool();
 		}
 
 		string rtmpUrl = mWebRTCRtp2RtmpBaseUrl;
-		if (record == 1) {
+		if (record) {
 			if (mWebRTCRtp2RtmpBaseRecordUrl.length() > 0) {
 				rtmpUrl = mWebRTCRtp2RtmpBaseRecordUrl;
 			}
@@ -2111,33 +2132,18 @@ bool MediaServer::HandleExtForceSync(HttpClient* httpClient) {
 			}
 		}
 
-		if (bFlag) {
-			LogAync(
-					LOG_NOTICE,
-					"MediaServer::HandleExtForceSync, "
-					"event:[外部同步在线状态-%s], "
-					"url:%s, "
-					"count:%u, "
-					"res:%s",
-					FLAG_2_STRING(bFlag),
-					url.c_str(),
-					req["params"].size(),
-					res
-					);
-		} else {
-			LogAync(
-					LOG_WARN,
-					"MediaServer::HandleExtForceSync, "
-					"event:[外部同步在线状态-%s], "
-					"url:%s, "
-					"count:%u, "
-					"res:%s",
-					FLAG_2_STRING(bFlag),
-					url.c_str(),
-					req["params"].size(),
-					res
-					);
-		}
+		LogAync(
+				FLAG_2_LOG_NW(bFlag),
+				"MediaServer::HandleExtForceSync, "
+				"event:[外部同步在线状态-%s], "
+				"url:%s, "
+				"count:%u, "
+				"res:%s",
+				FLAG_2_STRING(bFlag),
+				url.c_str(),
+				req["params"].size(),
+				res
+				);
 		miExtSyncLastTime = getCurrentTime();
 	}
 

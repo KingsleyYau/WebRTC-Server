@@ -112,11 +112,11 @@ void MainLoop::Stop(int sign_no) {
 		for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End();) {
 			MainLoopObj *obj = itr->second;
 			if (!obj->isExit) {
-				LogAyncUnSafe(
-						LOG_INFO, "MainLoop::Stop, kill -%d %d ",
-						signal,
-						obj->pid
-						);
+//				LogAyncUnSafe(
+//						LOG_INFO, "MainLoop::Stop, kill -%d %d ",
+//						signal,
+//						obj->pid
+//						);
 				kill(obj->pid, sign_no);
 			}
 			delete obj;
@@ -136,15 +136,12 @@ void MainLoop::Stop(int sign_no) {
 }
 
 void MainLoop::Exit(int signal) {
-//	LogAyncUnSafe(
-//			LOG_INFO, "MainLoop::Exit( signal:%d )", signal
-//			);
-//	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
-//		MainLoopObj *obj = itr->second;
-//		if (!obj->isExit) {
-//			kill(obj->pid, signal);
-//		}
-//	}
+	for (MainLoopCallbackMap::iterator itr = mCallbackMap.Begin(); itr != mCallbackMap.End(); itr++) {
+		MainLoopObj *obj = itr->second;
+		if (!obj->isExit) {
+			kill(obj->pid, signal);
+		}
+	}
 }
 
 void MainLoop::WaitPid(int pid) {

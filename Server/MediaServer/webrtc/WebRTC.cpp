@@ -314,7 +314,7 @@ bool WebRTC::Start(
 			LOG_NOTICE,
 			"WebRTC::Start, "
 			"this:%p, "
-			"[%s], [%s], [IgoreMedia:%s], "
+			"[%s], [%s], [IgnoreMedia:%s], "
 			"rtmpUrl:%s",
 			this,
 			FLAG_2_STRING(bFlag),

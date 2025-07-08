@@ -206,6 +206,7 @@ public:
 	void OnRequestReloadLogConfig(HttpParser* parser);
 	void OnRequestGetOnlineUsers(HttpParser* parser);
 	void OnRequestKickUser(HttpParser* parser);
+	void OnRequestSyncOnlineUsers(HttpParser* parser);
 	bool OnRequestUndefinedCommand(HttpParser* parser);
 	/***************************** 内部服务(HTTP), 命令回调 **************************************/
 

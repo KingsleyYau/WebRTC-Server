@@ -652,19 +652,8 @@ void IceClient::OnNiceRecv(::NiceAgent *agent, unsigned int streamId, unsigned i
 
 void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int streamId) {
 	mClientMutex.lock();
-	if (mRunning ) {
+	if (mRunning) {
 		gchar *local_sdp = nice_agent_generate_local_sdp(agent);
-		LogAync(
-				LOG_INFO,
-				"IceClient::OnCandidateGatheringDone, "
-				"this:%p, "
-				"streamId:%u, "
-				"local_sdp :\n%s"
-				,
-				this,
-				streamId,
-				local_sdp
-				);
 
 		gchar *ufrag = NULL;
 		gchar *pwd = NULL;
@@ -672,12 +661,8 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 		gchar baseip[INET6_ADDRSTRLEN] = {0};
 
 		mIceGatheringDone = true;
-		bool bFlag = true;
-		if ( bFlag ) {
-			bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);
-		}
-
-		if ( bFlag ) {
+		bool bFlag = nice_agent_get_local_credentials(agent, streamId, &ufrag, &pwd);;
+		if (bFlag) {
 			bFlag = false;
 			vector<string> candArray;
 			string ipUse;
@@ -695,19 +680,19 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 					nice_address_to_string(&local->base_addr, baseip);
 					unsigned int basePort = (nice_address_get_port(&local->base_addr)==0)?9:nice_address_get_port(&local->base_addr);
 
-					if ( priority > local->priority ) {
+					if (priority > local->priority) {
 						priority = local->priority;
 						ipUse = ip;
 						portUse = nice_address_get_port(&local->addr);
 					}
 
 					string transport;
-						if ( strlen(CandidateTransportName[local->transport]) > 0 ) {
+						if (strlen(CandidateTransportName[local->transport]) > 0) {
 							transport += " ";
 							transport += CandidateTransportName[local->transport];
 						}
 
-					if ( local->type == NICE_CANDIDATE_TYPE_RELAYED || local->type == NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE ) {
+					if (local->type == NICE_CANDIDATE_TYPE_RELAYED || local->type == NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
 						snprintf(candStr, sizeof(candStr) - 1,
 								"a=candidate:%s 1 %s %u %s %u typ %s raddr %s rport %u%s\n",
 								local->foundation,
@@ -740,7 +725,7 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 					candArray.push_back(string(candStr));
 				}
 
-				if( mpIceClientCallback ) {
+				if (mpIceClientCallback) {
 					mpIceClientCallback->OnIceCandidateGatheringDone(this, ipUse, portUse, candArray, ufrag, pwd);
 				}
 
@@ -752,31 +737,32 @@ void IceClient::OnCandidateGatheringDone(::NiceAgent *agent, unsigned int stream
 			nice_agent_free_candidates(candidates);
 		}
 
-		if ( !bFlag ) {
-			LogAync(
-					LOG_WARN,
-					"IceClient::OnCandidateGatheringDone, "
-					"this:%p, "
-					"[CandidateGathering Fail], "
-					"streamId:%u, "
-					"local_sdp :\n%s"
-					,
-					this,
-					streamId,
-					local_sdp
-					);
-			if( mpIceClientCallback ) {
+		LogAync(
+				FLAG_2_LOG_IW(bFlag),
+				"IceClient::OnCandidateGatheringDone, "
+				"this:%p, "
+				"[CandidateGathering-%s], "
+				"streamId:%u, "
+				"local_sdp :\n%s"
+				,
+				this,
+				FLAG_2_STRING(bFlag),
+				streamId,
+				local_sdp
+				);
+		if (!bFlag) {
+			if (mpIceClientCallback) {
 				mpIceClientCallback->OnIceCandidateGatheringFail(this, RequestErrorType_WebRTC_No_Server_Candidate_Info_Found_Fail);
 			}
 		}
 
-		if ( ufrag ) {
+		if (ufrag) {
 			g_free(ufrag);
 		}
-		if ( pwd ) {
+		if (pwd) {
 			g_free(pwd);
 		}
-		if ( local_sdp ) {
+		if (local_sdp) {
 			g_free(local_sdp);
 		}
 
