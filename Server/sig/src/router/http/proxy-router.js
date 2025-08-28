@@ -2017,6 +2017,52 @@ proxyRouter.all('/api/rok_title_config', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_config], line:' + line);
+
+    let key = params.key;
+    Common.log('http', 'notice', 'rok_title_config');
+
+    let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
+    Common.log('http', 'notice', 'zdd_config read ' + config_path);
+    data = await afs.readFile(config_path, 'utf8')
+    if (data.length > 0) {
+        let el = JSON.parse(data)
+        if (!el.hasOwnProperty(key)) {
+            respond.errno = 1;
+            respond.errmsg = "邀请码无效";
+        } else {
+            let date_string = el[key];
+            if (date_string != 'infinite') {
+                now_string = moment().format("YYYY-MM-DD")
+
+                const date1 = new Date(date_string);
+                const date2 = new Date(now_string);
+                Common.log('http', 'notice', 'date1 ' + date1 + ', date2 ' + date2);
+                if (date1 < date2){
+                    respond.errno = 2;
+                    respond.errmsg = "邀请码过期";
+                }
+            }
+        }
+    } else {
+        respond.errno = 1;
+        respond.errmsg = "邀请码无效";
+    }
+
+    ctx.body = respond;
+});
+
 proxyRouter.all('/api/rok_monitor', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -2053,6 +2099,9 @@ proxyRouter.all('/api/rok_ranking_list', async (ctx, next) => {
         userId:ctx.session.sessionId,
         data:{
             ranking_date:"",
+            power_total_unit:0,
+            kill_total_unit:0,
+            dead_total_unit:0,
             ranking_list:{}
         }
     }
@@ -2073,7 +2122,14 @@ proxyRouter.all('/api/rok_ranking_list', async (ctx, next) => {
         data = await afs.readFile(file_path, 'utf8')
         if (data.length > 0) {
             let el = JSON.parse(data)
-            respond.data.ranking_list = el;
+            if (Array.isArray(el)) {
+                respond.data.ranking_list = el;
+            } else if (typeof el === "object" && el !== null) {
+                respond.data.ranking_list = el.ranking_list;
+                respond.data.power_total_unit = el.power_total_unit;
+                respond.data.kill_total_unit = el.kill_total_unit;
+                respond.data.dead_total_unit = el.dead_total_unit;
+            }
         }
     } catch (e) {
         Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_ranking_list], ' + e);
