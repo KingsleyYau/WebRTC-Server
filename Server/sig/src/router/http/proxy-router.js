@@ -31,6 +31,67 @@ const moment = require("moment");
 const fs = require('fs');
 const afs = require('../../lib/fs-async.js')
 
+/**
+ * 找出目录下最后更新时间大于 5 分钟的图片并删除
+ * @param {string} dirPath - 目标目录路径（绝对/相对路径均可）
+ */
+async function deleteOldImages(dirPath) {
+    try {
+        // 1. 验证目录是否存在（避免后续操作报错）
+        try {
+            await fs.access(dirPath, fs.constants.F_OK);
+        } catch (err) {
+            console.error(`错误：目录不存在 → ${dirPath}`);
+            return;
+        }
+
+        // 2. 读取目录下所有文件/文件夹
+        const files = await fs.readdir(dirPath);
+        // 5 分钟对应的毫秒数（用于时间对比：5min = 5*60*1000ms）
+        const fiveMinutesMs = 5 * 60 * 1000;
+        const currentTime = Date.now(); // 当前时间（毫秒时间戳）
+        let deletedCount = 0; // 统计删除的文件数量
+
+        // 3. 遍历文件，筛选并删除符合条件的图片
+        for (const file of files) {
+            const filePath = path.join(dirPath, file); // 拼接完整文件路径
+            let fileStat;
+
+            // 捕获单个文件的处理错误（避免因一个文件异常导致整体中断）
+            try {
+                fileStat = await fs.stat(filePath);
+            } catch (err) {
+                console.warn(`跳过异常文件：${filePath} → ${err.message}`);
+                continue;
+            }
+
+            // 跳过文件夹，只处理文件
+            if (!fileStat.isFile()) continue;
+
+            // 4. 筛选图片格式（可根据需求扩展后缀）
+            const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+            const fileExt = path.extname(file).toLowerCase(); // 统一转为小写匹配
+            if (!imageExts.includes(fileExt)) continue;
+
+            // 5. 判断文件是否“最后更新时间大于 5 分钟”
+            const lastUpdateTime = fileStat.mtimeMs; // 文件最后修改时间（毫秒戳）
+            const timeDiff = currentTime - lastUpdateTime; // 时间差（当前 - 最后更新）
+            // 时间差 > 5分钟 → 说明文件超过5分钟未更新，执行删除
+            if (timeDiff > fiveMinutesMs) {
+                await fs.unlink(filePath); // 删除文件
+                console.log(`已删除：${filePath}`);
+                deletedCount++;
+            }
+        }
+
+        // 输出最终结果
+        console.log(`\n清理完成 → 共删除 ${deletedCount} 个过期图片文件`);
+    } catch (err) {
+        // 捕获目录读取等全局错误
+        console.error(`全局处理错误：${err.message}`);
+    }
+}
+
 function readDirSync(path, httpPath){
     let json = [];
     let pa = fs.readdirSync(path);
@@ -1347,7 +1408,7 @@ proxyRouter.all('/api/maser/share_discovery', async (ctx, next) => {
 
     var form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
-    form.uploadDir = path.join(__dirname, "../../static/upload_discovery");
+    form.uploadDir = path.join(__dirname, "../../static/upload_discovery/");
     form.keepExtensions = true;
     form.maxFieldsSize = 2 * 1024 * 1024;
 
@@ -2059,6 +2120,179 @@ proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
         respond.errno = 1;
         respond.errmsg = "邀请码无效";
     }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_zdd_discovery', async (ctx, next) => {
+    let respond = {
+        errno: 0,
+        errmsg: "",
+        userId: ctx.session.sessionId,
+        data: {
+            datalist:[]
+        }
+    }
+
+    let ok = false;
+    params = querystring.parse(ctx.querystring);
+    key = ''
+    if (!Common.isNull(params.key)) {
+        key = params.key;
+
+        let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
+        Common.log('http', 'notice', 'rok_zdd_discovery zdd_config read ' + config_path);
+        data = await afs.readFile(config_path, 'utf8')
+        if (data.length > 0) {
+            let el = JSON.parse(data)
+            if (el.hasOwnProperty(key)) {
+                let date_string = el[key];
+                if (date_string != 'infinite') {
+                    now_string = moment().format("YYYY-MM-DD")
+                    const date1 = new Date(date_string);
+                    const date2 = new Date(now_string);
+                    Common.log('http', 'notice', 'date1 ' + date1 + ', date2 ' + date2);
+                    if (date1 < date2){
+                        respond.errno = 2;
+                        respond.errmsg = "邀请码过期";
+                    } else {
+                        ok = true;
+                    }
+                } else {
+                    ok = true;
+                }
+            } else {
+                respond.errno = 1;
+                respond.errmsg = "邀请码无效";
+            }
+        }
+
+        if (ok) {
+            try {
+                let discovery_path = Common.AppGlobalVar.rootPath + "/static/upload_rok_zdd/" + key;
+                deleteOldImages(discovery_path)
+                let discovery = readDirSyncSortByDate(discovery_path, "/upload_rok_zdd/" + key, 1, 30);
+                respond.data.datalist = discovery;
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_discovery], ' + e.toString());
+            }
+        }
+    }
+
+    ctx.body = respond;
+});
+
+proxyRouter.all('/api/rok_zdd_snapshot', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"上传成功",
+        userId:ctx.session.sessionId,
+        data:{
+
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_snapshot]');
+
+    let form = new formidable.IncomingForm();
+    form.encoding = 'utf-8';
+    form.uploadDir = path.join(__dirname + "../../../static/upload_rok_zdd");
+    form.keepExtensions = true;//保留后缀
+    form.maxFieldsSize = 2 * 1024 * 1024;
+
+    fs.mkdir(form.uploadDir, { recursive: true }, (err) => {
+        if (err) {
+            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], err:' + err);
+        }
+    });
+
+    await new Promise(function(resolve, reject) {
+        form.parse(ctx.req, function (err, fields, files) {
+            try {
+                let filepath = files.upload_file.path;
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], files:' + files);
+                let dir = path.dirname(filepath)
+                let basename = path.basename(filepath)
+                let basename_pre = basename.split('.')[0];
+                let basename_ext = basename.split('.')[1];
+
+                let key = "";
+                if( !Common.isNull(fields.key)  ) {
+                    key = fields.key;
+                }
+
+                let ok = false;
+
+                let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
+                Common.log('http', 'notice', 'zdd_config read ' + config_path);
+                data = afs.readFileSync(config_path, 'utf8')
+                if (data.length > 0) {
+                    let el = JSON.parse(data)
+                    if (el.hasOwnProperty(key)) {
+                        let date_string = el[key];
+                        if (date_string != 'infinite') {
+                            now_string = moment().format("YYYY-MM-DD")
+                            const date1 = new Date(date_string);
+                            const date2 = new Date(now_string);
+                            Common.log('http', 'notice', 'date1 ' + date1 + ', date2 ' + date2);
+                            if (date1 < date2){
+                                respond.errno = 2;
+                                respond.errmsg = "邀请码过期";
+                            } else {
+                                ok = true;
+                            }
+                        } else {
+                            ok = true;
+                        }
+                    } else {
+                        respond.errno = 1;
+                        respond.errmsg = "邀请码无效";
+                    }
+                }
+
+                if (ok) {
+                    let playername = "playername";
+                    if( !Common.isNull(fields.playername) ) {
+                        playername = fields.playername;
+                    }
+
+                    dir = path.join(dir, key)
+                    fs.mkdir(dir, { recursive: true }, (err) => {
+                        if (err) {
+                            Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], err:' + err);
+                        }
+                    });
+
+                    if( !Common.isNull(filepath) && filepath != '' ) {
+                        // 重命名临时文件为目标文件名
+                        let output_path = path.join(dir, playername + "." + basename_ext);
+                        fs.rename(filepath, output_path, (err) => {
+                            if (err) {
+                                console.error('文件重命名失败：', err);
+                                respond.errno = -1;
+                                respond.errmsg = "上传失败";
+                            } else {
+                                console.log(`文件保存成功：${output_path}`);
+                            }
+                        });
+                    }
+                }
+
+                resolve()
+
+            } catch (e) {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], ' + e.toString());
+                respond.errno = -1;
+                respond.errmsg = "上传失败";
+                // reject(e);
+                resolve();
+            } finally {
+                // resolve();
+            }
+        })
+    })
 
     ctx.body = respond;
 });
