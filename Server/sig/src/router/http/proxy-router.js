@@ -2083,6 +2083,56 @@ proxyRouter.all('/api/rok_title_config', async (ctx, next) => {
     ctx.body = respond;
 });
 
+proxyRouter.all('/api/rok_zdd_invite', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    // Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_invite], line:' + line);
+
+    let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
+    Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_invite], read zdd_config' + config_path);
+
+    data = await afs.readFile(config_path, 'utf8')
+    if (data.length > 0) {
+        let item = JSON.parse(data)
+        let now_string = moment().add(30, 'minutes').format("YYYY-MM-DD hh:mm:ss")
+        let key = Math.random().toString(36).substr(2).toLocaleUpperCase()
+        item[key] = now_string;
+
+        const now = moment();
+        Object.keys(item).forEach(key => {
+            // 创建两个 Moment 时间对象（示例）
+            if (item[key] != 'infinite') {
+                const time1 = moment(item[key]);
+                const minuteDiff = now.diff(time1, 'minutes');
+                if (minuteDiff > 0) {
+                    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_invite], 删除过期邀请码 ' + key + ', 有效期:' + item[key]);
+                    delete item[key];
+                }
+            }
+        });
+
+        let json = JSON.stringify(item);
+        fs.writeFileSync(config_path, json + os.EOL, 'utf8')
+
+        respond.data.expire = now_string;
+        respond.data.key = key
+
+    } else {
+        respond.errno = 99999;
+        respond.errmsg = "其他错误, 稍后再试.";
+    }
+
+    ctx.body = respond;
+});
+
 proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
     let respond = {
         errno:0,
@@ -2095,12 +2145,10 @@ proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
     let line = ctx.querystring
     let params = querystring.parse(line);
     Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_config], line:' + line);
-
     let key = params.key;
-    Common.log('http', 'notice', 'rok_title_config');
 
     let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
-    Common.log('http', 'notice', 'zdd_config read ' + config_path);
+    Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_config], read zdd_config' + config_path);
     data = await afs.readFile(config_path, 'utf8')
     if (data.length > 0) {
         let el = JSON.parse(data)
@@ -2110,7 +2158,8 @@ proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
         } else {
             let date_string = el[key];
             if (date_string != 'infinite') {
-                now_string = moment().format("YYYY-MM-DD")
+                respond.data.expire = date_string;
+                now_string = moment().format("YYYY-MM-DD hh:mm:ss")
 
                 const date1 = new Date(date_string);
                 if(isNaN(date1.getTime())) {
@@ -2124,6 +2173,8 @@ proxyRouter.all('/api/rok_zdd_config', async (ctx, next) => {
                         respond.errmsg = "邀请码过期";
                     }
                 }
+            } else {
+                respond.data.expire = "永久";
             }
         }
     } else {
@@ -2151,7 +2202,7 @@ proxyRouter.all('/api/rok_zdd_discovery', async (ctx, next) => {
         key = params.key;
 
         let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
-        Common.log('http', 'notice', 'rok_zdd_discovery zdd_config read ' + config_path);
+        Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_discovery], read zdd_config' + config_path);
         data = await afs.readFile(config_path, 'utf8')
         if (data.length > 0) {
             let el = JSON.parse(data)
@@ -2204,7 +2255,7 @@ proxyRouter.all('/api/rok_zdd_snapshot', async (ctx, next) => {
 
     let line = ctx.querystring
     let params = querystring.parse(line);
-    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_snapshot]');
+    // Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_zdd_snapshot]');
 
     let form = new formidable.IncomingForm();
     form.encoding = 'utf-8';
@@ -2222,7 +2273,7 @@ proxyRouter.all('/api/rok_zdd_snapshot', async (ctx, next) => {
         form.parse(ctx.req, function (err, fields, files) {
             try {
                 let filepath = files.upload_file.path;
-                Common.log('http', 'warn', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], files:' + files);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], filepath:' + filepath);
                 let dir = path.dirname(filepath)
                 let basename = path.basename(filepath)
                 let basename_pre = basename.split('.')[0];
@@ -2236,7 +2287,7 @@ proxyRouter.all('/api/rok_zdd_snapshot', async (ctx, next) => {
                 let ok = false;
 
                 let config_path = path.join('/root/Max/project/rok/web/zdd_config.json')
-                Common.log('http', 'notice', 'zdd_config read ' + config_path);
+                Common.log('http', 'notice', '[' + ctx.session.sessionId  + ']-/api/rok_zdd_snapshot], read zdd_config' + config_path);
                 data = afs.readFileSync(config_path, 'utf8')
                 if (data.length > 0) {
                     let el = JSON.parse(data)
