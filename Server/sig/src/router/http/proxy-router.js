@@ -30,7 +30,9 @@ const moment = require("moment");
 
 const fs = require('fs');
 const afs = require('../../lib/fs-async.js')
-
+// const axios = require('axios');
+const http = require('http')
+const https = require('https');
 /**
  * 同步方式：找出目录下最后修改时间超过5分钟的图片并删除
  * @param {string} dirPath - 目标目录路径
@@ -2354,6 +2356,99 @@ proxyRouter.all('/api/rok_zdd_snapshot', async (ctx, next) => {
             }
         })
     })
+
+    ctx.body = respond;
+});
+
+
+proxyRouter.all('/api/wx/rok_king_data', async (ctx, next) => {
+    let respond = {
+        errno:0,
+        errmsg:"",
+        userId:ctx.session.sessionId,
+        data:{
+        }
+    }
+
+    let line = ctx.querystring
+    let params = querystring.parse(line);
+    // Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_king_data], line:' + line);
+
+    try {
+        let data = {
+            areas: params.areas,
+            isExport: 0,
+            t:0,
+            sign:''
+        }
+        new_params = Common.generateSign(data)
+        new_params_string = querystring.stringify(new_params);
+        let proxy_path = '/sign/rok/area/query-area-ncp-v2?' + new_params_string
+        Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_king_data], proxy_path:' + proxy_path);
+        const options = {
+            hostname: 'novel-api.abcutils.com',
+            path: proxy_path,
+            method: 'GET',
+            headers: {
+                'session': 'fb9de1417ecb260971949f7e80a85f34',
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip',
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1 wechatdevtools/1.06.2504010 MicroMessenger/8.0.5 Language/zh_CN webview/ sessionid/7',
+                'Referer': 'https://servicewechat.com/wx69cf76bee64f1416/146/page-frame.html'
+            }
+        };
+
+        await new Promise(resolve => {
+            const req = http.request(options, (res) => {
+                // 处理响应
+                let data = '';
+                // 接收响应数据
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                // 响应结束处理
+                res.on('end', () => {
+                    Common.log('http', 'notice', '[' + ctx.session.sessionId + ']-/api/rok_king_data], proxy_response:' + data);
+                    let proxy_res = JSON.parse(data)
+                    if (proxy_res.success) {
+                        let items = proxy_res.data
+                        let new_items = []
+                        for (let i = 0; i < items.length; i++) {
+                            let item = items[i]
+                            let new_item = {
+                                area:item.area,
+                                p:item.zp,
+                                ss:item.zss,
+                                d:item.zd,
+                                p10:item.p10kw,
+                                p8:item.p8kw,
+                                p5:item.p5kw,
+                                ss100:item.skw100,
+                                ss50:item.skw50,
+                                ss30:item.skw30
+                            }
+                            new_items.push(new_item)
+                        }
+                        respond.data = new_items
+                        resolve();
+                    }
+                });
+            });
+            // 处理请求错误
+            req.on('error', (err) => {
+                Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_king_data], err.message:' + err.message);
+                respond.errno = 1;
+                respond.errmsg = err.message;
+                resolve();
+            });
+            req.end();
+        })
+
+    } catch (e) {
+        Common.log('http', 'warn', '[' + ctx.session.sessionId + ']-/api/rok_king_data], ' + e);
+        respond.errno = 1;
+        respond.errmsg = e.message
+    }
 
     ctx.body = respond;
 });
