@@ -2459,6 +2459,11 @@ proxyRouter.all('/api/wx/rok_king_data_detail', async (ctx, next) => {
         errno:0,
         errmsg:"",
         userId:ctx.session.sessionId,
+        total: {
+            p:0,
+            ss:0,
+            d:0,
+        },
         data:{
         }
     }
@@ -2511,6 +2516,11 @@ proxyRouter.all('/api/wx/rok_king_data_detail', async (ctx, next) => {
                             let item = items[i]
                             if (item.area == params.area) {
                                 item_id = item.id;
+                                respond.total = {
+                                    p:item.zp,
+                                    ss:item.zss,
+                                    d:item.zd,
+                                }
                                 break
                             }
                         }
