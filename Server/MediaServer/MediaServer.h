@@ -309,7 +309,7 @@ private:
 	/**
 	 * 外部状态改变接口
 	 */
-	bool SendExtSetStatusRequest(HttpClient* httpClient, bool isLogin, const string& param);
+	bool SendExtSetStatusRequest(HttpClient* httpClient, bool isLogin, const string& param, Json::Value& rep);
 	/**
 	 * 获取外部请求线程
 	 */
@@ -321,7 +321,7 @@ private:
 	bool OnWSRequestSdpPull(Json::Value req, Json::Value &rep, connection_hdl hdl);
 	bool OnWSRequestSdpUpdate(Json::Value req, Json::Value &rep, connection_hdl hdl);
 	bool OnWSRequestLogin(Json::Value req, Json::Value &rep, connection_hdl hdl);
-	bool OnWSRequestGetToken(Json::Value req, Json::Value &rep, connection_hdl hdl);
+	bool OnWSRequestGetToken(Json::Value req, Json::Value &rep, connection_hdl hdl, bool withIceUrl = true);
 
 
 private:

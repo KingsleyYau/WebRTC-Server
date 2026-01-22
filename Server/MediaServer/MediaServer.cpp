@@ -1362,7 +1362,7 @@ void MediaServer::OnWebRTCError(WebRTC *rtc, RequestErrorType errType, const str
 
 		rep["id"] = client->id++;
 		rep["route"] = "imRTC/sendErrorNotice";
-		GetErrorObject(rep["errno"], rep["errmsg"], errType, errMsg);
+		GetErrorObject(rep["errno"], rep["errmsg"], errType);
 
 		LogAync(
 				LOG_WARN,
@@ -1640,7 +1640,9 @@ void MediaServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string
 					bFlag = OnWSRequestLogin(req, rep, hdl);
 				} else if (route == "imRTC/sendGetToken") {
 					bFlag = OnWSRequestGetToken(req, rep, hdl);
-				} else {
+				} else if (route == "imRTC/sendGetTokenWithoutUrl") {
+					bFlag = OnWSRequestGetToken(req, rep, hdl, false);
+				}  else {
 					GetErrorObject(rep["errno"], rep["errmsg"], RequestErrorType_Request_Unknow_Command);
 				}
 			} else {
@@ -1983,7 +1985,7 @@ bool MediaServer::OnWSRequestLogin(Json::Value req, Json::Value &rep, connection
 	return bFlag;
 }
 
-bool MediaServer::OnWSRequestGetToken(Json::Value req, Json::Value &rep, connection_hdl hdl) {
+bool MediaServer::OnWSRequestGetToken(Json::Value req, Json::Value &rep, connection_hdl hdl, bool withIceUrl) {
 	bool bFlag = false;
 	Json::Value data = Json::Value::null;
 	string userId = "";
@@ -1998,7 +2000,7 @@ bool MediaServer::OnWSRequestGetToken(Json::Value req, Json::Value &rep, connect
 	char user[1024] = {0};
 	time_t timer = time(NULL);
 	snprintf(user, sizeof(user) - 1, "%lu:%s", timer + mTurnClientTTL, (userId.length() > 0)?userId.c_str():"client");
-//					string password = Crypto::Sha1("mediaserver12345", user);
+
 	unsigned char sha1Pwd[EVP_MAX_MD_SIZE + 1] = {0};
 	int length = Crypto::Sha1("mediaserver12345", user, sha1Pwd);
 	Arithmetic art;
@@ -2011,11 +2013,13 @@ bool MediaServer::OnWSRequestGetToken(Json::Value req, Json::Value &rep, connect
 			"hdl:%p, "
 			"user:%s, "
 			"base64:%s, "
-			"ttl:%u",
+			"ttl:%u, "
+			"withIceUrl:%s",
 			hdl.lock().get(),
 			user,
 			base64.c_str(),
-			mTurnClientTTL
+			mTurnClientTTL,
+			BOOL_2_STRING(withIceUrl)
 			);
 
 	bFlag = true;
@@ -2029,7 +2033,9 @@ bool MediaServer::OnWSRequestGetToken(Json::Value req, Json::Value &rep, connect
 	snprintf(url, sizeof(url) - 1, "turn:%s?transport=udp", mStunServerExtIp.c_str());
 	urls.append(url);
 
-	iceServers["urls"] = urls;
+	if (withIceUrl) {
+		iceServers["urls"] = urls;
+	}
 	iceServers["username"] = user;
 	iceServers["credential"] = base64;
 
@@ -2173,10 +2179,7 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 		}
 
 		if (param.length() > 0) {
-			bFlag = SendExtSetStatusRequest(httpClient, true, param);
-			if (!bFlag) {
-				GetErrorObject(rep["errno"], rep["errmsg"], RequestErrorType_Ext_Login_Error);
-			}
+			bFlag = SendExtSetStatusRequest(httpClient, true, param, rep);
 		} else {
 			GetErrorObject(rep["errno"], rep["errmsg"], RequestErrorType_Request_Missing_Param);
 		}
@@ -2252,16 +2255,18 @@ void MediaServer::HandleExtLogin(HttpClient* httpClient, ExtRequestItem *item) {
 
 void MediaServer::HandleExtLogout(HttpClient* httpClient, ExtRequestItem *item) {
 	bool bFlag = false;
-	bFlag = SendExtSetStatusRequest(httpClient, false, item->extParam);
+	Json::Value rep;
+	bFlag = SendExtSetStatusRequest(httpClient, false, item->extParam, rep);
 }
 
 bool MediaServer::SendExtSetStatusRequest(
 		HttpClient* httpClient,
 		bool isLogin,
-		const string& param
+		const string& param,
+		Json::Value& rep
 		) {
 	bool bFlag = false;
-
+	bool bParse = false;
 	long httpCode = 0;
 	const char* res = NULL;
 	int respondSize = 0;
@@ -2292,21 +2297,29 @@ bool MediaServer::SendExtSetStatusRequest(
 		httpCode = httpClient->GetRespondCode();
 		httpClient->GetBody(&res, respondSize);
 
-		if (respondSize > 0) {
+		if (httpCode == 200 && respondSize > 0) {
 			// 发送成功
 			Json::Value rep;
 			Json::Reader reader;
 			if (reader.parse(res, rep, false)) {
 				if (rep.isObject()) {
 					if (rep["ret"].isInt()) {
+						bParse = true;
 						int errNo = rep["ret"].asInt();
 						if (errNo == 1) {
 							bFlag = true;
+						} else {
+							GetErrorObject(rep["errno"], rep["errmsg"], RequestErrorType_Ext_Login_Error);
 						}
 					}
 				}
 			}
 		}
+	}
+
+	if (!bParse && isLogin) {
+		// 外部请求登录接口错误
+		GetErrorObject(rep["errno"], rep["errmsg"], RequestErrorType_Request_Server_Internal_Error);
 	}
 
 	if (httpCode != 200 || (!bFlag && !isLogin)) {
