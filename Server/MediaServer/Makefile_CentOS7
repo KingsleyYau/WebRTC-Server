@@ -15,7 +15,7 @@ else
 CXXFLAGS = -O2 -g #-D_CHECK_MEMORY_LEAK
 endif
 
-CXXFLAGS += -std=c++17 -DWEBRTC_POSIX -DWEBRTC_LINUX
+CXXFLAGS += -std=c++11 -DWEBRTC_POSIX -DWEBRTC_LINUX
 CXXFLAGS += -Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS += -I. -Iinclude -Ithird_party \
 			-Ithird_party/curl/include \
@@ -59,13 +59,14 @@ LIBS = \
 	-Wl,-Bstatic -Lthird_party/libnice/agent/.libs -lagent \
 	-Wl,-Bstatic -Lthird_party/libnice/random/.libs -lnice-random \
 	-Wl,-Bstatic -Lthird_party/libnice/socket/.libs -lsocket \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_optional_access \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_variant_access \
+	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_any_cast_impl \
 	-Wl,-Bdynamic -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lglib-2.0 \
 	-Wl,-Bdynamic -lboost_chrono -lboost_system -lboost_random \
 	-Wl,-Bstatic -L$(BUILD_PATH_LIB) -lssl -lcrypto \
-	-Wl,-Bdynamic -ldl -pthread -lidn2 -lrt -lresolv -lselinux -lpcre -luuid -lz -lzstd
-#	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_optional_access \
-#	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_variant_access \
-#	-Wl,-Bstatic -Lthird_party/abseil-cpp/absl/types -labsl_bad_any_cast_impl \	
+	-Wl,-Bdynamic -ldl -pthread -lidn -lrt -lresolv -lselinux -lpcre -luuid -lz
+	
 OBJS = main.o MediaServer.o
 		
 TARGET = mediaserver
