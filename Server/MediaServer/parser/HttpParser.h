@@ -24,7 +24,7 @@
 #include <map>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 typedef map<string, string> Parameters;
 
@@ -55,28 +55,33 @@ public:
 	virtual ~HttpParser();
 
 	void SetCallback(HttpParserCallback* callback);
-
 	int ParseData(char* buffer, int len);
 
-	string GetRawFirstLine();
-	string GetAuth();
-	string GetParam(const string& key);
-	string GetPath();
-	HttpType GetType();
-	int GetContentLength();
-	const char* GetBody();
+	string GetRawFirstLine() const;
+	string GetAuth() const;
+	string GetParam(const string& key) const;
+	string GetPath() const;
+	HttpType GetType() const;
+	bool IsKeepAlive() const;
+	string GetKeepAlive() const;
+	int GetContentLength() const;
+	char* GetBody() const;
+	Parameters GetParameters() const;
 
 private:
 	HttpType mHttpType;
 	string mPath;
 	int miContentLength;
-	Parameters mParameters;
-	char* mpBody;
-	int miCurContentIndex;
+	bool mKeepAlive;
 	string mContentType = "";
 	string mAuth = "";
 	string mRawFirstLine = "";
+
+	Parameters mParameters;
+	char* mpBody;
+	int miCurContentIndex;
 	bool mbContinue;
+
 
 	KMutex mClientMutex;
 	HttpState mState;

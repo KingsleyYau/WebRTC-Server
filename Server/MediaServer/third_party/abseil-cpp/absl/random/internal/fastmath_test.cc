@@ -16,29 +16,14 @@
 
 #include "gtest/gtest.h"
 
-#if defined(__native_client__) || defined(__EMSCRIPTEN__)
-// NACL has a less accurate implementation of std::log2 than most of
+#if defined(__EMSCRIPTEN__)
+// Emscripten has a less accurate implementation of std::log2 than most of
 // the other platforms. For some values which should have integral results,
-// sometimes NACL returns slightly larger values.
-//
-// The MUSL libc used by emscripten also has a similar bug.
+// sometimes Emscripten returns slightly larger values.
 #define ABSL_RANDOM_INACCURATE_LOG2
 #endif
 
 namespace {
-
-TEST(DistributionImplTest, LeadingSetBit) {
-  using absl::random_internal::LeadingSetBit;
-  constexpr uint64_t kZero = 0;
-  EXPECT_EQ(0, LeadingSetBit(kZero));
-  EXPECT_EQ(64, LeadingSetBit(~kZero));
-
-  for (int index = 0; index < 64; index++) {
-    uint64_t x = static_cast<uint64_t>(1) << index;
-    EXPECT_EQ(index + 1, LeadingSetBit(x)) << index;
-    EXPECT_EQ(index + 1, LeadingSetBit(x + x - 1)) << index;
-  }
-}
 
 TEST(FastMathTest, IntLog2FloorTest) {
   using absl::random_internal::IntLog2Floor;

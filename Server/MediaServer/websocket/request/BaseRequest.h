@@ -11,7 +11,7 @@
 
 #include "IRequest.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 class BaseRequest : public IRequest {
 public:
 	BaseRequest();
@@ -30,6 +30,6 @@ protected:
 	IRequestCallback *mpIRequestCallback;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* REQUEST_BASEREQUEST_H_ */

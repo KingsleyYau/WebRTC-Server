@@ -27,20 +27,21 @@
 
 #include <cassert>
 #include <cstdint>
+#include <limits>
 
+#include "absl/base/attributes.h"
 #include "absl/base/macros.h"
 #include "absl/base/port.h"
 #include "absl/debugging/internal/address_is_readable.h"
+#include "absl/debugging/internal/addresses.h"
 #include "absl/debugging/internal/vdso_support.h"  // a no-op on non-elf or non-glibc systems
 #include "absl/debugging/stacktrace.h"
-
-#include "absl/base/internal/raw_logging.h"
 
 using absl::debugging_internal::AddressIsReadable;
 
 #if defined(__linux__) && defined(__i386__)
 // Count "push %reg" instructions in VDSO __kernel_vsyscall(),
-// preceeding "syscall" or "sysenter".
+// preceding "syscall" or "sysenter".
 // If __kernel_vsyscall uses frame pointer, answer 0.
 //
 // kMaxBytes tells how many instruction bytes of __kernel_vsyscall
@@ -112,6 +113,10 @@ static int CountPushInstructions(const unsigned char *const addr) {
 
 // Assume stack frames larger than 100,000 bytes are bogus.
 static const int kMaxFrameBytes = 100000;
+// Stack end to use when we don't know the actual stack end
+// (effectively just the end of address space).
+constexpr uintptr_t kUnknownStackEnd =
+    std::numeric_limits<size_t>::max() - sizeof(void *);
 
 // Returns the stack frame pointer from signal context, 0 if unknown.
 // vuc is a ucontext_t *.  We use void* to avoid the use
@@ -132,21 +137,21 @@ static uintptr_t GetFP(const void *vuc) {
     const uintptr_t bp = 0;
     const uintptr_t sp = 0;
 #endif
-    // Sanity-check that the base pointer is valid.  It should be as long as
-    // SHRINK_WRAP_FRAME_POINTER is not set, but it's possible that some code in
-    // the process is compiled with --copt=-fomit-frame-pointer or
+    // Sanity-check that the base pointer is valid. It's possible that some
+    // code in the process is compiled with --copt=-fomit-frame-pointer or
     // --copt=-momit-leaf-frame-pointer.
     //
     // TODO(bcmills): -momit-leaf-frame-pointer is currently the default
     // behavior when building with clang.  Talk to the C++ toolchain team about
     // fixing that.
-    if (bp >= sp && bp - sp <= kMaxFrameBytes) return bp;
+    if (bp >= sp && bp - sp <= kMaxFrameBytes)
+      return static_cast<uintptr_t>(bp);
 
     // If bp isn't a plausible frame pointer, return the stack pointer instead.
     // If we're lucky, it points to the start of a stack frame; otherwise, we'll
     // get one frame of garbage in the stack trace and fail the sanity check on
     // the next iteration.
-    return sp;
+    return static_cast<uintptr_t>(sp);
   }
 #endif
   return 0;
@@ -159,7 +164,9 @@ static uintptr_t GetFP(const void *vuc) {
 template <bool STRICT_UNWINDING, bool WITH_CONTEXT>
 ABSL_ATTRIBUTE_NO_SANITIZE_ADDRESS  // May read random elements from stack.
 ABSL_ATTRIBUTE_NO_SANITIZE_MEMORY   // May read random elements from stack.
-static void **NextStackFrame(void **old_fp, const void *uc) {
+ABSL_ATTRIBUTE_NO_SANITIZE_THREAD   // May read random elements from stack.
+static void **NextStackFrame(void **old_fp, const void *uc,
+                             size_t stack_low, size_t stack_high) {
   void **new_fp = (void **)*old_fp;
 
 #if defined(__linux__) && defined(__i386__)
@@ -238,6 +245,7 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
   }
 #endif
 
+  const size_t page_size = static_cast<size_t>(getpagesize());
   const uintptr_t old_fp_u = reinterpret_cast<uintptr_t>(old_fp);
   const uintptr_t new_fp_u = reinterpret_cast<uintptr_t>(new_fp);
 
@@ -247,17 +255,47 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
   // using an alternate signal stack.
   //
   // TODO(bcmills): The GetFP call should be completely unnecessary when
-  // SHRINK_WRAP_FRAME_POINTER is set (because we should be back in the thread's
+  // ENABLE_COMBINED_UNWINDER is set (because we should be back in the thread's
   // stack by this point), but it is empirically still needed (e.g. when the
   // stack includes a call to abort).  unw_get_reg returns UNW_EBADREG for some
   // frames.  Figure out why GetValidFrameAddr and/or libunwind isn't doing what
   // it's supposed to.
   if (STRICT_UNWINDING &&
       (!WITH_CONTEXT || uc == nullptr || new_fp_u != GetFP(uc))) {
-    // With the stack growing downwards, older stack frame must be
-    // at a greater address that the current one.
-    if (new_fp_u <= old_fp_u) return nullptr;
-    if (new_fp_u - old_fp_u > kMaxFrameBytes) return nullptr;
+    // With the stack growing downwards, older stack frame should be
+    // at a greater address that the current one. However if we get multiple
+    // signals handled on altstack the new frame pointer might return to the
+    // main stack, but be different than the value from the most recent
+    // ucontext.
+    // If we get a very large frame size, it may be an indication that we
+    // guessed frame pointers incorrectly and now risk a paging fault
+    // dereferencing a wrong frame pointer. Or maybe not because large frames
+    // are possible as well. The main stack is assumed to be readable,
+    // so we assume the large frame is legit if we know the real stack bounds
+    // and are within the stack.
+    if (new_fp_u <= old_fp_u || new_fp_u - old_fp_u > kMaxFrameBytes) {
+      if (stack_high < kUnknownStackEnd && page_size < stack_low) {
+        // Stack bounds are known.
+        if (!(stack_low < new_fp_u && new_fp_u <= stack_high)) {
+          // new_fp_u is not within the known stack.
+          return nullptr;
+        }
+      } else {
+        // Stack bounds are unknown, prefer truncated stack to possible crash.
+        return nullptr;
+      }
+    }
+    if (stack_low < old_fp_u && old_fp_u <= stack_high) {
+      // Old BP was in the expected stack region...
+      if (!(stack_low < new_fp_u && new_fp_u <= stack_high)) {
+        // ... but new BP is outside of expected stack region.
+        // It is most likely bogus.
+        return nullptr;
+      }
+    } else {
+      // We may be here if we are executing in a co-routine with a
+      // separate stack. We can't do safety checks in this case.
+    }
   } else {
     if (new_fp == nullptr) return nullptr;  // skip AddressIsReadable() below
     // In the non-strict mode, allow discontiguous stack frames.
@@ -273,7 +311,12 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
   if (new_fp_u >= 0xffffe000) return nullptr;
 #endif
 #if !defined(_WIN32)
-  if (!STRICT_UNWINDING) {
+  const uintptr_t old_fp_page = old_fp_u & ~(page_size - 1);
+  const uintptr_t new_fp_page = new_fp_u & ~(page_size - 1);
+  if (old_fp_page == new_fp_page && (new_fp_u & (sizeof(void*) - 1)) == 0) {
+    // We dereferenced the old_fp above, so it is safe to dereference
+    // new_fp if it's on the same page as the old_fp and is aligned.
+  } else if (!STRICT_UNWINDING) {
     // Lax sanity checks cause a crash in 32-bit tcmalloc/crash_reason_test
     // on AMD-based machines with VDSO-enabled kernels.
     // Make an extra sanity check to insure new_fp is readable.
@@ -291,11 +334,17 @@ static void **NextStackFrame(void **old_fp, const void *uc) {
 template <bool IS_STACK_FRAMES, bool IS_WITH_CONTEXT>
 ABSL_ATTRIBUTE_NO_SANITIZE_ADDRESS  // May read random elements from stack.
 ABSL_ATTRIBUTE_NO_SANITIZE_MEMORY   // May read random elements from stack.
+ABSL_ATTRIBUTE_NO_SANITIZE_THREAD   // May read random elements from stack.
 ABSL_ATTRIBUTE_NOINLINE
-static int UnwindImpl(void **result, int *sizes, int max_depth, int skip_count,
-                      const void *ucp, int *min_dropped_frames) {
+static int UnwindImpl(void **result, uintptr_t *frames, int *sizes,
+                      int max_depth, int skip_count, const void *ucp,
+                      int *min_dropped_frames) {
   int n = 0;
   void **fp = reinterpret_cast<void **>(__builtin_frame_address(0));
+
+  // Assume that the first page is not stack.
+  size_t stack_low = static_cast<size_t>(getpagesize());
+  size_t stack_high = kUnknownStackEnd;
 
   while (fp && n < max_depth) {
     if (*(fp + 1) == reinterpret_cast<void *>(0)) {
@@ -303,17 +352,26 @@ static int UnwindImpl(void **result, int *sizes, int max_depth, int skip_count,
       // points to itself and has a return address of 0.
       break;
     }
-    void **next_fp = NextStackFrame<!IS_STACK_FRAMES, IS_WITH_CONTEXT>(fp, ucp);
+    void **next_fp = NextStackFrame<!IS_STACK_FRAMES, IS_WITH_CONTEXT>(
+        fp, ucp, stack_low, stack_high);
     if (skip_count > 0) {
       skip_count--;
     } else {
       result[n] = *(fp + 1);
       if (IS_STACK_FRAMES) {
-        if (next_fp > fp) {
-          sizes[n] = (uintptr_t)next_fp - (uintptr_t)fp;
-        } else {
-          // A frame-size of 0 is used to indicate unknown frame size.
-          sizes[n] = 0;
+        if (frames) {
+          frames[n] = absl::debugging_internal::StripPointerMetadata(fp) +
+                      2 * sizeof(void *) /* go past the return address */;
+        }
+        if (sizes) {
+          if (next_fp > fp) {
+            sizes[n] = static_cast<int>(
+                absl::debugging_internal::StripPointerMetadata(next_fp) -
+                absl::debugging_internal::StripPointerMetadata(fp));
+          } else {
+            // A frame-size of 0 is used to indicate unknown frame size.
+            sizes[n] = 0;
+          }
         }
       }
       n++;
@@ -324,11 +382,17 @@ static int UnwindImpl(void **result, int *sizes, int max_depth, int skip_count,
     // Implementation detail: we clamp the max of frames we are willing to
     // count, so as not to spend too much time in the loop below.
     const int kMaxUnwind = 1000;
-    int j = 0;
-    for (; fp != nullptr && j < kMaxUnwind; j++) {
-      fp = NextStackFrame<!IS_STACK_FRAMES, IS_WITH_CONTEXT>(fp, ucp);
+    int num_dropped_frames = 0;
+    for (int j = 0; fp != nullptr && j < kMaxUnwind; j++) {
+      if (skip_count > 0) {
+        skip_count--;
+      } else {
+        num_dropped_frames++;
+      }
+      fp = NextStackFrame<!IS_STACK_FRAMES, IS_WITH_CONTEXT>(fp, ucp, stack_low,
+                                                             stack_high);
     }
-    *min_dropped_frames = j;
+    *min_dropped_frames = num_dropped_frames;
   }
   return n;
 }

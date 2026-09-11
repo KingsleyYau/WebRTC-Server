@@ -10,7 +10,8 @@
 
 #include "IDataParser.h"
 #include <string.h>
-namespace mediaserver {
+
+namespace qpidnetwork {
 class DataParser : public IDataParser {
 public:
 	DataParser();

@@ -11,7 +11,7 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 RPCServer::RPCServer() {
 	// TODO Auto-generated constructor stub
@@ -27,10 +27,10 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 
 	LogAync(
 			LOG_INFO,
-			"RPCServer::Start( "
-			"port : %u, "
-			"maxConnection : %d "
-			")",
+			"RPCServer::Start, "
+			"port:%u, "
+			"maxConnection:%d "
+			,
 			port,
 			maxConnection
 			);
@@ -41,22 +41,22 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 	if( bFlag ) {
 		LogAync(
 				LOG_INFO,
-				"RPCServer::Start( "
+				"RPCServer::Start, "
 				"[OK], "
-				"port : %d, "
-				"maxConnection : %d "
-				")",
+				"port:%d, "
+				"maxConnection:%d "
+				,
 				port,
 				maxConnection
 				);
 	} else {
 		LogAync(
 				LOG_ALERT,
-				"RPCServer::Start( "
+				"RPCServer::Start, "
 				"[Fail], "
-				"port : %d, "
-				"maxConnection : %d "
-				")",
+				"port:%d, "
+				"maxConnection:%d "
+				,
 				port,
 				maxConnection
 				);
@@ -69,16 +69,16 @@ bool RPCServer::Start(int port, int maxConnection, IRequestCallback *callback) {
 void RPCServer::Stop() {
 	LogAync(
 			LOG_INFO,
-			"RPCServer::Stop( "
-			")"
+			"RPCServer::Stop, "
+			
 			);
 
 	mWSServer.Stop();
 
 	LogAync(
 			LOG_INFO,
-			"RPCServer::Stop( "
-			")"
+			"RPCServer::Stop, "
+			
 			);
 }
 
@@ -87,10 +87,10 @@ bool RPCServer::SendRespond(IRequest *req, IRespond *res) {
 
 	LogAync(
 			LOG_INFO,
-			"RPCServer::SendRespond( "
-			"req : %p, "
-			"res : %p "
-			")",
+			"RPCServer::SendRespond, "
+			"req:%p, "
+			"res:%p "
+			,
 			req,
 			res
 			);
@@ -120,4 +120,4 @@ void RPCServer::OnWSMessage(WSServer *server, connection_hdl hdl, const string& 
 	}
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

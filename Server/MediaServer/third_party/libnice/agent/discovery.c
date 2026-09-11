@@ -121,6 +121,10 @@ void discovery_prune_stream(NiceAgent *agent, guint stream_id) {
 	if (agent->discovery_list == NULL) {
 		/* noone using the timer anymore, clean it up */
 		discovery_free(agent);
+		/**
+		 * Add by Max 2023/08/11
+		 */
+		agent_gathering_done(agent);
 	}
 }
 
@@ -148,6 +152,10 @@ void discovery_prune_socket(NiceAgent *agent, NiceSocket *sock) {
 	if (agent->discovery_list == NULL) {
 		/* noone using the timer anymore, clean it up */
 		discovery_free(agent);
+		/**
+		 * Add by Max 2023/08/11
+		 */
+		agent_gathering_done(agent);
 	}
 }
 

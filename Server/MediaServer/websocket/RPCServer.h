@@ -17,7 +17,7 @@
 // Respond
 #include <respond/IRespond.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class RPCServer {
 public:
 	RPCServer();
@@ -42,6 +42,6 @@ private:
 	IRequestCallback *mpCallback;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* WEBSOCKET_RPCSERVER_H_ */

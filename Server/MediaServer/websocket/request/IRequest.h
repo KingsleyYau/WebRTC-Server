@@ -19,7 +19,7 @@ using namespace std;
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class IRequest;
 class IRequestCallback {
 public:
@@ -40,6 +40,6 @@ public:
 
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* WEBSOCKET_REQUEST_IREQUEST_H_ */

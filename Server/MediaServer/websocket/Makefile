@@ -1,4 +1,4 @@
-# Copyright (C) 2015 The MediaServer
+# Copyright (C) 2015 The QpidNetwork
 # Websocket Server module Makefile
 #
 # Created on: 2019/6/13

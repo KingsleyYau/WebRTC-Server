@@ -23,7 +23,7 @@ CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-v
 CXXFLAGS 	+=	-I. -I./include
 
 OBJS 		=	$(THIRD_PARTY)
-OBJS 		+=	src/sdp_base64.o src/sdp.o
+OBJS 		+=	src/sdp_base64.o src/sdp.o src/ulog.o
 		
 TARGET 		=	libsdp.a
 

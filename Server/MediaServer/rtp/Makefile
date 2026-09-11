@@ -14,7 +14,7 @@ else
 CXXFLAGS = -O2 -g
 endif
 
-CXXFLAGS 	+=	-std=c++11 -DLINUX -DFILE_JNI_LOG -DWEBRTC_POSIX -DWEBRTC_LINUX
+CXXFLAGS 	+=	-std=c++17 -DLINUX -DFILE_JNI_LOG -DWEBRTC_POSIX -DWEBRTC_LINUX
 CXXFLAGS 	+=	-Wall -fmessage-length=0 -Wno-unused-variable -Wno-unused-but-set-variable -D__STDC_CONSTANT_MACROS
 CXXFLAGS 	+=	-I. -I.. -I../third_party -I../third_party/libsrtp/include -I../third_party/libsrtp/crypto/include \
 				-I../third_party/abseil-cpp -I../../third_party/abseil-cpp -I../../../third_party/abseil-cpp \

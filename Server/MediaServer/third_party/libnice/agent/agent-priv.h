@@ -322,8 +322,8 @@ nice_candidate_pair_priority (guint32 o_prio, guint32 a_prio);
 void nice_debug_init (void);
 
 #define MAX_EVENTS 65535
-GSource *sources[65535];
-GMutex sources_mutex;
+extern GSource *sources[65535];
+extern GMutex sources_mutex;
 
 typedef struct IOSource {
     GSource source;

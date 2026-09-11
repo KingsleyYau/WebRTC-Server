@@ -12,36 +12,41 @@
 BUILD_PATH=$1
 echo "BUILD_PATH:$BUILD_PATH"
 DEBUG=$2
-echo "DEBUG:$DEBUG"
+echo -e "DEBUG [\033[32mDEBUG\033[0m]"
 export PKG_CONFIG_PATH="$BUILD_PATH/lib/pkgconfig"
 
 find . -type f | xargs touch
 
+echo -e "configure [\033[32mlibev\033[0m]"
 cd third_party/libev
 chmod +x configure autogen.sh || exit 1
 ./autogen.sh || exit 1
 ./configure || exit 1
 cd -
 
+echo -e "configure [\033[32msqlite\033[0m]"
 cd third_party/sqlite || exit 1
-#autoreconf -ivf || exit 1
+autoreconf -ivf || exit 1
 chmod +x configure || exit 1
 ./configure || exit 1
 cd -
 
+echo -e "configure [\033[32mcurl\033[0m]"
 cd third_party/curl || exit 1
 autoreconf -ivf || exit 1
 chmod +x configure || exit 1
 ./configure --disable-shared --enable-static --without-ssl --without-librtmp || exit 1
 cd -
 
+echo -e "configure [\033[32mlibsrtp\033[0m]"
 cd third_party/libsrtp || exit 1
 chmod +x configure || exit 1
 export CFLAGS="$(pkg-config --cflags openssl)"
 export LDFLAGS="$(pkg-config --libs openssl)"
-./configure || exit 1
+./configure --enable-openssl || exit 1
 cd -
 
+echo -e "configure [\033[32mlibnice\033[0m]"
 cd third_party/libnice || exit 1
 chmod +x autogen.sh || exit 1
 export CFLAGS="$(pkg-config --cflags openssl)"
@@ -51,9 +56,9 @@ if [ "$DEBUG" == "debug" ];then
 else
   ./autogen.sh --disable-shared --enable-static || exit 1
 fi
-
 cd -
 
+echo -e "configure [\033[32mabseil-cpp\033[0m]"
 cd third_party/abseil-cpp || exit 1
 cmake3 . || exit 1
 cd -

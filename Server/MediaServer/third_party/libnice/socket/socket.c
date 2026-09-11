@@ -348,8 +348,8 @@ void nice_socket_queue_send_with_callback(GQueue *send_queue,
 	 * Add Debug Log
 	 * Add by Max 2020/12/04
 	 */
-	nice_debug("(fd %d): [TCP/BSD] Send queue buffer alloc, tbs %p, length %d",
-			tbs->fd, tbs, tbs->length);
+	nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue buffer alloc, head %d, tbs %p, length %d, send_queue %p, queue length %d",
+			user_data, tbs->fd, head, tbs, tbs->length, send_queue, g_queue_get_length(send_queue));
 
 	if (head)
 		g_queue_push_head(send_queue, tbs);
@@ -413,6 +413,13 @@ gboolean nice_socket_flush_send_queue_to_socket(GSocket *gsock,
 	NiceSocketQueuedSend *tbs;
 	GError *gerr = NULL;
 
+	/**
+	 * Add Debug Log
+	 * Add by Max 2020/12/04
+	 */
+	nice_debug("GSocket %p(fd %d): [TCP/BSD] Send queue flush, send_queue %p, queue length %d",
+			gsock, g_socket_get_fd(gsock), send_queue, g_queue_get_length(send_queue));
+
 	while ((tbs = g_queue_pop_head(send_queue)) != NULL) {
 		int ret;
 
@@ -424,8 +431,8 @@ gboolean nice_socket_flush_send_queue_to_socket(GSocket *gsock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug("(fd %d): [TCP/BSD] Send queue flush, length %d, ret %d, gerr %p", g_socket_get_fd(gsock),
-				tbs->length, ret, gerr);
+		nice_debug("GSocket %p(fd %d): [TCP/BSD] Send queue flush, length %d, ret %d, gerr %p",
+				gsock, g_socket_get_fd(gsock), tbs->length, ret, gerr);
 
 		if (ret < 0) {
 			if (g_error_matches(gerr, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -436,24 +443,27 @@ gboolean nice_socket_flush_send_queue_to_socket(GSocket *gsock,
 				 * Add Debug Log
 				 * Add by Max 2020/12/04
 				 */
-				nice_debug("(fd %d): [TCP/BSD] Send queue flush again, length %d", g_socket_get_fd(gsock), tbs->length);
+				nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue flush again, length %d",
+						gsock, g_socket_get_fd(gsock), tbs->length);
 
 				nice_socket_queue_send_with_callback(send_queue, &local_message,
 						0, local_buf.size, TRUE, NULL, NULL, NULL, NULL, NULL);
 				nice_socket_free_queued_send(tbs);
-				g_clear_error(&gerr);
-				return FALSE;
+//				g_clear_error(&gerr);
+//				return FALSE;
 			} else {
 				/**
 				 * Add Debug Log
 				 * Add by Max 2020/12/04
 				 */
-				nice_debug("(fd %d): [TCP/BSD] Send queue flush fail, length %d, errno %d", g_socket_get_fd(gsock),
+				nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue flush fail, length %d, errno %d",
+						gsock, g_socket_get_fd(gsock),
 						tbs->length, errno);
 			}
 			if (gerr) {
 				g_clear_error(&gerr);
 			}
+			return FALSE;
 		} else if (ret < (int) tbs->length) {
 			GOutputVector local_buf = { tbs->buf + ret, tbs->length - ret };
 			NiceOutputMessage local_message = { &local_buf, 1 };
@@ -462,7 +472,8 @@ gboolean nice_socket_flush_send_queue_to_socket(GSocket *gsock,
 			 * Add Debug Log
 			 * Add by Max 2020/12/04
 			 */
-			nice_debug("(fd %d): [TCP/BSD] Send queue flush more, length %d, errno %d", g_socket_get_fd(gsock),
+			nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue flush more, length %d, errno %d",
+					gsock, g_socket_get_fd(gsock),
 					tbs->length, errno);
 			nice_socket_queue_send_with_callback(send_queue, &local_message, 0,
 					local_buf.size, TRUE, NULL, NULL, NULL, NULL, NULL);

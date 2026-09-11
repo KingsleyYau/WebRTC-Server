@@ -8,7 +8,7 @@
 
 #include "BaseRequest.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 BaseRequest::BaseRequest() {
 	// TODO Auto-generated constructor stub
 	mpIRequestCallback = NULL;
@@ -44,4 +44,4 @@ void BaseRequest::Parse(const Json::Value &reqRoot, IRequestCallback *callback) 
 	Parse();
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

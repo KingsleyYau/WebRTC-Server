@@ -13,7 +13,7 @@
 #include <common/StringHandle.h>
 #include <common/LogManager.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 #define HTTP_URL_MAX_FIRST_LINE 2048
 #define HTTP_URL_MAX_PATH 4096
 #define HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH 4096
@@ -26,6 +26,9 @@ namespace mediaserver {
 #define HTTP_HEADER_CONTENTTYPE "Content-Type"
 #define HTTP_HEADER_CONTENTTYPE_URLENCODED "application/x-www-form-urlencoded"
 #define HTTP_HEADER_AUTH "Authorization"
+#define HTTP_HEADER_CONNECTION "Connection"
+#define HTTP_HEADER_CONNECTION_KEEPALIVE "Keep-Alive"
+#define HTTP_HEADER_CONNECTION_CLOSE "Close"
 
 HttpParser::HttpParser():mClientMutex(KMutex::MutexType_Recursive) {
 	// TODO Auto-generated constructor stub
@@ -47,8 +50,8 @@ int HttpParser::ParseData(char* buffer, int len) {
 
 	Lock();
 	mbContinue = true;
-	while( mbContinue ) {
-		switch( mState ) {
+	while(mbContinue) {
+		switch(mState) {
 		case HttpState_UnKnow : {
 			int lineNumber = 0;
 			bool bFlag = false;
@@ -97,27 +100,25 @@ int HttpParser::ParseData(char* buffer, int len) {
 				// 解析头部完成
 				last = len - ret;
 				if (bFlag) {
-					// 解析第一行完成
-					if( mpCallback ) {
+					// 解析第头部完成
+					if (mpCallback) {
 						mpCallback->OnHttpParserHeader(this);
 					}
-					// 没有Content-Length, 重置解析
+					// 没有Content-Length, 退出解析
 					if (miContentLength == 0) {
 						Reset();
 					}
 				} else {
 					// 解析第一行错误
-					if( mpCallback ) {
+					if (mpCallback) {
 						mpCallback->OnHttpParserError(this);
 					}
-					Reset();
 				}
 			} else if (len > HTTP_URL_MAX_PATH) {
 				// 头部超过限制 HTTP_URL_MAX_PATH
-				if( mpCallback ) {
+				if (mpCallback) {
 					mpCallback->OnHttpParserError(this);
 				}
-				Reset();
 			} else {
 				// 数据不够, 继续收数据
 				mbContinue = false;
@@ -143,39 +144,33 @@ int HttpParser::ParseData(char* buffer, int len) {
 					ret += readLength;
 					last -= readLength;
 
-					if( miCurContentIndex >= miContentLength ) {
+					if (miCurContentIndex >= miContentLength) {
 						// 接收Body完成
 						mState = HttpState_Body;
 
-						if( mpCallback ) {
-							mpCallback->OnHttpParserBody(this);
+						transform(mContentType.begin(), mContentType.end(), mContentType.begin(), ::tolower);
+						if ( mHttpType == POST &&
+								mContentType == HTTP_HEADER_CONTENTTYPE_URLENCODED) {
+							string param = mpBody;
+							ParseParameters(param);
 						}
 
-						Reset();
+						if (mpCallback) {
+							mpCallback->OnHttpParserBody(this);
+						}
 					}
 				}
-
 			} else {
 				// 没有Content-Length的请求不解析, 并且数据过大
-//				if (ret > HTTP_MAX_PARSER_BUFFER_WITHOUT_CONTENT_LENGTH) {
-//					if( mpCallback ) {
-//						mpCallback->OnHttpParserError(this);
-//					}
-//				}
-//				ret += last;
-				// 没有Content-Length的请求, 并且不是Get
-				if (mHttpType != GET) {
-					if( mpCallback ) {
-						mpCallback->OnHttpParserError(this);
-					}
+				if (mpCallback) {
+					mpCallback->OnHttpParserError(this);
 				}
-				Reset();
 			}
 		}break;
 		case HttpState_Body:{
 			mbContinue = false;
 			// 接收body完成还有数据, 出错
-			if( mpCallback ) {
+			if (mpCallback) {
 				mpCallback->OnHttpParserError(this);
 			}
 		}break;
@@ -199,6 +194,7 @@ void HttpParser::Reset() {
 	miCurContentIndex = 0;
 	mContentType = "";
 	mState = HttpState_UnKnow;
+	mKeepAlive = false;
 	mbContinue = false;
 
 	if( mpBody != NULL ) {
@@ -210,36 +206,48 @@ void HttpParser::Reset() {
 	DataParser::Reset();
 }
 
-string HttpParser::GetParam(const string& key)  {
+string HttpParser::GetParam(const string& key) const {
 	string result = "";
-	Parameters::iterator itr = mParameters.find(key.c_str());
+	Parameters::const_iterator itr = mParameters.find(key.c_str());
 	if( itr != mParameters.end() ) {
 		result = (itr->second);
 	}
 	return result;
 }
 
-string HttpParser::GetRawFirstLine() {
+Parameters HttpParser::GetParameters() const {
+	return mParameters;
+}
+
+string HttpParser::GetRawFirstLine() const {
 	return mRawFirstLine;
 }
 
-string HttpParser::GetPath() {
+string HttpParser::GetPath() const {
 	return mPath;
 }
 
-HttpType HttpParser::GetType() {
+HttpType HttpParser::GetType() const {
 	return mHttpType;
 }
 
-int HttpParser::GetContentLength() {
+bool HttpParser::IsKeepAlive() const {
+	return mKeepAlive;
+}
+
+string HttpParser::GetKeepAlive() const {
+	return mKeepAlive?HTTP_HEADER_CONNECTION_KEEPALIVE:HTTP_HEADER_CONNECTION_CLOSE;
+}
+
+int HttpParser::GetContentLength() const {
 	return miContentLength;
 }
 
-string HttpParser::GetAuth() {
+string HttpParser::GetAuth() const {
 	return mAuth;
 }
 
-const char* HttpParser::GetBody() {
+char* HttpParser::GetBody() const {
 	return mpBody;
 }
 
@@ -275,12 +283,10 @@ bool HttpParser::ParseFirstLine(const string& wholeLine) {
 		switch(i) {
 		case 0:{
 			// 解析http type
-			if( strcasecmp("GET", line.c_str()) == 0 ) {
+			if (strcasecmp("GET", line.c_str()) == 0) {
 				mHttpType = GET;
-
-			} else if( strcasecmp("POST", line.c_str()) == 0 ) {
+			} else if (strcasecmp("POST", line.c_str()) == 0) {
 				mHttpType = POST;
-
 			} else {
 				bFlag = false;
 				break;
@@ -293,8 +299,10 @@ bool HttpParser::ParseFirstLine(const string& wholeLine) {
 //			int decodeLen = ari.decode_url(line.c_str(), line.length(), temp);
 //			temp[decodeLen] = '\0';
 			string path = line;
+			// 转换大小写
+//			transform(path.begin(), path.end(), path.begin(), ::tolower);
 			string::size_type posSep = path.find("?");
-			if( (string::npos != posSep) && (posSep + 1 < path.length()) ) {
+			if ((string::npos != posSep) && (posSep + 1 < path.length())) {
 				// 解析路径
 				mPath = path.substr(0, posSep);
 				// 解析参数
@@ -304,7 +312,6 @@ bool HttpParser::ParseFirstLine(const string& wholeLine) {
 			} else {
 				mPath = path;
 			}
-
 		}break;
 		default:break;
 		};
@@ -377,14 +384,18 @@ void HttpParser::ParseHeader(const string& line) {
 		value = StringHandle::trim(line.substr(pos + 1, line.size() - 1));
 	}
 
-	if ( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTLENGTH) == 0 ) {
+	if (strcasecmp(key.c_str(), HTTP_HEADER_CONTENTLENGTH) == 0) {
 		miContentLength = atoi(value.c_str());
-	} else if ( strcasecmp(key.c_str(), HTTP_HEADER_CONTENTTYPE) == 0 ) {
+	} else if (strcasecmp(key.c_str(), HTTP_HEADER_CONTENTTYPE) == 0) {
 		mContentType = value;
-	} else if ( strcasecmp(key.c_str(), HTTP_HEADER_AUTH) == 0 ) {
+	} else if (strcasecmp(key.c_str(), HTTP_HEADER_AUTH) == 0) {
 		string::size_type posAuth = value.find(" ", 0);
 		string auth = StringHandle::trim(value.substr(posAuth + 1, value.size() - 1));
 		mAuth = auth;
+	} else if (strcasecmp(key.c_str(), HTTP_HEADER_CONNECTION) == 0) {
+		if (strcasecmp(value.c_str(), HTTP_HEADER_CONNECTION_KEEPALIVE) == 0) {
+			mKeepAlive = true;
+		}
 	}
 }
 

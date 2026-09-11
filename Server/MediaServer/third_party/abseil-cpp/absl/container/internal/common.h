@@ -12,18 +12,64 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ABSL_CONTAINER_INTERNAL_CONTAINER_H_
-#define ABSL_CONTAINER_INTERNAL_CONTAINER_H_
+#ifndef ABSL_CONTAINER_INTERNAL_COMMON_H_
+#define ABSL_CONTAINER_INTERNAL_COMMON_H_
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <tuple>
 #include <type_traits>
 
 #include "absl/meta/type_traits.h"
 #include "absl/types/optional.h"
 
+// TODO(b/402804213): Clean up these macros when no longer needed.
+#define ABSL_INTERNAL_SINGLE_ARG(...) __VA_ARGS__
+
+#define ABSL_INTERNAL_IF_true(if_satisfied, ...) if_satisfied
+#define ABSL_INTERNAL_IF_false(if_satisfied, ...) __VA_ARGS__
+
+#define ABSL_INTERNAL_IF_true_AND_true ABSL_INTERNAL_IF_true
+#define ABSL_INTERNAL_IF_false_AND_false ABSL_INTERNAL_IF_false
+#define ABSL_INTERNAL_IF_true_AND_false ABSL_INTERNAL_IF_false_AND_false
+#define ABSL_INTERNAL_IF_false_AND_true ABSL_INTERNAL_IF_false_AND_false
+
+#define ABSL_INTERNAL_IF_true_OR_true ABSL_INTERNAL_IF_true
+#define ABSL_INTERNAL_IF_false_OR_false ABSL_INTERNAL_IF_false
+#define ABSL_INTERNAL_IF_true_OR_false ABSL_INTERNAL_IF_true_OR_true
+#define ABSL_INTERNAL_IF_false_OR_true ABSL_INTERNAL_IF_true_OR_true
+
+#define ABSL_INTERNAL_IF_true_NOR_true ABSL_INTERNAL_IF_false_AND_false
+#define ABSL_INTERNAL_IF_false_NOR_false ABSL_INTERNAL_IF_true_AND_true
+#define ABSL_INTERNAL_IF_true_NOR_false ABSL_INTERNAL_IF_false_AND_true
+#define ABSL_INTERNAL_IF_false_NOR_true ABSL_INTERNAL_IF_true_AND_false
+
+#define ABSL_INTERNAL_COMMA ,
+
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 namespace container_internal {
+
+// TODO(b/402804213): Clean up these traits when no longer needed or
+// deduplicate them with absl::functional_internal::EnableIf.
+template <class Cond>
+using EnableIf = std::enable_if_t<Cond::value, int>;
+
+template <bool Value, class T>
+using HasValue = std::conditional_t<Value, T, absl::negation<T>>;
+
+template <class T>
+struct IfRRef {
+  template <class Other>
+  using AddPtr = Other;
+};
+
+template <class T>
+struct IfRRef<T&&> {
+  template <class Other>
+  using AddPtr = Other*;
+};
 
 template <class, class = void>
 struct IsTransparent : std::false_type {};
@@ -84,10 +130,11 @@ class node_handle_base {
     PolicyTraits::transfer(alloc(), slot(), s);
   }
 
-  struct move_tag_t {};
-  node_handle_base(move_tag_t, const allocator_type& a, slot_type* s)
+  struct construct_tag_t {};
+  template <typename... Args>
+  node_handle_base(construct_tag_t, const allocator_type& a, Args&&... args)
       : alloc_(a) {
-    PolicyTraits::construct(alloc(), slot(), s);
+    PolicyTraits::construct(alloc(), slot(), std::forward<Args>(args)...);
   }
 
   void destroy() {
@@ -138,6 +185,7 @@ class node_handle<Policy, PolicyTraits, Alloc,
                   absl::void_t<typename Policy::mapped_type>>
     : public node_handle_base<PolicyTraits, Alloc> {
   using Base = node_handle_base<PolicyTraits, Alloc>;
+  using slot_type = typename PolicyTraits::slot_type;
 
  public:
   using key_type = typename Policy::key_type;
@@ -145,8 +193,11 @@ class node_handle<Policy, PolicyTraits, Alloc,
 
   constexpr node_handle() {}
 
-  auto key() const -> decltype(PolicyTraits::key(this->slot())) {
-    return PolicyTraits::key(this->slot());
+  // When C++17 is available, we can use std::launder to provide mutable
+  // access to the key. Otherwise, we provide const access.
+  auto key() const
+      -> decltype(PolicyTraits::mutable_key(std::declval<slot_type*>())) {
+    return PolicyTraits::mutable_key(this->slot());
   }
 
   mapped_type& mapped() const {
@@ -182,8 +233,8 @@ struct CommonAccess {
   }
 
   template <typename T, typename... Args>
-  static T Move(Args&&... args) {
-    return T(typename T::move_tag_t{}, std::forward<Args>(args)...);
+  static T Construct(Args&&... args) {
+    return T(typename T::construct_tag_t{}, std::forward<Args>(args)...);
   }
 };
 
@@ -195,8 +246,56 @@ struct InsertReturnType {
   NodeType node;
 };
 
+// Utilities to strip redundant template parameters from the underlying
+// implementation types.
+// We use a variadic pack (ie Params...) to specify required prefix of types for
+// non-default types, and then we use GetFromListOr to select the provided types
+// or the default ones otherwise.
+//
+// These default types do not contribute information for debugging and just
+// bloat the binary.
+// Removing the redundant tail types reduces mangled names and stringified
+// function names like __PRETTY_FUNCTION__.
+//
+// How to use:
+//  1. Define a template with `typename ...Params`
+//  2. Instantiate it via `ApplyWithoutDefaultSuffix<>` to only pass the minimal
+//     set of types.
+//  3. Inside the template use `GetFromListOr` to map back from the existing
+//     `Params` list to the actual types, filling the gaps when types are
+//     missing.
+
+template <typename Or, size_t N, typename... Params>
+using GetFromListOr = std::tuple_element_t<(std::min)(N, sizeof...(Params)),
+                                           std::tuple<Params..., Or>>;
+
+template <typename... T>
+struct TypeList {
+  template <template <typename...> class Template>
+  using Apply = Template<T...>;
+};
+
+// Evaluate to `Template<TPrefix...>` where the last type in the list (if any)
+// is different from the corresponding one in the default list.
+// Eg
+//   ApplyWithoutDefaultSuffix<Template, TypeList<a, b, c>, TypeList<a, X, c>>
+// evaluates to
+//   Template<a, X>
+template <template <typename...> class Template, typename D, typename T,
+          typename L = TypeList<>, typename = void>
+struct ApplyWithoutDefaultSuffix {
+  using type = typename L::template Apply<Template>;
+};
+template <template <typename...> class Template, typename D, typename... Ds,
+          typename T, typename... Ts, typename... L>
+struct ApplyWithoutDefaultSuffix<
+    Template, TypeList<D, Ds...>, TypeList<T, Ts...>, TypeList<L...>,
+    std::enable_if_t<!std::is_same_v<TypeList<D, Ds...>, TypeList<T, Ts...>>>>
+    : ApplyWithoutDefaultSuffix<Template, TypeList<Ds...>, TypeList<Ts...>,
+                       TypeList<L..., T>> {};
+
 }  // namespace container_internal
 ABSL_NAMESPACE_END
 }  // namespace absl
 
-#endif  // ABSL_CONTAINER_INTERNAL_CONTAINER_H_
+#endif  // ABSL_CONTAINER_INTERNAL_COMMON_H_

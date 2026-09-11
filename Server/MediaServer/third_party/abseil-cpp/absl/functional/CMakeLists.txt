@@ -16,6 +16,42 @@
 
 absl_cc_library(
   NAME
+    any_invocable
+  SRCS
+    "internal/any_invocable.h"
+  HDRS
+    "any_invocable.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  DEPS
+    absl::base
+    absl::config
+    absl::core_headers
+    absl::type_traits
+    absl::utility
+  PUBLIC
+)
+
+absl_cc_test(
+  NAME
+    any_invocable_test
+  SRCS
+    "any_invocable_test.cc"
+    "internal/any_invocable.h"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::any_invocable
+    absl::base
+    absl::config
+    absl::core_headers
+    absl::type_traits
+    absl::utility
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
     bind_front
   SRCS
     "internal/front_binder.h"
@@ -24,7 +60,6 @@ absl_cc_library(
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
-    absl::base_internal
     absl::compressed_tuple
   PUBLIC
 )
@@ -39,7 +74,7 @@ absl_cc_test(
   DEPS
     absl::bind_front
     absl::memory
-    gmock_main
+    GTest::gmock_main
 )
 
 absl_cc_library(
@@ -52,8 +87,11 @@ absl_cc_library(
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
-    absl::base_internal
+    absl::config
+    absl::core_headers
+    absl::any_invocable
     absl::meta
+    absl::utility
   PUBLIC
 )
 
@@ -65,8 +103,38 @@ absl_cc_test(
   COPTS
     ${ABSL_TEST_COPTS}
   DEPS
+    absl::config
     absl::function_ref
     absl::memory
     absl::test_instance_tracker
-    gmock_main
+    absl::utility
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
+    overload
+  HDRS
+    "overload.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  DEPS
+    absl::meta
+  PUBLIC
+)
+
+absl_cc_test(
+  NAME
+    overload_test
+  SRCS
+    "overload_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::config
+    absl::overload
+    absl::string_view
+    absl::strings
+    absl::variant
+    GTest::gmock_main
 )

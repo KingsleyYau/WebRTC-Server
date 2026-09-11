@@ -18,11 +18,15 @@
 #include <algorithm>
 #include <initializer_list>
 #include <iterator>
+#include <type_traits>
 #include <utility>
 
+#include "absl/base/attributes.h"
 #include "absl/base/internal/throw_delegate.h"
 #include "absl/container/internal/btree.h"  // IWYU pragma: export
 #include "absl/container/internal/common.h"
+#include "absl/hash/internal/weakly_mixed_integer.h"
+#include "absl/memory/memory.h"
 #include "absl/meta/type_traits.h"
 
 namespace absl {
@@ -42,15 +46,15 @@ class btree_container {
   // transparent case.
   template <class K>
   using key_arg =
-      typename KeyArg<IsTransparent<typename Tree::key_compare>::value>::
-          template type<K, typename Tree::key_type>;
+      typename KeyArg<params_type::kIsKeyCompareTransparent>::template type<
+          K, typename Tree::key_type>;
 
  public:
   using key_type = typename Tree::key_type;
   using value_type = typename Tree::value_type;
   using size_type = typename Tree::size_type;
   using difference_type = typename Tree::difference_type;
-  using key_compare = typename Tree::key_compare;
+  using key_compare = typename Tree::original_key_compare;
   using value_compare = typename Tree::value_compare;
   using allocator_type = typename Tree::allocator_type;
   using reference = typename Tree::reference;
@@ -63,38 +67,80 @@ class btree_container {
   using const_reverse_iterator = typename Tree::const_reverse_iterator;
   using node_type = typename Tree::node_handle_type;
 
+  struct extract_and_get_next_return_type {
+    node_type node;
+    iterator next;
+  };
+
   // Constructors/assignments.
   btree_container() : tree_(key_compare(), allocator_type()) {}
   explicit btree_container(const key_compare &comp,
                            const allocator_type &alloc = allocator_type())
       : tree_(comp, alloc) {}
-  btree_container(const btree_container &x) = default;
-  btree_container(btree_container &&x) noexcept = default;
-  btree_container &operator=(const btree_container &x) = default;
-  btree_container &operator=(btree_container &&x) noexcept(
+  explicit btree_container(const allocator_type &alloc)
+      : tree_(key_compare(), alloc) {}
+
+  btree_container(const btree_container &other)
+      : btree_container(other, absl::allocator_traits<allocator_type>::
+                                   select_on_container_copy_construction(
+                                       other.get_allocator())) {}
+  btree_container(const btree_container &other, const allocator_type &alloc)
+      : tree_(other.tree_, alloc) {}
+
+  btree_container(btree_container &&other) noexcept(
+      std::is_nothrow_move_constructible<Tree>::value) = default;
+  btree_container(btree_container &&other, const allocator_type &alloc)
+      : tree_(std::move(other.tree_), alloc) {}
+
+  btree_container &operator=(const btree_container &other) = default;
+  btree_container &operator=(btree_container &&other) noexcept(
       std::is_nothrow_move_assignable<Tree>::value) = default;
 
   // Iterator routines.
-  iterator begin() { return tree_.begin(); }
-  const_iterator begin() const { return tree_.begin(); }
-  const_iterator cbegin() const { return tree_.begin(); }
-  iterator end() { return tree_.end(); }
-  const_iterator end() const { return tree_.end(); }
-  const_iterator cend() const { return tree_.end(); }
-  reverse_iterator rbegin() { return tree_.rbegin(); }
-  const_reverse_iterator rbegin() const { return tree_.rbegin(); }
-  const_reverse_iterator crbegin() const { return tree_.rbegin(); }
-  reverse_iterator rend() { return tree_.rend(); }
-  const_reverse_iterator rend() const { return tree_.rend(); }
-  const_reverse_iterator crend() const { return tree_.rend(); }
+  iterator begin() ABSL_ATTRIBUTE_LIFETIME_BOUND { return tree_.begin(); }
+  const_iterator begin() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.begin();
+  }
+  const_iterator cbegin() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.begin();
+  }
+  iterator end() ABSL_ATTRIBUTE_LIFETIME_BOUND { return tree_.end(); }
+  const_iterator end() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.end();
+  }
+  const_iterator cend() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.end();
+  }
+  reverse_iterator rbegin() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.rbegin();
+  }
+  const_reverse_iterator rbegin() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.rbegin();
+  }
+  const_reverse_iterator crbegin() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.rbegin();
+  }
+  reverse_iterator rend() ABSL_ATTRIBUTE_LIFETIME_BOUND { return tree_.rend(); }
+  const_reverse_iterator rend() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.rend();
+  }
+  const_reverse_iterator crend() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.rend();
+  }
 
   // Lookup routines.
   template <typename K = key_type>
-  iterator find(const key_arg<K> &key) {
+  size_type count(const key_arg<K> &key) const {
+    auto equal_range = this->equal_range(key);
+    return equal_range.second - equal_range.first;
+  }
+  template <typename K = key_type>
+  iterator find(const key_arg<K> &key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.find(key);
   }
   template <typename K = key_type>
-  const_iterator find(const key_arg<K> &key) const {
+  const_iterator find(const key_arg<K> &key) const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.find(key);
   }
   template <typename K = key_type>
@@ -102,28 +148,31 @@ class btree_container {
     return find(key) != end();
   }
   template <typename K = key_type>
-  iterator lower_bound(const key_arg<K> &key) {
+  iterator lower_bound(const key_arg<K> &key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.lower_bound(key);
   }
   template <typename K = key_type>
-  const_iterator lower_bound(const key_arg<K> &key) const {
+  const_iterator lower_bound(const key_arg<K> &key) const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.lower_bound(key);
   }
   template <typename K = key_type>
-  iterator upper_bound(const key_arg<K> &key) {
+  iterator upper_bound(const key_arg<K> &key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.upper_bound(key);
   }
   template <typename K = key_type>
-  const_iterator upper_bound(const key_arg<K> &key) const {
+  const_iterator upper_bound(const key_arg<K> &key) const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.upper_bound(key);
   }
   template <typename K = key_type>
-  std::pair<iterator, iterator> equal_range(const key_arg<K> &key) {
+  std::pair<iterator, iterator> equal_range(const key_arg<K> &key)
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.equal_range(key);
   }
   template <typename K = key_type>
   std::pair<const_iterator, const_iterator> equal_range(
-      const key_arg<K> &key) const {
+      const key_arg<K> &key) const ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.equal_range(key);
   }
 
@@ -133,17 +182,37 @@ class btree_container {
   // Erase the specified iterator from the btree. The iterator must be valid
   // (i.e. not equal to end()).  Return an iterator pointing to the node after
   // the one that was erased (or end() if none exists).
-  iterator erase(const_iterator iter) { return tree_.erase(iterator(iter)); }
-  iterator erase(iterator iter) { return tree_.erase(iter); }
-  iterator erase(const_iterator first, const_iterator last) {
+  iterator erase(const_iterator iter) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.erase(iterator(iter));
+  }
+  iterator erase(iterator iter) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return tree_.erase(iter);
+  }
+  iterator erase(const_iterator first,
+                 const_iterator last) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return tree_.erase_range(iterator(first), iterator(last)).second;
+  }
+  template <typename K = key_type>
+  size_type erase(const key_arg<K> &key) {
+    auto equal_range = this->equal_range(key);
+    return tree_.erase_range(equal_range.first, equal_range.second).first;
   }
 
   // Extract routines.
+  extract_and_get_next_return_type extract_and_get_next(const_iterator position)
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // Use Construct instead of Transfer because the rebalancing code will
+    // destroy the slot later.
+    // Note: we rely on erase() taking place after Construct().
+    return {CommonAccess::Construct<node_type>(get_allocator(),
+                                               iterator(position).slot()),
+            erase(position)};
+  }
   node_type extract(iterator position) {
-    // Use Move instead of Transfer, because the rebalancing code expects to
-    // have a valid object to scribble metadata bits on top of.
-    auto node = CommonAccess::Move<node_type>(get_allocator(), position.slot());
+    // Use Construct instead of Transfer because the rebalancing code will
+    // destroy the slot later.
+    auto node =
+        CommonAccess::Construct<node_type>(get_allocator(), position.slot());
     erase(position);
     return node;
   }
@@ -151,10 +220,9 @@ class btree_container {
     return extract(iterator(position));
   }
 
- public:
   // Utility routines.
-  void clear() { tree_.clear(); }
-  void swap(btree_container &x) { tree_.swap(x.tree_); }
+  ABSL_ATTRIBUTE_REINITIALIZES void clear() { tree_.clear(); }
+  void swap(btree_container &other) { tree_.swap(other.tree_); }
   void verify() const { tree_.verify(); }
 
   // Size routines.
@@ -191,7 +259,7 @@ class btree_container {
   allocator_type get_allocator() const { return tree_.get_allocator(); }
 
   // The key comparator used by the btree.
-  key_compare key_comp() const { return tree_.key_comp(); }
+  key_compare key_comp() const { return key_compare(tree_.key_comp()); }
   value_compare value_comp() const { return tree_.value_comp(); }
 
   // Support absl::Hash.
@@ -200,10 +268,12 @@ class btree_container {
     for (const auto &v : b) {
       h = State::combine(std::move(h), v);
     }
-    return State::combine(std::move(h), b.size());
+    return State::combine(std::move(h),
+                          hash_internal::WeaklyMixedInteger{b.size()});
   }
 
  protected:
+  friend struct btree_access;
   Tree tree_;
 };
 
@@ -224,7 +294,7 @@ class btree_set_container : public btree_container<Tree> {
   using key_type = typename Tree::key_type;
   using value_type = typename Tree::value_type;
   using size_type = typename Tree::size_type;
-  using key_compare = typename Tree::key_compare;
+  using key_compare = typename Tree::original_key_compare;
   using allocator_type = typename Tree::allocator_type;
   using iterator = typename Tree::iterator;
   using const_iterator = typename Tree::const_iterator;
@@ -235,7 +305,7 @@ class btree_set_container : public btree_container<Tree> {
   using super_type::super_type;
   btree_set_container() {}
 
-  // Range constructor.
+  // Range constructors.
   template <class InputIterator>
   btree_set_container(InputIterator b, InputIterator e,
                       const key_compare &comp = key_compare(),
@@ -243,58 +313,69 @@ class btree_set_container : public btree_container<Tree> {
       : super_type(comp, alloc) {
     insert(b, e);
   }
+  template <class InputIterator>
+  btree_set_container(InputIterator b, InputIterator e,
+                      const allocator_type &alloc)
+      : btree_set_container(b, e, key_compare(), alloc) {}
 
-  // Initializer list constructor.
+  // Initializer list constructors.
   btree_set_container(std::initializer_list<init_type> init,
                       const key_compare &comp = key_compare(),
                       const allocator_type &alloc = allocator_type())
       : btree_set_container(init.begin(), init.end(), comp, alloc) {}
-
-  // Lookup routines.
-  template <typename K = key_type>
-  size_type count(const key_arg<K> &key) const {
-    return this->tree_.count_unique(key);
-  }
+  btree_set_container(std::initializer_list<init_type> init,
+                      const allocator_type &alloc)
+      : btree_set_container(init.begin(), init.end(), alloc) {}
 
   // Insertion routines.
-  std::pair<iterator, bool> insert(const value_type &x) {
-    return this->tree_.insert_unique(params_type::key(x), x);
+  std::pair<iterator, bool> insert(const value_type &v)
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->tree_.insert_unique(params_type::key(v), v);
   }
-  std::pair<iterator, bool> insert(value_type &&x) {
-    return this->tree_.insert_unique(params_type::key(x), std::move(x));
-  }
-  template <typename... Args>
-  std::pair<iterator, bool> emplace(Args &&... args) {
-    init_type v(std::forward<Args>(args)...);
+  std::pair<iterator, bool> insert(value_type &&v)
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return this->tree_.insert_unique(params_type::key(v), std::move(v));
   }
-  iterator insert(const_iterator position, const value_type &x) {
+  template <typename... Args>
+  std::pair<iterator, bool> emplace(Args &&...args)
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // Use a node handle to manage a temp slot.
+    auto node = CommonAccess::Construct<node_type>(this->get_allocator(),
+                                                   std::forward<Args>(args)...);
+    auto *slot = CommonAccess::GetSlot(node);
+    return this->tree_.insert_unique(params_type::key(slot), slot);
+  }
+  iterator insert(const_iterator hint,
+                  const value_type &v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return this->tree_
-        .insert_hint_unique(iterator(position), params_type::key(x), x)
+        .insert_hint_unique(iterator(hint), params_type::key(v), v)
         .first;
   }
-  iterator insert(const_iterator position, value_type &&x) {
+  iterator insert(const_iterator hint,
+                  value_type &&v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return this->tree_
-        .insert_hint_unique(iterator(position), params_type::key(x),
-                            std::move(x))
+        .insert_hint_unique(iterator(hint), params_type::key(v), std::move(v))
         .first;
   }
   template <typename... Args>
-  iterator emplace_hint(const_iterator position, Args &&... args) {
-    init_type v(std::forward<Args>(args)...);
+  iterator emplace_hint(const_iterator hint,
+                        Args &&...args) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // Use a node handle to manage a temp slot.
+    auto node = CommonAccess::Construct<node_type>(this->get_allocator(),
+                                                   std::forward<Args>(args)...);
+    auto *slot = CommonAccess::GetSlot(node);
     return this->tree_
-        .insert_hint_unique(iterator(position), params_type::key(v),
-                            std::move(v))
+        .insert_hint_unique(iterator(hint), params_type::key(slot), slot)
         .first;
   }
   template <typename InputIterator>
   void insert(InputIterator b, InputIterator e) {
-    this->tree_.insert_iterator_unique(b, e);
+    this->tree_.insert_iterator_unique(b, e, 0);
   }
   void insert(std::initializer_list<init_type> init) {
-    this->tree_.insert_iterator_unique(init.begin(), init.end());
+    this->tree_.insert_iterator_unique(init.begin(), init.end(), 0);
   }
-  insert_return_type insert(node_type &&node) {
+  insert_return_type insert(node_type &&node) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     if (!node) return {this->end(), false, node_type()};
     std::pair<iterator, bool> res =
         this->tree_.insert_unique(params_type::key(CommonAccess::GetSlot(node)),
@@ -306,7 +387,8 @@ class btree_set_container : public btree_container<Tree> {
       return {res.first, false, std::move(node)};
     }
   }
-  iterator insert(const_iterator hint, node_type &&node) {
+  iterator insert(const_iterator hint,
+                  node_type &&node) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     if (!node) return this->end();
     std::pair<iterator, bool> res = this->tree_.insert_hint_unique(
         iterator(hint), params_type::key(CommonAccess::GetSlot(node)),
@@ -315,18 +397,13 @@ class btree_set_container : public btree_container<Tree> {
     return res.first;
   }
 
-  // Deletion routines.
-  template <typename K = key_type>
-  size_type erase(const key_arg<K> &key) {
-    return this->tree_.erase_unique(key);
-  }
-  using super_type::erase;
-
   // Node extraction routines.
   template <typename K = key_type>
   node_type extract(const key_arg<K> &key) {
-    auto it = this->find(key);
-    return it == this->end() ? node_type() : extract(it);
+    const std::pair<iterator, bool> lower_and_equal =
+        this->tree_.lower_bound_equal(key);
+    return lower_and_equal.second ? extract(lower_and_equal.first)
+                                  : node_type();
   }
   using super_type::extract;
 
@@ -344,7 +421,7 @@ class btree_set_container : public btree_container<Tree> {
           int> = 0>
   void merge(btree_container<T> &src) {  // NOLINT
     for (auto src_it = src.begin(); src_it != src.end();) {
-      if (insert(std::move(*src_it)).second) {
+      if (insert(std::move(params_type::element(src_it.slot()))).second) {
         src_it = src.erase(src_it);
       } else {
         ++src_it;
@@ -371,16 +448,40 @@ template <typename Tree>
 class btree_map_container : public btree_set_container<Tree> {
   using super_type = btree_set_container<Tree>;
   using params_type = typename Tree::params_type;
+  friend class BtreeNodePeer;
 
  private:
   template <class K>
   using key_arg = typename super_type::template key_arg<K>;
 
+  // NOTE: The mess here is to shorten the code for the (very repetitive)
+  // function overloads, and to allow the lifetime-bound overloads to dispatch
+  // to the non-lifetime-bound overloads, to ensure there is a single source of
+  // truth for each overload set.
+  //
+  // Enabled if an assignment from the given type would require the
+  // source object to remain alive for the life of the element.
+  //
+  // TODO(b/402804213): Remove these traits and simplify the overloads whenever
+  // we have a better mechanism available to handle lifetime analysis.
+  template <class K, bool Value, typename = void>
+  using LifetimeBoundK =
+      HasValue<Value, type_traits_internal::IsLifetimeBoundAssignment<
+                          typename Tree::key_type, K>>;
+  template <class M, bool Value, typename = void>
+  using LifetimeBoundV =
+      HasValue<Value, type_traits_internal::IsLifetimeBoundAssignment<
+                          typename Tree::params_type::mapped_type, M>>;
+  template <class K, bool KValue, class M, bool MValue, typename... Dummy>
+  using LifetimeBoundKV =
+      absl::conjunction<LifetimeBoundK<K, KValue, absl::void_t<Dummy...>>,
+                        LifetimeBoundV<M, MValue>>;
+
  public:
   using key_type = typename Tree::key_type;
   using mapped_type = typename params_type::mapped_type;
   using value_type = typename Tree::value_type;
-  using key_compare = typename Tree::key_compare;
+  using key_compare = typename Tree::original_key_compare;
   using allocator_type = typename Tree::allocator_type;
   using iterator = typename Tree::iterator;
   using const_iterator = typename Tree::const_iterator;
@@ -389,129 +490,221 @@ class btree_map_container : public btree_set_container<Tree> {
   using super_type::super_type;
   btree_map_container() {}
 
+  // TODO(b/402804213): Remove these macros whenever we have a better mechanism
+  // available to handle lifetime analysis.
+#define ABSL_INTERNAL_X(Func, Callee, KQual, MQual, KValue, MValue, ...)     \
+  template <                                                                 \
+      typename K = key_type, class M,                                        \
+      ABSL_INTERNAL_IF_##KValue##_NOR_##MValue(                              \
+          int = (EnableIf<LifetimeBoundKV<K, KValue, M, MValue,              \
+                                          IfRRef<int KQual>::AddPtr<K>,      \
+                                          IfRRef<int MQual>::AddPtr<M>>>()), \
+          ABSL_INTERNAL_SINGLE_ARG(                                          \
+              int &...,                                                      \
+              decltype(EnableIf<LifetimeBoundKV<K, KValue, M, MValue>>()) =  \
+                  0))>                                                       \
+  decltype(auto) Func(                                                       \
+      __VA_ARGS__ key_arg<K> KQual k ABSL_INTERNAL_IF_##KValue(              \
+          ABSL_INTERNAL_ATTRIBUTE_CAPTURED_BY(this)),                        \
+      M MQual obj ABSL_INTERNAL_IF_##MValue(                                 \
+          ABSL_INTERNAL_ATTRIBUTE_CAPTURED_BY(this)))                        \
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {                                        \
+    return ABSL_INTERNAL_IF_##KValue##_OR_##MValue(                          \
+        (this->template Func<K, M, 0>), Callee)(                             \
+        __VA_ARGS__ std::forward<decltype(k)>(k),                            \
+        std::forward<decltype(obj)>(obj));                                   \
+  }                                                                          \
+  friend struct std::enable_if<false> /* just to force a semicolon */
   // Insertion routines.
   // Note: the nullptr template arguments and extra `const M&` overloads allow
   // for supporting bitfield arguments.
-  // Note: when we call `std::forward<M>(obj)` twice, it's safe because
-  // insert_unique/insert_hint_unique are guaranteed to not consume `obj` when
-  // `ret.second` is false.
-  template <class M>
-  std::pair<iterator, bool> insert_or_assign(const key_type &k, const M &obj) {
-    const std::pair<iterator, bool> ret = this->tree_.insert_unique(k, k, obj);
-    if (!ret.second) ret.first->second = obj;
-    return ret;
-  }
-  template <class M, key_type * = nullptr>
-  std::pair<iterator, bool> insert_or_assign(key_type &&k, const M &obj) {
-    const std::pair<iterator, bool> ret =
-        this->tree_.insert_unique(k, std::move(k), obj);
-    if (!ret.second) ret.first->second = obj;
-    return ret;
-  }
-  template <class M, M * = nullptr>
-  std::pair<iterator, bool> insert_or_assign(const key_type &k, M &&obj) {
-    const std::pair<iterator, bool> ret =
-        this->tree_.insert_unique(k, k, std::forward<M>(obj));
-    if (!ret.second) ret.first->second = std::forward<M>(obj);
-    return ret;
-  }
-  template <class M, key_type * = nullptr, M * = nullptr>
-  std::pair<iterator, bool> insert_or_assign(key_type &&k, M &&obj) {
-    const std::pair<iterator, bool> ret =
-        this->tree_.insert_unique(k, std::move(k), std::forward<M>(obj));
-    if (!ret.second) ret.first->second = std::forward<M>(obj);
-    return ret;
-  }
-  template <class M>
-  iterator insert_or_assign(const_iterator position, const key_type &k,
-                            const M &obj) {
-    const std::pair<iterator, bool> ret =
-        this->tree_.insert_hint_unique(iterator(position), k, k, obj);
-    if (!ret.second) ret.first->second = obj;
-    return ret.first;
-  }
-  template <class M, key_type * = nullptr>
-  iterator insert_or_assign(const_iterator position, key_type &&k,
-                            const M &obj) {
-    const std::pair<iterator, bool> ret = this->tree_.insert_hint_unique(
-        iterator(position), k, std::move(k), obj);
-    if (!ret.second) ret.first->second = obj;
-    return ret.first;
-  }
-  template <class M, M * = nullptr>
-  iterator insert_or_assign(const_iterator position, const key_type &k,
-                            M &&obj) {
-    const std::pair<iterator, bool> ret = this->tree_.insert_hint_unique(
-        iterator(position), k, k, std::forward<M>(obj));
-    if (!ret.second) ret.first->second = std::forward<M>(obj);
-    return ret.first;
-  }
-  template <class M, key_type * = nullptr, M * = nullptr>
-  iterator insert_or_assign(const_iterator position, key_type &&k, M &&obj) {
-    const std::pair<iterator, bool> ret = this->tree_.insert_hint_unique(
-        iterator(position), k, std::move(k), std::forward<M>(obj));
-    if (!ret.second) ret.first->second = std::forward<M>(obj);
-    return ret.first;
-  }
-  template <typename... Args>
-  std::pair<iterator, bool> try_emplace(const key_type &k, Args &&... args) {
-    return this->tree_.insert_unique(
-        k, std::piecewise_construct, std::forward_as_tuple(k),
-        std::forward_as_tuple(std::forward<Args>(args)...));
-  }
-  template <typename... Args>
-  std::pair<iterator, bool> try_emplace(key_type &&k, Args &&... args) {
-    // Note: `key_ref` exists to avoid a ClangTidy warning about moving from `k`
-    // and then using `k` unsequenced. This is safe because the move is into a
-    // forwarding reference and insert_unique guarantees that `key` is never
-    // referenced after consuming `args`.
-    const key_type &key_ref = k;
-    return this->tree_.insert_unique(
-        key_ref, std::piecewise_construct, std::forward_as_tuple(std::move(k)),
-        std::forward_as_tuple(std::forward<Args>(args)...));
-  }
-  template <typename... Args>
-  iterator try_emplace(const_iterator hint, const key_type &k,
-                       Args &&... args) {
-    return this->tree_
-        .insert_hint_unique(iterator(hint), k, std::piecewise_construct,
-                            std::forward_as_tuple(k),
-                            std::forward_as_tuple(std::forward<Args>(args)...))
-        .first;
-  }
-  template <typename... Args>
-  iterator try_emplace(const_iterator hint, key_type &&k, Args &&... args) {
-    // Note: `key_ref` exists to avoid a ClangTidy warning about moving from `k`
-    // and then using `k` unsequenced. This is safe because the move is into a
-    // forwarding reference and insert_hint_unique guarantees that `key` is
-    // never referenced after consuming `args`.
-    const key_type &key_ref = k;
-    return this->tree_
-        .insert_hint_unique(iterator(hint), key_ref, std::piecewise_construct,
-                            std::forward_as_tuple(std::move(k)),
-                            std::forward_as_tuple(std::forward<Args>(args)...))
-        .first;
-  }
-  mapped_type &operator[](const key_type &k) {
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, const &,
+                  false, false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, const &,
+                  false, true);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, const &,
+                  true, false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, const &,
+                  true, true);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, &&, false,
+                  false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, &&, false,
+                  true);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, &&, true,
+                  false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, const &, &&, true,
+                  true);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, const &, false,
+                  false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, const &, false,
+                  true);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, const &, true,
+                  false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, const &, true,
+                  true);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, &&, false,
+                  false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, &&, false, true);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, &&, true, false);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_impl, &&, &&, true, true);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &,
+                  const &, false, false,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &,
+                  const &, false, true,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &,
+                  const &, true, false,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &,
+                  const &, true, true,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &, &&,
+                  false, false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &, &&,
+                  false, true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &, &&,
+                  true, false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, const &, &&,
+                  true, true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, const &,
+                  false, false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, const &,
+                  false, true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, const &,
+                  true, false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, const &,
+                  true, true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, &&, false,
+                  false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, &&, false,
+                  true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, &&, true,
+                  false, const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(insert_or_assign, insert_or_assign_hint_impl, &&, &&, true,
+                  true, const_iterator(hint) ABSL_INTERNAL_COMMA);
+#undef ABSL_INTERNAL_X
+
+#define ABSL_INTERNAL_X(Func, Callee, KQual, KValue, ...)                      \
+  template <                                                                   \
+      class K = key_type,                                                      \
+      ABSL_INTERNAL_IF_##KValue(                                               \
+          class... Args,                                                       \
+          int = (EnableIf<                                                     \
+                 LifetimeBoundK<K, KValue, IfRRef<int KQual>::AddPtr<K>>>())), \
+      ABSL_INTERNAL_IF_##KValue(                                               \
+          decltype(EnableIf<LifetimeBoundK<                                    \
+                       K, KValue, IfRRef<int KQual>::AddPtr<K>>>()) = 0,       \
+          class... Args),                                                      \
+      std::enable_if_t<!std::is_convertible<K, const_iterator>::value, int> =  \
+          0>                                                                   \
+  decltype(auto) Func(                                                         \
+      __VA_ARGS__ key_arg<K> KQual k ABSL_INTERNAL_IF_##KValue(                \
+          ABSL_INTERNAL_ATTRIBUTE_CAPTURED_BY(this)),                          \
+      Args &&...args) ABSL_ATTRIBUTE_LIFETIME_BOUND {                          \
+    return ABSL_INTERNAL_IF_##KValue((this->template Func<K, 0>), Callee)(     \
+        __VA_ARGS__ std::forward<decltype(k)>(k),                              \
+        std::forward<decltype(args)>(args)...);                                \
+  }                                                                            \
+  friend struct std::enable_if<false> /* just to force a semicolon */
+  ABSL_INTERNAL_X(try_emplace, try_emplace_impl, const &, false);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_impl, const &, true);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_impl, &&, false);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_impl, &&, true);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_hint_impl, const &, false,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_hint_impl, const &, true,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_hint_impl, &&, false,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+  ABSL_INTERNAL_X(try_emplace, try_emplace_hint_impl, &&, true,
+                  const_iterator(hint) ABSL_INTERNAL_COMMA);
+#undef ABSL_INTERNAL_X
+
+  template <class K = key_type, int = EnableIf<LifetimeBoundK<K, false>>()>
+  mapped_type &operator[](const key_arg<K> &k) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return try_emplace(k).first->second;
   }
-  mapped_type &operator[](key_type &&k) {
-    return try_emplace(std::move(k)).first->second;
+  template <class K = key_type, int &..., EnableIf<LifetimeBoundK<K, true>> = 0>
+  mapped_type &operator[](
+      const key_arg<K> &k ABSL_INTERNAL_ATTRIBUTE_CAPTURED_BY(this))
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->template operator[]<K, 0>(k);
+  }
+  template <class K = key_type, int = EnableIf<LifetimeBoundK<K, false>>()>
+  mapped_type &operator[](key_arg<K> &&k) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return try_emplace(std::forward<key_arg<K>>(k)).first->second;
+  }
+  template <class K = key_type, int &..., EnableIf<LifetimeBoundK<K, true>> = 0>
+  mapped_type &operator[](key_arg<K> &&k ABSL_INTERNAL_ATTRIBUTE_CAPTURED_BY(
+      this)) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->template operator[]<K, 0>(std::forward<key_arg<K>>(k));
   }
 
   template <typename K = key_type>
-  mapped_type &at(const key_arg<K> &key) {
+  mapped_type &at(const key_arg<K> &key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     auto it = this->find(key);
     if (it == this->end())
       base_internal::ThrowStdOutOfRange("absl::btree_map::at");
     return it->second;
   }
   template <typename K = key_type>
-  const mapped_type &at(const key_arg<K> &key) const {
+  const mapped_type &at(const key_arg<K> &key) const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
     auto it = this->find(key);
     if (it == this->end())
       base_internal::ThrowStdOutOfRange("absl::btree_map::at");
     return it->second;
+  }
+
+ private:
+  // Note: when we call `std::forward<M>(obj)` twice, it's safe because
+  // insert_unique/insert_hint_unique are guaranteed to not consume `obj` when
+  // `ret.second` is false.
+  template <class K, class M>
+  std::pair<iterator, bool> insert_or_assign_impl(K &&k, M &&obj) {
+    const std::pair<iterator, bool> ret =
+        this->tree_.insert_unique(k, std::forward<K>(k), std::forward<M>(obj));
+    if (!ret.second) {
+      // NOLINTNEXTLINE(bugprone-use-after-move)
+      ret.first->second = std::forward<M>(obj);
+    }
+    return ret;
+  }
+  template <class K, class M>
+  iterator insert_or_assign_hint_impl(const_iterator hint, K &&k, M &&obj) {
+    const std::pair<iterator, bool> ret = this->tree_.insert_hint_unique(
+        iterator(hint), k, std::forward<K>(k), std::forward<M>(obj));
+    if (!ret.second) {
+      // NOLINTNEXTLINE(bugprone-use-after-move)
+      ret.first->second = std::forward<M>(obj);
+    }
+    return ret.first;
+  }
+
+  template <class K, class... Args>
+  std::pair<iterator, bool> try_emplace_impl(K &&k, Args &&... args) {
+    return this->tree_.insert_unique(
+        // NOLINTNEXTLINE(bugprone-use-after-move)
+        k, std::piecewise_construct, std::forward_as_tuple(std::forward<K>(k)),
+        std::forward_as_tuple(std::forward<Args>(args)...));
+  }
+  template <class K, class... Args>
+  iterator try_emplace_hint_impl(const_iterator hint, K &&k, Args &&... args) {
+    return this->tree_
+        .insert_hint_unique(iterator(hint),
+                            // NOLINTNEXTLINE(bugprone-use-after-move)
+                            k, std::piecewise_construct,
+                            std::forward_as_tuple(std::forward<K>(k)),
+                            std::forward_as_tuple(std::forward<Args>(args)...))
+        .first;
   }
 };
 
@@ -522,6 +715,7 @@ class btree_multiset_container : public btree_container<Tree> {
   using params_type = typename Tree::params_type;
   using init_type = typename params_type::init_type;
   using is_key_compare_to = typename params_type::is_key_compare_to;
+  friend class BtreeNodePeer;
 
   template <class K>
   using key_arg = typename super_type::template key_arg<K>;
@@ -530,7 +724,7 @@ class btree_multiset_container : public btree_container<Tree> {
   using key_type = typename Tree::key_type;
   using value_type = typename Tree::value_type;
   using size_type = typename Tree::size_type;
-  using key_compare = typename Tree::key_compare;
+  using key_compare = typename Tree::original_key_compare;
   using allocator_type = typename Tree::allocator_type;
   using iterator = typename Tree::iterator;
   using const_iterator = typename Tree::const_iterator;
@@ -540,7 +734,7 @@ class btree_multiset_container : public btree_container<Tree> {
   using super_type::super_type;
   btree_multiset_container() {}
 
-  // Range constructor.
+  // Range constructors.
   template <class InputIterator>
   btree_multiset_container(InputIterator b, InputIterator e,
                            const key_compare &comp = key_compare(),
@@ -548,29 +742,34 @@ class btree_multiset_container : public btree_container<Tree> {
       : super_type(comp, alloc) {
     insert(b, e);
   }
+  template <class InputIterator>
+  btree_multiset_container(InputIterator b, InputIterator e,
+                           const allocator_type &alloc)
+      : btree_multiset_container(b, e, key_compare(), alloc) {}
 
-  // Initializer list constructor.
+  // Initializer list constructors.
   btree_multiset_container(std::initializer_list<init_type> init,
                            const key_compare &comp = key_compare(),
                            const allocator_type &alloc = allocator_type())
       : btree_multiset_container(init.begin(), init.end(), comp, alloc) {}
-
-  // Lookup routines.
-  template <typename K = key_type>
-  size_type count(const key_arg<K> &key) const {
-    return this->tree_.count_multi(key);
-  }
+  btree_multiset_container(std::initializer_list<init_type> init,
+                           const allocator_type &alloc)
+      : btree_multiset_container(init.begin(), init.end(), alloc) {}
 
   // Insertion routines.
-  iterator insert(const value_type &x) { return this->tree_.insert_multi(x); }
-  iterator insert(value_type &&x) {
-    return this->tree_.insert_multi(std::move(x));
+  iterator insert(const value_type &v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->tree_.insert_multi(v);
   }
-  iterator insert(const_iterator position, const value_type &x) {
-    return this->tree_.insert_hint_multi(iterator(position), x);
+  iterator insert(value_type &&v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->tree_.insert_multi(std::move(v));
   }
-  iterator insert(const_iterator position, value_type &&x) {
-    return this->tree_.insert_hint_multi(iterator(position), std::move(x));
+  iterator insert(const_iterator hint,
+                  const value_type &v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->tree_.insert_hint_multi(iterator(hint), v);
+  }
+  iterator insert(const_iterator hint,
+                  value_type &&v) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return this->tree_.insert_hint_multi(iterator(hint), std::move(v));
   }
   template <typename InputIterator>
   void insert(InputIterator b, InputIterator e) {
@@ -580,15 +779,22 @@ class btree_multiset_container : public btree_container<Tree> {
     this->tree_.insert_iterator_multi(init.begin(), init.end());
   }
   template <typename... Args>
-  iterator emplace(Args &&... args) {
-    return this->tree_.insert_multi(init_type(std::forward<Args>(args)...));
+  iterator emplace(Args &&...args) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // Use a node handle to manage a temp slot.
+    auto node = CommonAccess::Construct<node_type>(this->get_allocator(),
+                                                   std::forward<Args>(args)...);
+    return this->tree_.insert_multi(CommonAccess::GetSlot(node));
   }
   template <typename... Args>
-  iterator emplace_hint(const_iterator position, Args &&... args) {
-    return this->tree_.insert_hint_multi(
-        iterator(position), init_type(std::forward<Args>(args)...));
+  iterator emplace_hint(const_iterator hint,
+                        Args &&...args) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // Use a node handle to manage a temp slot.
+    auto node = CommonAccess::Construct<node_type>(this->get_allocator(),
+                                                   std::forward<Args>(args)...);
+    return this->tree_.insert_hint_multi(iterator(hint),
+                                         CommonAccess::GetSlot(node));
   }
-  iterator insert(node_type &&node) {
+  iterator insert(node_type &&node) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     if (!node) return this->end();
     iterator res =
         this->tree_.insert_multi(params_type::key(CommonAccess::GetSlot(node)),
@@ -596,7 +802,8 @@ class btree_multiset_container : public btree_container<Tree> {
     CommonAccess::Destroy(&node);
     return res;
   }
-  iterator insert(const_iterator hint, node_type &&node) {
+  iterator insert(const_iterator hint,
+                  node_type &&node) ABSL_ATTRIBUTE_LIFETIME_BOUND {
     if (!node) return this->end();
     iterator res = this->tree_.insert_hint_multi(
         iterator(hint),
@@ -605,18 +812,13 @@ class btree_multiset_container : public btree_container<Tree> {
     return res;
   }
 
-  // Deletion routines.
-  template <typename K = key_type>
-  size_type erase(const key_arg<K> &key) {
-    return this->tree_.erase_multi(key);
-  }
-  using super_type::erase;
-
   // Node extraction routines.
   template <typename K = key_type>
   node_type extract(const key_arg<K> &key) {
-    auto it = this->find(key);
-    return it == this->end() ? node_type() : extract(it);
+    const std::pair<iterator, bool> lower_and_equal =
+        this->tree_.lower_bound_equal(key);
+    return lower_and_equal.second ? extract(lower_and_equal.first)
+                                  : node_type();
   }
   using super_type::extract;
 
@@ -632,8 +834,9 @@ class btree_multiset_container : public btree_container<Tree> {
                            typename T::params_type::is_map_container>>::value,
           int> = 0>
   void merge(btree_container<T> &src) {  // NOLINT
-    insert(std::make_move_iterator(src.begin()),
-           std::make_move_iterator(src.end()));
+    for (auto src_it = src.begin(), end = src.end(); src_it != end; ++src_it) {
+      insert(std::move(params_type::element(src_it.slot())));
+    }
     src.clear();
   }
 
@@ -656,6 +859,7 @@ template <typename Tree>
 class btree_multimap_container : public btree_multiset_container<Tree> {
   using super_type = btree_multiset_container<Tree>;
   using params_type = typename Tree::params_type;
+  friend class BtreeNodePeer;
 
  public:
   using mapped_type = typename params_type::mapped_type;

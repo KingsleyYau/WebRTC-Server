@@ -113,7 +113,8 @@ nice_tcp_bsd_socket_new_from_gsock(GMainContext *ctx, GSocket *gsock,
 	priv->writable_cb = NULL;
 	priv->writable_data = NULL;
 
-	priv->io_source = g_socket_create_source(gsock, G_IO_OUT, NULL);
+//	priv->io_source = g_socket_create_source(gsock, G_IO_OUT, NULL);
+	priv->io_source = NULL;
 	g_mutex_init(&priv->mutex);
 
 	sock->type = NICE_SOCKET_TYPE_TCP_BSD;
@@ -214,8 +215,8 @@ nice_tcp_bsd_socket_new(GMainContext *ctx, NiceAddress *local_addr,
 	 * Add Debug Log
 	 * Add by Max 2020/12/04
 	 */
-	nice_debug("Socket %p(fd %d): [TCP/BSD] Create", sock,
-			g_socket_get_fd(sock->fileno));
+	nice_debug("Socket %p(fd %d): [TCP/BSD] Create",
+			sock, g_socket_get_fd(sock->fileno));
 
 	return sock;
 }
@@ -241,8 +242,8 @@ static void socket_close(NiceSocket *sock) {
 		 * Add by Max 2020/12/04
 		 */
 		nice_debug(
-				"Socket %p(fd %d): [TCP/BSD] Send queue source destroy, io_source %p",
-				sock, sock->fileno ? g_socket_get_fd(sock->fileno):-1, priv->io_source);
+				"Socket %p(fd %d): [TCP/BSD] Send source destroy, io_source %p, io_context %p",
+				sock, sock->fileno ? g_socket_get_fd(sock->fileno):-1, priv->io_source, g_source_get_context(priv->io_source));
 		g_source_destroy(priv->io_source);
 		g_source_unref(priv->io_source);
 		priv->io_source = NULL;
@@ -297,8 +298,8 @@ static gint socket_recv_messages(NiceSocket *sock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Recv, ret %d, errno %d", sock,
-				g_socket_get_fd(sock->fileno), len, errno);
+		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Recv, ret %d", sock,
+				g_socket_get_fd(sock->fileno), len);
 
 		/* recv returns 0 when the peer performed a shutdown.. we must return -1
 		 * here so that the agent destroys the g_source */
@@ -354,19 +355,23 @@ static gssize socket_send_message(NiceSocket *sock,
 		 * Add Debug Log
 		 * Add by Max 2020/12/04
 		 */
-		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Send, len %d, ret %d", sock,
-				g_socket_get_fd(sock->fileno), message_len, ret);
+		nice_debug_verbose("Socket %p(fd %d): [TCP/BSD] Send len %d, ret %d",
+				sock, g_socket_get_fd(sock->fileno), message_len, ret);
 
 		if (ret < 0) {
 			if (g_error_matches(gerr, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)
 //					|| g_error_matches(gerr, G_IO_ERROR, G_IO_ERROR_FAILED)
 					) {
-
+				nice_debug("Socket %p(fd %d): [TCP/BSD] Send source attatch, io_source %p, len %d, ret %d",
+						sock, g_socket_get_fd(sock->fileno), priv->io_source, message_len, ret);
+				if (priv->io_source) {
+					g_source_destroy(priv->io_source);
+					g_source_unref(priv->io_source);
+				}
+				priv->io_source = g_socket_create_source(sock->fileno, G_IO_OUT, NULL);
 				g_source_set_callback(priv->io_source, (GSourceFunc) G_CALLBACK(socket_send_more),
 						sock, NULL);
 				g_source_attach(priv->io_source, priv->context);
-				nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue source attatch, io_source %p",
-						sock->fileno, g_socket_get_fd(sock->fileno), priv->io_source);
 
 				/* Queue the message and send it later. */
 				nice_socket_queue_send_with_callback(&priv->send_queue, message,
@@ -374,15 +379,20 @@ static gssize socket_send_message(NiceSocket *sock,
 						priv->context, socket_send_more, sock);
 				ret = message_len;
 			} else {
-				nice_debug("Socket %p(fd %d): [TCP/BSD] Send fail, len %d, errno %d", sock,
-						g_socket_get_fd(sock->fileno), message_len, errno);
+				nice_debug("Socket %p(fd %d): [TCP/BSD] Send fail, len %d, errno %d",
+						sock, g_socket_get_fd(sock->fileno), message_len, errno);
 			}
 		} else if ((gsize) ret < message_len) {
+			nice_debug("Socket %p(fd %d): [TCP/BSD] Send source attatch, io_source %p, len %d, ret %d",
+					sock, g_socket_get_fd(sock->fileno), priv->io_source, message_len, ret);
+			if (priv->io_source) {
+				g_source_destroy(priv->io_source);
+				g_source_unref(priv->io_source);
+			}
+			priv->io_source = g_socket_create_source(sock->fileno, G_IO_OUT, NULL);
 			g_source_set_callback(priv->io_source, (GSourceFunc) G_CALLBACK(socket_send_more),
 					sock, NULL);
 			g_source_attach(priv->io_source, priv->context);
-			nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue source attatch, io_source %p",
-					sock->fileno, g_socket_get_fd(sock->fileno), priv->io_source);
 
 			/* Partial send. */
 			nice_socket_queue_send_with_callback(&priv->send_queue, message,
@@ -401,8 +411,8 @@ static gssize socket_send_message(NiceSocket *sock,
 			 * Add Debug Log
 			 * Add by Max 2020/12/04
 			 */
-			nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue direct, len %d", sock,
-					g_socket_get_fd(sock->fileno), message_len);
+			nice_debug("Socket %p(fd %d): [TCP/BSD] Send queue add, len %d",
+					sock, g_socket_get_fd(sock->fileno), message_len);
 
 			/* Queue the message and send it later. */
 			nice_socket_queue_send_with_callback(&priv->send_queue, message, 0,
@@ -488,7 +498,7 @@ static gboolean socket_send_more(GSocket *gsocket, GIOCondition condition,
 		gpointer data) {
 	NiceSocket *sock = (NiceSocket *) data;
 	TcpPriv *priv = sock->priv;
-
+	gboolean result = FALSE;
 	g_mutex_lock(&priv->mutex);
 
 	if (g_source_is_destroyed(g_main_current_source())) {
@@ -500,16 +510,22 @@ static gboolean socket_send_more(GSocket *gsocket, GIOCondition condition,
 	}
 
 	/* connection hangs up or queue was emptied */
-	if ((condition & G_IO_HUP)
-			|| nice_socket_flush_send_queue_to_socket(sock->fileno,
-					&priv->send_queue)) {
-//		/**
-//		 * Add Debug Log
-//		 * Add by Max 2020/12/04
-//		 */
-//		nice_debug(
-//				"Socket %p(fd %d): [TCP/BSD] Send queue source destroy, io_source %p",
-//				sock, g_socket_get_fd(sock->fileno), priv->io_source);
+	if (condition & G_IO_HUP) {
+		nice_debug(
+				"Socket %p(fd %d): [TCP/BSD] Send queue active by HUP, io_source %p",
+				sock, g_socket_get_fd(sock->fileno), priv->io_source);
+		g_mutex_unlock(&priv->mutex);
+		return G_SOURCE_CONTINUE;
+	}
+
+	if (nice_socket_flush_send_queue_to_socket(sock->fileno, &priv->send_queue)) {
+		/**
+		 * Add Debug Log
+		 * Add by Max 2020/12/04
+		 */
+		nice_debug(
+				"Socket %p(fd %d): [TCP/BSD] Send queue active and source destroy, io_source %p",
+				sock, g_socket_get_fd(sock->fileno), priv->io_source);
 //		g_source_destroy(priv->io_source);
 //		g_source_unref(priv->io_source);
 //		priv->io_source = NULL;

@@ -30,10 +30,9 @@ class LookupTest : public ::testing::Test {};
 TYPED_TEST_SUITE_P(LookupTest);
 
 TYPED_TEST_P(LookupTest, Count) {
-  using T = hash_internal::GeneratedType<TypeParam>;
+  using T = GeneratedType<TypeParam>;
   std::vector<T> values;
-  std::generate_n(std::back_inserter(values), 10,
-                  hash_internal::Generator<T>());
+  std::generate_n(std::back_inserter(values), 10, Generator<T>());
   TypeParam m;
   for (const auto& v : values)
     EXPECT_EQ(0, m.count(v)) << ::testing::PrintToString(v);
@@ -43,10 +42,9 @@ TYPED_TEST_P(LookupTest, Count) {
 }
 
 TYPED_TEST_P(LookupTest, Find) {
-  using T = hash_internal::GeneratedType<TypeParam>;
+  using T = GeneratedType<TypeParam>;
   std::vector<T> values;
-  std::generate_n(std::back_inserter(values), 10,
-                  hash_internal::Generator<T>());
+  std::generate_n(std::back_inserter(values), 10, Generator<T>());
   TypeParam m;
   for (const auto& v : values)
     EXPECT_TRUE(m.end() == m.find(v)) << ::testing::PrintToString(v);
@@ -65,10 +63,9 @@ TYPED_TEST_P(LookupTest, Find) {
 }
 
 TYPED_TEST_P(LookupTest, EqualRange) {
-  using T = hash_internal::GeneratedType<TypeParam>;
+  using T = GeneratedType<TypeParam>;
   std::vector<T> values;
-  std::generate_n(std::back_inserter(values), 10,
-                  hash_internal::Generator<T>());
+  std::generate_n(std::back_inserter(values), 10, Generator<T>());
   TypeParam m;
   for (const auto& v : values) {
     auto r = m.equal_range(v);
@@ -82,7 +79,7 @@ TYPED_TEST_P(LookupTest, EqualRange) {
   }
 }
 
-REGISTER_TYPED_TEST_CASE_P(LookupTest, Count, Find, EqualRange);
+REGISTER_TYPED_TEST_SUITE_P(LookupTest, Count, Find, EqualRange);
 
 }  // namespace container_internal
 ABSL_NAMESPACE_END

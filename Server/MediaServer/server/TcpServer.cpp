@@ -83,9 +83,8 @@ void TcpServer::SetTcpServerCallback(TcpServerCallback* callback) {
 bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 	bool bFlag = true;
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Start, "
 			"addr:[%s:%u], "
 			"maxConnection:%d"
 			,
@@ -105,9 +104,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 	int fd = INVALID_SOCKET;
 	struct sockaddr_in ac_addr;
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		LogAync(
+		LogAyncFunc(
 				LOG_ALERT,
-				"TcpServer::Start, "
 				"[Create socket error], "
 				"addr:[%s:%u], "
 				"maxConnection:%d"
@@ -139,9 +137,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 		ac_addr.sin_addr.s_addr = INADDR_ANY;
 
 		if ( bind(mpSocket->fd, (struct sockaddr *) &ac_addr, sizeof(struct sockaddr)) == -1) {
-			LogAync(
+			LogAyncFunc(
 					LOG_ALERT,
-					"TcpServer::Start, "
 					"[Bind socket error], "
 					"addr:[%s:%u], "
 					"maxConnection:%d"
@@ -156,9 +153,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 
 	if (bFlag) {
 		if ( listen(mpSocket->fd, 1024) == -1) {
-			LogAync(
+			LogAyncFunc(
 					LOG_ALERT,
-					"TcpServer::Start, "
 					"[Listen socket error], "
 					"addr:[%s:%u], "
 					"maxConnection:%d"
@@ -179,9 +175,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 				mWatcherList.PushBack(w);
 			}
 		}
-		LogAync(
+		LogAyncFunc(
 				LOG_DEBUG,
-				"TcpServer::Start, "
 				"[Create watchers OK], "
 				"addr:[%s:%u], "
 				"maxConnection:%d, "
@@ -201,9 +196,9 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 	if (bFlag) {
 		// 启动IO监听线程
 		if (0 == mIOThread.Start(mpIORunnable, "TcpServer")) {
-			LogAync(
+			LogAyncFunc(
 					LOG_ALERT,
-					"TcpServer::Start( [Create IO thread Fail], "
+					"[Create IO thread Fail], "
 					"addr:[%s:%u], "
 					"maxConnection:%d"
 					,
@@ -216,9 +211,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 	}
 
 	if (bFlag) {
-		LogAync(
+		LogAyncFunc(
 				LOG_DEBUG,
-				"TcpServer::Start, "
 				"[OK], "
 				"addr:[%s:%u], "
 				"maxConnection:%d"
@@ -228,9 +222,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 				maxConnection
 				);
 	} else {
-		LogAync(
+		LogAyncFunc(
 				LOG_ALERT,
-				"TcpServer::Start, "
 				"[Fail], "
 				"addr:[%s:%u], "
 				"maxConnection:%d"
@@ -248,9 +241,8 @@ bool TcpServer::Start(int port, int maxConnection, const char *ip) {
 }
 
 void TcpServer::Stop() {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Stop, "
 			"addr:[%s:%u], "
 			"maxConnection:%d"
 			,
@@ -272,6 +264,8 @@ void TcpServer::Stop() {
 		// 关掉监听socket
 		mpSocket->Disconnect();
 
+//		ev_break(mLoop, EVBREAK_ALL);
+
 		// 等待IO线程停止
 		mIOThread.Stop();
 
@@ -286,14 +280,14 @@ void TcpServer::Stop() {
 
 		if (mLoop) {
 			ev_loop_destroy(mLoop);
+			mLoop = NULL;
 		}
 	}
 
 	mServerMutex.unlock();
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Stop, "
 			"[OK], "
 			"addr:[%s:%u], "
 			"maxConnection:%d"
@@ -317,9 +311,8 @@ void TcpServer::Close() {
 SocketStatus TcpServer::Read(Socket* socket, const char *data, int &len) {
 	SocketStatus status = socket->Read(data, len);
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Read, "
 			"fd:%d, "
 			"socket:%p, "
 			"status:%d, "
@@ -344,9 +337,8 @@ bool TcpServer::Send(Socket* socket, const char *data, int &len) {
 }
 
 void TcpServer::Disconnect(Socket* socket) {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Disconnect, "
 			"fd:%d, "
 			"socket:%p, "
 			"addr:[%s:%u]"
@@ -362,9 +354,8 @@ void TcpServer::Disconnect(Socket* socket) {
 }
 
 void TcpServer::DisconnectSync(Socket* socket) {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::DisconnectSync, "
 			"fd:%d, "
 			"socket:%p, "
 			"addr:[%s:%u]"
@@ -383,9 +374,8 @@ void TcpServer::DisconnectSync(Socket* socket) {
 }
 
 void TcpServer::Close(Socket* socket) {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::Close, "
 			"fd:%d, "
 			"socket:%p, "
 			"addr:[%s:%u]"
@@ -404,9 +394,9 @@ void TcpServer::Close(Socket* socket) {
 }
 
 void TcpServer::IOHandleThread() {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleThread( [Start] )"
+			"[Start]"
 			);
 
 	// 把mServer放到事件监听队列
@@ -420,20 +410,16 @@ void TcpServer::IOHandleThread() {
 	// 执行epoll_wait
 	ev_run(mLoop, 0);
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleThread, "
 			"[Exit]"
-			
 			);
 }
 
 void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleAccept, "
 			"[Start]"
-			
 			);
 
 	int clientfd = 0;
@@ -442,19 +428,16 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 	while ( (clientfd = accept(w->fd, (struct sockaddr *)&addr, &iAddrLen)) < 0) {
 		int errNo = errno;
 		if ( errNo == EAGAIN || errNo == EWOULDBLOCK || errNo == EINTR) {
-			LogAync(
+			LogAyncFunc(
 					LOG_DEBUG,
-					"TcpServer::IOHandleAccept, "
 					"[EAGAIN || EWOULDBLOCK || EINTR]"
 //					"fd:%d "
-					
 //					w->fd
 					);
 			continue;
 		} else {
-			LogAync(
+			LogAyncFunc(
 					LOG_WARN,
-					"TcpServer::AcceptCallback, "
 					"[Accept error], "
 					"errno:%d"
 					,
@@ -501,9 +484,8 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 			::ev_io *watcher = NULL;
 			if ((watcher = mWatcherList.PopFront()) != NULL) {
 				// 接受连接
-				LogAync(
+				LogAyncFunc(
 						LOG_DEBUG,
-						"TcpServer::IOHandleAccept("
 						"[Accept client], "
 						"fd:%d, "
 						"socket:%p, "
@@ -517,9 +499,8 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 			} else {
 				watcher = (::ev_io *)malloc(sizeof(::ev_io));
 
-				LogAync(
+				LogAyncFunc(
 						LOG_WARN,
-						"TcpServer::IOHandleAccept("
 						"[Not enough watcher, new more], "
 						"fd:%d, "
 						"socket:%p, "
@@ -540,9 +521,8 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 			mWatcherMutex.unlock();
 
 		} else {
-			LogAync(
+			LogAyncFunc(
 					LOG_WARN,
-					"TcpServer::IOHandleAccept, "
 					"[Not allow accept client], "
 					"fd:%d, "
 					"socket:%p"
@@ -566,12 +546,10 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 		}
 	}
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleAccept, "
 			"[Exit]"
 //			"fd:%d "
-			
 //			clientfd
 			);
 }
@@ -579,9 +557,8 @@ void TcpServer::IOHandleAccept(::ev_io *w, int revents) {
 void TcpServer::IOHandleRecv(::ev_io *w, int revents) {
 	Socket* socket = (Socket *)w->data;
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleRecv, "
 			"[Start], "
 			"fd:%d, "
 			"socket:%p, "
@@ -593,9 +570,8 @@ void TcpServer::IOHandleRecv(::ev_io *w, int revents) {
 			);
 
 	if (revents & EV_ERROR) {
-		LogAync(
+		LogAyncFunc(
 				LOG_DEBUG,
-				"TcpServer::IOHandleRecv, "
 				"[revents & EV_ERROR], "
 				"fd:%d, "
 				"socket:%p"
@@ -610,9 +586,8 @@ void TcpServer::IOHandleRecv(::ev_io *w, int revents) {
 		IOHandleOnDisconnect(socket);
 
 	} else {
-		LogAync(
+		LogAyncFunc(
 				LOG_DEBUG,
-				"TcpServer::IOHandleRecv, "
 				"[OnRecvEvent], "
 				"fd:%d, "
 				"socket:%p"
@@ -625,9 +600,8 @@ void TcpServer::IOHandleRecv(::ev_io *w, int revents) {
 		}
 	}
 
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleRecv, "
 			"[Exit], "
 			"fd:%d, "
 			"socket:%p"
@@ -638,9 +612,8 @@ void TcpServer::IOHandleRecv(::ev_io *w, int revents) {
 }
 
 void TcpServer::IOHandleOnDisconnect(Socket* socket) {
-	LogAync(
+	LogAyncFunc(
 			LOG_DEBUG,
-			"TcpServer::IOHandleOnDisconnect, "
 			"socket:%p"
 			,
 			socket
@@ -655,9 +628,8 @@ void TcpServer::IOHandleOnDisconnect(Socket* socket) {
 void TcpServer::StopEvIO(::ev_io *w) {
 	if (w != NULL) {
 		int fd = w->fd;
-		LogAync(
+		LogAyncFunc(
 				LOG_DEBUG,
-				"TcpServer::StopEvIO, "
 				"fd:%d"
 				,
 				fd
@@ -670,9 +642,8 @@ void TcpServer::StopEvIO(::ev_io *w) {
 
 		if (mWatcherList.Size() <= (size_t)miMaxConnection) {
 			// 空闲的缓存小于设定值
-			LogAync(
+			LogAyncFunc(
 					LOG_DEBUG,
-					"TcpServer::StopEvIO, "
 					"[Return ev_io to idle list], "
 					"fd:%d"
 					,
@@ -682,9 +653,8 @@ void TcpServer::StopEvIO(::ev_io *w) {
 			mWatcherList.PushBack(w);
 		} else {
 			// 释放内存
-			LogAync(
+			LogAyncFunc(
 					LOG_WARN,
-					"TcpServer::StopEvIO, "
 					"[Delete extra ev_io], "
 					"fd:%d"
 					,

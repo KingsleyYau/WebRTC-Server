@@ -7,7 +7,7 @@
  */
 
 #include "BaseRespond.h"
-namespace mediaserver {
+namespace qpidnetwork {
 BaseRespond::BaseRespond() {
 	// TODO Auto-generated constructor stub
 }

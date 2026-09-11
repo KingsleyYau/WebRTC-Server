@@ -11,7 +11,7 @@
 
 #include "IRespond.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 class BaseRespond : public IRespond {
 public:
 	BaseRespond();

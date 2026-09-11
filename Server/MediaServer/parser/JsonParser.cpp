@@ -8,7 +8,7 @@
 
 #include "JsonParser.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 JsonParser::JsonParser() {
 	// TODO Auto-generated constructor stub
@@ -24,4 +24,4 @@ int JsonParser::ParseData(char* buffer, int len) {
 	return ret;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

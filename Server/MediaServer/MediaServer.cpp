@@ -801,7 +801,7 @@ void MediaServer::StateHandle() {
 			mWebRTCMap.Unlock();
 
 			LogAync(
-					LOG_WARN,
+					LOG_NOTICE,
 					"MediaServer::StateHandle, "
 					"event:[状态服务], "
 					"%u秒共收到请求(Websocket):%u, "
@@ -2299,13 +2299,13 @@ bool MediaServer::SendExtSetStatusRequest(
 
 		if (httpCode == 200 && respondSize > 0) {
 			// 发送成功
-			Json::Value rep;
+			Json::Value repExternal;
 			Json::Reader reader;
-			if (reader.parse(res, rep, false)) {
-				if (rep.isObject()) {
-					if (rep["ret"].isInt()) {
+			if (reader.parse(res, repExternal, false)) {
+				if (repExternal.isObject()) {
+					if (repExternal["ret"].isInt()) {
 						bParse = true;
-						int errNo = rep["ret"].asInt();
+						int errNo = repExternal["ret"].asInt();
 						if (errNo == 1) {
 							bFlag = true;
 						} else {

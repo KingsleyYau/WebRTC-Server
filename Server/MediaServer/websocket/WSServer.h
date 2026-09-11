@@ -21,7 +21,7 @@
 
 using namespace websocketpp;
 
-namespace mediaserver {
+namespace qpidnetwork {
 typedef server<config::asio> server;
 //typedef server<config::asio_tls> server;
 //typedef lib::shared_ptr<lib::asio::ssl::context> context_ptr;
@@ -82,6 +82,6 @@ private:
 	int miMaxConnection;
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* SERVER_WSSERVER_H_ */

@@ -11,7 +11,7 @@
 
 #include "BaseRequest.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 class SdpCallRequest : public BaseRequest {
 public:
@@ -21,6 +21,6 @@ public:
 	void Parse();
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* WEBSOCKET_REQUEST_SDPCALLREQUEST_H_ */

@@ -24,10 +24,10 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::random_distributions
     absl::random_internal_nonsecure_base
     absl::random_internal_pcg_engine
-    absl::random_internal_pool_urbg
     absl::random_internal_randen_engine
     absl::random_seed_sequences
 )
@@ -42,10 +42,10 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::core_headers
     absl::random_internal_distribution_caller
     absl::random_internal_fast_uniform_bits
-    absl::random_internal_mocking_bit_gen_base
     absl::type_traits
 )
 
@@ -59,26 +59,29 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::random_bit_gen_ref
     absl::random_random
     absl::random_internal_sequence_urbg
-    gmock
-    gtest_main
+    absl::fast_type_id
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
-    random_internal_mocking_bit_gen_base
+    random_internal_mock_helpers
   HDRS
-    "internal/mocking_bit_gen_base.h"
+    "internal/mock_helpers.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
-    absl::random_random
-    absl::strings
+    absl::config
+    absl::fast_type_id
+    absl::optional
 )
 
 # Internal-only target, do not depend on directly.
@@ -92,7 +95,9 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::random_mocking_bit_gen
+    absl::random_internal_mock_helpers
   TESTONLY
 )
 
@@ -102,26 +107,23 @@ absl_cc_library(
   HDRS
     "mock_distributions.h"
     "mocking_bit_gen.h"
-  SRCS
-    "mocking_bit_gen.cc"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
+    absl::core_headers
+    absl::fast_type_id
     absl::flat_hash_map
     absl::raw_logging_internal
-    absl::random_distributions
-    absl::random_internal_distribution_caller
-    absl::random_internal_mocking_bit_gen_base
-    absl::random_internal_mock_overload_set
-    absl::strings
-    absl::span
+    absl::random_internal_mock_helpers
+    absl::random_random
     absl::type_traits
     absl::utility
-    absl::variant
-    gmock
-    gtest
+    GTest::gmock
+    GTest::gtest
+  PUBLIC
   TESTONLY
 )
 
@@ -135,10 +137,11 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::random_distributions
     absl::random_mocking_bit_gen
     absl::random_random
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -154,8 +157,8 @@ absl_cc_test(
     absl::random_bit_gen_ref
     absl::random_mocking_bit_gen
     absl::random_random
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_library(
@@ -168,7 +171,6 @@ absl_cc_library(
     "bernoulli_distribution.h"
     "beta_distribution.h"
     "discrete_distribution.h"
-    "distribution_format_traits.h"
     "distributions.h"
     "exponential_distribution.h"
     "gaussian_distribution.h"
@@ -186,7 +188,7 @@ absl_cc_library(
     absl::config
     absl::core_headers
     absl::random_internal_generate_real
-    absl::random_internal_distributions
+    absl::random_internal_distribution_caller
     absl::random_internal_fast_uniform_bits
     absl::random_internal_fastmath
     absl::random_internal_iostream_state_saver
@@ -194,7 +196,6 @@ absl_cc_library(
     absl::random_internal_uniform_helper
     absl::random_internal_wide_multiply
     absl::strings
-    absl::span
     absl::type_traits
 )
 
@@ -211,6 +212,7 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
+    absl::raw_logging_internal
 )
 
 absl_cc_library(
@@ -225,13 +227,15 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::inlined_vector
-    absl::random_internal_nonsecure_base
-    absl::random_internal_pool_urbg
+    absl::nullability
+    absl::random_internal_entropy_pool
     absl::random_internal_salted_seed_seq
     absl::random_internal_seed_material
     absl::random_seed_gen_exception
     absl::span
+    absl::string_view
 )
 
 absl_cc_test(
@@ -247,8 +251,9 @@ absl_cc_test(
     absl::random_distributions
     absl::random_random
     absl::random_internal_sequence_urbg
-    gmock
-    gtest_main
+    absl::random_internal_pcg_engine
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -261,15 +266,17 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
+    absl::numeric_representation
     absl::random_distributions
     absl::random_random
     absl::random_internal_distribution_test_util
     absl::random_internal_sequence_urbg
-    absl::raw_logging_internal
+    absl::random_internal_pcg_engine
     absl::strings
     absl::str_format
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -284,9 +291,11 @@ absl_cc_test(
   DEPS
     absl::random_distributions
     absl::random_random
+    absl::type_traits
+    absl::int128
     absl::random_internal_distribution_test_util
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -298,11 +307,12 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
+  DEPS
     absl::random_distributions
     absl::random_random
     absl::raw_logging_internal
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -314,16 +324,17 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
-    absl::core_headers
+  DEPS
+    absl::log
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
     absl::str_format
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -336,14 +347,15 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -360,13 +372,14 @@ absl_cc_test(
     absl::random_random
     absl::core_headers
     absl::flat_hash_map
+    absl::log
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
-    absl::raw_logging_internal
     absl::strings
     absl::str_format
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -380,15 +393,17 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::core_headers
+    absl::log
+    absl::numeric_representation
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
     absl::str_format
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -402,15 +417,16 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::core_headers
+    absl::log
+    absl::numeric_representation
     absl::random_distributions
     absl::random_internal_distribution_test_util
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
     absl::str_format
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -423,14 +439,15 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -443,13 +460,16 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
+    absl::numeric_representation
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
     absl::strings
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -462,14 +482,15 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
     absl::random_distributions
     absl::random_internal_distribution_test_util
+    absl::random_internal_pcg_engine
     absl::random_internal_sequence_urbg
     absl::random_random
-    absl::raw_logging_internal
     absl::strings
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -483,7 +504,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_random
-    gtest_main
+    GTest::gtest_main
 )
 
 absl_cc_test(
@@ -499,8 +520,8 @@ absl_cc_test(
     absl::random_seed_sequences
     absl::random_internal_nonsecure_base
     absl::random_random
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -529,26 +550,8 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
-)
-
-# Internal-only target, do not depend on directly.
-absl_cc_library(
-  NAME
-    random_internal_distributions
-  HDRS
-    "internal/distributions.h"
-  COPTS
-    ${ABSL_DEFAULT_COPTS}
-  LINKOPTS
-    ${ABSL_DEFAULT_LINKOPTS}
-  DEPS
-    absl::random_internal_distribution_caller
-    absl::random_internal_fast_uniform_bits
-    absl::random_internal_fastmath
-    absl::random_internal_traits
-    absl::random_internal_uniform_helper
-    absl::span
-    absl::strings
+    absl::utility
+    absl::fast_type_id
     absl::type_traits
 )
 
@@ -578,9 +581,9 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
-    $<$<BOOL:${MINGW}>:"bcrypt">
+    $<$<BOOL:${MINGW}>:-lbcrypt>
   DEPS
-    absl::core_headers
+    absl::config
     absl::optional
     absl::random_internal_fast_uniform_bits
     absl::raw_logging_internal
@@ -591,11 +594,11 @@ absl_cc_library(
 # Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
-    random_internal_pool_urbg
+    random_internal_entropy_pool
   SRCS
-    "internal/pool_urbg.cc"
+    "internal/entropy_pool.cc"
   HDRS
-    "internal/pool_urbg.h"
+    "internal/entropy_pool.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
@@ -604,13 +607,12 @@ absl_cc_library(
     absl::base
     absl::config
     absl::core_headers
-    absl::endian
+    absl::random_internal_platform
     absl::random_internal_randen
     absl::random_internal_seed_material
-    absl::random_internal_traits
     absl::random_seed_gen_exception
-    absl::raw_logging_internal
     absl::span
+    absl::synchronization
 )
 
 # Internal-only target, do not depend on directly.
@@ -625,6 +627,7 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
+    absl::endian
   TESTONLY
 )
 
@@ -672,6 +675,7 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::config
     absl::int128
     absl::type_traits
 )
@@ -734,13 +738,11 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
-    absl::core_headers
-    absl::optional
-    absl::random_internal_pool_urbg
+    absl::config
+    absl::inlined_vector
+    absl::random_internal_entropy_pool
     absl::random_internal_salted_seed_seq
     absl::random_internal_seed_material
-    absl::span
-    absl::strings
     absl::type_traits
 )
 
@@ -773,6 +775,7 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::endian
     absl::random_internal_iostream_state_saver
     absl::random_internal_randen
     absl::raw_logging_internal
@@ -785,8 +788,9 @@ absl_cc_library(
     random_internal_platform
   HDRS
     "internal/randen_traits.h"
-    "internal/randen-keys.inc"
     "internal/platform.h"
+  SRCS
+    "internal/randen_round_keys.cc"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
@@ -848,6 +852,7 @@ absl_cc_library(
     absl::random_internal_platform
     absl::random_internal_randen_hwaes_impl
     absl::config
+    absl::optional
 )
 
 # Internal-only target, do not depend on directly.
@@ -902,7 +907,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_traits
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -919,7 +924,7 @@ absl_cc_test(
     absl::bits
     absl::flags
     absl::random_internal_generate_real
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -934,7 +939,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_distribution_test_util
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -949,7 +954,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_fastmath
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -965,8 +970,8 @@ absl_cc_test(
   DEPS
     absl::random_internal_explicit_seed_seq
     absl::random_seed_sequences
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -981,8 +986,8 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_salted_seed_seq
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -998,7 +1003,7 @@ absl_cc_test(
   DEPS
     absl::core_headers
     absl::random_internal_distribution_test_util
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1013,7 +1018,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_fast_uniform_bits
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1027,12 +1032,13 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::flat_hash_map
+    absl::random_distributions
     absl::random_internal_nonsecure_base
     absl::random_random
-    absl::random_distributions
-    absl::random_seed_sequences
-    absl::strings
-    gtest_main
+    absl::synchronization
+    absl::type_traits
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1047,25 +1053,26 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_seed_material
-    gmock
-    gtest_main
+    absl::span
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
 absl_cc_test(
   NAME
-    random_internal_pool_urbg_test
+    random_internal_entropy_pool_test
   SRCS
-    "internal/pool_urbg_test.cc"
+    "internal/entropy_pool_test.cc"
   COPTS
     ${ABSL_TEST_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
-    absl::random_internal_pool_urbg
-    absl::span
-    absl::type_traits
-    gtest_main
+    absl::flat_hash_map
+    absl::random_internal_entropy_pool
+    absl::synchronization
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1082,8 +1089,8 @@ absl_cc_test(
     absl::random_internal_explicit_seed_seq
     absl::random_internal_pcg_engine
     absl::time
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1097,13 +1104,13 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
     absl::random_internal_explicit_seed_seq
     absl::random_internal_randen_engine
-    absl::raw_logging_internal
     absl::strings
     absl::time
-    gmock
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1119,7 +1126,7 @@ absl_cc_test(
   DEPS
     absl::random_internal_randen
     absl::type_traits
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1133,8 +1140,9 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::endian
     absl::random_internal_randen_slow
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1148,13 +1156,13 @@ absl_cc_test(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
+    absl::log
     absl::random_internal_platform
     absl::random_internal_randen_hwaes
     absl::random_internal_randen_hwaes_impl
-    absl::raw_logging_internal
     absl::str_format
-    gmock
-    gtest
+    GTest::gmock
+    GTest::gtest
 )
 
 # Internal-only target, do not depend on directly.
@@ -1168,11 +1176,45 @@ absl_cc_library(
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
-    absl::core_headers
-    absl::random_internal_fast_uniform_bits
-    absl::random_internal_iostream_state_saver
+    absl::config
     absl::random_internal_traits
     absl::type_traits
+)
+
+# Internal-only target, do not depend on directly.
+absl_cc_library(
+  NAME
+    random_internal_mock_validators
+  HDRS
+    "internal/mock_validators.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  LINKOPTS
+    ${ABSL_DEFAULT_LINKOPTS}
+  DEPS
+    absl::random_internal_iostream_state_saver
+    absl::random_internal_uniform_helper
+    absl::config
+    absl::raw_logging_internal
+    absl::strings
+    absl::string_view
+  TESTONLY
+)
+
+# Internal-only target, do not depend on directly.
+absl_cc_test(
+  NAME
+    random_internal_uniform_helper_test
+  SRCS
+    "internal/uniform_helper_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  LINKOPTS
+    ${ABSL_DEFAULT_LINKOPTS}
+  DEPS
+    absl::random_internal_uniform_helper
+    GTest::gtest_main
+    absl::int128
 )
 
 # Internal-only target, do not depend on directly.
@@ -1187,7 +1229,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_iostream_state_saver
-    gtest_main
+    GTest::gtest_main
 )
 
 # Internal-only target, do not depend on directly.
@@ -1202,7 +1244,7 @@ absl_cc_test(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::random_internal_wide_multiply
-    absl::bits
     absl::int128
-    gtest_main
+    GTest::gmock
+    GTest::gtest_main
 )

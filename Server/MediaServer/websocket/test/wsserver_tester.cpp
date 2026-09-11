@@ -18,7 +18,7 @@
 using namespace std;
 
 #include <websocket/WSServer.h>
-using namespace mediaserver;
+using namespace qpidnetwork;
 
 class WSServerCallbackImp : public WSServerCallback {
 public:

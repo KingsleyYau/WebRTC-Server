@@ -20,34 +20,43 @@
 
 set -euox pipefail
 
-if [ -z ${ABSEIL_ROOT:-} ]; then
+if [[ -z ${ABSEIL_ROOT:-} ]]; then
   ABSEIL_ROOT="$(realpath $(dirname ${0})/..)"
 fi
 
-if [ -z ${STD:-} ]; then
-  STD="c++11 c++14 c++17"
+if [[ -z ${STD:-} ]]; then
+  STD="c++17 c++20 c++23"
 fi
 
-if [ -z ${COMPILATION_MODE:-} ]; then
+if [[ -z ${COMPILATION_MODE:-} ]]; then
   COMPILATION_MODE="fastbuild opt"
 fi
 
-if [ -z ${EXCEPTIONS_MODE:-} ]; then
+if [[ -z ${EXCEPTIONS_MODE:-} ]]; then
   EXCEPTIONS_MODE="-fno-exceptions -fexceptions"
 fi
 
-readonly DOCKER_CONTAINER="gcr.io/google.com/absl-177019/linux_clang-latest:20200102"
+source "${ABSEIL_ROOT}/ci/linux_docker_containers.sh"
+readonly DOCKER_CONTAINER=${LINUX_CLANG_LATEST_CONTAINER}
 
 # USE_BAZEL_CACHE=1 only works on Kokoro.
 # Without access to the credentials this won't work.
-if [ ${USE_BAZEL_CACHE:-0} -ne 0 ]; then
-  DOCKER_EXTRA_ARGS="--volume=${KOKORO_KEYSTORE_DIR}:/keystore:ro ${DOCKER_EXTRA_ARGS:-}"
+if [[ ${USE_BAZEL_CACHE:-0} -ne 0 ]]; then
+  DOCKER_EXTRA_ARGS="--mount type=bind,source=${KOKORO_KEYSTORE_DIR},target=/keystore,readonly ${DOCKER_EXTRA_ARGS:-}"
   # Bazel doesn't track changes to tools outside of the workspace
   # (e.g. /usr/bin/gcc), so by appending the docker container to the
   # remote_http_cache url, we make changes to the container part of
   # the cache key. Hashing the key is to make it shorter and url-safe.
   container_key=$(echo ${DOCKER_CONTAINER} | sha256sum | head -c 16)
-  BAZEL_EXTRA_ARGS="--remote_http_cache=https://storage.googleapis.com/absl-bazel-remote-cache/${container_key} --google_credentials=/keystore/73103_absl-bazel-remote-cache ${BAZEL_EXTRA_ARGS:-}"
+  BAZEL_EXTRA_ARGS="--remote_cache=https://storage.googleapis.com/absl-bazel-remote-cache/${container_key} --google_credentials=/keystore/73103_absl-bazel-remote-cache ${BAZEL_EXTRA_ARGS:-}"
+fi
+
+# Use Bazel Vendor mode to reduce reliance on external dependencies.
+# See https://bazel.build/external/vendor and the Dockerfile for
+# an explaination of how this works.
+if [[ ${KOKORO_GFILE_DIR:-} ]] && [[ -f "${KOKORO_GFILE_DIR}/distdir/abseil-cpp_vendor.tar.gz" ]]; then
+  DOCKER_EXTRA_ARGS="--mount type=bind,source=${KOKORO_GFILE_DIR}/distdir,target=/distdir,readonly --env=BAZEL_VENDOR_ARCHIVE=/distdir/abseil-cpp_vendor.tar.gz ${DOCKER_EXTRA_ARGS:-}"
+  BAZEL_EXTRA_ARGS="--vendor_dir=/abseil-cpp_vendor ${BAZEL_EXTRA_ARGS:-}"
 fi
 
 for std in ${STD}; do
@@ -55,35 +64,36 @@ for std in ${STD}; do
     for exceptions_mode in ${EXCEPTIONS_MODE}; do
       echo "--------------------------------------------------------------------"
       time docker run \
-        --volume="${ABSEIL_ROOT}:/abseil-cpp:ro" \
+        --mount type=bind,source="${ABSEIL_ROOT}",target=/abseil-cpp,readonly \
         --workdir=/abseil-cpp \
         --cap-add=SYS_PTRACE \
         --rm \
-        -e CC="/opt/llvm/clang/bin/clang" \
-        -e BAZEL_COMPILER="llvm" \
-        -e BAZEL_CXXOPTS="-std=${std}:-nostdinc++" \
-        -e BAZEL_LINKOPTS="-L/opt/llvm/libcxx-tsan/lib:-lc++:-lc++abi:-lm:-Wl,-rpath=/opt/llvm/libcxx-tsan/lib" \
-        -e CPLUS_INCLUDE_PATH="/opt/llvm/libcxx-tsan/include/c++/v1" \
         ${DOCKER_EXTRA_ARGS:-} \
         ${DOCKER_CONTAINER} \
+        /bin/bash --login -c "
         /usr/local/bin/bazel test ... \
-          --build_tag_filters="-notsan" \
-          --compilation_mode="${compilation_mode}" \
-          --copt="${exceptions_mode}" \
-          --copt="-DDYNAMIC_ANNOTATIONS_ENABLED=1" \
-          --copt="-DTHREAD_SANITIZER" \
-          --copt="-fsanitize=thread" \
-          --copt="-fno-sanitize-blacklist" \
+          --action_env=\"CC=/opt/llvm/clang/bin/clang\" \
+          --action_env=\"BAZEL_CXXOPTS=-std=${std}:-nostdinc++\" \
+          --action_env=\"BAZEL_LINKOPTS=-L/opt/llvm/libcxx-tsan/lib:-lc++:-lc++abi:-lm:-Wl,-rpath=/opt/llvm/libcxx-tsan/lib\" \
+          --action_env=\"CPLUS_INCLUDE_PATH=/opt/llvm/libcxx-tsan/include/c++/v1\" \
+          --build_tag_filters=\"-notsan\" \
+          --compilation_mode=\"${compilation_mode}\" \
+          --copt=\"${exceptions_mode}\" \
+          --copt=\"-DGTEST_REMOVE_LEGACY_TEST_CASEAPI_=1\" \
+          --copt=\"-fsanitize=thread\" \
+          --copt=\"-fno-sanitize-blacklist\" \
           --copt=-Werror \
+          --enable_bzlmod=true \
+          --features=external_include_paths \
           --keep_going \
-          --linkopt="-fsanitize=thread" \
+          --linkopt=\"-fsanitize=thread\" \
+          --per_file_copt=external/.*@-w \
           --show_timestamps \
-          --test_env="TSAN_OPTIONS=report_atomic_races=0" \
-          --test_env="TSAN_SYMBOLIZER_PATH=/opt/llvm/clang/bin/llvm-symbolizer" \
-          --test_env="TZDIR=/abseil-cpp/absl/time/internal/cctz/testdata/zoneinfo" \
+          --test_env=\"TSAN_SYMBOLIZER_PATH=/opt/llvm/clang/bin/llvm-symbolizer\" \
+          --test_env=\"TZDIR=/abseil-cpp/absl/time/internal/cctz/testdata/zoneinfo\" \
           --test_output=errors \
-          --test_tag_filters="-benchmark,-notsan" \
-          ${BAZEL_EXTRA_ARGS:-}
+          --test_tag_filters=\"-benchmark,-notsan\" \
+          ${BAZEL_EXTRA_ARGS:-}"
     done
   done
 done

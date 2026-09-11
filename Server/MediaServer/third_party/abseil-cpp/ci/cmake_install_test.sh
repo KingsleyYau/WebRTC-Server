@@ -16,17 +16,49 @@
 
 set -euox pipefail
 
-if [ -z ${ABSEIL_ROOT:-} ]; then
+if [[ -z ${ABSEIL_ROOT:-} ]]; then
   ABSEIL_ROOT="$(realpath $(dirname ${0})/..)"
 fi
 
+if [[ -z ${LINK_TYPE:-} ]]; then
+  LINK_TYPE="STATIC DYNAMIC"
+fi
+
+source "${ABSEIL_ROOT}/ci/cmake_common.sh"
+
+# Avoid depending on GitHub by looking for a cached copy of GoogleTest.
+if [[ -r "${KOKORO_GFILE_DIR:-}/distdir/googletest-${ABSL_GOOGLETEST_VERSION}.tar.gz" ]]; then
+  ABSL_GOOGLETEST_DOWNLOAD_URL="file:///distdir/googletest-${ABSL_GOOGLETEST_VERSION}.tar.gz"
+  DOCKER_EXTRA_ARGS="--mount type=bind,source=${KOKORO_GFILE_DIR}/distdir,target=/distdir,readonly ${DOCKER_EXTRA_ARGS:-}"
+fi
+
+source "${ABSEIL_ROOT}/ci/linux_docker_containers.sh"
+readonly DOCKER_CONTAINER=${LINUX_GCC_LATEST_CONTAINER}
+
+# Verify that everything works with the standard "cmake && make && make install"
+# without building tests or requiring GoogleTest.
 time docker run \
-    --volume="${ABSEIL_ROOT}:/abseil-cpp:ro" \
-    --workdir=/abseil-cpp \
+    --mount type=bind,source="${ABSEIL_ROOT}",target=/abseil-cpp-ro,readonly \
     --tmpfs=/buildfs:exec \
-    --cap-add=SYS_PTRACE \
+    --workdir=/buildfs \
     --rm \
-    -e CFLAGS="-Werror" \
-    -e CXXFLAGS="-Werror" \
-    gcr.io/google.com/absl-177019/linux_gcc-latest:20200106 \
-    /bin/bash CMake/install_test_project/test.sh $@
+    ${DOCKER_EXTRA_ARGS:-} \
+    ${DOCKER_CONTAINER} \
+    /bin/bash -c "cmake /abseil-cpp-ro && make -j$(nproc) && make install"
+
+# Verify that a more complicated project works.
+for link_type in ${LINK_TYPE}; do
+  time docker run \
+    --mount type=bind,source="${ABSEIL_ROOT}",target=/abseil-cpp-ro,readonly \
+    --tmpfs=/buildfs:exec \
+    --tmpfs=/abseil-cpp:exec \
+    --workdir=/abseil-cpp \
+    --cap-add=SYS_PTRACE \
+    -e "ABSL_GOOGLETEST_VERSION=${ABSL_GOOGLETEST_VERSION}" \
+    -e "ABSL_GOOGLETEST_DOWNLOAD_URL=${ABSL_GOOGLETEST_DOWNLOAD_URL}" \
+    -e "LINK_TYPE=${link_type}" \
+    --rm \
+    ${DOCKER_EXTRA_ARGS:-} \
+    ${DOCKER_CONTAINER} \
+    /bin/bash -c "cp -r /abseil-cpp-ro/* . && CMake/install_test_project/test.sh"
+done

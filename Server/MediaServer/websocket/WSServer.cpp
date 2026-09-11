@@ -12,7 +12,7 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
 
-namespace mediaserver {
+namespace qpidnetwork {
 class WSIORunnable : public KRunnable {
 public:
 	WSIORunnable(WSServer *container) {
@@ -57,10 +57,10 @@ bool WSServer::Start(int port, int maxConnection) {
 
 	LogAync(
 			LOG_INFO,
-			"WSServer::Start( "
-			"port : %u, "
-			"maxConnection : %d "
-			")",
+			"WSServer::Start, "
+			"port:%u, "
+			"maxConnection:%d "
+			,
 			port,
 			maxConnection
 			);
@@ -106,19 +106,19 @@ bool WSServer::Start(int port, int maxConnection) {
     } catch (websocketpp::exception const & e) {
     	LogAync(
     			LOG_ALERT,
-    			"WSServer::Start( "
+    			"WSServer::Start, "
     			"[Exception], "
-    			"e : %s "
-    			")",
+    			"e:%s "
+    			,
 				e.what()
     			);
     } catch (...) {
     	LogAync(
     			LOG_ALERT,
-    			"WSServer::Start( "
+    			"WSServer::Start, "
     			"[Exception], "
 				"Unknow "
-    			")"
+    			
     			);
     }
 
@@ -127,11 +127,11 @@ bool WSServer::Start(int port, int maxConnection) {
 		if( 0 == mIOThread.Start(mpIORunnable, "WSServer") ) {
 			LogAync(
 					LOG_ALERT,
-					"WSServer::Start( "
+					"WSServer::Start, "
 					"[Create IO Thread Fail], "
-					"port : %u, "
-					"maxConnection : %d, "
-					")",
+					"port:%u, "
+					"maxConnection:%d, "
+					,
 					port,
 					maxConnection
 					);
@@ -142,22 +142,22 @@ bool WSServer::Start(int port, int maxConnection) {
 	if( bFlag ) {
 		LogAync(
 				LOG_INFO,
-				"WSServer::Start( "
+				"WSServer::Start, "
 				"[OK], "
-				"port : %d, "
-				"maxConnection : %d "
-				")",
+				"port:%d, "
+				"maxConnection:%d "
+				,
 				port,
 				maxConnection
 				);
 	} else {
 		LogAync(
 				LOG_ALERT,
-				"WSServer::Start( "
+				"WSServer::Start, "
 				"[Fail], "
-				"port : %d, "
-				"maxConnection : %d "
-				")",
+				"port:%d, "
+				"maxConnection:%d "
+				,
 				port,
 				maxConnection
 				);
@@ -172,8 +172,7 @@ bool WSServer::Start(int port, int maxConnection) {
 void WSServer::StopListening() {
 	LogAync(
 			LOG_INFO,
-			"WSServer::StopListening("
-			")"
+			"WSServer::StopListening"
 			);
 
 	mServerMutex.lock();
@@ -185,10 +184,10 @@ void WSServer::StopListening() {
 		    } catch (websocketpp::exception const & e) {
 		    	LogAync(
 		    			LOG_INFO,
-		    			"WSServer::StopListening( "
+		    			"WSServer::StopListening, "
 		    			"[Exception], "
-		    			"e : %s "
-		    			")",
+		    			"e:%s "
+		    			,
 						e.what()
 		    			);
 		    }
@@ -199,17 +198,15 @@ void WSServer::StopListening() {
 
 	LogAync(
 			LOG_INFO,
-			"WSServer::StopListening( "
+			"WSServer::StopListening, "
 			"[OK] "
-			")"
 			);
 }
 
 void WSServer::Stop() {
 	LogAync(
 			LOG_INFO,
-			"WSServer::Stop("
-			")"
+			"WSServer::Stop"
 			);
 
 	mServerMutex.lock();
@@ -222,10 +219,10 @@ void WSServer::Stop() {
 //		    } catch (websocketpp::exception const & e) {
 //		    	LogAync(
 //		    			LOG_INFO,
-//		    			"WSServer::Stop( "
+//		    			"WSServer::Stop, "
 //		    			"[Exception], "
-//		    			"e : %s "
-//		    			")",
+//		    			"e:%s "
+//		    			,
 //						e.what()
 //		    			);
 //		    }
@@ -241,9 +238,8 @@ void WSServer::Stop() {
 
 	LogAync(
 			LOG_INFO,
-			"WSServer::Stop( "
+			"WSServer::Stop, "
 			"[OK] "
-			")"
 			);
 }
 
@@ -269,11 +265,11 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::SendText( "
-			"hdl : %p, "
-			"addr : %s, "
-			"str(%u) : %s "
-			")",
+			"WSServer::SendText, "
+			"hdl:%p, "
+			"addr:%s, "
+			"str(%u):%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str(),
 			str.length(),
@@ -287,13 +283,13 @@ bool WSServer::SendText(connection_hdl hdl, const string& str) {
     } catch (websocketpp::exception const & e) {
     	LogAync(
     			LOG_INFO,
-    			"WSServer::SendText( "
-				"hdl : %p, "
+    			"WSServer::SendText, "
+				"hdl:%p, "
     			"[Exception], "
-				"addr : %s, "
-    			"e : %s, "
-				"str : %s "
-    			")",
+				"addr:%s, "
+    			"e:%s, "
+				"str:%s "
+    			,
 				hdl.lock().get(),
 				conn->get_remote_endpoint().c_str(),
 				e.what(),
@@ -308,10 +304,10 @@ void WSServer::Disconnect(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
 			LOG_INFO,
-			"WSServer::Disconnect( "
-			"hdl : %p, "
-			"addr : %s "
-			")",
+			"WSServer::Disconnect, "
+			"hdl:%p, "
+			"addr:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
@@ -321,12 +317,12 @@ void WSServer::Disconnect(connection_hdl hdl) {
 	} catch (websocketpp::exception const & e) {
 	    	LogAync(
 	    			LOG_INFO,
-	    			"WSServer::Disconnect( "
-					"hdl : %p, "
+	    			"WSServer::Disconnect, "
+					"hdl:%p, "
 	    			"[Exception], "
-					"addr : %s, "
-	    			"e : %s "
-	    			")",
+					"addr:%s, "
+	    			"e:%s "
+	    			,
 					hdl.lock().get(),
 					conn->get_remote_endpoint().c_str(),
 					e.what()
@@ -335,11 +331,11 @@ void WSServer::Disconnect(connection_hdl hdl) {
 
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::Disconnect( "
+			"WSServer::Disconnect, "
 			"[Finish], "
-			"hdl : %p, "
-			"addr : %s "
-			")",
+			"hdl:%p, "
+			"addr:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
@@ -349,10 +345,10 @@ void WSServer::Close(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
 			LOG_INFO,
-			"WSServer::Close( "
-			"hdl : %p, "
-			"addr : %s "
-			")",
+			"WSServer::Close, "
+			"hdl:%p, "
+			"addr:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
@@ -361,11 +357,11 @@ void WSServer::Close(connection_hdl hdl) {
 
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::Close( "
+			"WSServer::Close, "
 			"[Finish], "
-			"hdl : %p, "
-			"addr : %s "
-			")",
+			"hdl:%p, "
+			"addr:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
@@ -403,11 +399,11 @@ void WSServer::Close(connection_hdl hdl) {
 //        if (SSL_CTX_set_cipher_list(ctx->native_handle() , ciphers.c_str()) != 1) {
 //        	LogAync(
 //        			LOG_ALERT,
-//        			"WSServer::OnTlsInit( "
+//        			"WSServer::OnTlsInit, "
 //        			"[Error setting cipher list], "
-//        			"hdl : %p, "
-//        			"addr : %s "
-//        			")",
+//        			"hdl:%p, "
+//        			"addr:%s "
+//        			,
 //        			hdl.lock().get(),
 //        			conn->get_remote_endpoint().c_str()
 //        			);
@@ -415,12 +411,12 @@ void WSServer::Close(connection_hdl hdl) {
 //    } catch (std::exception& e) {
 //    	LogAync(
 //    			LOG_INFO,
-//    			"WSServer::OnTlsInit( "
-//				"hdl : %p, "
+//    			"WSServer::OnTlsInit, "
+//				"hdl:%p, "
 //    			"[Exception], "
-//				"addr : %s, "
-//    			"e : %s "
-//    			")",
+//				"addr:%s, "
+//    			"e:%s "
+//    			,
 //				hdl.lock().get(),
 //				conn->get_remote_endpoint().c_str(),
 //				e.what()
@@ -433,10 +429,10 @@ bool WSServer::OnValid(connection_hdl hdl) {
 	server::connection_ptr conn = mServer.get_con_from_hdl(hdl);
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::OnValid( "
-			"hdl : %p, "
-			"addr : %s "
-			")",
+			"WSServer::OnValid, "
+			"hdl:%p, "
+			"addr:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str()
 			);
@@ -449,11 +445,11 @@ void WSServer::OnOpen(connection_hdl hdl) {
 	string userAgent = conn->get_request_header("User-Agent");
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::OnOpen( "
-			"hdl : %p, "
-			"addr : %s, "
-			"userAgent : %s "
-			")",
+			"WSServer::OnOpen, "
+			"hdl:%p, "
+			"addr:%s, "
+			"userAgent:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str(),
 			userAgent.c_str()
@@ -467,9 +463,9 @@ void WSServer::OnOpen(connection_hdl hdl) {
 void WSServer::OnClose(connection_hdl hdl) {
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::OnClose( "
-			"hdl : %p "
-			")",
+			"WSServer::OnClose, "
+			"hdl:%p "
+			,
 			hdl.lock().get()
 			);
 
@@ -483,12 +479,12 @@ void WSServer::OnMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
 
 	LogAync(
 			LOG_DEBUG,
-			"WSServer::OnMessage( "
-			"hdl : %p, "
-			"addr : %s, "
-			"opcode : 0x%x, "
-			"payload : %s "
-			")",
+			"WSServer::OnMessage, "
+			"hdl:%p, "
+			"addr:%s, "
+			"opcode:0x%x, "
+			"payload:%s "
+			,
 			hdl.lock().get(),
 			conn->get_remote_endpoint().c_str(),
 			msg->get_opcode(),
@@ -503,7 +499,7 @@ void WSServer::OnMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
 void WSServer::IOHandleThread() {
 	LogAync(
 			LOG_INFO,
-			"WSServer::IOHandleThread( [Start] )"
+			"WSServer::IOHandleThread, [Start]"
 			);
 
     try {
@@ -512,18 +508,18 @@ void WSServer::IOHandleThread() {
     } catch (websocketpp::exception const & e) {
     	LogAync(
     			LOG_WARN,
-    			"WSServer::IOHandleThread( "
+    			"WSServer::IOHandleThread, "
     			"[Exception], "
-    			"e : %s "
-    			")",
+    			"e:%s "
+    			,
 				e.what()
     			);
     } catch (...) {
     	LogAync(
     			LOG_WARN,
-    			"WSServer::IOHandleThread( "
+    			"WSServer::IOHandleThread, "
     			"[Unknow Exception] "
-    			")"
+    			
     			);
     }
 
@@ -533,4 +529,4 @@ void WSServer::IOHandleThread() {
 			);
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

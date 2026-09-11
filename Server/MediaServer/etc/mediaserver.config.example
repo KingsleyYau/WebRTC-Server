@@ -2,19 +2,19 @@
 # 基本配置
 [BASE]
 # HTTP端口
-PORT=9980
+PORT=9882
 # 最大连接数
-MAXCLIENT=100
+MAXCLIENT=300
 # 处理线程数目, 一般为cpu内核数目
-MAXHANDLETHREAD=1
+MAXHANDLETHREAD=4
 # 单核每秒处理请求数目
 MAXQUERYPERCOPY=0
 # 单个HTTP请求超时时间(秒), 0为不超时
 TIMEOUT=0
 # 统计信息输出时间间隔(秒)
-STATETIME=1800
+STATETIME=300
 # 进程PID文件路径
-PID=run/mediaserver_test.pid
+PID=run/mediaserver.pid
 
 # 日志配置
 [LOG]
@@ -28,29 +28,29 @@ DEBUGMODE=0
 # WebRTC配置
 [WEBRTC]
 # 媒体流转发起始端口
-WEBRTCPORTSTART=14000
+WEBRTCPORTSTART=10000
 # 最大媒体流转发数
-WEBRTCMAXCLIENT=100
+WEBRTCMAXCLIENT=200
 # 执行转发RTMP的脚本
 RTP2RTMPSHELL=/app/live/mediaserver/script/rtp2rtmp.sh
 # 执行转发RTMP的地址
-RTP2RTMPBASEURL=rtmp://127.0.0.1:4000/cdn_standard
+RTP2RTMPBASEURL=rtmp://127.0.0.1:8899/publish_standard
 # 执行转发RTP的脚本
-RTMP2RTPSHELL=/app/live/mediaserver/script/rtmp2rtp.sh
+RTMP2RTPSHELL=
 # 执行转发RTP的地址
-RTMP2RTPBASEURL=rtmp://127.0.0.1:4000/cdn_standard
+RTMP2RTPBASEURL=
 # 证书路径
 DTLSCER=/app/live/mediaserver/etc/webrtc_dtls.crt
 DTLSKEY=/app/live/mediaserver/etc/webrtc_dtls.key
 # 是否等待视频帧才转发
 VSYNC=1
 
-# 需要绑定的本地IP(可选,空则自动选择)
-ICELOCALIP=192.168.88.133
-# STUN服务器IP
-STUNSERVERIP=192.168.88.133
+# 需要绑定的本地IP(默认为空)
+#ICELOCALIP=172.31.16.183
+# STUN服务器的内网IP(默认为127.0.0.1)
+#STUNSERVERIP=172.25.32.133
 # STUN服务器外网IP(用于返回给客户端, 没有则默认和STUNSERVERIP一样)
-STUNSERVEREXTIP=
+STUNSERVEREXTIP=192.168.88.201
 # [用户名/密码]和[共享密钥]只能2选1, 0表示使用[用户名/密码], 1表示使用[共享密钥]
 TURNSTATIC=1
 # TURN用户名
@@ -62,13 +62,28 @@ TURNSHARESECRET=mediaserver12345
 # TURN共享密钥客户端有效时间(秒)
 TURNCLIENTTTL=3600
 
+# RTP配置
+[RTP]
+# 最大PLI间隔(秒)
+RTP_PLI_MAX_INTERVAL=1
+# 是否开启自适应码率控制(Receive side gcc)
+RTP_AUTO_BITRATE=1
+# 最小视频码率(bps)
+RTP_MIN_VIDEO_BPS=200000
+# 最大视频码率(bps)
+RTP_MAX_VIDEO_BPS=1000000
+# 是否开启模拟丢包
+RTP_TEST=0
+
 # Websocket配置
 [WEBSOCKET]
 # Websocket端口
-PORT=9981
+PORT=9883
 # 最大连接数
-MAXCLIENT=1000
+MAXCLIENT=5000
+# 外部请求线程数
+EXTRTHREADCOUNT=10
 # 外部上下线校验接口({"status":[0:下线|1:上线], "param":"自定义HTTP-GET参数"})
-EXTSETSTATUSPATH=
+EXTSETSTATUSPATH=http://127.0.0.1:9880/set_status
 # 外部同步在线列表接口
-EXTSYNCPATH=
+EXTSYNCPATH=http://127.0.0.1:9880/sync_status

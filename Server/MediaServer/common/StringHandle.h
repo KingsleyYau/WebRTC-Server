@@ -2,7 +2,7 @@
  * File         : StringHandle.h
  * Date         : 2012-07-02
  * Author       : Kingsley Yau
- * Description  : DrPalm StringHandle include
+ * Description  : StringHandle include
  */
 
 #ifndef _INC_STRINGHANDLE_
@@ -145,14 +145,11 @@ public:
 		}
 		bzero(pRep, iLen);
 
-		if ((pC_Begin = strIstr(pData, pBegin)) > 0) {
-
-			if ((pC_End = strIstr(pC_Begin, pEnd)) > 0) {
-
+		if ((pC_Begin = strIstr(pData, pBegin)) != NULL) {
+			if ((pC_End = strIstr(pC_Begin, pEnd)) != NULL) {
 				memcpy(pRep, pC_Begin, pC_End - pC_Begin);
 				strRet = pRep;
 			}
-
 		}
 
 		if (!pTmpBuffer || iTmpLen <= 0) {

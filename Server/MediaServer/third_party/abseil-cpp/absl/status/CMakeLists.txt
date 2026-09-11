@@ -19,22 +19,34 @@ absl_cc_library(
   HDRS
     "status.h"
   SRCS
+    "internal/status_internal.h"
+    "internal/status_internal.cc"
     "status.cc"
     "status_payload_printer.h"
     "status_payload_printer.cc"
   COPTS
     ${ABSL_DEFAULT_COPTS}
+  DEFINES
+    "$<$<PLATFORM_ID:AIX>:_LINUX_SOURCE_COMPAT>"
   DEPS
+    absl::atomic_hook
     absl::config
-    absl::core_headers
-    absl::raw_logging_internal
-    absl::inlined_vector
-    absl::stacktrace
-    absl::symbolize
-    absl::strings
     absl::cord
-    absl::str_format
+    absl::core_headers
+    absl::function_ref
+    absl::inlined_vector
+    absl::leak_check
+    absl::memory
+    absl::no_destructor
+    absl::nullability
     absl::optional
+    absl::raw_logging_internal
+    absl::span
+    absl::stacktrace
+    absl::str_format
+    absl::strerror
+    absl::strings
+    absl::symbolize
   PUBLIC
 )
 
@@ -47,6 +59,101 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   DEPS
     absl::status
+    absl::str_format
     absl::strings
-    gmock_main
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
+    statusor
+  HDRS
+    "statusor.h"
+  SRCS
+    "statusor.cc"
+    "internal/statusor_internal.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  DEPS
+    absl::base
+    absl::config
+    absl::core_headers
+    absl::has_ostream_operator
+    absl::nullability
+    absl::raw_logging_internal
+    absl::status
+    absl::str_format
+    absl::strings
+    absl::type_traits
+    absl::utility
+    absl::variant
+  PUBLIC
+)
+
+absl_cc_test(
+  NAME
+    statusor_test
+  SRCS
+   "statusor_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::status
+    absl::status_matchers
+    absl::statusor
+    absl::strings
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
+    status_matchers
+  HDRS
+    "status_matchers.h"
+  SRCS
+    "internal/status_matchers.h"
+    "internal/status_matchers.cc"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  LINKOPTS
+    ${ABSL_DEFAULT_LINKOPTS}
+  DEPS
+    absl::base
+    absl::status
+    absl::statusor
+    absl::strings
+    GTest::gmock
+    GTest::gtest
+  PUBLIC
+  TESTONLY
+)
+
+absl_cc_test(
+  NAME
+    status_matchers_test
+  SRCS
+   "status_matchers_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::status
+    absl::statusor
+    absl::status_matchers
+    GTest::gmock_main
+)
+
+absl_cc_test(
+  NAME
+    status_matchers_with_unqualified_macros_test
+  SRCS
+   "status_matchers_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEFINES
+    "ABSL_DEFINE_UNQUALIFIED_STATUS_TESTING_MACROS"
+  DEPS
+    absl::status
+    absl::statusor
+    absl::status_matchers
+    GTest::gmock_main
 )

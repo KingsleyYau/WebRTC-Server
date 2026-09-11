@@ -220,6 +220,38 @@ int Arithmetic::Base64Decode(const char* data, int length, char* code)
 	return k;
 }
 
+string Arithmetic::GetFileBase64String(const char* filePath) {
+	string result = "";
+    if (NULL != filePath)
+    {
+        FILE* pFile = fopen(filePath, "r");
+        if (NULL != pFile)
+        {
+            // define param
+            int fileLen = 0;
+            size_t bufferLen = 0;
+#define readStepSize 1024
+#define bufferSize (readStepSize * 3)
+
+            unsigned char buffer[bufferSize] = {0};
+
+            // get file length
+            fseek(pFile, 0L, SEEK_END);
+            fileLen = ftell(pFile);
+            fseek(pFile, 0L, SEEK_SET);
+
+            while ((bufferLen = fread(buffer, 1, bufferSize, pFile)) != 0) {
+                result += Base64Encode((const char *)buffer, bufferLen);
+            }
+
+            // close file
+            fclose(pFile);
+            pFile = NULL;
+        }
+    }
+    return result;
+}
+
 int Arithmetic::AsciiToHex(const char* data, int i_in_len, char* code)
 {
     int len = 0;
@@ -241,7 +273,7 @@ int Arithmetic::HexToAscii(const char* data, int i_in_len, char* code)
     for (int i = 0; i < i_in_len; i+=2){
         q[0] = p[i];
         q[1] = p[i + 1];
-	    code[len++] = (char)strtoul(q, '\0', 16);
+	    code[len++] = (char)strtoul(q, NULL, 16);
     }
     return len;
 }

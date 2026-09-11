@@ -2083,7 +2083,7 @@ pseudo_tcp_socket_write_packet (PseudoTcpSocket *psocket,
       nice_address_to_string (addr, tmpbuf);
 
       nice_debug_verbose (
-          "Agent %p: s%d:%d: sending %d bytes on socket %p (FD %d) to [%s]:%d",
+          "Agent %p: s%d:%d: sending %d bytes on socket %p (fd %d) to [%s]:%d",
           agent, component->stream_id, component->id, len,
           sock->fileno, sock->fileno?g_socket_get_fd (sock->fileno):-1, tmpbuf,
           nice_address_get_port (addr));
@@ -5832,7 +5832,7 @@ timeout_cb (gpointer user_data)
    * Add Debug Log
    * Add by Max 2019/09/03
    */
-  nice_debug ("Agent %p: source %p [%s], function %p, user_data %p", agent, data->source, g_source_get_name(data->source), data->function, data->user_data);
+  nice_debug_verbose ("Agent %p: source %p [%s], function %p, user_data %p", agent, data->source, g_source_get_name(data->source), data->function, data->user_data);
 
   agent_lock (agent);
 
@@ -6905,9 +6905,11 @@ int nice_epoll_fd() {
 	return epollfd;
 }
 
+GSource *sources[MAX_EVENTS] = {NULL};
+GMutex sources_mutex;
 void nice_epoll_create() {
-    epollfd = epoll_create1(EPOLL_CLOEXEC);
-    nice_debug ("nice_epoll_create epollfd(FD %d)", epollfd);
+	epollfd = epoll_create1(EPOLL_CLOEXEC);
+    nice_debug ("nice_epoll_create epollfd(fd %d)", epollfd);
     g_mutex_init(&sources_mutex);
 }
 
@@ -6916,22 +6918,23 @@ void nice_epoll_run(gint timeout) {
 	struct epoll_event event[MAX_EVENTS];
 	int i = 0;
 
-	nice_debug ("nice_epoll_run epollfd(FD %d) timeout: %d", epollfd, timeout);
+	nice_debug ("nice_epoll_run epollfd(fd %d) timeout: %d", epollfd, timeout);
 	while(true) {
 		int nfds = epoll_wait(epollfd, event, MAX_EVENTS, timeout);
 		if (nfds < 0) {
-//			nice_debug_verbose ("nice_epoll_run epollfd(FD %d) error: %d", epollfd, errno);
+//			nice_debug_verbose ("nice_epoll_run epollfd(fd %d) error: %d", epollfd, errno);
 			if ( errno != EINTR ) {
-				nice_debug ("nice_epoll_run epollfd(FD %d) error: %d", epollfd, errno);
+				nice_debug ("nice_epoll_run epollfd(fd %d) error: %d", epollfd, errno);
 				break;
 			}
 		}
 		for (i = 0; i < nfds; ++i) {
 	    	uint32_t events = event[i].events;
 	    	g_mutex_lock(&sources_mutex);
+	    	nice_debug_verbose ("nice_epoll_run (fd %d)", event[i].data.fd);
 	    	IOSource *source = (IOSource *)sources[event[i].data.fd];
+	    	nice_debug_verbose ("nice_epoll_run %p(fd %d)", source, event[i].data.fd);
 	    	source->canRead = true;
-	    	nice_debug_verbose ("nice_epoll_run %p(FD %d)", source, event[i].data.fd);
 	    	if ((events & EPOLLERR) || (events & EPOLLHUP) || (!(events & EPOLLIN))) {
 				source->condition = G_IO_HUP;
 	    	}
@@ -6942,6 +6945,6 @@ void nice_epoll_run(gint timeout) {
 }
 
 void nice_epoll_exit() {
-	nice_debug ("nice_epoll_exit (FD %d)", epollfd);
+	nice_debug ("nice_epoll_exit (fd %d)", epollfd);
 	close(epollfd);
 }

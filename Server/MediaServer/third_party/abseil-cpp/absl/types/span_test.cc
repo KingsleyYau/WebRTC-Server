@@ -27,12 +27,33 @@
 #include "absl/base/attributes.h"
 #include "absl/base/config.h"
 #include "absl/base/internal/exception_testing.h"
+#include "absl/base/options.h"
 #include "absl/container/fixed_array.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/hash/hash.h"
 #include "absl/hash/hash_testing.h"
+#include "absl/meta/type_traits.h"
 #include "absl/strings/str_cat.h"
 
 namespace {
+
+static_assert(!absl::type_traits_internal::IsOwner<absl::Span<int>>::value &&
+                  absl::type_traits_internal::IsView<absl::Span<int>>::value,
+              "Span is a view, not an owner");
+
+using S = absl::Span<int>;
+
+static_assert(
+    std::is_trivially_destructible_v<S> && std::is_trivially_copyable_v<S> &&
+        std::is_trivially_assignable_v<S, S&> &&
+        std::is_trivially_copy_assignable_v<S> &&
+        std::is_trivially_move_assignable_v<S> &&
+        std::is_trivially_assignable_v<S, const S&&> &&
+        std::is_trivially_constructible_v<S, S&> &&
+        std::is_trivially_copy_constructible_v<S> &&
+        std::is_trivially_move_constructible_v<S> &&
+        std::is_trivially_constructible_v<S, const S&&>,
+    "Span should be trivial in everything except default-constructibility");
 
 MATCHER_P(DataIs, data,
           absl::StrCat("data() ", negation ? "isn't " : "is ",
@@ -190,7 +211,7 @@ TEST(IntSpan, SpanOfDerived) {
 }
 
 void TestInitializerList(absl::Span<const int> s, const std::vector<int>& v) {
-  EXPECT_TRUE(absl::equal(s.begin(), s.end(), v.begin(), v.end()));
+  EXPECT_TRUE(std::equal(s.begin(), s.end(), v.begin(), v.end()));
 }
 
 TEST(ConstIntSpan, InitializerListConversion) {
@@ -232,6 +253,11 @@ TEST(IntSpan, ElementAccess) {
 
   EXPECT_EQ(s.front(), s[0]);
   EXPECT_EQ(s.back(), s[9]);
+
+#if !defined(NDEBUG) || ABSL_OPTION_HARDENED
+  EXPECT_DEATH_IF_SUPPORTED(s[-1], "");
+  EXPECT_DEATH_IF_SUPPORTED(s[10], "");
+#endif
 }
 
 TEST(IntSpan, AtThrows) {
@@ -268,6 +294,13 @@ TEST(IntSpan, RemovePrefixAndSuffix) {
   EXPECT_EQ(s.size(), 0);
 
   EXPECT_EQ(v, MakeRamp(20, 1));
+
+#if !defined(NDEBUG) || ABSL_OPTION_HARDENED
+  absl::Span<int> prefix_death(v);
+  EXPECT_DEATH_IF_SUPPORTED(prefix_death.remove_prefix(21), "");
+  absl::Span<int> suffix_death(v);
+  EXPECT_DEATH_IF_SUPPORTED(suffix_death.remove_suffix(21), "");
+#endif
 }
 
 TEST(IntSpan, Subspan) {
@@ -648,6 +681,8 @@ TEST(IntSpan, ExposesContainerTypesAndConsts) {
   CheckType<absl::Span<int>::const_reverse_iterator>(slice.crend());
   testing::StaticAssertTypeEq<int, absl::Span<int>::value_type>();
   testing::StaticAssertTypeEq<int, absl::Span<const int>::value_type>();
+  testing::StaticAssertTypeEq<int, absl::Span<int>::element_type>();
+  testing::StaticAssertTypeEq<const int, absl::Span<const int>::element_type>();
   testing::StaticAssertTypeEq<int*, absl::Span<int>::pointer>();
   testing::StaticAssertTypeEq<const int*, absl::Span<const int>::pointer>();
   testing::StaticAssertTypeEq<int&, absl::Span<int>::reference>();
@@ -767,9 +802,9 @@ TEST(IntSpan, NoexceptTest) {
 template <int i>
 struct ConstexprTester {};
 
-#define ABSL_TEST_CONSTEXPR(expr)                       \
-  do {                                                  \
-    ABSL_ATTRIBUTE_UNUSED ConstexprTester<(expr, 1)> t; \
+#define ABSL_TEST_CONSTEXPR(expr)                                          \
+  do {                                                                     \
+    ABSL_ATTRIBUTE_UNUSED ConstexprTester<(static_cast<void>(expr), 1)> t; \
   } while (0)
 
 struct ContainerWithConstexprMethods {
@@ -806,6 +841,41 @@ TEST(ConstIntSpan, ConstexprTest) {
   ABSL_TEST_CONSTEXPR(span[0]);
 }
 
+#if defined(ABSL_INTERNAL_CPLUSPLUS_LANG) && \
+    ABSL_INTERNAL_CPLUSPLUS_LANG >= 202002L
+
+TEST(ConstIntSpan, ConstexprRelOpsTest) {
+  static constexpr int lhs_data[] = {1, 2, 3};
+  static constexpr int rhs_data[] = {1, 2, 3};
+
+  constexpr absl::Span<const int> lhs = absl::MakeConstSpan(lhs_data, 3);
+  constexpr absl::Span<const int> rhs = absl::MakeConstSpan(rhs_data, 3);
+
+  ABSL_TEST_CONSTEXPR(lhs_data == rhs);
+  ABSL_TEST_CONSTEXPR(lhs_data != rhs);
+  ABSL_TEST_CONSTEXPR(lhs_data < rhs);
+  ABSL_TEST_CONSTEXPR(lhs_data <= rhs);
+  ABSL_TEST_CONSTEXPR(lhs_data > rhs);
+  ABSL_TEST_CONSTEXPR(lhs_data >= rhs);
+
+  ABSL_TEST_CONSTEXPR(lhs == rhs);
+  ABSL_TEST_CONSTEXPR(lhs != rhs);
+  ABSL_TEST_CONSTEXPR(lhs < rhs);
+  ABSL_TEST_CONSTEXPR(lhs <= rhs);
+  ABSL_TEST_CONSTEXPR(lhs > rhs);
+  ABSL_TEST_CONSTEXPR(lhs >= rhs);
+
+  ABSL_TEST_CONSTEXPR(lhs == rhs_data);
+  ABSL_TEST_CONSTEXPR(lhs != rhs_data);
+  ABSL_TEST_CONSTEXPR(lhs < rhs_data);
+  ABSL_TEST_CONSTEXPR(lhs <= rhs_data);
+  ABSL_TEST_CONSTEXPR(lhs > rhs_data);
+  ABSL_TEST_CONSTEXPR(lhs >= rhs_data);
+}
+
+#endif  // defined(ABSL_INTERNAL_CPLUSPLUS_LANG) &&
+        //  ABSL_INTERNAL_CPLUSPLUS_LANG >= 202002L
+
 struct BigStruct {
   char bytes[10000];
 };
@@ -828,6 +898,18 @@ TEST(Span, Hash) {
        T(array, 1), T(array, 2),
        // Same length, but different array
        T(array + 1, 2), T(array + 2, 2)}));
+}
+
+// std::vector is implicitly convertible to absl::Span.
+// There are real life cases where clients rely on this consistency in order to
+// implement heterogeneous lookup.
+TEST(Span, HashConsistentWithVectorLike) {
+  EXPECT_EQ(absl::HashOf(absl::Span<const int>({1, 2, 3})),
+            absl::HashOf(std::vector<int>{1, 2, 3}));
+  EXPECT_EQ(absl::HashOf(absl::Span<const int>({1, 2, 3})),
+            absl::HashOf(absl::InlinedVector<int, 2>{1, 2, 3}));
+  EXPECT_EQ(absl::HashOf(absl::Span<const int>({1, 2, 3})),
+            absl::HashOf(absl::FixedArray<int>{1, 2, 3}));
 }
 
 }  // namespace

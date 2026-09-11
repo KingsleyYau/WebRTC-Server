@@ -16,12 +16,18 @@
 
 #include "absl/strings/str_cat.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <limits>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/strings/substitute.h"
+#include "absl/base/config.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 
 #ifdef __ANDROID__
 // Android assert messages only go to system log, so death tests cannot inspect
@@ -69,7 +75,7 @@ TEST(StrCat, Ints) {
 TEST(StrCat, Enums) {
   enum SmallNumbers { One = 1, Ten = 10 } e = Ten;
   EXPECT_EQ("10", absl::StrCat(e));
-  EXPECT_EQ("-5", absl::StrCat(SmallNumbers(-5)));
+  EXPECT_EQ("1", absl::StrCat(One));
 
   enum class Option { Boxers = 1, Briefs = -1 };
 
@@ -162,7 +168,7 @@ TEST(StrCat, Basics) {
   EXPECT_EQ(result, "12345678910, 10987654321!");
 
   std::string one =
-      "1";  // Actually, it's the size of this std::string that we want; a
+      "1";  // Actually, it's the size of this string that we want; a
             // 64-bit build distinguishes between size_t and uint64_t,
             // even though they're both unsigned 64-bit values.
   result = absl::StrCat("And a ", one.size(), " and a ",
@@ -208,6 +214,17 @@ TEST(StrCat, CornerCases) {
   EXPECT_EQ(result, "");
   result = absl::StrCat("", "", "", "", "");
   EXPECT_EQ(result, "");
+}
+
+TEST(StrCat, StdStringView) {
+  std::string_view pieces[] = {"Hello", ", ", "World", "!"};
+  EXPECT_EQ(absl::StrCat(pieces[0], pieces[1], pieces[2], pieces[3]),
+                         "Hello, World!");
+}
+
+TEST(StrCat, NullConstCharPtr) {
+  const char* null = nullptr;
+  EXPECT_EQ(absl::StrCat("mon", null, "key"), "monkey");
 }
 
 // A minimal allocator that uses malloc().
@@ -375,7 +392,7 @@ TEST(StrAppend, Basics) {
   EXPECT_EQ(result.substr(old_size), "12345678910, 10987654321!");
 
   std::string one =
-      "1";  // Actually, it's the size of this std::string that we want; a
+      "1";  // Actually, it's the size of this string that we want; a
             // 64-bit build distinguishes between size_t and uint64_t,
             // even though they're both unsigned 64-bit values.
   old_size = result.size();
@@ -437,7 +454,7 @@ TEST(StrCat, AvoidsMemcpyWithNullptr) {
   EXPECT_EQ(result, "12345");
 }
 
-#ifdef GTEST_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
 TEST(StrAppend, Death) {
   std::string s = "self";
   // on linux it's "assertion", on mac it's "Assertion",
@@ -463,7 +480,7 @@ TEST(StrAppend, CornerCases) {
 }
 
 TEST(StrAppend, CornerCasesNonEmptyAppend) {
-  for (std::string result : {"hello", "a std::string too long to fit in the SSO"}) {
+  for (std::string result : {"hello", "a string too long to fit in the SSO"}) {
     const std::string expected = result;
     absl::StrAppend(&result, "");
     EXPECT_EQ(result, expected);
@@ -605,6 +622,71 @@ void TestFastPrints() {
 
 TEST(Numbers, TestFunctionsMovedOverFromNumbersMain) {
   TestFastPrints();
+}
+
+struct PointStringify {
+  template <typename FormatSink>
+  friend void AbslStringify(FormatSink& sink, const PointStringify& p) {
+    sink.Append("(");
+    sink.Append(absl::StrCat(p.x));
+    sink.Append(", ");
+    sink.Append(absl::StrCat(p.y));
+    sink.Append(")");
+  }
+
+  double x = 10.0;
+  double y = 20.0;
+};
+
+TEST(StrCat, AbslStringifyExample) {
+  PointStringify p;
+  EXPECT_EQ(absl::StrCat(p), "(10, 20)");
+  EXPECT_EQ(absl::StrCat("a ", p, " z"), "a (10, 20) z");
+}
+
+struct PointStringifyUsingFormat {
+  template <typename FormatSink>
+  friend void AbslStringify(FormatSink& sink,
+                            const PointStringifyUsingFormat& p) {
+    absl::Format(&sink, "(%g, %g)", p.x, p.y);
+  }
+
+  double x = 10.0;
+  double y = 20.0;
+};
+
+TEST(StrCat, AbslStringifyExampleUsingFormat) {
+  PointStringifyUsingFormat p;
+  EXPECT_EQ(absl::StrCat(p), "(10, 20)");
+  EXPECT_EQ(absl::StrCat("a ", p, " z"), "a (10, 20) z");
+}
+
+enum class EnumWithStringify { Many = 0, Choices = 1 };
+
+template <typename Sink>
+void AbslStringify(Sink& sink, EnumWithStringify e) {
+  absl::Format(&sink, "%s", e == EnumWithStringify::Many ? "Many" : "Choices");
+}
+
+TEST(StrCat, AbslStringifyWithEnum) {
+  const auto e = EnumWithStringify::Choices;
+  EXPECT_EQ(absl::StrCat(e), "Choices");
+}
+
+template <typename Integer>
+void CheckSingleArgumentIntegerLimits() {
+  Integer max = std::numeric_limits<Integer>::max();
+  Integer min = std::numeric_limits<Integer>::min();
+
+  EXPECT_EQ(absl::StrCat(max), std::to_string(max));
+  EXPECT_EQ(absl::StrCat(min), std::to_string(min));
+}
+
+TEST(StrCat, SingleArgumentLimits) {
+  CheckSingleArgumentIntegerLimits<int32_t>();
+  CheckSingleArgumentIntegerLimits<uint32_t>();
+  CheckSingleArgumentIntegerLimits<int64_t>();
+  CheckSingleArgumentIntegerLimits<uint64_t>();
 }
 
 }  // namespace

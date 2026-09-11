@@ -10,7 +10,7 @@
 
 #include "SdpCallRequest.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 IRequest::IRequest() {
 	// TODO Auto-generated constructor stub
@@ -47,4 +47,4 @@ IRequest *CreateRequest(void *data, int size, bool &bParse, IRequestCallback *ca
 	return req;
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

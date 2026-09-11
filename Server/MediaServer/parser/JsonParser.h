@@ -13,7 +13,7 @@
 // ThirdParty
 #include <json/json.h>
 
-namespace mediaserver {
+namespace qpidnetwork {
 class JsonParser : public DataParser {
 public:
 	JsonParser();
@@ -22,6 +22,6 @@ public:
 	int ParseData(char* buffer, int len);
 };
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */
 
 #endif /* PARSER_JSONPARSER_H_ */

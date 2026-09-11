@@ -8,7 +8,7 @@
 
 #include "SdpCallRequest.h"
 
-namespace mediaserver {
+namespace qpidnetwork {
 
 SdpCallRequest::SdpCallRequest() {
 	// TODO Auto-generated constructor stub
@@ -34,4 +34,4 @@ void SdpCallRequest::Parse() {
 	}
 }
 
-} /* namespace mediaserver */
+} /* namespace qpidnetwork */

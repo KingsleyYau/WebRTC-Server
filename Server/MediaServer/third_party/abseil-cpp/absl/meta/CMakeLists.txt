@@ -16,6 +16,52 @@
 
 absl_cc_library(
   NAME
+    constexpr_testing_internal
+  HDRS
+    "internal/constexpr_testing.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  DEPS
+    absl::config
+)
+
+absl_cc_test(
+  NAME
+    constexpr_testing_test
+  SRCS
+    "internal/constexpr_testing_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::constexpr_testing_internal
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
+    requires_internal
+  HDRS
+    "internal/requires.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  DEPS
+    absl::config
+)
+
+absl_cc_test(
+  NAME
+    requires_test
+  SRCS
+    "internal/requires_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::requires_internal
+    GTest::gmock_main
+)
+
+absl_cc_library(
+  NAME
     type_traits
   HDRS
     "type_traits.h"
@@ -23,6 +69,7 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
   DEPS
     absl::config
+    absl::core_headers
   PUBLIC
 )
 
@@ -34,8 +81,11 @@ absl_cc_test(
   COPTS
     ${ABSL_TEST_COPTS}
   DEPS
+    absl::config
+    absl::time
+    absl::core_headers
     absl::type_traits
-    gmock_main
+    GTest::gmock_main
 )
 
 # component target

@@ -109,13 +109,12 @@ srtp_err_status_t srtp_rdb_add_index(srtp_rdb_t *rdb, uint32_t p_index)
     if (delta < rdb_bits_in_bitmask) {
         /* if the p_index is within the window, set the appropriate bit */
         v128_set_bit(&rdb->bitmask, delta);
-
     } else {
         delta -= rdb_bits_in_bitmask - 1;
-
         /* shift the window forward by delta bits*/
         v128_left_shift(&rdb->bitmask, delta);
         v128_set_bit(&rdb->bitmask, rdb_bits_in_bitmask - 1);
+
         rdb->window_start += delta;
     }
 

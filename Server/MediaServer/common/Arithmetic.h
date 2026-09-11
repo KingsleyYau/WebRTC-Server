@@ -23,6 +23,7 @@ public:
     int Base64Encode(const char* data, int length, char** code);
     string Base64Encode(const char* data, int length);
     int Base64Decode(const char* data, int length, char* code);
+    string GetFileBase64String(const char* filePath);
 
     static int AsciiToHex(const char* data, int i_in_len, char* code);
     static int HexToAscii(const char* data, int i_in_len, char* code);

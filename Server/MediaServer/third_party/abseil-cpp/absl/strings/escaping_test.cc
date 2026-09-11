@@ -15,17 +15,20 @@
 #include "absl/strings/escaping.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
+#include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/container/fixed_array.h"
+#include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 
 #include "absl/strings/internal/escaping_test_common.h"
+#include "absl/strings/string_view.h"
 
 namespace {
 
@@ -166,15 +169,25 @@ TEST(Unescape, BasicFunction) {
     EXPECT_TRUE(absl::CUnescape(val.escaped, &out));
     EXPECT_EQ(out, val.unescaped);
   }
-  std::string bad[] = {"\\u1",         // too short
-                       "\\U1",         // too short
-                       "\\Uffffff",    // exceeds 0x10ffff (largest Unicode)
-                       "\\U00110000",  // exceeds 0x10ffff (largest Unicode)
-                       "\\uD835",      // surrogate character (D800-DFFF)
-                       "\\U0000DD04",  // surrogate character (D800-DFFF)
-                       "\\777",        // exceeds 0xff
-                       "\\xABCD"};     // exceeds 0xff
-  for (const std::string& e : bad) {
+  constexpr absl::string_view bad[] = {
+      "\\u1",         // too short
+      "\\U1",         // too short
+      "\\Uffffff",    // exceeds 0x10ffff (largest Unicode)
+      "\\U00110000",  // exceeds 0x10ffff (largest Unicode)
+      "\\uD835",      // surrogate character (D800-DFFF)
+      "\\U0000DD04",  // surrogate character (D800-DFFF)
+      "\\777",        // exceeds 0xff
+      "\\xABCD",      // exceeds 0xff
+      "endswith\\",   // ends with "\"
+      "endswith\\x",  // ends with "\x"
+      "endswith\\X",  // ends with "\X"
+      "\\x.2345678",  // non-hex follows "\x"
+      "\\X.2345678",  // non-hex follows "\X"
+      "\\u.2345678",  // non-hex follows "\U"
+      "\\U.2345678",  // non-hex follows "\U"
+      "\\.unknown",   // unknown escape sequence
+  };
+  for (const auto e : bad) {
     std::string error;
     std::string out;
     EXPECT_FALSE(absl::CUnescape(e, &out, &error));
@@ -300,7 +313,7 @@ static struct {
   absl::string_view plaintext;
   absl::string_view cyphertext;
 } const base64_tests[] = {
-    // Empty std::string.
+    // Empty string.
     {{"", 0}, {"", 0}},
     {{nullptr, 0},
      {"", 0}},  // if length is zero, plaintext ptr must be ignored!
@@ -562,6 +575,7 @@ template <typename StringType>
 void TestEscapeAndUnescape() {
   // Check the short strings; this tests the math (and boundaries)
   for (const auto& tc : base64_tests) {
+    // Test plain base64.
     StringType encoded("this junk should be ignored");
     absl::Base64Escape(tc.plaintext, &encoded);
     EXPECT_EQ(encoded, tc.cyphertext);
@@ -571,22 +585,26 @@ void TestEscapeAndUnescape() {
     EXPECT_TRUE(absl::Base64Unescape(encoded, &decoded));
     EXPECT_EQ(decoded, tc.plaintext);
 
-    StringType websafe(tc.cyphertext);
-    for (int c = 0; c < websafe.size(); ++c) {
-      if ('+' == websafe[c]) websafe[c] = '-';
-      if ('/' == websafe[c]) websafe[c] = '_';
+    StringType websafe_with_padding(tc.cyphertext);
+    for (unsigned int c = 0; c < websafe_with_padding.size(); ++c) {
+      if ('+' == websafe_with_padding[c]) websafe_with_padding[c] = '-';
+      if ('/' == websafe_with_padding[c]) websafe_with_padding[c] = '_';
+      // Intentionally keeping padding aka '='.
+    }
+
+    // Test plain websafe (aka without padding).
+    StringType websafe(websafe_with_padding);
+    for (unsigned int c = 0; c < websafe.size(); ++c) {
       if ('=' == websafe[c]) {
         websafe.resize(c);
         break;
       }
     }
-
     encoded = "this junk should be ignored";
     absl::WebSafeBase64Escape(tc.plaintext, &encoded);
     EXPECT_EQ(encoded, websafe);
     EXPECT_EQ(absl::WebSafeBase64Escape(tc.plaintext), websafe);
 
-    // Let's try the std::string version of the decoder
     decoded = "this junk should be ignored";
     EXPECT_TRUE(absl::WebSafeBase64Unescape(websafe, &decoded));
     EXPECT_EQ(decoded, tc.plaintext);
@@ -617,6 +635,48 @@ TEST(Base64, EscapeAndUnescape) {
   TestEscapeAndUnescape<std::string>();
 }
 
+TEST(Base64, Padding) {
+  // Padding is optional.
+  // '.' is an acceptable padding character, just like '='.
+  std::initializer_list<absl::string_view> good_padding = {
+    "YQ",
+    "YQ==",
+    "YQ=.",
+    "YQ.=",
+    "YQ..",
+  };
+  for (absl::string_view b64 : good_padding) {
+    std::string decoded;
+    EXPECT_TRUE(absl::Base64Unescape(b64, &decoded));
+    EXPECT_EQ(decoded, "a");
+    std::string websafe_decoded;
+    EXPECT_TRUE(absl::WebSafeBase64Unescape(b64, &websafe_decoded));
+    EXPECT_EQ(websafe_decoded, "a");
+  }
+  std::initializer_list<absl::string_view> bad_padding = {
+    "YQ=",
+    "YQ.",
+    "YQ===",
+    "YQ==.",
+    "YQ=.=",
+    "YQ=..",
+    "YQ.==",
+    "YQ.=.",
+    "YQ..=",
+    "YQ...",
+    "YQ====",
+    "YQ....",
+    "YQ=====",
+    "YQ.....",
+  };
+  for (absl::string_view b64 : bad_padding) {
+    std::string decoded;
+    EXPECT_FALSE(absl::Base64Unescape(b64, &decoded));
+    std::string websafe_decoded;
+    EXPECT_FALSE(absl::WebSafeBase64Unescape(b64, &websafe_decoded));
+  }
+}
+
 TEST(Base64, DISABLED_HugeData) {
   const size_t kSize = size_t(3) * 1000 * 1000 * 1000;
   static_assert(kSize % 3 == 0, "kSize must be divisible by 3");
@@ -625,7 +685,7 @@ TEST(Base64, DISABLED_HugeData) {
   std::string escaped;
   absl::Base64Escape(huge, &escaped);
 
-  // Generates the std::string that should match a base64 encoded "xxx..." std::string.
+  // Generates the string that should match a base64 encoded "xxx..." string.
   // "xxx" in base64 is "eHh4".
   std::string expected_encoding;
   expected_encoding.reserve(kSize / 3 * 4);
@@ -637,6 +697,42 @@ TEST(Base64, DISABLED_HugeData) {
   std::string unescaped;
   EXPECT_TRUE(absl::Base64Unescape(escaped, &unescaped));
   EXPECT_EQ(huge, unescaped);
+}
+
+TEST(Escaping, HexStringToBytesBackToHex) {
+  std::string bytes, hex;
+
+  constexpr absl::string_view kTestHexLower =  "1c2f0032f40123456789abcdef";
+  constexpr absl::string_view kTestHexUpper =  "1C2F0032F40123456789ABCDEF";
+  constexpr absl::string_view kTestBytes = absl::string_view(
+      "\x1c\x2f\x00\x32\xf4\x01\x23\x45\x67\x89\xab\xcd\xef", 13);
+
+  EXPECT_TRUE(absl::HexStringToBytes(kTestHexLower, &bytes));
+  EXPECT_EQ(bytes, kTestBytes);
+
+  EXPECT_TRUE(absl::HexStringToBytes(kTestHexUpper, &bytes));
+  EXPECT_EQ(bytes, kTestBytes);
+
+  hex = absl::BytesToHexString(kTestBytes);
+  EXPECT_EQ(hex, kTestHexLower);
+
+  // Same buffer.
+  // We do not care if this works since we do not promise it in the contract.
+  // The purpose of this test is to to see if the program will crash or if
+  // sanitizers will catch anything.
+  bytes = std::string(kTestHexUpper);
+  (void)absl::HexStringToBytes(bytes, &bytes);
+
+  // Length not a multiple of two.
+  EXPECT_FALSE(absl::HexStringToBytes("1c2f003", &bytes));
+
+  // Not hex.
+  EXPECT_FALSE(absl::HexStringToBytes("1c2f00ft", &bytes));
+
+  // Empty input.
+  bytes = "abc";
+  EXPECT_TRUE(absl::HexStringToBytes("", &bytes));
+  EXPECT_EQ("", bytes);  // Results in empty output.
 }
 
 TEST(HexAndBack, HexStringToBytes_and_BytesToHexString) {

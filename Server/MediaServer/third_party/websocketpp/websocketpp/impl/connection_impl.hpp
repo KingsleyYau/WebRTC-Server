@@ -333,9 +333,9 @@ void connection<config>::close(close::status::value const code,
     }
 }
 
-/// close connection without reason
 /**
- * Add by Max 2023-01-16
+ * close connection without reason
+ * Add by Max
  */
 template<typename config>
 void connection<config>::close_without_reason() {
@@ -1103,7 +1103,6 @@ void connection<config>::handle_read_frame(lib::error_code const & ec,
                 if (m_state != session::state::open) {
                     m_elog->write(log::elevel::warn, "got non-close frame while closing");
                 } else if (m_message_handler) {
-                	// Just Check Task
                     m_message_handler(m_connection_hdl, msg);
                 }
             } else {
@@ -1770,11 +1769,6 @@ void connection<config>::handle_terminate(terminate_status tstat,
         log_err(log::elevel::devel,"handle_terminate",ec);
     }
 
-    {
-        scoped_lock_type lock(m_write_lock);
-        while(write_pop());
-    }
-
     // clean shutdown
     if (tstat == failed) {
         if (m_ec != error::http_connection_ended) {
@@ -1853,45 +1847,45 @@ void connection<config>::write_frame() {
 
     // Print detailed send stats if those log levels are enabled
     if (m_alog->static_test(log::alevel::frame_header)) {
-		if (m_alog->dynamic_test(log::alevel::frame_header)) {
-			std::stringstream general,header,payload;
+    if (m_alog->dynamic_test(log::alevel::frame_header)) {
+        std::stringstream general,header,payload;
+        
+        general << "Dispatching write containing " << m_current_msgs.size()
+                <<" message(s) containing ";
+        header << "Header Bytes: \n";
+        payload << "Payload Bytes: \n";
+        
+        size_t hbytes = 0;
+        size_t pbytes = 0;
+        
+        for (size_t i = 0; i < m_current_msgs.size(); i++) {
+            hbytes += m_current_msgs[i]->get_header().size();
+            pbytes += m_current_msgs[i]->get_payload().size();
 
-			general << "Dispatching write containing " << m_current_msgs.size()
-					<<" message(s) containing ";
-			header << "Header Bytes: \n";
-			payload << "Payload Bytes: \n";
+            
+            header << "[" << i << "] (" 
+                   << m_current_msgs[i]->get_header().size() << ") " 
+                   << utility::to_hex(m_current_msgs[i]->get_header()) << "\n";
 
-			size_t hbytes = 0;
-			size_t pbytes = 0;
-
-			for (size_t i = 0; i < m_current_msgs.size(); i++) {
-				hbytes += m_current_msgs[i]->get_header().size();
-				pbytes += m_current_msgs[i]->get_payload().size();
-
-
-				header << "[" << i << "] ("
-					   << m_current_msgs[i]->get_header().size() << ") "
-					   << utility::to_hex(m_current_msgs[i]->get_header()) << "\n";
-
-				if (m_alog->static_test(log::alevel::frame_payload)) {
-					if (m_alog->dynamic_test(log::alevel::frame_payload)) {
-						payload << "[" << i << "] ("
-								<< m_current_msgs[i]->get_payload().size() << ") ["<<m_current_msgs[i]->get_opcode()<<"] "
-								<< (m_current_msgs[i]->get_opcode() == frame::opcode::text ?
-										m_current_msgs[i]->get_payload() :
-										utility::to_hex(m_current_msgs[i]->get_payload())
-								   )
-								<< "\n";
-					}
-				}
-			}
-
-			general << hbytes << " header bytes and " << pbytes << " payload bytes";
-
-			m_alog->write(log::alevel::frame_header,general.str());
-			m_alog->write(log::alevel::frame_header,header.str());
-			m_alog->write(log::alevel::frame_payload,payload.str());
-		}
+            if (m_alog->static_test(log::alevel::frame_payload)) {
+            if (m_alog->dynamic_test(log::alevel::frame_payload)) {
+                payload << "[" << i << "] (" 
+                        << m_current_msgs[i]->get_payload().size() << ") ["<<m_current_msgs[i]->get_opcode()<<"] "
+                        << (m_current_msgs[i]->get_opcode() == frame::opcode::text ? 
+                                m_current_msgs[i]->get_payload() : 
+                                utility::to_hex(m_current_msgs[i]->get_payload())
+                           ) 
+                        << "\n";
+            }
+            }  
+        }
+        
+        general << hbytes << " header bytes and " << pbytes << " payload bytes";
+        
+        m_alog->write(log::alevel::frame_header,general.str());
+        m_alog->write(log::alevel::frame_header,header.str());
+        m_alog->write(log::alevel::frame_payload,payload.str());
+    }
     }
 
     transport_con_type::async_write(
@@ -2123,11 +2117,11 @@ lib::error_code connection<config>::send_close_frame(close::status::value code,
         return error::make_error_code(error::no_outgoing_buffers);
     }
 
-	lib::error_code ec = m_processor->prepare_close(m_local_close_code,
-		m_local_close_reason,msg);
-	if (ec) {
-		return ec;
-	}
+    lib::error_code ec = m_processor->prepare_close(m_local_close_code,
+        m_local_close_reason,msg);
+    if (ec) {
+        return ec;
+    }
 
     // Messages flagged terminal will result in the TCP connection being dropped
     // after the message has been written. This is typically used when servers

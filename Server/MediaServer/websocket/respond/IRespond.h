@@ -15,7 +15,7 @@
 #include <string>
 using namespace std;
 
-namespace mediaserver {
+namespace qpidnetwork {
 class IRespond {
 public:
 	virtual ~IRespond(){};

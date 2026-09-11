@@ -70,20 +70,16 @@ bool MainLoop::Start() {
 	bFlag = (mMainLoopThread.Start(mpMainLoopRunnable, "MainLoop") != 0);
 	if( bFlag ) {
 		// 服务启动成功
-		LogAync(
+		LogAyncFunc(
 				LOG_INFO,
-				"MainLoop::Start, "
 				"[OK] "
-				")"
 				);
 
 	} else {
 		// 服务启动失败
-		LogAync(
+		LogAyncFunc(
 				LOG_ALERT,
-				"MainLoop::Start, "
 				"[Fail] "
-				")"
 				);
 		Stop();
 	}
@@ -93,11 +89,10 @@ bool MainLoop::Start() {
 }
 
 void MainLoop::Stop(int sign_no) {
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::Stop, "
 			"signal:%d "
-			")",
+			,
 			sign_no
 			);
 
@@ -127,11 +122,9 @@ void MainLoop::Stop(int sign_no) {
 
 	mRunningMutex.unlock();
 
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::Stop, "
-			"[OK] "
-			")"
+			"[OK]"
 			);
 }
 
@@ -153,9 +146,8 @@ void MainLoop::WaitPid(int pid) {
 }
 
 void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::StartWatchChild, "
 			"pid:%u",
 			pid
 			);
@@ -166,9 +158,8 @@ void MainLoop::StartWatchChild(int pid, MainLoopCallback *cb) {
 }
 
 void MainLoop::StopWatchChild(int pid) {
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::StopWatchChild, "
 			"pid:%u",
 			pid
 			);
@@ -187,9 +178,8 @@ void MainLoop::StopWatchChild(int pid) {
 }
 
 void MainLoop::MainLoopHandle() {
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::MainLoopHandle, "
 			"[Start]"
 			);
 
@@ -221,9 +211,9 @@ void MainLoop::MainLoopHandle() {
 		}
 	}
 
-	LogAync(
+	LogAyncFunc(
 			LOG_INFO,
-			"MainLoop::MainLoopHandle, [Exit]"
+			"[Exit]"
 			);
 }
 

@@ -9,7 +9,7 @@
 #ifndef PARSER_IDATAPARSER_H_
 #define PARSER_IDATAPARSER_H_
 #pragma pack(1)
-namespace mediaserver {
+namespace qpidnetwork {
 class IDataParser {
 public:
 	/*

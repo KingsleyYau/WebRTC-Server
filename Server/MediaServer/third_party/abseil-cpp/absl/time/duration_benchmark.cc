@@ -18,8 +18,13 @@
 #include <string>
 
 #include "absl/base/attributes.h"
+#include "absl/flags/flag.h"
 #include "absl/time/time.h"
 #include "benchmark/benchmark.h"
+
+ABSL_FLAG(absl::Duration, absl_duration_flag_for_benchmark,
+          absl::Milliseconds(1),
+          "Flag to use for benchmarking duration flag access speed.");
 
 namespace {
 
@@ -285,6 +290,26 @@ void BM_Duration_IDivDuration_Hours(benchmark::State& state) {
 }
 BENCHMARK(BM_Duration_IDivDuration_Hours);
 
+void BM_Duration_Modulo(benchmark::State& state) {
+  int i = 0;
+  while (state.KeepRunning()) {
+    auto mod = absl::Seconds(i) % absl::Nanoseconds(12345);
+    benchmark::DoNotOptimize(mod);
+    ++i;
+  }
+}
+BENCHMARK(BM_Duration_Modulo);
+
+void BM_Duration_Modulo_FastPath(benchmark::State& state) {
+  int i = 0;
+  while (state.KeepRunning()) {
+    auto mod = absl::Seconds(i) % absl::Milliseconds(1);
+    benchmark::DoNotOptimize(mod);
+    ++i;
+  }
+}
+BENCHMARK(BM_Duration_Modulo_FastPath);
+
 void BM_Duration_ToInt64Nanoseconds(benchmark::State& state) {
   absl::Duration d = absl::Seconds(100000);
   while (state.KeepRunning()) {
@@ -332,6 +357,150 @@ void BM_Duration_ToInt64Hours(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_Duration_ToInt64Hours);
+
+//
+// ToDoubleXYZ
+//
+void BM_Duration_ToDoubleNanoseconds(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleNanoseconds(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleNanoseconds);
+
+void BM_Duration_ToDoubleMicroseconds(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleMicroseconds(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMicroseconds);
+
+void BM_Duration_ToDoubleMilliseconds(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleMilliseconds(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMilliseconds);
+
+void BM_Duration_ToDoubleSeconds(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleSeconds(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleSeconds);
+
+void BM_Duration_ToDoubleMinutes(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleMinutes(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMinutes);
+
+void BM_Duration_ToDoubleHours(benchmark::State& state) {
+  absl::Duration d = absl::Seconds(100000);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d);
+    double result = absl::ToDoubleHours(d);
+    benchmark::DoNotOptimize(result);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleHours);
+
+//
+// ToDoubleXYZ Latency
+//
+void BM_Duration_ToDoubleNanoseconds_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleNanoseconds(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleNanoseconds_Latency);
+
+void BM_Duration_ToDoubleMicroseconds_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleMicroseconds(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMicroseconds_Latency);
+
+void BM_Duration_ToDoubleMilliseconds_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleMilliseconds(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMilliseconds_Latency);
+
+void BM_Duration_ToDoubleSeconds_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleSeconds(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleSeconds_Latency);
+
+void BM_Duration_ToDoubleMinutes_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleMinutes(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleMinutes_Latency);
+
+void BM_Duration_ToDoubleHours_Latency(benchmark::State& state) {
+  absl::Duration d1 = absl::Seconds(100000);
+  absl::Duration d2 = absl::Seconds(100000);
+  double result = 1;
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(d1);
+    benchmark::DoNotOptimize(d2);
+    benchmark::DoNotOptimize(result);
+    result = absl::ToDoubleHours(result < 0 ? d1 : d2);
+  }
+}
+BENCHMARK(BM_Duration_ToDoubleHours_Latency);
 
 //
 // To/FromTimespec
@@ -424,5 +593,16 @@ void BM_Duration_ParseDuration(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_Duration_ParseDuration)->DenseRange(0, kNumDurations - 1);
+
+//
+// Flag access
+//
+void BM_Duration_GetFlag(benchmark::State& state) {
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(
+        absl::GetFlag(FLAGS_absl_duration_flag_for_benchmark));
+  }
+}
+BENCHMARK(BM_Duration_GetFlag);
 
 }  // namespace

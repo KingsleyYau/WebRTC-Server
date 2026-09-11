@@ -191,9 +191,8 @@ static void socket_source_attach(SocketSource *socket_source,
 			|| socket_source->socket->type == NICE_SOCKET_TYPE_TCP_PASSIVE
 			|| socket_source->socket->type == NICE_SOCKET_TYPE_UDP_TURN_OVER_TCP
 			|| socket_source->socket->type == NICE_SOCKET_TYPE_TCP_BSD) {
-		source = nice_epoll_create_source(socket_source);
-
 		g_mutex_lock(&sources_mutex);
+		source = nice_epoll_create_source(socket_source);
 		int fd = g_socket_get_fd(socket_source->socket->fileno);
 		sources[fd] = source;
 		g_mutex_unlock(&sources_mutex);
@@ -326,11 +325,11 @@ void nice_component_remove_socket(NiceAgent *agent, NiceComponent *cmp,
 	/**
 	 * Add by Max 2020/06/08
 	 */
-//	discovery_prune_socket(agent, nsocket);
-//	if (stateChange) {
-//		agent_unlock_and_emit(agent);
-//		agent_lock(agent);
-//	}
+	discovery_prune_socket(agent, nsocket);
+	if (stateChange) {
+		agent_unlock_and_emit(agent);
+		agent_lock(agent);
+	}
 
 	nice_component_detach_socket(cmp, nsocket);
 }

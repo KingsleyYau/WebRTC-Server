@@ -142,6 +142,11 @@ socket_close (NiceSocket *sock)
 //	  priv->base_socket->close(priv->base_socket);
 	  nice_socket_free (priv->base_socket);
 	  priv->base_socket = NULL;
+  } else {
+	  nice_debug ("Socket %p(fd %d): [UDP-TURN-OVER-TCP] Close, Base Socket %p(fd %d)",
+			  sock, sock->fileno ? g_socket_get_fd(sock->fileno) : -1,
+			  priv->base_socket, -1
+			  );
   }
 
   g_slice_free(TurnTcpPriv, sock->priv);

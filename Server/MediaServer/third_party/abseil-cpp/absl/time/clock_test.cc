@@ -18,6 +18,10 @@
 #if defined(ABSL_HAVE_ALARM)
 #include <signal.h>
 #include <unistd.h>
+#ifdef _AIX
+// sig_t is not defined in AIX.
+typedef void (*sig_t)(int);
+#endif
 #elif defined(__linux__) || defined(__APPLE__)
 #error all known Linux and Apple targets have alarm
 #endif
@@ -110,8 +114,8 @@ TEST(SleepFor, Bounded) {
   EXPECT_TRUE(AssertSleepForBounded(d, early, late, timeout,
                                     AlarmPolicy::kWithoutAlarm));
 #if defined(ABSL_HAVE_ALARM)
-  EXPECT_TRUE(AssertSleepForBounded(d, early, late, timeout,
-                                    AlarmPolicy::kWithAlarm));
+  EXPECT_TRUE(
+      AssertSleepForBounded(d, early, late, timeout, AlarmPolicy::kWithAlarm));
 #endif
 }
 

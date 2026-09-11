@@ -6,7 +6,7 @@
  */
 
 #include "DataParser.h"
-namespace mediaserver {
+namespace qpidnetwork {
 DataParser::DataParser() {
 	// TODO Auto-generated constructor stub
 	mParser = NULL;

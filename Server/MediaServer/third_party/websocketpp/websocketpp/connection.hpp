@@ -803,12 +803,12 @@ public:
     void close(close::status::value const code, std::string const & reason,
         lib::error_code & ec);
 
-    /// close connection without reason
-    /**
-     * Add by Max 2023-01-16
+     /**
+     * close connection without reason
+     * Add by Max
      */
     void close_without_reason();
-
+    
     ////////////////////////////////////////////////
     // Pass-through access to the uri information //
     ////////////////////////////////////////////////

@@ -18,8 +18,8 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/const_init.h"
-#include "absl/base/internal/raw_logging.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/log/check.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 
@@ -35,20 +35,20 @@ namespace {
 // Thread two waits on 'notification', then sets 'state' inside the 'mutex',
 // signalling the change via 'condvar'.
 //
-// These tests use ABSL_RAW_CHECK to validate invariants, rather than EXPECT or
-// ASSERT from gUnit, because we need to invoke them during global destructors,
-// when gUnit teardown would have already begun.
+// These tests use CHECK to validate invariants, rather than EXPECT or ASSERT
+// from gUnit, because we need to invoke them during global destructors, when
+// gUnit teardown would have already begun.
 void ThreadOne(absl::Mutex* mutex, absl::CondVar* condvar,
                absl::Notification* notification, bool* state) {
   // Test that the notification is in a valid initial state.
-  ABSL_RAW_CHECK(!notification->HasBeenNotified(), "invalid Notification");
-  ABSL_RAW_CHECK(*state == false, "*state not initialized");
+  CHECK(!notification->HasBeenNotified()) << "invalid Notification";
+  CHECK(!*state) << "*state not initialized";
 
   {
-    absl::MutexLock lock(mutex);
+    absl::MutexLock lock(*mutex);
 
     notification->Notify();
-    ABSL_RAW_CHECK(notification->HasBeenNotified(), "invalid Notification");
+    CHECK(notification->HasBeenNotified()) << "invalid Notification";
 
     while (*state == false) {
       condvar->Wait(mutex);
@@ -58,13 +58,13 @@ void ThreadOne(absl::Mutex* mutex, absl::CondVar* condvar,
 
 void ThreadTwo(absl::Mutex* mutex, absl::CondVar* condvar,
                absl::Notification* notification, bool* state) {
-  ABSL_RAW_CHECK(*state == false, "*state not initialized");
+  CHECK(!*state) << "*state not initialized";
 
   // Wake thread one
   notification->WaitForNotification();
-  ABSL_RAW_CHECK(notification->HasBeenNotified(), "invalid Notification");
+  CHECK(notification->HasBeenNotified()) << "invalid Notification";
   {
-    absl::MutexLock lock(mutex);
+    absl::MutexLock lock(*mutex);
     *state = true;
     condvar->Signal();
   }
@@ -123,10 +123,9 @@ class OnDestruction {
 };
 
 // These tests require that the compiler correctly supports C++11 constant
-// initialization... but MSVC has a known regression since v19.10:
+// initialization... but MSVC has a known regression (since v19.10) till v19.25:
 // https://developercommunity.visualstudio.com/content/problem/336946/class-with-constexpr-constructor-not-using-static.html
-// TODO(epastor): Limit the affected range once MSVC fixes this bug.
-#if defined(__clang__) || !(defined(_MSC_VER) && _MSC_VER > 1900)
+#if defined(__clang__) || !(defined(_MSC_VER) && _MSC_VER < 1925)
 // kConstInit
 // Test early usage.  (Declaration comes first; definitions must appear after
 // the test runner.)
@@ -149,12 +148,12 @@ ABSL_CONST_INIT absl::Mutex early_const_init_mutex(absl::kConstInit);
 // before the constructors of either grab_lock or check_still_locked are run.)
 extern absl::Mutex const_init_sanity_mutex;
 OnConstruction grab_lock([]() ABSL_NO_THREAD_SAFETY_ANALYSIS {
-  const_init_sanity_mutex.Lock();
+  const_init_sanity_mutex.lock();
 });
 ABSL_CONST_INIT absl::Mutex const_init_sanity_mutex(absl::kConstInit);
 OnConstruction check_still_locked([]() ABSL_NO_THREAD_SAFETY_ANALYSIS {
   const_init_sanity_mutex.AssertHeld();
-  const_init_sanity_mutex.Unlock();
+  const_init_sanity_mutex.unlock();
 });
 #endif  // defined(__clang__) || !(defined(_MSC_VER) && _MSC_VER > 1900)
 

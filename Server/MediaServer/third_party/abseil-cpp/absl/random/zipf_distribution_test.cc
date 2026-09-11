@@ -25,8 +25,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/internal/raw_logging.h"
+#include "absl/log/log.h"
 #include "absl/random/internal/chi_square.h"
+#include "absl/random/internal/pcg_engine.h"
 #include "absl/random/internal/sequence_urbg.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
@@ -43,7 +44,7 @@ class ZipfDistributionTypedTest : public ::testing::Test {};
 
 using IntTypes = ::testing::Types<int, int8_t, int16_t, int32_t, int64_t,
                                   uint8_t, uint16_t, uint32_t, uint64_t>;
-TYPED_TEST_CASE(ZipfDistributionTypedTest, IntTypes);
+TYPED_TEST_SUITE(ZipfDistributionTypedTest, IntTypes);
 
 TYPED_TEST(ZipfDistributionTypedTest, SerializeTest) {
   using param_type = typename absl::zipf_distribution<TypeParam>::param_type;
@@ -101,8 +102,7 @@ TYPED_TEST(ZipfDistributionTypedTest, SerializeTest) {
       if (sample > sample_max) sample_max = sample;
       if (sample < sample_min) sample_min = sample;
     }
-    ABSL_INTERNAL_LOG(INFO,
-                      absl::StrCat("Range: ", +sample_min, ", ", +sample_max));
+    LOG(INFO) << "Range: " << sample_min << ", " << sample_max;
   }
 }
 
@@ -176,15 +176,15 @@ class ZipfModel {
       const double x = v_ + i;
 
       // H(n, q-1)
-      const double hnqm1 =
-          (q_ == 2.0) ? (1.0 / x)
-                      : (q_ == 3.0) ? (1.0 / (x * x)) : std::pow(x, -qm1);
+      const double hnqm1 = (q_ == 2.0)   ? (1.0 / x)
+                           : (q_ == 3.0) ? (1.0 / (x * x))
+                                         : std::pow(x, -qm1);
       sum_hnq_m1 += hnqm1;
 
       // H(n, q)
-      const double hnq =
-          (q_ == 2.0) ? (1.0 / (x * x))
-                      : (q_ == 3.0) ? (1.0 / (x * x * x)) : std::pow(x, -q_);
+      const double hnq = (q_ == 2.0)   ? (1.0 / (x * x))
+                         : (q_ == 3.0) ? (1.0 / (x * x * x))
+                                       : std::pow(x, -q_);
       sum_hnq_ += hnq;
       hnq_.push_back(hnq);
       if (i > 1000 && hnq <= 1e-10) {
@@ -213,7 +213,10 @@ class ZipfTest : public testing::TestWithParam<zipf_u64::param_type>,
  public:
   ZipfTest() : ZipfModel(GetParam().k(), GetParam().q(), GetParam().v()) {}
 
-  absl::InsecureBitGen rng_;
+  // We use a fixed bit generator for distribution accuracy tests.  This allows
+  // these tests to be deterministic, while still testing the qualify of the
+  // implementation.
+  absl::random_internal::pcg64_2018_engine rng_{0x2B7E151628AED2A6};
 };
 
 TEST_P(ZipfTest, ChiSquaredTest) {
@@ -299,18 +302,15 @@ TEST_P(ZipfTest, ChiSquaredTest) {
 
   // Log if the chi_squared value is above the threshold.
   if (chi_square > threshold) {
-    ABSL_INTERNAL_LOG(INFO, "values");
+    LOG(INFO) << "values";
     for (size_t i = 0; i < expected.size(); i++) {
-      ABSL_INTERNAL_LOG(INFO, absl::StrCat(points[i], ": ", buckets[i],
-                                           " vs. E=", expected[i]));
+      LOG(INFO) << points[i] << ": " << buckets[i] << " vs. E=" << expected[i];
     }
-    ABSL_INTERNAL_LOG(INFO, absl::StrCat("trials ", trials));
-    ABSL_INTERNAL_LOG(INFO,
-                      absl::StrCat("mean ", avg, " vs. expected ", mean()));
-    ABSL_INTERNAL_LOG(INFO, absl::StrCat(kChiSquared, "(data, ", dof, ") = ",
-                                         chi_square, " (", p_actual, ")"));
-    ABSL_INTERNAL_LOG(INFO,
-                      absl::StrCat(kChiSquared, " @ 0.9995 = ", threshold));
+    LOG(INFO) << "trials " << trials;
+    LOG(INFO) << "mean " << avg << " vs. expected " << mean();
+    LOG(INFO) << kChiSquared << "(data, " << dof << ") = " << chi_square << " ("
+              << p_actual << ")";
+    LOG(INFO) << kChiSquared << " @ 0.9995 = " << threshold;
     FAIL() << kChiSquared << " value of " << chi_square
            << " is above the threshold.";
   }

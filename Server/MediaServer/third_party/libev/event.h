@@ -139,7 +139,7 @@ int event_loopexit (struct timeval *tv);
 int event_dispatch (void);
 
 #define _EVENT_LOG_DEBUG 0
-#define _EVENT_LOG_MSG   1
+#define _EVENT_LOG_INFO   1
 #define _EVENT_LOG_WARN  2
 #define _EVENT_LOG_ERR   3
 typedef void (*event_log_cb)(int severity, const char *msg);
