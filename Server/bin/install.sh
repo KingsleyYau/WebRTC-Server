@@ -1,17 +1,16 @@
 #!/bin/sh
-# Install mediaserver script
+# mediaserver install script
 # Author: Max.Chiu
 # Date: 2019/11/11
 
 DEMO="$1"
 
 echo -e "############## Installing mediaserver ##############"
-if [ "$DEMO" != "demo" ]; then
-  sudo yum install -y boost-chrono.x86_64 boost-system.x86_64 boost-random.x86_64 sysstat gdb
-fi
-
 CUR_DIR=$(dirname $(readlink -f "$0"))
 cd $CUR_DIR
+
+echo "# Install Dependence......"
+./dependence.sh
 
 DEST_PATH="/app/live/mediaserver"
 mkdir -p $DEST_PATH
@@ -48,12 +47,15 @@ mkdir -p $DEST_PATH/run/
 mkdir -p $DEST_PATH/log/
 mkdir -p $DEST_PATH/log/turnserver/
 
-# Change Own
-groupadd mediaserver
-useradd mediaserver -g mediaserver -M
-chown -R mediaserver:mediaserver $DEST_PATH
-mkdir -p /tmp/webrtc
-chown -R mediaserver:mediaserver /tmp/webrtc
+USER=`whoami`
+if [ "$USER" == "root" ];then
+  # Change Own
+  groupadd mediaserver
+  useradd mediaserver -g mediaserver -M
+  chown -R mediaserver:mediaserver $DEST_PATH
+  mkdir -p /tmp/webrtc
+  chown -R mediaserver:mediaserver /tmp/webrtc
+fi
 
 cd -
 echo -e "############## Installing mediaserver [\033[32mOK\033[0m] ##############"
