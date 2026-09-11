@@ -38,34 +38,8 @@
 #define ULOG_INFO    6       /* informational message */
 #define ULOG_DEBUG   7       /* debug-level message */
 
-typedef void(*SDP_LOG_FUNC_IMP)(const char *file, int line, int level, const char *fmt, ...);
-static SDP_LOG_FUNC_IMP gLogImp;
-
-static void ulog_set_func(SDP_LOG_FUNC_IMP logImp) {
-	gLogImp = logImp;
-}
-
-static void ulog_simple_log(const char *file, int line, int level, const char *fmt, ...) {
-	char logBuffer[4096] = {'\0'};
-
-    if( gLogImp ) {
-        va_list	ap;
-        va_start(ap, fmt);
-        vsnprintf(logBuffer, 4096 - 1, fmt, ap);
-        va_end(ap);
-
-    	gLogImp(file, line, level, fmt, logBuffer);
-
-    } else {
-        va_list	ap;
-        va_start(ap, fmt);
-        vsnprintf(logBuffer, 4096 - 1, fmt, ap);
-        va_end(ap);
-
-//        printf("%s:%d %s \n", file, line, logBuffer);
-    }
-
-}
+typedef void(*SDP_LOG_FUNC_IMP)(const char *file, int line, int level, const char *buffer);
+void ulog_simple_log(const char *file, int line, int level, const char *fmt, ...);
 
 #define ULOG_PRI(level, ...) ulog_simple_log(__FILE__, __LINE__, level, __VA_ARGS__)
 #define ULOGC(...)      ULOG_PRI(ULOG_CRIT,   __VA_ARGS__)

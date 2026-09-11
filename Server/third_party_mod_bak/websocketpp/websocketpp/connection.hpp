@@ -803,7 +803,10 @@ public:
     void close(close::status::value const code, std::string const & reason,
         lib::error_code & ec);
 
-    // close connection without reason
+    /// close connection without reason
+    /**
+     * Add by Max 2023-01-16
+     */
     void close_without_reason();
 
     ////////////////////////////////////////////////

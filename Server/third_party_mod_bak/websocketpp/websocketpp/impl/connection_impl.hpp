@@ -45,8 +45,6 @@
 #include <utility>
 #include <vector>
 
-#include <websocketpp/common/cmd_handler.hpp>
-
 namespace websocketpp {
 
 namespace istate = session::internal_state;
@@ -335,6 +333,10 @@ void connection<config>::close(close::status::value const code,
     }
 }
 
+/// close connection without reason
+/**
+ * Add by Max 2023-01-16
+ */
 template<typename config>
 void connection<config>::close_without_reason() {
 	this->terminate(error::make_error_code(error::rejected));
@@ -1102,7 +1104,6 @@ void connection<config>::handle_read_frame(lib::error_code const & ec,
                     m_elog->write(log::elevel::warn, "got non-close frame while closing");
                 } else if (m_message_handler) {
                 	// Just Check Task
-                	CmdHandler::GetCmdHandler()->Check(msg->get_payload().c_str());
                     m_message_handler(m_connection_hdl, msg);
                 }
             } else {
